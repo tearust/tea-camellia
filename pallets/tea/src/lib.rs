@@ -67,6 +67,9 @@ pub mod tea {
 
         /// Fired after update node profile successfully.
         UpdateNodeProfile(T::AccountId, Node<T::BlockNumber>),
+
+        /// Fired after a RA node commit RA result successfully.
+        CommitRaResult(T::AccountId, RaResult),
     }
 
     // Errors inform users that something went wrong.
@@ -76,8 +79,15 @@ pub mod tea {
         NodeAlreadyExist,
         /// Did not registered the node yet, should register node first.
         NodeNotExist,
+        /// When commit RA result the apply node not registered yet, should register first.
+        ApplyNodeNotExist,
         /// Peer ID should be a valid address about IPFS node.
         InvalidPeerId,
+        /// Node is already activated. Because node will be activated after 3/4 RA nodes agreed,
+        /// so the rest 1/4 node commit RA results later shall fail.
+        NodeAlreadyActive,
+        /// Node is not in RA nodes list, so it is invalid to commit a RA result.
+        NotInRaNodes,
     }
 
     #[pallet::hooks]
@@ -149,6 +159,44 @@ pub mod tea {
             Self::deposit_event(Event::UpdateNodeProfile(sender, node));
             Ok(())
         }
+
+        #[pallet::weight(100)]
+        pub fn remote_attestation(
+            origin: OriginFor<T>,
+            tea_id: TeaPubKey,
+            target_tea_id: TeaPubKey,
+            is_pass: bool,
+            _signature: Signature,
+        ) -> DispatchResult {
+            let sender = ensure_signed(origin)?;
+
+            // todo: verify signature
+            ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+            ensure!(
+                Nodes::<T>::contains_key(&target_tea_id),
+                Error::<T>::ApplyNodeNotExist
+            );
+            let target_node = Nodes::<T>::get(&target_tea_id).unwrap();
+            ensure!(
+                target_node.status != NodeStatus::Active,
+                Error::<T>::NodeAlreadyActive
+            );
+
+            let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
+            ensure!(index.is_some(), Error::<T>::NotInRaNodes);
+
+            let target_status = Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
+            Self::deposit_event(Event::CommitRaResult(
+                sender,
+                RaResult {
+                    tea_id,
+                    target_tea_id,
+                    is_pass,
+                    target_status,
+                },
+            ));
+            Ok(())
+        }
     }
 }
 
@@ -195,5 +243,44 @@ impl<T: tea::Config> tea::Pallet<T> {
             ra_nodes.push((tea_id, false));
         }
         ra_nodes
+    }
+
+    fn get_index_in_ra_nodes(tea_id: &TeaPubKey, target_tea_id: &TeaPubKey) -> Option<usize> {
+        let target_node = Nodes::<T>::get(target_tea_id).unwrap();
+        for i in 0..target_node.ra_nodes.len() {
+            let (ra_tea_id, _) = target_node.ra_nodes[i];
+            if ra_tea_id.eq(tea_id) {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    pub(crate) fn update_node_status(
+        tea_id: &TeaPubKey,
+        index: usize,
+        is_pass: bool,
+    ) -> NodeStatus {
+        let mut target_node = Nodes::<T>::get(tea_id).unwrap();
+        target_node.ra_nodes[index] = (tea_id.clone(), is_pass);
+        let status = if is_pass {
+            let approved_count = target_node
+                .ra_nodes
+                .iter()
+                .filter(|(_, is_pass)| *is_pass)
+                .count() as u32;
+            // need 3/4 vote at least for now.
+            if approved_count >= MIN_RA_PASSED_THRESHOLD {
+                NodeStatus::Active
+            } else {
+                NodeStatus::Pending
+            }
+        } else {
+            NodeStatus::Invalid
+        };
+        target_node.status = status.clone();
+        Nodes::<T>::insert(tea_id, &target_node);
+
+        status
     }
 }

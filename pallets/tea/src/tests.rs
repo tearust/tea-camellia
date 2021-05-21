@@ -35,12 +35,7 @@ fn builtin_node_update_node_profile_works() {
     new_test_ext().execute_with(|| {
         frame_system::Pallet::<Test>::set_block_number(100);
 
-        let tea_id = hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b");
-        let ephemeral_id = hex!("ba9147ba50faca694452db7c458e33a9a0322acbaac24bf35db7bb5165dff3ac");
-        let peer_id = "12D3KooWLCU9sscGSP7GySktL2awwNouPwrqvZECLaDafpwLKKvt";
-
-        let mut node = Node::default();
-        node.tea_id = tea_id.clone();
+        let (node, tea_id, ephemeral_id, peer_id) = new_node();
         Nodes::<Test>::insert(&tea_id, node);
         BuiltinNodes::<Test>::insert(&tea_id, &tea_id);
 
@@ -50,7 +45,7 @@ fn builtin_node_update_node_profile_works() {
             ephemeral_id.clone(),
             Vec::new(),
             Vec::new(),
-            peer_id.as_bytes().to_vec(),
+            peer_id,
         ));
         assert!(TeaModule::is_builtin_node(&tea_id));
 
@@ -65,12 +60,7 @@ fn normal_node_update_node_profile_works() {
     new_test_ext().execute_with(|| {
         frame_system::Pallet::<Test>::set_block_number(100);
 
-        let tea_id = hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b");
-        let ephemeral_id = hex!("ba9147ba50faca694452db7c458e33a9a0322acbaac24bf35db7bb5165dff3ac");
-        let peer_id = "12D3KooWLCU9sscGSP7GySktL2awwNouPwrqvZECLaDafpwLKKvt";
-
-        let mut node = Node::default();
-        node.tea_id = tea_id.clone();
+        let (node, tea_id, ephemeral_id, peer_id) = new_node();
         Nodes::<Test>::insert(&tea_id, node);
 
         assert_ok!(TeaModule::update_node_profile(
@@ -79,7 +69,7 @@ fn normal_node_update_node_profile_works() {
             ephemeral_id.clone(),
             Vec::new(),
             Vec::new(),
-            peer_id.as_bytes().to_vec(),
+            peer_id,
         ));
         assert!(!TeaModule::is_builtin_node(&tea_id));
 
@@ -92,9 +82,7 @@ fn normal_node_update_node_profile_works() {
 #[test]
 fn update_node_profile_before_register_node() {
     new_test_ext().execute_with(|| {
-        let tea_id = hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b");
-        let ephemeral_id = hex!("ba9147ba50faca694452db7c458e33a9a0322acbaac24bf35db7bb5165dff3ac");
-        let peer_id = "12D3KooWLCU9sscGSP7GySktL2awwNouPwrqvZECLaDafpwLKKvt";
+        let (_, tea_id, ephemeral_id, peer_id) = new_node::<u64>();
 
         assert_noop!(
             TeaModule::update_node_profile(
@@ -103,7 +91,7 @@ fn update_node_profile_before_register_node() {
                 ephemeral_id.clone(),
                 Vec::new(),
                 Vec::new(),
-                peer_id.as_bytes().to_vec(),
+                peer_id,
             ),
             Error::<Test>::NodeNotExist
         );
@@ -113,10 +101,7 @@ fn update_node_profile_before_register_node() {
 #[test]
 fn update_node_profile_with_empty_peer_id() {
     new_test_ext().execute_with(|| {
-        let tea_id = hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b");
-        let ephemeral_id = hex!("ba9147ba50faca694452db7c458e33a9a0322acbaac24bf35db7bb5165dff3ac");
-
-        let node = Node::default();
+        let (node, tea_id, ephemeral_id, _) = new_node();
         Nodes::<Test>::insert(&tea_id, node);
 
         assert_noop!(
@@ -131,4 +116,263 @@ fn update_node_profile_with_empty_peer_id() {
             Error::<Test>::InvalidPeerId
         );
     })
+}
+
+#[test]
+fn remote_attestation_works() {
+    new_test_ext().execute_with(|| {
+        let mut ra_nodes: Vec<(TeaPubKey, bool)> = Vec::new();
+
+        let validator_1 = hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
+        Nodes::<Test>::insert(&validator_1, Node::default());
+        ra_nodes.push((validator_1.clone(), false));
+
+        let validator_2 = hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596");
+        Nodes::<Test>::insert(&validator_2, Node::default());
+        ra_nodes.push((validator_2.clone(), false));
+
+        let validator_3 = hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52");
+        Nodes::<Test>::insert(&validator_3, Node::default());
+        ra_nodes.push((validator_3.clone(), false));
+
+        let validator_4 = hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6");
+        Nodes::<Test>::insert(&validator_4, Node::default());
+        ra_nodes.push((validator_4.clone(), false));
+
+        let (mut node, tea_id, _, _) = new_node();
+        node.ra_nodes = ra_nodes;
+        Nodes::<Test>::insert(&tea_id, node);
+
+        assert_ok!(TeaModule::remote_attestation(
+            Origin::signed(1),
+            validator_1,
+            tea_id.clone(),
+            true,
+            Vec::new()
+        ));
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id).unwrap().status,
+            NodeStatus::Pending
+        );
+
+        assert_ok!(TeaModule::remote_attestation(
+            Origin::signed(1),
+            validator_2,
+            tea_id.clone(),
+            true,
+            Vec::new()
+        ));
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id).unwrap().status,
+            NodeStatus::Pending
+        );
+
+        assert_ok!(TeaModule::remote_attestation(
+            Origin::signed(1),
+            validator_3,
+            tea_id.clone(),
+            true,
+            Vec::new()
+        ));
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id).unwrap().status,
+            NodeStatus::Active
+        );
+
+        // the 4th validator commit should see a `NodeAlreadyActive` error, this is ok because
+        // the apply node already work well.
+        assert_noop!(
+            TeaModule::remote_attestation(
+                Origin::signed(1),
+                validator_4,
+                tea_id.clone(),
+                true,
+                Vec::new()
+            ),
+            Error::<Test>::NodeAlreadyActive
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id).unwrap().status,
+            NodeStatus::Active
+        );
+    })
+}
+
+#[test]
+fn ra_node_not_exist() {
+    // validator node not exist
+    new_test_ext().execute_with(|| {
+        let (node, tea_id, _, _) = new_node();
+        Nodes::<Test>::insert(&tea_id, node);
+
+        let validator_tea_id =
+            hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
+
+        assert_noop!(
+            TeaModule::remote_attestation(
+                Origin::signed(1),
+                validator_tea_id,
+                tea_id,
+                true,
+                Vec::new()
+            ),
+            Error::<Test>::NodeNotExist
+        );
+    });
+
+    // apply node not exist
+    new_test_ext().execute_with(|| {
+        let (_, tea_id, _, _) = new_node::<u32>();
+
+        let validator_tea_id =
+            hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
+        Nodes::<Test>::insert(&validator_tea_id, Node::default());
+
+        assert_noop!(
+            TeaModule::remote_attestation(
+                Origin::signed(1),
+                validator_tea_id,
+                tea_id,
+                true,
+                Vec::new()
+            ),
+            Error::<Test>::ApplyNodeNotExist
+        );
+    });
+}
+
+#[test]
+fn node_already_active() {
+    new_test_ext().execute_with(|| {
+        let (mut node, tea_id, _, _) = new_node();
+        node.status = NodeStatus::Active;
+        Nodes::<Test>::insert(&tea_id, node);
+
+        let validator_tea_id =
+            hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
+        Nodes::<Test>::insert(&validator_tea_id, Node::default());
+
+        assert_noop!(
+            TeaModule::remote_attestation(
+                Origin::signed(1),
+                validator_tea_id,
+                tea_id,
+                true,
+                Vec::new()
+            ),
+            Error::<Test>::NodeAlreadyActive
+        );
+    })
+}
+
+#[test]
+fn validator_not_in_ra_nodes() {
+    new_test_ext().execute_with(|| {
+        let (mut node, tea_id, _, _) = new_node();
+        node.ra_nodes = Vec::new(); // validator tea id not in ra node list
+        Nodes::<Test>::insert(&tea_id, node);
+
+        let validator_tea_id =
+            hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
+        Nodes::<Test>::insert(&validator_tea_id, Node::default());
+
+        assert_noop!(
+            TeaModule::remote_attestation(
+                Origin::signed(1),
+                validator_tea_id,
+                tea_id,
+                true,
+                Vec::new()
+            ),
+            Error::<Test>::NotInRaNodes
+        );
+    })
+}
+
+#[test]
+fn update_node_status_works() {
+    let index_to_pub_key = |i: u8| [i; 32];
+
+    // test normal ra procedure
+    new_test_ext().execute_with(|| {
+        let node_index = 4u8;
+        let mut node = Node::default();
+        for i in 0..=3 {
+            node.ra_nodes.push((index_to_pub_key(i), false));
+        }
+        Nodes::<Test>::insert(index_to_pub_key(node_index), node.clone());
+        assert_eq!(node.status, NodeStatus::Pending);
+
+        for i in 0..=1 {
+            assert_eq!(
+                TeaModule::update_node_status(&index_to_pub_key(node_index), i, true),
+                NodeStatus::Pending
+            );
+            assert_eq!(
+                Nodes::<Test>::get(&index_to_pub_key(node_index))
+                    .unwrap()
+                    .status,
+                NodeStatus::Pending
+            );
+        }
+
+        for i in 2..=3 {
+            assert_eq!(
+                TeaModule::update_node_status(&index_to_pub_key(node_index), i, true),
+                NodeStatus::Active
+            );
+            assert_eq!(
+                Nodes::<Test>::get(&index_to_pub_key(node_index))
+                    .unwrap()
+                    .status,
+                NodeStatus::Active
+            );
+        }
+    });
+
+    // test node status become invalid
+    new_test_ext().execute_with(|| {
+        let node_index = 4u8;
+        let mut node = Node::default();
+        for i in 1..=4 {
+            node.ra_nodes.push((index_to_pub_key(i), false));
+        }
+        Nodes::<Test>::insert(index_to_pub_key(node_index), node);
+
+        assert_eq!(
+            TeaModule::update_node_status(&index_to_pub_key(node_index), 0, false),
+            NodeStatus::Invalid
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&index_to_pub_key(node_index))
+                .unwrap()
+                .status,
+            NodeStatus::Invalid
+        );
+
+        // node status should be invalid even if the rest of nodes (total count >= 3/4) agreed
+        for i in 1..=3 {
+            assert_eq!(
+                TeaModule::update_node_status(&index_to_pub_key(node_index), i, false),
+                NodeStatus::Invalid
+            );
+            assert_eq!(
+                TeaModule::update_node_status(&index_to_pub_key(node_index), i, false),
+                NodeStatus::Invalid
+            );
+        }
+    });
+}
+
+fn new_node<T>() -> (Node<T>, TeaPubKey, TeaPubKey, PeerId)
+where
+    T: Default,
+{
+    let tea_id = hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b");
+    let ephemeral_id = hex!("ba9147ba50faca694452db7c458e33a9a0322acbaac24bf35db7bb5165dff3ac");
+    let peer_id = "12D3KooWLCU9sscGSP7GySktL2awwNouPwrqvZECLaDafpwLKKvt";
+
+    let mut node = Node::default();
+    node.tea_id = tea_id.clone();
+    (node, tea_id, ephemeral_id, peer_id.as_bytes().to_vec())
 }

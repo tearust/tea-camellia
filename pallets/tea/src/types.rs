@@ -1,6 +1,9 @@
 use codec::{Decode, Encode};
 use sp_std::prelude::*;
 
+/// The minimum number of RA result commit to let the candidate node status become active.
+pub const MIN_RA_PASSED_THRESHOLD: u32 = 3;
+
 /// Url is a normal literal string.
 pub type Url = Vec<u8>;
 
@@ -13,6 +16,9 @@ pub type PeerId = Vec<u8>;
 
 /// Cid is from IPFS used to identify an persistent data.
 pub type Cid = Vec<u8>;
+
+/// Signature data signed by supported types of keys.
+pub type Signature = Vec<u8>;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
 pub enum NodeStatus {
@@ -55,4 +61,12 @@ where
             status: NodeStatus::Pending,
         }
     }
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
+pub struct RaResult {
+    pub tea_id: TeaPubKey,
+    pub target_tea_id: TeaPubKey,
+    pub is_pass: bool,
+    pub target_status: NodeStatus,
 }
