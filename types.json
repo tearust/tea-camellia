@@ -3,6 +3,8 @@
   "LookupSource": "MultiAddress",
   "TeaPubKey": "[u8; 32]",
   "Url": "Bytes",
+  "Cid": "Bytes",
+  "PeerId": "Bytes",
   "NodeStatus": {
     "_enum": ["Pending", "Active", "Inactive", "Invalid"]
   },
