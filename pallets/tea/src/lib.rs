@@ -66,7 +66,7 @@ pub mod tea {
                 !Nodes::<T>::contains_key(&tea_id),
                 Error::<T>::NodeAlreadyExist
             );
-            let current_block_number = <frame_system::Module<T>>::block_number();
+            let current_block_number = frame_system::Pallet::<T>::block_number();
 
             let new_node = Node {
                 tea_id,

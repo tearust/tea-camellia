@@ -4018,6 +4018,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex",
+ "hex-literal",
  "parity-scale-codec",
  "serde",
  "sp-core",
