@@ -1,0 +1,20 @@
+{
+  "Address": "MultiAddress",
+  "LookupSource": "MultiAddress",
+  "TeaPubKey": "[u8; 32]",
+  "Url": "Bytes",
+  "NodeStatus": {
+    "_enum": ["Pending", "Active", "Inactive", "Invalid"]
+  },
+  "Node": {
+    "teaId": "TeaPubKey",
+    "ephemeralId": "TeaPubKey",
+    "profileCid": "Bytes",
+    "urls": "Vec<Url>",
+    "peerId": "Bytes",
+    "createTime": "BlockNumber",
+    "updateTime": "BlockNumber",
+    "raNodes": "Vec<(TeaPubKey, bool)>",
+    "status": "NodeStatus"
+  }
+}
