@@ -271,8 +271,14 @@ impl pallet_sudo::Config for Runtime {
     type Call = Call;
 }
 
+parameter_types! {
+    // (6 * 60 * 10) blocks equals (6 * 60 * 10 * 6secs) = 6hours
+    pub const RuntimeActivityThreshold: u32 = 6 * 60 * 10;
+}
+
 impl pallet_tea::Config for Runtime {
     type Event = Event;
+    type RuntimeActivityThreshold = RuntimeActivityThreshold;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

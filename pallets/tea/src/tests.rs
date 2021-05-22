@@ -1,4 +1,4 @@
-use crate::{mock::*, types::*, BuiltinNodes, Error, Nodes};
+use crate::{mock::*, types::*, BuiltinNodes, Error, Nodes, RuntimeActivities};
 use frame_support::{assert_noop, assert_ok};
 use hex_literal::hex;
 
@@ -445,6 +445,154 @@ fn verify_ed25519_signature_works() {
             Error::<Test>::InvalidSignature
         );
     })
+}
+
+#[test]
+fn update_runtime_status_works() {
+    // without activity record
+    new_test_ext().execute_with(|| {
+        let initial_height = 10;
+        let threshold_height = RUNTIME_ACTIVITY_THRESHOLD as u64;
+
+        let tea_id1: TeaPubKey = [1; 32];
+        let mut node1 = Node::default();
+        node1.update_time = initial_height;
+        node1.status = NodeStatus::Active;
+        Nodes::<Test>::insert(&tea_id1, node1);
+
+        let tea_id2: TeaPubKey = [2; 32];
+        let mut node2 = Node::default();
+        node2.update_time = initial_height + 1;
+        node2.status = NodeStatus::Active;
+        Nodes::<Test>::insert(&tea_id2, node2);
+
+        TeaModule::update_runtime_status(initial_height + 2);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Active
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Active
+        );
+
+        TeaModule::update_runtime_status(initial_height + threshold_height);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Active
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Active
+        );
+
+        TeaModule::update_runtime_status(initial_height + threshold_height + 1);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Inactive
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Active
+        );
+
+        TeaModule::update_runtime_status(initial_height + threshold_height + 2);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Inactive
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Inactive
+        );
+    });
+
+    // has activity record, and `update_height` of the recode is one block after `update_time` of
+    // the node
+    new_test_ext().execute_with(|| {
+        let initial_height = 10;
+        let threshold_height = RUNTIME_ACTIVITY_THRESHOLD as u64;
+
+        let tea_id1: TeaPubKey = [1; 32];
+        let mut node1 = Node::default();
+        node1.update_time = initial_height;
+        node1.status = NodeStatus::Active;
+        Nodes::<Test>::insert(&tea_id1, node1);
+        RuntimeActivities::<Test>::insert(
+            &tea_id1,
+            RuntimeActivity {
+                tea_id: tea_id1.clone(),
+                cid: None,
+                ephemeral_id: [0; 32],
+                update_height: initial_height + 1,
+            },
+        );
+
+        let tea_id2: TeaPubKey = [2; 32];
+        let mut node2 = Node::default();
+        node2.update_time = initial_height + 1;
+        node2.status = NodeStatus::Active;
+        Nodes::<Test>::insert(&tea_id2, node2);
+        RuntimeActivities::<Test>::insert(
+            &tea_id2,
+            RuntimeActivity {
+                tea_id: tea_id2.clone(),
+                cid: None,
+                ephemeral_id: [0; 32],
+                update_height: initial_height + 2,
+            },
+        );
+
+        TeaModule::update_runtime_status(initial_height + 2);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Active
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Active
+        );
+
+        TeaModule::update_runtime_status(initial_height + threshold_height);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Active
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Active
+        );
+
+        TeaModule::update_runtime_status(initial_height + threshold_height + 1);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Active
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Active
+        );
+
+        TeaModule::update_runtime_status(initial_height + threshold_height + 2);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Inactive
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Active
+        );
+
+        TeaModule::update_runtime_status(initial_height + threshold_height + 3);
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id1).unwrap().status,
+            NodeStatus::Inactive
+        );
+        assert_eq!(
+            Nodes::<Test>::get(&tea_id2).unwrap().status,
+            NodeStatus::Inactive
+        );
+    });
 }
 
 fn new_node<T>() -> (Node<T>, TeaPubKey, TeaPubKey, PeerId)

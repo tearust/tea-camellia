@@ -34,6 +34,10 @@ pub mod tea {
     pub trait Config: frame_system::Config {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        /// If node dot not update runtime activity within the given block heights, status of the
+        /// node should become Inactive.
+        #[pallet::constant]
+        type RuntimeActivityThreshold: Get<u32>;
     }
 
     #[pallet::pallet]
@@ -117,7 +121,11 @@ pub mod tea {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_finalize(n: BlockNumberFor<T>) {
+            Self::update_runtime_status(n);
+        }
+    }
 
     #[pallet::genesis_config]
     #[derive(Default)]
@@ -366,5 +374,29 @@ impl<T: tea::Config> tea::Pallet<T> {
             Error::<T>::InvalidSignature
         );
         Ok(())
+    }
+
+    pub(crate) fn update_runtime_status(block_number: T::BlockNumber) {
+        for (tea_id, mut node) in Nodes::<T>::iter() {
+            if node.status == NodeStatus::Active {
+                if block_number - node.update_time <= T::RuntimeActivityThreshold::get().into() {
+                    continue;
+                }
+                match RuntimeActivities::<T>::get(&tea_id) {
+                    Some(runtime_activity) => {
+                        if block_number - runtime_activity.update_height
+                            > T::RuntimeActivityThreshold::get().into()
+                        {
+                            node.status = NodeStatus::Inactive;
+                            Nodes::<T>::insert(&tea_id, node);
+                        }
+                    }
+                    None => {
+                        node.status = NodeStatus::Inactive;
+                        Nodes::<T>::insert(&tea_id, node);
+                    }
+                }
+            }
+        }
     }
 }

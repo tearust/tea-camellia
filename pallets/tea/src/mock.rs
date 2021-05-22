@@ -7,6 +7,8 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
 };
 
+pub const RUNTIME_ACTIVITY_THRESHOLD: u32 = 6 * 60 * 10;
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -53,8 +55,13 @@ impl system::Config for Test {
     type OnSetCode = ();
 }
 
+parameter_types! {
+    pub const RuntimeActivityThreshold: u32 = RUNTIME_ACTIVITY_THRESHOLD;
+}
+
 impl pallet_tea::Config for Test {
     type Event = Event;
+    type RuntimeActivityThreshold = RuntimeActivityThreshold;
 }
 
 // Build genesis storage according to the mock runtime.
