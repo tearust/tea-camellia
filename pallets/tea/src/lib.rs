@@ -38,6 +38,9 @@ pub mod tea {
         /// node should become Inactive.
         #[pallet::constant]
         type RuntimeActivityThreshold: Get<u32>;
+        /// The minimum number of RA result commit to let the candidate node status become active.
+        #[pallet::constant]
+        type MinRaPassedThreshold: Get<u32>;
     }
 
     #[pallet::pallet]
@@ -347,7 +350,7 @@ impl<T: tea::Config> tea::Pallet<T> {
                 .filter(|(_, is_pass)| *is_pass)
                 .count() as u32;
             // need 3/4 vote at least for now.
-            if approved_count >= MIN_RA_PASSED_THRESHOLD {
+            if approved_count >= T::MinRaPassedThreshold::get() {
                 NodeStatus::Active
             } else {
                 NodeStatus::Pending

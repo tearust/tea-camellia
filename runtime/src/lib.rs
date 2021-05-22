@@ -272,13 +272,15 @@ impl pallet_sudo::Config for Runtime {
 }
 
 parameter_types! {
-    // (6 * 60 * 10) blocks equals (6 * 60 * 10 * 6secs) = 6hours
+    /// (6 * 60 * 10) blocks equals (6 * 60 * 10 * 6secs) = 6hours
     pub const RuntimeActivityThreshold: u32 = 6 * 60 * 10;
+    pub const MinRaPassedThreshold: u32 = 3;
 }
 
 impl pallet_tea::Config for Runtime {
     type Event = Event;
     type RuntimeActivityThreshold = RuntimeActivityThreshold;
+    type MinRaPassedThreshold = MinRaPassedThreshold;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

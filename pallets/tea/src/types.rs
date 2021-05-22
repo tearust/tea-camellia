@@ -1,9 +1,6 @@
 use codec::{Decode, Encode};
 use sp_std::prelude::*;
 
-/// The minimum number of RA result commit to let the candidate node status become active.
-pub const MIN_RA_PASSED_THRESHOLD: u32 = 3;
-
 /// Url is a normal literal string.
 pub type Url = Vec<u8>;
 
