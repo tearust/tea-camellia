@@ -3977,6 +3977,7 @@ dependencies = [
 name = "pallet-tea"
 version = "0.0.1"
 dependencies = [
+ "ed25519-dalek",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -3984,6 +3985,7 @@ dependencies = [
  "hex-literal",
  "pallet-randomness-collective-flip",
  "parity-scale-codec",
+ "rand 0.7.3",
  "serde",
  "sp-core",
  "sp-io",

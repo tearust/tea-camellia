@@ -364,6 +364,89 @@ fn update_node_status_works() {
     });
 }
 
+#[test]
+fn update_runtime_activity_works() {
+    use ed25519_dalek::ed25519::signature::Signature;
+    use ed25519_dalek::{Keypair, Signer};
+    use rand::rngs::OsRng;
+
+    new_test_ext().execute_with(|| {
+        let (node, tea_id, _, _) = new_node();
+        Nodes::<Test>::insert(&tea_id, node);
+
+        let mut csprng = OsRng {};
+        let kp = Keypair::generate(&mut csprng);
+        let signature = kp.sign(&tea_id);
+
+        assert_ok!(TeaModule::update_runtime_activity(
+            Origin::signed(1),
+            tea_id,
+            None,
+            kp.public.as_bytes().clone(),
+            signature.as_bytes().to_vec(),
+        ));
+    })
+}
+
+#[test]
+fn update_runtime_activity_when_node_registered() {
+    new_test_ext().execute_with(|| {
+        let (_, tea_id, ephemeral_id, _) = new_node::<u32>();
+
+        assert_noop!(
+            TeaModule::update_runtime_activity(
+                Origin::signed(1),
+                tea_id,
+                None,
+                ephemeral_id,
+                vec![0u8; 64],
+            ),
+            Error::<Test>::NodeNotExist
+        );
+    })
+}
+
+#[test]
+fn verify_ed25519_signature_works() {
+    use ed25519_dalek::ed25519::signature::Signature;
+    use ed25519_dalek::{Keypair, Signer};
+    use rand::rngs::OsRng;
+
+    new_test_ext().execute_with(|| {
+        let tea_id = [3u8; 32];
+        let mut csprng = OsRng {};
+        let kp = Keypair::generate(&mut csprng);
+        let signature = kp.sign(&tea_id);
+
+        assert!(kp.verify(&tea_id, &signature).is_ok());
+        assert_ok!(TeaModule::verify_ed25519_signature(
+            &kp.public.as_bytes(),
+            &tea_id,
+            &signature.as_bytes().to_vec(),
+        ));
+
+        assert_noop!(
+            TeaModule::verify_ed25519_signature(
+                &kp.public.as_bytes(),
+                &tea_id,
+                &vec![0u8; 33], // wrong signature length
+            ),
+            Error::<Test>::InvalidSignatureLength
+        );
+
+        let wrong_message = [2u8; 32];
+        assert!(kp.verify(&wrong_message, &signature).is_err());
+        assert_noop!(
+            TeaModule::verify_ed25519_signature(
+                &kp.public.as_bytes(),
+                &wrong_message,
+                &signature.as_bytes().to_vec(),
+            ),
+            Error::<Test>::InvalidSignature
+        );
+    })
+}
+
 fn new_node<T>() -> (Node<T>, TeaPubKey, TeaPubKey, PeerId)
 where
     T: Default,

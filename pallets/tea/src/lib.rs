@@ -16,9 +16,11 @@ mod benchmarking;
 
 mod types;
 
-use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::Randomness};
+use frame_support::{
+    dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Randomness,
+};
 use frame_system::pallet_prelude::*;
-use sp_core::U256;
+use sp_core::{ed25519, U256};
 use sp_io::hashing::blake2_256;
 use sp_std::prelude::*;
 use types::*;
@@ -69,6 +71,12 @@ pub mod tea {
     #[pallet::getter(fn builtin_nodes)]
     pub(super) type BuiltinNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, ()>;
 
+    /// Runtime activities of registered TEA nodes.
+    #[pallet::storage]
+    #[pallet::getter(fn runtime_activities)]
+    pub(super) type RuntimeActivities<T: Config> =
+        StorageMap<_, Twox64Concat, TeaPubKey, RuntimeActivity<T::BlockNumber>>;
+
     #[pallet::event]
     #[pallet::metadata(T::AccountId = "AccountId", T::BlockNumber = "BlockNumber")]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -81,6 +89,9 @@ pub mod tea {
 
         /// Fired after a RA node commit RA result successfully.
         CommitRaResult(T::AccountId, RaResult),
+
+        /// Fired after a TEA node update runtime activity successfully.
+        UpdateRuntimeActivity(T::AccountId, RuntimeActivity<T::BlockNumber>),
     }
 
     // Errors inform users that something went wrong.
@@ -99,6 +110,10 @@ pub mod tea {
         NodeAlreadyActive,
         /// Node is not in RA nodes list, so it is invalid to commit a RA result.
         NotInRaNodes,
+        /// Signature length not matched, that means signature is invalid.
+        InvalidSignatureLength,
+        /// Signature verify failed.
+        InvalidSignature,
     }
 
     #[pallet::hooks]
@@ -226,6 +241,31 @@ pub mod tea {
             ));
             Ok(())
         }
+
+        #[pallet::weight(100)]
+        pub fn update_runtime_activity(
+            origin: OriginFor<T>,
+            tea_id: TeaPubKey,
+            cid: Option<Cid>,
+            ephemeral_id: TeaPubKey,
+            signature: Signature,
+        ) -> DispatchResult {
+            let sender = ensure_signed(origin)?;
+
+            ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+            Self::verify_ed25519_signature(&ephemeral_id, &tea_id, &signature)?;
+
+            let runtime_activity = RuntimeActivity {
+                tea_id,
+                cid,
+                ephemeral_id,
+                update_height: frame_system::Pallet::<T>::block_number(),
+            };
+            RuntimeActivities::<T>::insert(&tea_id, &runtime_activity);
+
+            Self::deposit_event(Event::UpdateRuntimeActivity(sender, runtime_activity));
+            Ok(())
+        }
     }
 }
 
@@ -311,5 +351,20 @@ impl<T: tea::Config> tea::Pallet<T> {
         Nodes::<T>::insert(tea_id, &target_node);
 
         status
+    }
+
+    pub(crate) fn verify_ed25519_signature(
+        pubkey: &TeaPubKey,
+        content: &[u8],
+        signature: &Signature,
+    ) -> DispatchResult {
+        let ed25519_pubkey = ed25519::Public(pubkey.clone());
+        ensure!(signature.len() == 64, Error::<T>::InvalidSignatureLength);
+        let ed25519_sig = ed25519::Signature::from_slice(&signature[..]);
+        ensure!(
+            ed25519_sig.verify(content, &ed25519_pubkey),
+            Error::<T>::InvalidSignature
+        );
+        Ok(())
     }
 }

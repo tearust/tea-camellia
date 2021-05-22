@@ -25,5 +25,11 @@
     "teaTargetId": "TeaPubKey",
     "isPass": "bool",
     "targetStatus": "NodeStatus"
+  },
+  "RuntimeActivity": {
+    "teaId": "TeaPubKey",
+    "cid": "Option<Cid>",
+    "ephemeralId": "TeaPubKey",
+    "updateHeight": "BlockNumber"
   }
 }

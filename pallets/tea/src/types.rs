@@ -70,3 +70,11 @@ pub struct RaResult {
     pub is_pass: bool,
     pub target_status: NodeStatus,
 }
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct RuntimeActivity<BlockNumber> {
+    pub tea_id: TeaPubKey,
+    pub cid: Option<Cid>,
+    pub ephemeral_id: TeaPubKey,
+    pub update_height: BlockNumber,
+}
