@@ -121,25 +121,38 @@ fn update_node_profile_with_empty_peer_id() {
 #[test]
 fn remote_attestation_works() {
     new_test_ext().execute_with(|| {
+        let (mut node, tea_id, _, _) = new_node();
+
         let mut ra_nodes: Vec<(TeaPubKey, bool)> = Vec::new();
 
         let validator_1 = hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
-        Nodes::<Test>::insert(&validator_1, Node::default());
+        let mut node1 = Node::default();
+        let (ephemeral_id1, signature1) = generate_pk_and_signature(&validator_1, &tea_id, true);
+        node1.ephemeral_id = ephemeral_id1;
+        Nodes::<Test>::insert(&validator_1, node1);
         ra_nodes.push((validator_1.clone(), false));
 
         let validator_2 = hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596");
-        Nodes::<Test>::insert(&validator_2, Node::default());
+        let mut node2 = Node::default();
+        let (ephemeral_id2, signature2) = generate_pk_and_signature(&validator_2, &tea_id, true);
+        node2.ephemeral_id = ephemeral_id2;
+        Nodes::<Test>::insert(&validator_2, node2);
         ra_nodes.push((validator_2.clone(), false));
 
         let validator_3 = hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52");
-        Nodes::<Test>::insert(&validator_3, Node::default());
+        let mut node3 = Node::default();
+        let (ephemeral_id3, signature3) = generate_pk_and_signature(&validator_3, &tea_id, true);
+        node3.ephemeral_id = ephemeral_id3;
+        Nodes::<Test>::insert(&validator_3, node3);
         ra_nodes.push((validator_3.clone(), false));
 
         let validator_4 = hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6");
-        Nodes::<Test>::insert(&validator_4, Node::default());
+        let mut node4 = Node::default();
+        let (ephemeral_id4, signature4) = generate_pk_and_signature(&validator_4, &tea_id, true);
+        node4.ephemeral_id = ephemeral_id4;
+        Nodes::<Test>::insert(&validator_4, node4);
         ra_nodes.push((validator_4.clone(), false));
 
-        let (mut node, tea_id, _, _) = new_node();
         node.ra_nodes = ra_nodes;
         Nodes::<Test>::insert(&tea_id, node);
 
@@ -148,7 +161,7 @@ fn remote_attestation_works() {
             validator_1,
             tea_id.clone(),
             true,
-            Vec::new()
+            signature1
         ));
         assert_eq!(
             Nodes::<Test>::get(&tea_id).unwrap().status,
@@ -160,7 +173,7 @@ fn remote_attestation_works() {
             validator_2,
             tea_id.clone(),
             true,
-            Vec::new()
+            signature2
         ));
         assert_eq!(
             Nodes::<Test>::get(&tea_id).unwrap().status,
@@ -172,7 +185,7 @@ fn remote_attestation_works() {
             validator_3,
             tea_id.clone(),
             true,
-            Vec::new()
+            signature3
         ));
         assert_eq!(
             Nodes::<Test>::get(&tea_id).unwrap().status,
@@ -187,7 +200,7 @@ fn remote_attestation_works() {
                 validator_4,
                 tea_id.clone(),
                 true,
-                Vec::new()
+                signature4
             ),
             Error::<Test>::NodeAlreadyActive
         );
@@ -606,4 +619,21 @@ where
     let mut node = Node::default();
     node.tea_id = tea_id.clone();
     (node, tea_id, ephemeral_id, peer_id.as_bytes().to_vec())
+}
+
+fn generate_pk_and_signature(
+    tea_id: &TeaPubKey,
+    target_tea_id: &TeaPubKey,
+    is_pass: bool,
+) -> ([u8; 32], Signature) {
+    use crate::utils::encode_ra_request_content;
+    use ed25519_dalek::ed25519::signature::Signature;
+    use ed25519_dalek::{Keypair, Signer};
+    use rand::rngs::OsRng;
+
+    let mut csprng = OsRng {};
+    let kp = Keypair::generate(&mut csprng);
+    let signature = kp.sign(encode_ra_request_content(tea_id, target_tea_id, is_pass).as_slice());
+
+    (kp.public.as_bytes().clone(), signature.as_bytes().to_vec())
 }

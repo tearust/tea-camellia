@@ -15,6 +15,7 @@ mod tests;
 mod benchmarking;
 
 mod types;
+mod utils;
 
 use frame_support::{
     dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Randomness,
@@ -221,11 +222,10 @@ pub mod tea {
             tea_id: TeaPubKey,
             target_tea_id: TeaPubKey,
             is_pass: bool,
-            _signature: Signature,
+            signature: Signature,
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
-            // todo: verify signature
             ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
             ensure!(
                 Nodes::<T>::contains_key(&target_tea_id),
@@ -239,6 +239,10 @@ pub mod tea {
 
             let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
             ensure!(index.is_some(), Error::<T>::NotInRaNodes);
+
+            let my_node = Nodes::<T>::get(&tea_id).unwrap();
+            let content = crate::utils::encode_ra_request_content(&tea_id, &target_tea_id, is_pass);
+            Self::verify_ed25519_signature(&my_node.ephemeral_id, &content, &signature)?;
 
             let target_status = Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
             Self::deposit_event(Event::CommitRaResult(
