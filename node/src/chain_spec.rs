@@ -1,8 +1,8 @@
-use hex_literal::hex;
-use node_template_runtime::{
+use camellia_runtime::{
     AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
     SystemConfig, TeaConfig, WASM_BINARY,
 };
+use hex_literal::hex;
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};

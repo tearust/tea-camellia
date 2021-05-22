@@ -1,6 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use node_template_runtime::{self, opaque::Block, RuntimeApi};
+use camellia_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_executor::native_executor_instance;
@@ -17,8 +17,8 @@ use std::time::Duration;
 // Our native executor instance.
 native_executor_instance!(
     pub Executor,
-    node_template_runtime::api::dispatch,
-    node_template_runtime::native_version,
+    camellia_runtime::api::dispatch,
+    camellia_runtime::native_version,
     frame_benchmarking::benchmarking::HostFunctions,
 );
 
