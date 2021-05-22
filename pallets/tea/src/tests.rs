@@ -7,7 +7,7 @@ fn add_new_node_works() {
     new_test_ext().execute_with(|| {
         let public: [u8; 32] =
             hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
-        assert_ok!(TeaModule::add_new_node(Origin::signed(1), public));
+        assert_ok!(Tea::add_new_node(Origin::signed(1), public));
         let target_node = Nodes::<Test>::get(&public).unwrap();
         assert_eq!(
             target_node.create_time,
@@ -21,10 +21,10 @@ fn add_new_node_already_exist() {
     new_test_ext().execute_with(|| {
         let public: [u8; 32] =
             hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
-        let _ = TeaModule::add_new_node(Origin::signed(1), public);
+        let _ = Tea::add_new_node(Origin::signed(1), public);
 
         assert_noop!(
-            TeaModule::add_new_node(Origin::signed(1), public),
+            Tea::add_new_node(Origin::signed(1), public),
             Error::<Test>::NodeAlreadyExist
         );
     })
@@ -39,7 +39,7 @@ fn builtin_node_update_node_profile_works() {
         Nodes::<Test>::insert(&tea_id, node);
         BuiltinNodes::<Test>::insert(&tea_id, ());
 
-        assert_ok!(TeaModule::update_node_profile(
+        assert_ok!(Tea::update_node_profile(
             Origin::signed(1),
             tea_id.clone(),
             ephemeral_id.clone(),
@@ -47,7 +47,7 @@ fn builtin_node_update_node_profile_works() {
             Vec::new(),
             peer_id,
         ));
-        assert!(TeaModule::is_builtin_node(&tea_id));
+        assert!(Tea::is_builtin_node(&tea_id));
 
         let new_node = Nodes::<Test>::get(&tea_id).unwrap();
         assert_eq!(ephemeral_id, new_node.ephemeral_id);
@@ -63,7 +63,7 @@ fn normal_node_update_node_profile_works() {
         let (node, tea_id, ephemeral_id, peer_id) = new_node();
         Nodes::<Test>::insert(&tea_id, node);
 
-        assert_ok!(TeaModule::update_node_profile(
+        assert_ok!(Tea::update_node_profile(
             Origin::signed(1),
             tea_id.clone(),
             ephemeral_id.clone(),
@@ -71,7 +71,7 @@ fn normal_node_update_node_profile_works() {
             Vec::new(),
             peer_id,
         ));
-        assert!(!TeaModule::is_builtin_node(&tea_id));
+        assert!(!Tea::is_builtin_node(&tea_id));
 
         let new_node = Nodes::<Test>::get(&tea_id).unwrap();
         assert_eq!(ephemeral_id, new_node.ephemeral_id);
@@ -85,7 +85,7 @@ fn update_node_profile_before_register_node() {
         let (_, tea_id, ephemeral_id, peer_id) = new_node::<u64>();
 
         assert_noop!(
-            TeaModule::update_node_profile(
+            Tea::update_node_profile(
                 Origin::signed(1),
                 tea_id.clone(),
                 ephemeral_id.clone(),
@@ -105,7 +105,7 @@ fn update_node_profile_with_empty_peer_id() {
         Nodes::<Test>::insert(&tea_id, node);
 
         assert_noop!(
-            TeaModule::update_node_profile(
+            Tea::update_node_profile(
                 Origin::signed(1),
                 tea_id.clone(),
                 ephemeral_id.clone(),
@@ -143,7 +143,7 @@ fn remote_attestation_works() {
         node.ra_nodes = ra_nodes;
         Nodes::<Test>::insert(&tea_id, node);
 
-        assert_ok!(TeaModule::remote_attestation(
+        assert_ok!(Tea::remote_attestation(
             Origin::signed(1),
             validator_1,
             tea_id.clone(),
@@ -155,7 +155,7 @@ fn remote_attestation_works() {
             NodeStatus::Pending
         );
 
-        assert_ok!(TeaModule::remote_attestation(
+        assert_ok!(Tea::remote_attestation(
             Origin::signed(1),
             validator_2,
             tea_id.clone(),
@@ -167,7 +167,7 @@ fn remote_attestation_works() {
             NodeStatus::Pending
         );
 
-        assert_ok!(TeaModule::remote_attestation(
+        assert_ok!(Tea::remote_attestation(
             Origin::signed(1),
             validator_3,
             tea_id.clone(),
@@ -182,7 +182,7 @@ fn remote_attestation_works() {
         // the 4th validator commit should see a `NodeAlreadyActive` error, this is ok because
         // the apply node already work well.
         assert_noop!(
-            TeaModule::remote_attestation(
+            Tea::remote_attestation(
                 Origin::signed(1),
                 validator_4,
                 tea_id.clone(),
@@ -209,7 +209,7 @@ fn ra_node_not_exist() {
             hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
 
         assert_noop!(
-            TeaModule::remote_attestation(
+            Tea::remote_attestation(
                 Origin::signed(1),
                 validator_tea_id,
                 tea_id,
@@ -229,7 +229,7 @@ fn ra_node_not_exist() {
         Nodes::<Test>::insert(&validator_tea_id, Node::default());
 
         assert_noop!(
-            TeaModule::remote_attestation(
+            Tea::remote_attestation(
                 Origin::signed(1),
                 validator_tea_id,
                 tea_id,
@@ -253,7 +253,7 @@ fn node_already_active() {
         Nodes::<Test>::insert(&validator_tea_id, Node::default());
 
         assert_noop!(
-            TeaModule::remote_attestation(
+            Tea::remote_attestation(
                 Origin::signed(1),
                 validator_tea_id,
                 tea_id,
@@ -277,7 +277,7 @@ fn validator_not_in_ra_nodes() {
         Nodes::<Test>::insert(&validator_tea_id, Node::default());
 
         assert_noop!(
-            TeaModule::remote_attestation(
+            Tea::remote_attestation(
                 Origin::signed(1),
                 validator_tea_id,
                 tea_id,
@@ -305,7 +305,7 @@ fn update_node_status_works() {
 
         for i in 0..=1 {
             assert_eq!(
-                TeaModule::update_node_status(&index_to_pub_key(node_index), i, true),
+                Tea::update_node_status(&index_to_pub_key(node_index), i, true),
                 NodeStatus::Pending
             );
             assert_eq!(
@@ -318,7 +318,7 @@ fn update_node_status_works() {
 
         for i in 2..=3 {
             assert_eq!(
-                TeaModule::update_node_status(&index_to_pub_key(node_index), i, true),
+                Tea::update_node_status(&index_to_pub_key(node_index), i, true),
                 NodeStatus::Active
             );
             assert_eq!(
@@ -340,7 +340,7 @@ fn update_node_status_works() {
         Nodes::<Test>::insert(index_to_pub_key(node_index), node);
 
         assert_eq!(
-            TeaModule::update_node_status(&index_to_pub_key(node_index), 0, false),
+            Tea::update_node_status(&index_to_pub_key(node_index), 0, false),
             NodeStatus::Invalid
         );
         assert_eq!(
@@ -353,11 +353,11 @@ fn update_node_status_works() {
         // node status should be invalid even if the rest of nodes (total count >= 3/4) agreed
         for i in 1..=3 {
             assert_eq!(
-                TeaModule::update_node_status(&index_to_pub_key(node_index), i, false),
+                Tea::update_node_status(&index_to_pub_key(node_index), i, false),
                 NodeStatus::Invalid
             );
             assert_eq!(
-                TeaModule::update_node_status(&index_to_pub_key(node_index), i, false),
+                Tea::update_node_status(&index_to_pub_key(node_index), i, false),
                 NodeStatus::Invalid
             );
         }
@@ -378,7 +378,7 @@ fn update_runtime_activity_works() {
         let kp = Keypair::generate(&mut csprng);
         let signature = kp.sign(&tea_id);
 
-        assert_ok!(TeaModule::update_runtime_activity(
+        assert_ok!(Tea::update_runtime_activity(
             Origin::signed(1),
             tea_id,
             None,
@@ -394,7 +394,7 @@ fn update_runtime_activity_when_node_registered() {
         let (_, tea_id, ephemeral_id, _) = new_node::<u32>();
 
         assert_noop!(
-            TeaModule::update_runtime_activity(
+            Tea::update_runtime_activity(
                 Origin::signed(1),
                 tea_id,
                 None,
@@ -419,14 +419,14 @@ fn verify_ed25519_signature_works() {
         let signature = kp.sign(&tea_id);
 
         assert!(kp.verify(&tea_id, &signature).is_ok());
-        assert_ok!(TeaModule::verify_ed25519_signature(
+        assert_ok!(Tea::verify_ed25519_signature(
             &kp.public.as_bytes(),
             &tea_id,
             &signature.as_bytes().to_vec(),
         ));
 
         assert_noop!(
-            TeaModule::verify_ed25519_signature(
+            Tea::verify_ed25519_signature(
                 &kp.public.as_bytes(),
                 &tea_id,
                 &vec![0u8; 33], // wrong signature length
@@ -437,7 +437,7 @@ fn verify_ed25519_signature_works() {
         let wrong_message = [2u8; 32];
         assert!(kp.verify(&wrong_message, &signature).is_err());
         assert_noop!(
-            TeaModule::verify_ed25519_signature(
+            Tea::verify_ed25519_signature(
                 &kp.public.as_bytes(),
                 &wrong_message,
                 &signature.as_bytes().to_vec(),
@@ -466,7 +466,7 @@ fn update_runtime_status_works() {
         node2.status = NodeStatus::Active;
         Nodes::<Test>::insert(&tea_id2, node2);
 
-        TeaModule::update_runtime_status(initial_height + 2);
+        Tea::update_runtime_status(initial_height + 2);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Active
@@ -476,7 +476,7 @@ fn update_runtime_status_works() {
             NodeStatus::Active
         );
 
-        TeaModule::update_runtime_status(initial_height + threshold_height);
+        Tea::update_runtime_status(initial_height + threshold_height);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Active
@@ -486,7 +486,7 @@ fn update_runtime_status_works() {
             NodeStatus::Active
         );
 
-        TeaModule::update_runtime_status(initial_height + threshold_height + 1);
+        Tea::update_runtime_status(initial_height + threshold_height + 1);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Inactive
@@ -496,7 +496,7 @@ fn update_runtime_status_works() {
             NodeStatus::Active
         );
 
-        TeaModule::update_runtime_status(initial_height + threshold_height + 2);
+        Tea::update_runtime_status(initial_height + threshold_height + 2);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Inactive
@@ -543,7 +543,7 @@ fn update_runtime_status_works() {
             },
         );
 
-        TeaModule::update_runtime_status(initial_height + 2);
+        Tea::update_runtime_status(initial_height + 2);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Active
@@ -553,7 +553,7 @@ fn update_runtime_status_works() {
             NodeStatus::Active
         );
 
-        TeaModule::update_runtime_status(initial_height + threshold_height);
+        Tea::update_runtime_status(initial_height + threshold_height);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Active
@@ -563,7 +563,7 @@ fn update_runtime_status_works() {
             NodeStatus::Active
         );
 
-        TeaModule::update_runtime_status(initial_height + threshold_height + 1);
+        Tea::update_runtime_status(initial_height + threshold_height + 1);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Active
@@ -573,7 +573,7 @@ fn update_runtime_status_works() {
             NodeStatus::Active
         );
 
-        TeaModule::update_runtime_status(initial_height + threshold_height + 2);
+        Tea::update_runtime_status(initial_height + threshold_height + 2);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Inactive
@@ -583,7 +583,7 @@ fn update_runtime_status_works() {
             NodeStatus::Active
         );
 
-        TeaModule::update_runtime_status(initial_height + threshold_height + 3);
+        Tea::update_runtime_status(initial_height + threshold_height + 3);
         assert_eq!(
             Nodes::<Test>::get(&tea_id1).unwrap().status,
             NodeStatus::Inactive

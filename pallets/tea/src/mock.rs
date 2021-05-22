@@ -20,7 +20,7 @@ frame_support::construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        TeaModule: pallet_tea::{Pallet, Call, Storage, Event<T>},
+        Tea: pallet_tea::{Pallet, Call, Storage, Event<T>},
     }
 );
 
