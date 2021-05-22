@@ -38,25 +38,36 @@ pub mod tea {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
+    /// TEA node storage, key is TEA ID with type of `TeaPubKey`, value is a struct holding
+    /// information about a TEA node.
     #[pallet::storage]
     #[pallet::getter(fn nodes)]
     pub(super) type Nodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>>;
 
+    /// Bootstrap nodes set, key is TEA ID with type of `TeaPubKey`, value is an empty place holder.
+    ///
+    /// Bootstrap node must have public IP address, and url list should record how to access it.
     #[pallet::storage]
     #[pallet::getter(fn boot_nodes)]
-    pub(super) type BootNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, TeaPubKey>;
+    pub(super) type BootNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, ()>;
 
+    /// Ephemeral ID map, key is Ephemeral ID with type of `TeaPubKey`, value is TEA ID with
+    /// type of `TeaPubKey`.
     #[pallet::storage]
     #[pallet::getter(fn ephemeral_ids)]
     pub(super) type EphemeralIds<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, TeaPubKey>;
 
+    /// PeerId ID map, key is Peer ID with type of `PeerId`, value is TEA ID with type of
+    /// `TeaPubKey`.
     #[pallet::storage]
     #[pallet::getter(fn peer_ids)]
     pub(super) type PeerIds<T: Config> = StorageMap<_, Twox64Concat, PeerId, TeaPubKey>;
 
+    /// Builtin nodes used to startup the RA process, key is TEA ID with type of `TeaPubKey`,
+    /// value is an empty place holder.
     #[pallet::storage]
     #[pallet::getter(fn builtin_nodes)]
-    pub(super) type BuiltinNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, TeaPubKey>;
+    pub(super) type BuiltinNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, ()>;
 
     #[pallet::event]
     #[pallet::metadata(T::AccountId = "AccountId", T::BlockNumber = "BlockNumber")]
@@ -153,7 +164,7 @@ pub mod tea {
             EphemeralIds::<T>::insert(ephemeral_id, &tea_id);
             PeerIds::<T>::insert(&peer_id, &tea_id);
             if urls_count > 0 {
-                BootNodes::<T>::insert(&tea_id, &tea_id);
+                BootNodes::<T>::insert(&tea_id, ());
             }
 
             Self::deposit_event(Event::UpdateNodeProfile(sender, node));
