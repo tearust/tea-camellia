@@ -37,7 +37,7 @@ fn builtin_node_update_node_profile_works() {
 
         let (node, tea_id, ephemeral_id, peer_id) = new_node();
         Nodes::<Test>::insert(&tea_id, node);
-        BuiltinNodes::<Test>::insert(&tea_id, &tea_id);
+        BuiltinNodes::<Test>::insert(&tea_id, ());
 
         assert_ok!(TeaModule::update_node_profile(
             Origin::signed(1),
