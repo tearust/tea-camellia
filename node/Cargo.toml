@@ -1,16 +1,16 @@
 [package]
-authors = ['Substrate DevHub <https://github.com/substrate-developer-hub>']
+authors = ['TeaRust']
 build = 'build.rs'
-description = 'A fresh FRAME-based Substrate node, ready for hacking.'
+description = 'Tea layer1.'
 edition = '2018'
-homepage = 'https://substrate.dev'
-license = 'Unlicense'
-name = 'node-template'
-repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
-version = '3.0.0'
+homepage = 'https://teaproject.org'
+license = 'GPL-3.0'
+name = 'tea-camellia'
+repository = 'https://github.com/tearust/tea-camellia'
+version = '0.0.1'
 
 [[bin]]
-name = 'node-template'
+name = 'tea-camellia'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -53,7 +53,7 @@ sp-transaction-pool = {version = '3.0.0', git = 'https://github.com/paritytech/s
 substrate-frame-rpc-system = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 
 # local dependencies
-camellia-runtime = {version = '3.0.0', path = '../runtime'}
+camellia-runtime = {version = '0.0.1', path = '../runtime'}
 
 [features]
 default = []
