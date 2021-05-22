@@ -1,6 +1,7 @@
+use hex_literal::hex;
 use node_template_runtime::{
     AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-    SystemConfig, WASM_BINARY,
+    SystemConfig, TeaConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -159,6 +160,16 @@ fn testnet_genesis(
         pallet_sudo: SudoConfig {
             // Assign network admin rights.
             key: root_key,
+        },
+
+        pallet_tea: TeaConfig {
+            builtin_nodes: vec![
+                hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b"),
+                hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596"),
+                hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6"),
+                hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52"),
+                hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
+            ],
         },
     }
 }

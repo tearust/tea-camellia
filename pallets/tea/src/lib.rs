@@ -104,6 +104,24 @@ pub mod tea {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
+    #[pallet::genesis_config]
+    #[derive(Default)]
+    pub struct GenesisConfig {
+        pub builtin_nodes: Vec<TeaPubKey>,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {
+            for tea_id in self.builtin_nodes.iter() {
+                let mut node = Node::default();
+                node.tea_id = tea_id.clone();
+                Nodes::<T>::insert(tea_id, node);
+                BuiltinNodes::<T>::insert(tea_id, ());
+            }
+        }
+    }
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// add new node is an expensive operation to prevent abuse

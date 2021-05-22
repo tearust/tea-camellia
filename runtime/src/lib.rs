@@ -298,7 +298,7 @@ construct_runtime!(
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         // Include the custom logic from the pallet-template in the runtime.
         TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
-        TeaModule: pallet_tea::{Pallet, Call, Storage, Event<T>},
+        Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
     }
 );
 
