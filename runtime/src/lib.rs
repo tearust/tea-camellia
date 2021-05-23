@@ -43,6 +43,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_tea;
+pub use pallet_cml;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -97,8 +98,8 @@ pub mod opaque {
 // To learn more about runtime versioning and what each of the following value means:
 //   https://substrate.dev/docs/en/knowledgebase/runtime/upgrades#runtime-versioning
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("node-template"),
-    impl_name: create_runtime_str!("node-template"),
+    spec_name: create_runtime_str!("tea-layer1"),
+    impl_name: create_runtime_str!("tea-layer1"),
     authoring_version: 1,
     // The version of the runtime specification. A full node will not attempt to use its native
     //   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
@@ -109,6 +110,13 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
+};
+
+pub mod currency {
+    use Balance;
+
+    pub const CENTS: Balance = 10_000_000_000; 
+    pub const DOLLARS: Balance = 100 * CENTS;
 };
 
 /// This determines the average expected block time that we are targeting.
@@ -283,6 +291,19 @@ impl pallet_tea::Config for Runtime {
     type MinRaPassedThreshold = MinRaPassedThreshold;
 }
 
+parameter_types! {
+    pub const Unit: Balance = 1 * DOLLARS;
+    pub const StakingPrice: u32 = 1000;
+}
+impl pallet_cml::Config for Runtime {
+    type Event = Event;
+    type AssetId = u32;
+    type Dai = u64;
+    type Currency = Balances;
+    type Unit = Unit;
+    type StakingPrice = StakingPrice;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -300,6 +321,7 @@ construct_runtime!(
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
+        Cml: pallet_cml::{Pallet, Call, Config, Storage, Event<T>} = 100,
     }
 );
 
