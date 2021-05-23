@@ -1,13 +1,19 @@
 use camellia_runtime::{
     AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-    SystemConfig, TeaConfig, WASM_BINARY,
+    SystemConfig, TeaConfig, WASM_BINARY, CmlConfig, 
+    
+    currency::DOLLARS,
 };
 use hex_literal::hex;
-use sc_service::ChainType;
+use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{sr25519, Pair, Public, crypto};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
+
+use jsonrpc_core::serde_json;
+use std::str::FromStr;
+use sp_core::crypto::Ss58Codec;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -35,6 +41,14 @@ where
 /// Generate an Aura authority key.
 pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+}
+
+fn get_properties(symbol: &str) -> Properties {
+    serde_json::json!({
+        "tokenDecimals": 12,
+        "ss58Format": 0,
+        "tokenSymbol": symbol,
+    }).as_object().unwrap().clone()
 }
 
 pub fn development_config() -> Result<ChainSpec, String> {
@@ -70,7 +84,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
         // Protocol ID
         None,
         // Properties
-        None,
+        Some(get_properties("TEA")),
         // Extensions
         None,
     ))
@@ -131,9 +145,31 @@ fn testnet_genesis(
     wasm_binary: &[u8],
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     root_key: AccountId,
-    endowed_accounts: Vec<AccountId>,
+    _endowed_accounts: Vec<AccountId>,
     _enable_println: bool,
 ) -> GenesisConfig {
+
+    let FAUCET_ACCOUNT = crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
+
+    let endowed_accounts: Vec<(AccountId, u128)> = {
+		vec![
+			(get_account_id_from_seed::<sr25519::Public>("Alice"), 10000*DOLLARS),
+			(get_account_id_from_seed::<sr25519::Public>("Bob"), 100*DOLLARS),
+			// (get_account_id_from_seed::<sr25519::Public>("Charlie"), 1000),
+			// (get_account_id_from_seed::<sr25519::Public>("Dave"), 0),
+			// (get_account_id_from_seed::<sr25519::Public>("Eve"), 0),
+			// (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 10000*DOLLARS),
+			(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), 10000*DOLLARS),
+			(get_account_id_from_seed::<sr25519::Public>("Bob//stash"), 10000*DOLLARS),
+			// get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+			// get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+			// get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+            // get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+            
+            (FAUCET_ACCOUNT, 100000*DOLLARS)
+		]
+	};
+
     GenesisConfig {
         frame_system: SystemConfig {
             // Add Wasm runtime to storage.
@@ -145,7 +181,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k, 1 << 60))
+                .map(|k| (k.0, k.1))
                 .collect(),
         },
         pallet_aura: AuraConfig {
@@ -171,5 +207,11 @@ fn testnet_genesis(
                 hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
             ],
         },
+        pallet_cml: CmlConfig {
+            dai_list: vec![
+                (get_account_id_from_seed::<sr25519::Public>("Alice"), 1389),
+                (crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap(), 1389),
+            ]
+        }
     }
 }

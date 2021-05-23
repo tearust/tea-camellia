@@ -113,11 +113,12 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 };
 
 pub mod currency {
-    use Balance;
+    use super::Balance;
 
     pub const CENTS: Balance = 10_000_000_000; 
     pub const DOLLARS: Balance = 100 * CENTS;
-};
+}
+use currency::*;
 
 /// This determines the average expected block time that we are targeting.
 /// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
@@ -298,9 +299,8 @@ parameter_types! {
 impl pallet_cml::Config for Runtime {
     type Event = Event;
     type AssetId = u32;
-    type Dai = u64;
     type Currency = Balances;
-    type Unit = Unit;
+    // type Unit = Unit;
     type StakingPrice = StakingPrice;
 }
 
@@ -321,7 +321,7 @@ construct_runtime!(
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
-        Cml: pallet_cml::{Pallet, Call, Config, Storage, Event<T>} = 100,
+        Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
     }
 );
 

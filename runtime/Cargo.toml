@@ -60,6 +60,7 @@ runtime-benchmarks = [
 	'hex-literal',
 	'pallet-balances/runtime-benchmarks',
 	'pallet-tea/runtime-benchmarks',
+	'pallet-cml/runtime-benchmarks',
 	'pallet-timestamp/runtime-benchmarks',
 	'sp-runtime/runtime-benchmarks',
 ]

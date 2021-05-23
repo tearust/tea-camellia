@@ -2,8 +2,8 @@
 
 use super::*;
 
-impl<T: Config> StoredMap<T::AssetId, T::AccountId> for Pallet<T, I> {
+// impl<T: cml::Config> StoredMap<T::AssetId, T::AccountId> for cml::Pallet<T> {
 
-}
+// }
 
 

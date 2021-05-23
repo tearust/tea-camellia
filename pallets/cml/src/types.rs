@@ -1,13 +1,13 @@
 
-use super::*;
+// use super::*;
+use codec::{Decode, Encode};
+use sp_std::prelude::*;
+use sp_runtime::RuntimeDebug;
 
-pub(super) type BalanceOf<T> =
-	<<T as Config<I>>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
-pub(super) type DepositBalanceOf<T, I = ()> =
-	<<T as Config<I>>::Currency as Currency<<T as SystemConfig>::AccountId>>::Balance;
+pub type Dai = u32;
 
 #[derive(Clone, Encode, Decode, Default, RuntimeDebug)]
-pub(super) struct StakingItem<AccountId, AssetId> {
+pub struct StakingItem<AccountId, AssetId> {
 	owner: AccountId,
 	category: Vec<u8>,   // seed, tea
 	amount: u32,  // amount of tea
@@ -15,7 +15,7 @@ pub(super) struct StakingItem<AccountId, AssetId> {
 }
 
 #[derive(Clone, Encode, Decode, Default, RuntimeDebug)]
-pub(super) struct MinerItem {
+pub struct MinerItem {
 	id: Vec<u8>,
 	group: Vec<u8>,
 	ip: Vec<u8>,
