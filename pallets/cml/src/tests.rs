@@ -16,11 +16,3 @@
 // limitations under the License.
 
 //! Tests for Assets pallet.
-
-use super::*;
-use crate::{Error, mock::*};
-use sp_runtime::TokenError;
-use frame_support::{assert_ok, assert_noop, traits::Currency};
-use pallet_balances::Error as BalancesError;
-
-
