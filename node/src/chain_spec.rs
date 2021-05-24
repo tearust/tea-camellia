@@ -13,7 +13,7 @@ use sp_runtime::traits::{IdentifyAccount, Verify};
 
 use jsonrpc_core::serde_json;
 use std::str::FromStr;
-use sp_core::crypto::Ss58Codec;
+// use sp_core::crypto::Ss58Codec;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
