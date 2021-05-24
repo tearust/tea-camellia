@@ -12,8 +12,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn get_next_id() -> T::AssetId {
 		let cid = LastAssetId::<T>::get();
-		let id = cid.clone();
-		LastAssetId::<T>::mutate(|id| *id += One::one());
+		let _id = cid.clone();
+		LastAssetId::<T>::mutate(|_id| *_id += One::one());
 
 		cid
 	}
@@ -114,7 +114,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		(list, index)
 	}
 
-	pub fn updateCmlToActive(
+	pub fn update_cml_to_active(
 		who: &T::AccountId,
 		cml_id: &T::AssetId,
 		miner_id: Vec<u8>,
@@ -122,7 +122,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	) -> Result<(), Error<T>> {
 		let (mut list, index) = Self::find_cml_index(&who, &cml_id);
 
-		if(index < 0){
+		if index < 0 {
 			return Err(Error::<T>::NotFoundCML);
 		}
 
@@ -138,7 +138,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Ok(())
 	}
 
-	pub fn stakingToCml(
+	pub fn staking_to_cml(
 		staking_item: StakingItem<T::AccountId, T::AssetId>,
 
 		who: &T::AccountId,
@@ -146,13 +146,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 	) -> Result<(), Error<T>> {
 		let (mut list, index) = Self::find_cml_index(&who, &target_cml_id);
 
-		if(index < 0){
+		if index < 0 {
 			return Err(Error::<T>::NotFoundCML);
 		}
 
 		let cml: &mut CML<T::AssetId, T::AccountId, T::BlockNumber> = list.get_mut(index as usize).unwrap();
 
-		if(cml.status != b"CML_Live".to_vec()){
+		if cml.status != b"CML_Live".to_vec() {
 			return Err(Error::<T>::CMLNotLive);
 		}
 

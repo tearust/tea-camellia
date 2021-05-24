@@ -13,25 +13,33 @@ mod functions;
 mod types;
 use types::*;
 
-use sp_std::{prelude::*, borrow::Borrow};
+use sp_std::{
+	prelude::*, 
+	// borrow::Borrow
+};
 use sp_runtime::{
 		SaturatedConversion,
-		RuntimeDebug, TokenError, traits::{
-		AtLeast32BitUnsigned, AtLeast32Bit, Zero, One, StaticLookup, Saturating, CheckedSub, CheckedAdd, Bounded,
-		StoredMapError,
+		traits::{
+		// AtLeast32BitUnsigned, 
+		AtLeast32Bit, Zero, One, 
+		// Saturating, CheckedSub, CheckedAdd, Bounded, StoredMapError,
 	}
 };
-use log::{debug, info};
+use log::{info};
 
 use frame_support::{
 	dispatch::DispatchResult,
 	pallet_prelude::*,
 };
 use frame_system::pallet_prelude::*;
-use codec::{HasCompact};
-use frame_support::{ensure, dispatch::{DispatchError}};
-use frame_support::traits::{Currency, ReservableCurrency, BalanceStatus, StoredMap, Get,};
-use frame_support::traits::tokens::{WithdrawConsequence, DepositConsequence, fungibles};
+// use codec::{HasCompact};
+use frame_support::{ensure};
+use frame_support::traits::{
+	Currency, 
+	// ReservableCurrency, BalanceStatus, StoredMap, 
+	Get,
+};
+
 // use frame_system::Config as SystemConfig;
 pub use cml::*;
 
@@ -122,7 +130,7 @@ pub mod cml {
 	}
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(
 		T::AccountId = "AccountId",
 		T::AssetId = "AssetId"
@@ -219,7 +227,7 @@ pub mod cml {
 				amount: T::StakingPrice::get(),
 				cml: None,
 			};
-			Self::updateCmlToActive(&sender, &cml_id, miner_id.clone(), staking_item)?;
+			Self::update_cml_to_active(&sender, &cml_id, miner_id.clone(), staking_item)?;
 			<MinerItemStore<T>>::insert(&miner_id, miner_item);
 
 			info!("TODO ---- lock balance");
