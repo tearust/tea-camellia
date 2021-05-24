@@ -1,15 +1,15 @@
 use camellia_runtime::{
-    constants::currency::DOLLARS, AccountId, BabeConfig, BalancesConfig, CmlConfig, GenesisConfig,
-    GrandpaConfig, Signature, SudoConfig, SystemConfig, TeaConfig, WASM_BINARY,
+    constants::currency::DOLLARS, pallet_cml::Dai, AccountId, BabeConfig, Balance, BalancesConfig,
+    CmlConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig, SystemConfig, TeaConfig,
+    WASM_BINARY,
 };
 use hex_literal::hex;
+use jsonrpc_core::serde_json;
 use sc_service::{ChainType, Properties};
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto, sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
-
-use jsonrpc_core::serde_json;
 use std::str::FromStr;
 // use sp_core::crypto::Ss58Codec;
 
@@ -71,6 +71,8 @@ fn get_properties(symbol: &str) -> Properties {
 
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+    let jacky_account =
+        crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -92,7 +94,11 @@ pub fn development_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                 ],
-                true,
+                10000 * DOLLARS,
+                vec![
+                    (get_account_id_from_seed::<sr25519::Public>("Alice"), 1389),
+                    (jacky_account.clone(), 1389),
+                ],
             )
         },
         // Bootnodes
@@ -142,7 +148,8 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
-                true,
+                1 << 60,
+                vec![(get_account_id_from_seed::<sr25519::Public>("Alice"), 1389)],
             )
         },
         // Bootnodes
@@ -163,42 +170,10 @@ fn testnet_genesis(
     wasm_binary: &[u8],
     initial_authorities: Vec<(AccountId, AccountId, BabeId, GrandpaId)>,
     root_key: AccountId,
-    _endowed_accounts: Vec<AccountId>,
-    _enable_println: bool,
+    endowed_accounts: Vec<AccountId>,
+    endowed_balance: Balance,
+    dai_list: Vec<(AccountId, Dai)>,
 ) -> GenesisConfig {
-    let jacky_account =
-        crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
-
-    let endowed_accounts: Vec<(AccountId, u128)> = {
-        vec![
-            (
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                10000 * DOLLARS,
-            ),
-            (
-                get_account_id_from_seed::<sr25519::Public>("Bob"),
-                100 * DOLLARS,
-            ),
-            // (get_account_id_from_seed::<sr25519::Public>("Charlie"), 1000),
-            // (get_account_id_from_seed::<sr25519::Public>("Dave"), 0),
-            // (get_account_id_from_seed::<sr25519::Public>("Eve"), 0),
-            // (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 10000*DOLLARS),
-            (
-                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                10000 * DOLLARS,
-            ),
-            (
-                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                10000 * DOLLARS,
-            ),
-            // get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-            // get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-            // get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-            // get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-            (jacky_account.clone(), 10000 * DOLLARS),
-        ]
-    };
-
     GenesisConfig {
         frame_system: SystemConfig {
             // Add Wasm runtime to storage.
@@ -210,7 +185,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
-                .map(|k| (k.0, k.1))
+                .map(|k| (k, endowed_balance))
                 .collect(),
         },
         pallet_babe: BabeConfig {
@@ -240,11 +215,6 @@ fn testnet_genesis(
                 hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
             ],
         },
-        pallet_cml: CmlConfig {
-            dai_list: vec![
-                (get_account_id_from_seed::<sr25519::Public>("Alice"), 1389),
-                (jacky_account.clone(), 1389),
-            ],
-        },
+        pallet_cml: CmlConfig { dai_list },
     }
 }

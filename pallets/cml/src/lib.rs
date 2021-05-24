@@ -11,7 +11,7 @@ mod tests;
 mod impl_stored_map;
 mod functions;
 mod types;
-use types::*;
+pub use types::*;
 
 use sp_std::{
 	prelude::*, 
