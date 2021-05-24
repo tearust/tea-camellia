@@ -48,6 +48,8 @@ sp-version = {default-features = false, version = '3.0.0', git = 'https://github
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
 
+pallet-cml = {default-features = false, path = '../pallets/cml'}
+
 [features]
 default = ['std']
 runtime-benchmarks = [
@@ -58,6 +60,7 @@ runtime-benchmarks = [
 	'hex-literal',
 	'pallet-balances/runtime-benchmarks',
 	'pallet-tea/runtime-benchmarks',
+	'pallet-cml/runtime-benchmarks',
 	'pallet-timestamp/runtime-benchmarks',
 	'sp-runtime/runtime-benchmarks',
 ]
@@ -87,4 +90,5 @@ std = [
 	'sp-std/std',
 	'sp-transaction-pool/std',
 	'sp-version/std',
+	'pallet-cml/std',
 ]
