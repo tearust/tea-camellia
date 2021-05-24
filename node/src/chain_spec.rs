@@ -1,13 +1,11 @@
 use camellia_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-    SystemConfig, TeaConfig, WASM_BINARY, CmlConfig, 
-    
-    currency::DOLLARS,
+    constants::currency::DOLLARS, AccountId, BabeConfig, BalancesConfig, CmlConfig, GenesisConfig,
+    GrandpaConfig, Signature, SudoConfig, SystemConfig, TeaConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use sc_service::{ChainType, Properties};
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{sr25519, Pair, Public, crypto};
+use sp_consensus_babe::AuthorityId as BabeId;
+use sp_core::{crypto, sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
@@ -38,9 +36,26 @@ where
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-/// Generate an Aura authority key.
-pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
-    (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+/// Helper function to generate stash, controller and session key from seed
+pub fn authority_keys_from_seed(
+    seed: &str,
+) -> (
+    AccountId,
+    AccountId,
+    BabeId,
+    GrandpaId,
+    // todo: uncomment ImOnlineId and AuthorityDiscoveryId later
+    // ImOnlineId,
+    // AuthorityDiscoveryId,
+) {
+    (
+        get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
+        get_account_id_from_seed::<sr25519::Public>(seed),
+        get_from_seed::<BabeId>(seed),
+        get_from_seed::<GrandpaId>(seed),
+        // get_from_seed::<ImOnlineId>(seed),
+        // get_from_seed::<AuthorityDiscoveryId>(seed),
+    )
 }
 
 fn get_properties(symbol: &str) -> Properties {
@@ -48,9 +63,11 @@ fn get_properties(symbol: &str) -> Properties {
         "tokenDecimals": 12,
         "ss58Format": 0,
         "tokenSymbol": symbol,
-    }).as_object().unwrap().clone()
+    })
+    .as_object()
+    .unwrap()
+    .clone()
 }
-
 
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
@@ -144,32 +161,43 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
     wasm_binary: &[u8],
-    initial_authorities: Vec<(AuraId, GrandpaId)>,
+    initial_authorities: Vec<(AccountId, AccountId, BabeId, GrandpaId)>,
     root_key: AccountId,
     _endowed_accounts: Vec<AccountId>,
     _enable_println: bool,
 ) -> GenesisConfig {
-
-    let jacky_account = crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
+    let jacky_account =
+        crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
 
     let endowed_accounts: Vec<(AccountId, u128)> = {
-		vec![
-			(get_account_id_from_seed::<sr25519::Public>("Alice"), 10000*DOLLARS),
-			(get_account_id_from_seed::<sr25519::Public>("Bob"), 100*DOLLARS),
-			// (get_account_id_from_seed::<sr25519::Public>("Charlie"), 1000),
-			// (get_account_id_from_seed::<sr25519::Public>("Dave"), 0),
-			// (get_account_id_from_seed::<sr25519::Public>("Eve"), 0),
-			// (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 10000*DOLLARS),
-			(get_account_id_from_seed::<sr25519::Public>("Alice//stash"), 10000*DOLLARS),
-			(get_account_id_from_seed::<sr25519::Public>("Bob//stash"), 10000*DOLLARS),
-			// get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-			// get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-			// get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+        vec![
+            (
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                10000 * DOLLARS,
+            ),
+            (
+                get_account_id_from_seed::<sr25519::Public>("Bob"),
+                100 * DOLLARS,
+            ),
+            // (get_account_id_from_seed::<sr25519::Public>("Charlie"), 1000),
+            // (get_account_id_from_seed::<sr25519::Public>("Dave"), 0),
+            // (get_account_id_from_seed::<sr25519::Public>("Eve"), 0),
+            // (get_account_id_from_seed::<sr25519::Public>("Ferdie"), 10000*DOLLARS),
+            (
+                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                10000 * DOLLARS,
+            ),
+            (
+                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                10000 * DOLLARS,
+            ),
+            // get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+            // get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+            // get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
             // get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-            
-            (jacky_account.clone(), 10000*DOLLARS)
-		]
-	};
+            (jacky_account.clone(), 10000 * DOLLARS),
+        ]
+    };
 
     GenesisConfig {
         frame_system: SystemConfig {
@@ -185,13 +213,17 @@ fn testnet_genesis(
                 .map(|k| (k.0, k.1))
                 .collect(),
         },
-        pallet_aura: AuraConfig {
-            authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
+        pallet_babe: BabeConfig {
+            authorities: initial_authorities
+                .iter()
+                .map(|x| (x.2.clone(), 1))
+                .collect(),
+            epoch_config: Some(camellia_runtime::BABE_GENESIS_EPOCH_CONFIG),
         },
         pallet_grandpa: GrandpaConfig {
             authorities: initial_authorities
                 .iter()
-                .map(|x| (x.1.clone(), 1))
+                .map(|x| (x.3.clone(), 1))
                 .collect(),
         },
         pallet_sudo: SudoConfig {
@@ -212,7 +244,7 @@ fn testnet_genesis(
             dai_list: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Alice"), 1389),
                 (jacky_account.clone(), 1389),
-            ]
-        }
+            ],
+        },
     }
 }

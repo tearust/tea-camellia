@@ -31,8 +31,8 @@ pub use frame_support::{
     },
     StorageValue,
 };
-pub use node_primitives::{AccountId, Signature};
-use node_primitives::{Balance, BlockNumber, Hash, Index, Moment};
+pub use node_primitives::{AccountId, Balance, Index, Signature};
+use node_primitives::{BlockNumber, Hash, Moment};
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
