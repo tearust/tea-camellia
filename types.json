@@ -31,5 +31,30 @@
     "cid": "Option<Cid>",
     "ephemeralId": "TeaPubKey",
     "updateHeight": "BlockNumber"
+  },
+
+  "Dai": "u32",
+  "StakingItem": {
+    "owner": "AccountId",
+    "category": "Cid",
+    "amount": "u32",
+    "cml": "Option<AssetId>"
+  },
+  "CML": {
+    "id": "AssetId",
+    "group": "Cid",
+    "status": "Cid",
+    "life_time": "BlockNumber",
+    "lock_time": "BlockNumber",
+    "mining_rate": "u8",
+    "staking_slot": "Vec<StakingItem>",
+    "created_at": "BlockNumber",
+    "miner_id": "Cid"
+  },
+  "MinerItem": {
+    "id": "Cid",
+    "group": "Cid",
+    "ip": "Cid",
+    "status": "Cid"
   }
 }
