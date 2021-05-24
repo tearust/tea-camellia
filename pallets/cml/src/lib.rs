@@ -64,11 +64,14 @@ pub mod cml {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+	#[pallet::type_value]
+	pub(super) fn DefaultAssetId<T: Config>() -> T::AssetId { <T::AssetId>::saturated_from(10000_u32) }
 	#[pallet::storage]
 	pub(super) type LastAssetId<T: Config> = StorageValue<
 		_,
 		T::AssetId,
 		ValueQuery,
+		DefaultAssetId<T>,
 	>;
 
 	#[pallet::storage]

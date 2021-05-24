@@ -51,6 +51,7 @@ fn get_properties(symbol: &str) -> Properties {
     }).as_object().unwrap().clone()
 }
 
+
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
@@ -149,7 +150,7 @@ fn testnet_genesis(
     _enable_println: bool,
 ) -> GenesisConfig {
 
-    let FAUCET_ACCOUNT = crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
+    let jacky_account = crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
 
     let endowed_accounts: Vec<(AccountId, u128)> = {
 		vec![
@@ -166,7 +167,7 @@ fn testnet_genesis(
 			// get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
             // get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
             
-            (FAUCET_ACCOUNT, 100000*DOLLARS)
+            (jacky_account.clone(), 10000*DOLLARS)
 		]
 	};
 
@@ -210,7 +211,7 @@ fn testnet_genesis(
         pallet_cml: CmlConfig {
             dai_list: vec![
                 (get_account_id_from_seed::<sr25519::Public>("Alice"), 1389),
-                (crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap(), 1389),
+                (jacky_account.clone(), 1389),
             ]
         }
     }
