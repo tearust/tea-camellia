@@ -1,7 +1,7 @@
 use camellia_runtime::{
-    constants::currency::DOLLARS, pallet_cml::Dai, AccountId, BabeConfig, Balance, BalancesConfig,
-    CmlConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig, SystemConfig, TeaConfig,
-    WASM_BINARY,
+    constants::currency::DOLLARS, opaque::SessionKeys, pallet_cml::Dai, AccountId, BabeConfig,
+    Balance, BalancesConfig, CmlConfig, GenesisConfig, GrandpaConfig, SessionConfig, Signature,
+    StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use jsonrpc_core::serde_json;
@@ -9,9 +9,11 @@ use sc_service::{ChainType, Properties};
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto, sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{
+    traits::{IdentifyAccount, Verify},
+    Perbill,
+};
 use std::str::FromStr;
-// use sp_core::crypto::Ss58Codec;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -174,6 +176,7 @@ fn testnet_genesis(
     endowed_balance: Balance,
     dai_list: Vec<(AccountId, Dai)>,
 ) -> GenesisConfig {
+    const STASH: Balance = 100 * DOLLARS;
     GenesisConfig {
         frame_system: SystemConfig {
             // Add Wasm runtime to storage.
@@ -189,21 +192,38 @@ fn testnet_genesis(
                 .collect(),
         },
         pallet_babe: BabeConfig {
-            authorities: initial_authorities
-                .iter()
-                .map(|x| (x.2.clone(), 1))
-                .collect(),
+            authorities: vec![],
             epoch_config: Some(camellia_runtime::BABE_GENESIS_EPOCH_CONFIG),
         },
         pallet_grandpa: GrandpaConfig {
-            authorities: initial_authorities
-                .iter()
-                .map(|x| (x.3.clone(), 1))
-                .collect(),
+            authorities: vec![],
         },
         pallet_sudo: SudoConfig {
             // Assign network admin rights.
             key: root_key,
+        },
+        pallet_session: SessionConfig {
+            keys: initial_authorities
+                .iter()
+                .map(|x| {
+                    (
+                        x.0.clone(),
+                        x.0.clone(),
+                        session_keys(x.2.clone(), x.3.clone()),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        },
+        pallet_staking: StakingConfig {
+            stakers: initial_authorities
+                .iter()
+                .map(|x| (x.0.clone(), x.1.clone(), STASH, StakerStatus::Validator))
+                .collect(),
+            validator_count: initial_authorities.len() as u32 * 2,
+            minimum_validator_count: initial_authorities.len() as u32,
+            invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+            slash_reward_fraction: Perbill::from_percent(10),
+            ..Default::default()
         },
 
         pallet_tea: TeaConfig {
@@ -217,4 +237,8 @@ fn testnet_genesis(
         },
         pallet_cml: CmlConfig { dai_list },
     }
+}
+
+fn session_keys(babe: BabeId, grandpa: GrandpaId) -> SessionKeys {
+    SessionKeys { babe, grandpa }
 }
