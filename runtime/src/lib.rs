@@ -195,9 +195,7 @@ impl pallet_babe::Config for Runtime {
     // todo replace EpochChangeTrigger type value to `pallet_babe::ExternalTrigger` later
     // type EpochChangeTrigger = pallet_babe::ExternalTrigger;
 
-    type KeyOwnerProofSystem = ();
-    // todo set KeyOwner related value when session pallet is on
-    // type KeyOwnerProofSystem = Historical;
+    type KeyOwnerProofSystem = Historical;
 
     type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
         KeyTypeId,
