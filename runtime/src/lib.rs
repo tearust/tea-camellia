@@ -183,9 +183,8 @@ parameter_types! {
     //       Attempting to do so will brick block production.
     pub const EpochDuration: u64 = EPOCH_DURATION_IN_SLOTS;
     pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
-    pub const ReportLongevity: u64 = EpochDuration::get();
-        // todo uncomment this after staking pallet imported.
-        // BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * EpochDuration::get();
+    pub const ReportLongevity: u64 =
+        BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * EpochDuration::get();
 }
 
 impl pallet_babe::Config for Runtime {
@@ -207,10 +206,8 @@ impl pallet_babe::Config for Runtime {
         pallet_babe::AuthorityId,
     )>>::Proof;
 
-    type HandleEquivocation = ();
-    // todo implement HandleEquivocation later
-    // type HandleEquivocation =
-    // pallet_babe::EquivocationHandler<Self::KeyOwnerIdentification, Offences, ReportLongevity>;
+    type HandleEquivocation =
+        pallet_babe::EquivocationHandler<Self::KeyOwnerIdentification, Offences, ReportLongevity>;
 
     type WeightInfo = ();
 }
@@ -219,7 +216,7 @@ impl pallet_grandpa::Config for Runtime {
     type Event = Event;
     type Call = Call;
 
-    type KeyOwnerProofSystem = ();
+    type KeyOwnerProofSystem = Historical;
 
     type KeyOwnerProof =
         <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
@@ -229,7 +226,11 @@ impl pallet_grandpa::Config for Runtime {
         GrandpaId,
     )>>::IdentificationTuple;
 
-    type HandleEquivocation = ();
+    type HandleEquivocation = pallet_grandpa::EquivocationHandler<
+        Self::KeyOwnerIdentification,
+        Offences,
+        ReportLongevity,
+    >;
 
     type WeightInfo = ();
 }
@@ -365,6 +366,12 @@ impl pallet_authorship::Config for Runtime {
     type EventHandler = Staking; // todo add ImOnline later: (Staking, ImOnline);
 }
 
+impl pallet_offences::Config for Runtime {
+    type Event = Event;
+    type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
+    type OnOffenceHandler = Staking;
+}
+
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
 where
     Call: From<C>,
@@ -416,6 +423,7 @@ construct_runtime!(
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
         Historical: pallet_session_historical::{Pallet},
         Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
+        Offences: pallet_offences::{Pallet, Call, Storage, Event},
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
@@ -543,15 +551,13 @@ impl_runtime_apis! {
 
         fn generate_key_ownership_proof(
             _slot: sp_consensus_babe::Slot,
-            _authority_id: sp_consensus_babe::AuthorityId,
+            authority_id: sp_consensus_babe::AuthorityId,
         ) -> Option<sp_consensus_babe::OpaqueKeyOwnershipProof> {
-            // todo: uncomment me later
-            // use codec::Encode;
-            //
-            // Historical::prove((sp_consensus_babe::KEY_TYPE, authority_id))
-            //     .map(|p| p.encode())
-            //     .map(sp_consensus_babe::OpaqueKeyOwnershipProof::new)
-            None
+            use codec::Encode;
+
+            Historical::prove((sp_consensus_babe::KEY_TYPE, authority_id))
+                .map(|p| p.encode())
+                .map(sp_consensus_babe::OpaqueKeyOwnershipProof::new)
         }
 
         fn submit_report_equivocation_unsigned_extrinsic(
@@ -585,23 +591,29 @@ impl_runtime_apis! {
         }
 
         fn submit_report_equivocation_unsigned_extrinsic(
-            _equivocation_proof: fg_primitives::EquivocationProof<
+            equivocation_proof: fg_primitives::EquivocationProof<
                 <Block as BlockT>::Hash,
                 NumberFor<Block>,
             >,
-            _key_owner_proof: fg_primitives::OpaqueKeyOwnershipProof,
+            key_owner_proof: fg_primitives::OpaqueKeyOwnershipProof,
         ) -> Option<()> {
-            None
+            let key_owner_proof = key_owner_proof.decode()?;
+
+            Grandpa::submit_unsigned_equivocation_report(
+                equivocation_proof,
+                key_owner_proof,
+            )
         }
 
         fn generate_key_ownership_proof(
             _set_id: fg_primitives::SetId,
-            _authority_id: GrandpaId,
+            authority_id: GrandpaId,
         ) -> Option<fg_primitives::OpaqueKeyOwnershipProof> {
-            // NOTE: this is the only implementation possible since we've
-            // defined our key owner proof type as a bottom type (i.e. a type
-            // with no values).
-            None
+            use codec::Encode;
+
+            Historical::prove((fg_primitives::KEY_TYPE, authority_id))
+                .map(|p| p.encode())
+                .map(fg_primitives::OpaqueKeyOwnershipProof::new)
         }
     }
 
