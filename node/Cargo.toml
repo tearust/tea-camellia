@@ -24,9 +24,6 @@ structopt = '0.3.8'
 hex-literal = "0.3.1"
 
 # Substrate dependencies
-frame-benchmarking = {version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
-frame-benchmarking-cli = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
-pallet-transaction-payment-rpc = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sc-basic-authorship = {version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sc-cli = {features = ['wasmtime'], version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sc-client-api = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
@@ -41,6 +38,7 @@ sc-rpc-api = {version = '0.9.0', git = 'https://github.com/paritytech/substrate.
 sc-service = {features = ['wasmtime'], version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sc-telemetry = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sc-transaction-pool = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+
 sp-api = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-block-builder = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-blockchain = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
@@ -53,7 +51,14 @@ sp-runtime = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.
 sp-transaction-pool = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-timestamp = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-authorship = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+
 substrate-frame-rpc-system = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+
+frame-benchmarking = {version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+frame-benchmarking-cli = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+
+pallet-im-online = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-transaction-payment-rpc = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # local dependencies
 camellia-runtime = {version = '0.0.1', path = '../runtime'}

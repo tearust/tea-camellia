@@ -54,6 +54,7 @@ pallet-staking = {default-features = false, version = '3.0.0', git = 'https://gi
 pallet-staking-reward-curve = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-authorship = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-offences = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-im-online = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
@@ -114,4 +115,5 @@ std = [
 	'pallet-staking/std',
     'pallet-authorship/std',
 	'pallet-offences/std',
+    'pallet-im-online/std',
 ]

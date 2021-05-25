@@ -1,10 +1,12 @@
 use camellia_runtime::{
     constants::currency::DOLLARS, opaque::SessionKeys, pallet_cml::Dai, AccountId, BabeConfig,
-    Balance, BalancesConfig, CmlConfig, GenesisConfig, GrandpaConfig, SessionConfig, Signature,
-    StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig, WASM_BINARY,
+    Balance, BalancesConfig, CmlConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
+    SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
+    WASM_BINARY,
 };
 use hex_literal::hex;
 use jsonrpc_core::serde_json;
+use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::{ChainType, Properties};
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto, sr25519, Pair, Public};
@@ -46,8 +48,7 @@ pub fn authority_keys_from_seed(
     AccountId,
     BabeId,
     GrandpaId,
-    // todo: uncomment ImOnlineId and AuthorityDiscoveryId later
-    // ImOnlineId,
+    ImOnlineId,
     // AuthorityDiscoveryId,
 ) {
     (
@@ -55,7 +56,7 @@ pub fn authority_keys_from_seed(
         get_account_id_from_seed::<sr25519::Public>(seed),
         get_from_seed::<BabeId>(seed),
         get_from_seed::<GrandpaId>(seed),
-        // get_from_seed::<ImOnlineId>(seed),
+        get_from_seed::<ImOnlineId>(seed),
         // get_from_seed::<AuthorityDiscoveryId>(seed),
     )
 }
@@ -170,7 +171,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
     wasm_binary: &[u8],
-    initial_authorities: Vec<(AccountId, AccountId, BabeId, GrandpaId)>,
+    initial_authorities: Vec<(AccountId, AccountId, BabeId, GrandpaId, ImOnlineId)>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     endowed_balance: Balance,
@@ -209,7 +210,7 @@ fn testnet_genesis(
                     (
                         x.0.clone(),
                         x.0.clone(),
-                        session_keys(x.2.clone(), x.3.clone()),
+                        session_keys(x.2.clone(), x.3.clone(), x.4.clone()),
                     )
                 })
                 .collect::<Vec<_>>(),
@@ -236,9 +237,14 @@ fn testnet_genesis(
             ],
         },
         pallet_cml: CmlConfig { dai_list },
+        pallet_im_online: ImOnlineConfig { keys: vec![] },
     }
 }
 
-fn session_keys(babe: BabeId, grandpa: GrandpaId) -> SessionKeys {
-    SessionKeys { babe, grandpa }
+fn session_keys(babe: BabeId, grandpa: GrandpaId, im_online: ImOnlineId) -> SessionKeys {
+    SessionKeys {
+        babe,
+        grandpa,
+        im_online,
+    }
 }
