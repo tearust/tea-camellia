@@ -52,6 +52,7 @@ pallet-transaction-payment-rpc-runtime-api = {default-features = false, version 
 pallet-session = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 pallet-staking = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 pallet-staking-reward-curve = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+pallet-authorship = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
@@ -110,4 +111,5 @@ std = [
 	'pallet-cml/std',
 	'pallet-session/std',
 	'pallet-staking/std',
+    'pallet-authorship/std',
 ]

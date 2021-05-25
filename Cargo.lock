@@ -695,6 +695,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "hex-literal",
  "node-primitives",
+ "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
  "pallet-cml",
