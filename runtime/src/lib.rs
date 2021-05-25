@@ -194,9 +194,7 @@ parameter_types! {
 impl pallet_babe::Config for Runtime {
     type EpochDuration = EpochDuration;
     type ExpectedBlockTime = ExpectedBlockTime;
-    type EpochChangeTrigger = pallet_babe::SameAuthoritiesForever;
-    // todo replace EpochChangeTrigger type value to `pallet_babe::ExternalTrigger` later
-    // type EpochChangeTrigger = pallet_babe::ExternalTrigger;
+    type EpochChangeTrigger = pallet_babe::ExternalTrigger;
 
     type KeyOwnerProofSystem = Historical;
 
