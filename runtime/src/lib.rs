@@ -13,6 +13,7 @@ use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
 use pallet_transaction_payment::CurrencyAdapter;
 use sp_api::impl_runtime_apis;
+use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str,
@@ -77,6 +78,7 @@ pub mod opaque {
             pub babe: Babe,
             pub grandpa: Grandpa,
             pub im_online: ImOnline,
+            pub authority_discovery: AuthorityDiscovery,
         }
     }
 }
@@ -368,6 +370,8 @@ impl pallet_authorship::Config for Runtime {
     type EventHandler = (Staking, ImOnline);
 }
 
+impl pallet_authority_discovery::Config for Runtime {}
+
 impl pallet_offences::Config for Runtime {
     type Event = Event;
     type IdentificationTuple = pallet_session::historical::IdentificationTuple<Self>;
@@ -441,6 +445,7 @@ construct_runtime!(
         Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
         Offences: pallet_offences::{Pallet, Call, Storage, Event},
         ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>},
+        AuthorityDiscovery: pallet_authority_discovery::{Pallet, Call, Config},
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
@@ -637,6 +642,12 @@ impl_runtime_apis! {
     impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
         fn account_nonce(account: AccountId) -> Index {
             System::account_nonce(account)
+        }
+    }
+
+    impl sp_authority_discovery::AuthorityDiscoveryApi<Block> for Runtime {
+        fn authorities() -> Vec<AuthorityDiscoveryId> {
+            AuthorityDiscovery::authorities()
         }
     }
 

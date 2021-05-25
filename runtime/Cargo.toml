@@ -32,6 +32,7 @@ sp-std = {default-features = false, version = '3.0.0', git = 'https://github.com
 sp-transaction-pool = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-version = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-staking = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+sp-authority-discovery = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # Substrate dependencies
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
@@ -55,6 +56,7 @@ pallet-staking-reward-curve = {default-features = false, version = '3.0.0', git 
 pallet-authorship = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-offences = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-im-online = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-authority-discovery = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
@@ -94,6 +96,7 @@ std = [
 	'sp-transaction-pool/std',
 	'sp-version/std',
     'sp-staking/std',
+	'sp-authority-discovery/std',
 
 	'frame-executive/std',
 	'frame-support/std',
@@ -116,4 +119,5 @@ std = [
     'pallet-authorship/std',
 	'pallet-offences/std',
     'pallet-im-online/std',
+	'pallet-authority-discovery/std',
 ]
