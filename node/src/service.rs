@@ -9,7 +9,7 @@ use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sp_inherents::InherentDataProviders;
+use sp_runtime::traits::Block as BlockT;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -57,7 +57,6 @@ pub fn new_partial(
             "Remote Keystores are not supported."
         )));
     }
-    let inherent_data_providers = InherentDataProviders::new();
 
     let telemetry = config
         .telemetry_endpoints
@@ -105,13 +104,27 @@ pub fn new_partial(
         client.clone(),
     )?;
 
+    let slot_duration = babe_link.config().slot_duration();
     let import_queue = sc_consensus_babe::import_queue(
         babe_link.clone(),
         block_import.clone(),
         Some(Box::new(grandpa_block_import.clone())),
         client.clone(),
         select_chain.clone(),
-        inherent_data_providers.clone(), // todo: inherent_data_providers may reimplement later
+        move |_, ()| async move {
+            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+            let slot =
+                sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_duration(
+                    *timestamp,
+                    slot_duration,
+                );
+
+            let uncles =
+                sp_authorship::InherentDataProvider::<<Block as BlockT>::Header>::check_inherents();
+
+            Ok((timestamp, slot, uncles))
+        },
         &task_manager.spawn_essential_handle(),
         config.prometheus_registry(),
         sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
@@ -126,7 +139,6 @@ pub fn new_partial(
         keystore_container,
         select_chain,
         transaction_pool,
-        inherent_data_providers,
         other: (block_import, babe_link, grandpa_link, telemetry),
     })
 }
@@ -148,7 +160,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         mut keystore_container,
         select_chain,
         transaction_pool,
-        inherent_data_providers,
         other: (block_import, babe_link, grandpa_link, mut telemetry),
     } = new_partial(&config)?;
 
@@ -239,6 +250,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         let can_author_with =
             sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
+        let client_clone = client.clone();
+        let slot_duration = babe_link.config().slot_duration();
         let babe_config = sc_consensus_babe::BabeParams {
             keystore: keystore_container.sync_keystore(),
             client: client.clone(),
@@ -246,7 +259,25 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             env: proposer_factory,
             block_import,
             sync_oracle: network.clone(),
-            inherent_data_providers: inherent_data_providers.clone(),
+            create_inherent_data_providers: move |parent, ()| {
+                let client_clone = client_clone.clone();
+                async move {
+                    let uncles = sc_consensus_uncles::create_uncles_inherent_data_provider(
+                        &*client_clone,
+                        parent,
+                    )?;
+
+                    let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+                    let slot =
+                        sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_duration(
+                            *timestamp,
+                            slot_duration,
+                        );
+
+                    Ok((timestamp, slot, uncles))
+                }
+            },
             force_authoring,
             backoff_authoring_blocks,
             babe_link,
@@ -361,13 +392,27 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
         client.clone(),
     )?;
 
+    let slot_duration = babe_link.config().slot_duration();
     let import_queue = sc_consensus_babe::import_queue(
         babe_link.clone(),
         block_import.clone(),
         Some(Box::new(grandpa_block_import.clone())),
         client.clone(),
         select_chain.clone(),
-        InherentDataProviders::new(), // todo: inherent_data_providers may reimplement later
+        move |_, ()| async move {
+            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+            let slot =
+                sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_duration(
+                    *timestamp,
+                    slot_duration,
+                );
+
+            let uncles =
+                sp_authorship::InherentDataProvider::<<Block as BlockT>::Header>::check_inherents();
+
+            Ok((timestamp, slot, uncles))
+        },
         &task_manager.spawn_essential_handle(),
         config.prometheus_registry(),
         sp_consensus::NeverCanAuthor,

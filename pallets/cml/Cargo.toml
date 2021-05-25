@@ -14,19 +14,19 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-sp-std = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+sp-std = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 # Needed for various traits. In our case, `OnFinalize`.
-sp-runtime = { version = "3.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05' }
+sp-runtime = { version = "3.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 # Needed for type-safe access to storage DB.
-frame-support = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+frame-support = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 # `system` module provides us with all sorts of useful stuff and macros depend on it being around.
-frame-system = { version = "3.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05' }
-frame-benchmarking = { version = "3.1.0", default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05' }
+frame-system = { version = "3.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+frame-benchmarking = { version = "3.1.0", default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 log = "0.4.8"
 
 [dev-dependencies]
-sp-core = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
-pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05' }
+sp-core = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 
 [features]
 default = ["std"]
