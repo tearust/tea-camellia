@@ -22,7 +22,7 @@ services:
     ports:
       - 9944:9944
       - 9933:9933
-    command: bash -c "tea-camellia --chain local --alice --unsafe-ws-external --unsafe-rpc-external --rpc-cors all -lwarn"
+    command: bash -c "tea-camellia --chain local --alice --unsafe-ws-external --unsafe-rpc-external --rpc-cors all"
     networks:
       - alice-network
       - blockchain-network
@@ -32,7 +32,7 @@ services:
     container_name: layer1-bob
     ports:
       - 9943:9944
-    command: bash -c "tea-camellia --chain local --bob --unsafe-ws-external --unsafe-rpc-external --rpc-cors all -lwarn"
+    command: bash -c "tea-camellia --chain local --bob --unsafe-ws-external --unsafe-rpc-external --rpc-cors all"
     networks:
       - bob-network
       - blockchain-network
@@ -42,7 +42,7 @@ services:
     container_name: layer1-charlie
     ports:
       - 9942:9944
-    command: bash -c "tea-camellia --chain local --charlie --unsafe-ws-external --unsafe-rpc-external --rpc-cors all -lwarn"
+    command: bash -c "tea-camellia --chain local --charlie --unsafe-ws-external --unsafe-rpc-external --rpc-cors all"
     networks:
       - charlie-network
       - blockchain-network
@@ -52,7 +52,7 @@ services:
     container_name: layer1-dave
     ports:
       - 9941:9944
-    command: bash -c "tea-camellia --chain local --dave --unsafe-ws-external --unsafe-rpc-external --rpc-cors all -lwarn"
+    command: bash -c "tea-camellia --chain local --dave --unsafe-ws-external --unsafe-rpc-external --rpc-cors all"
     networks:
       - dave-network
       - blockchain-network
@@ -62,7 +62,7 @@ services:
     container_name: layer1-eve
     ports:
       - 9940:9944
-    command: bash -c "tea-camellia --chain local --eve --unsafe-ws-external --unsafe-rpc-external --rpc-cors all -lwarn"
+    command: bash -c "tea-camellia --chain local --eve --unsafe-ws-external --unsafe-rpc-external --rpc-cors all"
     networks:
       - eve-network
       - blockchain-network
@@ -72,7 +72,7 @@ services:
     container_name: layer1-ferdie
     ports:
       - 9939:9944
-    command: bash -c "tea-camellia --chain local --ferdie --unsafe-ws-external --unsafe-rpc-external --rpc-cors all -lwarn"
+    command: bash -c "tea-camellia --chain local --ferdie --unsafe-ws-external --unsafe-rpc-external --rpc-cors all"
     networks:
       - ferdie-network
       - blockchain-network
