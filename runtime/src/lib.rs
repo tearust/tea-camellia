@@ -352,7 +352,7 @@ impl frame_election_provider_support::ElectionProvider<AccountId, BlockNumber> f
 
     fn elect() -> Result<(frame_election_provider_support::Supports<AccountId>, Weight), Self::Error>
     {
-        Err("<() as ElectionProvider> cannot do anything.")
+        Ok((frame_election_provider_support::Supports::new(), 0))
     }
 }
 
