@@ -65,10 +65,10 @@ pallet-collective = {default-features = false, version = '3.0.0', git = 'https:/
 pallet-membership = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-scheduler = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-democracy = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-utility = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
-
 pallet-cml = {default-features = false, path = '../pallets/cml'}
 
 [features]
@@ -135,5 +135,6 @@ std = [
     'pallet-membership/std',
 	'pallet-scheduler/std',
 	'pallet-democracy/std',
+    'pallet-utility/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test
