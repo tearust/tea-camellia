@@ -707,6 +707,7 @@ dependencies = [
  "pallet-grandpa",
  "pallet-im-online",
  "pallet-membership",
+ "pallet-multisig",
  "pallet-offences",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
@@ -4103,6 +4104,20 @@ dependencies = [
  "frame-system",
  "log",
  "parity-scale-codec",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-multisig"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
