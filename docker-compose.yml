@@ -5,10 +5,17 @@ services:
     container_name: tea-camellia-build 
     image: paritytech/ci-linux:production
     working_dir: /tearust/tea-camellia
-    ports:
-      - "9944:9944"
     environment:
       - CARGO_HOME=/tearust/.cargo
     volumes:
       - ../:/tearust
     command: bash -c "cargo build --release --target-dir /tearust/tea-camellia/docker/target"
+  fast:
+    container_name: tea-camellia-fast
+    image: paritytech/ci-linux:production
+    working_dir: /tearust/tea-camellia
+    environment:
+      - CARGO_HOME=/tearust/.cargo
+    volumes:
+      - ../:/tearust
+    command: bash -c "cargo build --release --target-dir /tearust/tea-camellia/docker/target --features fast"
