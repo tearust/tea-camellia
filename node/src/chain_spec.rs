@@ -2,7 +2,8 @@ use camellia_runtime::{
     constants::currency::DOLLARS, opaque::SessionKeys, pallet_cml::Dai, AccountId,
     AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig, CouncilConfig,
     ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, Signature,
-    StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig, WASM_BINARY,
+    StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig, TechnicalCommitteeConfig,
+    WASM_BINARY,
 };
 use hex_literal::hex;
 use jsonrpc_core::serde_json;
@@ -246,6 +247,15 @@ fn testnet_genesis(
                 .collect(),
         },
         pallet_collective_Instance1: CouncilConfig::default(),
+        pallet_collective_Instance2: TechnicalCommitteeConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .collect(),
+            phantom: Default::default(),
+        },
+        pallet_membership_Instance1: Default::default(),
 
         pallet_tea: TeaConfig {
             builtin_nodes: vec![
