@@ -1,8 +1,9 @@
 use camellia_runtime::{
     constants::currency::DOLLARS, opaque::SessionKeys, pallet_cml::Dai, AccountId,
-    AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig, GenesisConfig,
-    GrandpaConfig, ImOnlineConfig, SessionConfig, Signature, StakerStatus, StakingConfig,
-    SudoConfig, SystemConfig, TeaConfig, WASM_BINARY,
+    AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig, CouncilConfig,
+    DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig, SessionConfig,
+    Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
+    TechnicalCommitteeConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use jsonrpc_core::serde_json;
@@ -187,6 +188,7 @@ fn testnet_genesis(
     dai_list: Vec<(AccountId, Dai)>,
 ) -> GenesisConfig {
     const STASH: Balance = 100 * DOLLARS;
+    let num_endowed_accounts = endowed_accounts.len();
     GenesisConfig {
         frame_system: SystemConfig {
             // Add Wasm runtime to storage.
@@ -237,6 +239,25 @@ fn testnet_genesis(
         },
         pallet_im_online: ImOnlineConfig { keys: vec![] },
         pallet_authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
+        pallet_elections_phragmen: ElectionsConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .map(|member| (member, STASH))
+                .collect(),
+        },
+        pallet_collective_Instance1: CouncilConfig::default(),
+        pallet_collective_Instance2: TechnicalCommitteeConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .collect(),
+            phantom: Default::default(),
+        },
+        pallet_membership_Instance1: Default::default(),
+        pallet_democracy: DemocracyConfig::default(),
 
         pallet_tea: TeaConfig {
             builtin_nodes: vec![
