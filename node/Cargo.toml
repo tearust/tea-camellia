@@ -69,3 +69,4 @@ camellia-runtime = {version = '0.0.1', path = '../runtime'}
 [features]
 default = []
 runtime-benchmarks = ['camellia-runtime/runtime-benchmarks']
+fast = ['camellia-runtime/fast']
