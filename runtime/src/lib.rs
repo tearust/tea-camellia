@@ -333,13 +333,13 @@ parameter_types! {
 }
 
 impl pallet_staking::Config for Runtime {
-    const MAX_NOMINATIONS: u32 = 32; // todo set according to NPoS pallet later
+    const MAX_NOMINATIONS: u32 = MAX_NOMINATIONS;
     type Currency = Balances;
     type UnixTime = Timestamp;
     type CurrencyToVote = U128CurrencyToVote;
-    type RewardRemainder = (); // todo add Treasury later
+    type RewardRemainder = (); // there is no treasury so no need to remind
     type Event = Event;
-    type Slash = (); // todo send the slashed funds to the treasury.
+    type Slash = (); // there is no treasury, slashed currency are burned
     type Reward = (); // rewards are minted from the void
     type SessionsPerEra = SessionsPerEra;
     type BondingDuration = BondingDuration;
@@ -616,7 +616,7 @@ impl pallet_democracy::Config for Runtime {
     type CooloffPeriod = CooloffPeriod;
     type PreimageByteDeposit = PreimageByteDeposit;
     type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
-    type Slash = ();
+    type Slash = (); // there is no treasury, slashed currency are burned
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
     type MaxVotes = MaxVotes;
