@@ -64,6 +64,7 @@ pallet-election-provider-multi-phase = {default-features = false, version = '3.0
 pallet-collective = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-membership = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-scheduler = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-democracy = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
@@ -133,5 +134,6 @@ std = [
 	'pallet-collective/std',
     'pallet-membership/std',
 	'pallet-scheduler/std',
+	'pallet-democracy/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test

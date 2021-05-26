@@ -701,6 +701,7 @@ dependencies = [
  "pallet-balances",
  "pallet-cml",
  "pallet-collective",
+ "pallet-democracy",
  "pallet-election-provider-multi-phase",
  "pallet-elections-phragmen",
  "pallet-grandpa",
@@ -3997,6 +3998,21 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-democracy"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
  "sp-io",
  "sp-runtime",
  "sp-std",
