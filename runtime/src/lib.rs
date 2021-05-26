@@ -14,6 +14,7 @@ use frame_support::{
         DispatchClass, IdentityFee, Weight,
     },
 };
+use frame_system::{EnsureOneOf, EnsureRoot};
 use node_primitives::{BlockNumber, Hash, Moment};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
@@ -22,7 +23,11 @@ use pallet_session::historical as pallet_session_historical;
 use pallet_transaction_payment::CurrencyAdapter;
 use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{
+    crypto::KeyTypeId,
+    u32_trait::{_3, _4},
+    OpaqueMetadata,
+};
 use sp_runtime::{
     create_runtime_str,
     curve::PiecewiseLinear,
@@ -339,8 +344,12 @@ impl pallet_staking::Config for Runtime {
     type SessionsPerEra = SessionsPerEra;
     type BondingDuration = BondingDuration;
     type SlashDeferDuration = SlashDeferDuration;
-    /// todo replace with A super-majority of the council can cancel the slash.
-    type SlashCancelOrigin = frame_system::EnsureRoot<AccountId>;
+    /// A super-majority of the council can cancel the slash.
+    type SlashCancelOrigin = EnsureOneOf<
+        AccountId,
+        EnsureRoot<AccountId>,
+        pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>,
+    >;
     type SessionInterface = Self;
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
     type NextNewSession = Session;
@@ -456,10 +465,10 @@ impl pallet_elections_phragmen::Config for Runtime {
     type Event = Event;
     type PalletId = ElectionsPhragmenPalletId;
     type Currency = Balances;
-    type ChangeMembers = ();
+    type ChangeMembers = Council;
     // NOTE: this implies that council's genesis members cannot be set directly and must come from
     // this module.
-    type InitializeMembers = ();
+    type InitializeMembers = Council;
     type CurrencyToVote = U128CurrencyToVote;
     type CandidacyBond = CandidacyBond;
     type VotingBondBase = VotingBondBase;
@@ -470,6 +479,24 @@ impl pallet_elections_phragmen::Config for Runtime {
     type DesiredRunnersUp = DesiredRunnersUp;
     type TermDuration = TermDuration;
     type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
+    pub const CouncilMaxProposals: u32 = 100;
+    pub const CouncilMaxMembers: u32 = 100;
+}
+
+type CouncilCollective = pallet_collective::Instance1;
+impl pallet_collective::Config<CouncilCollective> for Runtime {
+    type Origin = Origin;
+    type Proposal = Call;
+    type Event = Event;
+    type MotionDuration = CouncilMotionDuration;
+    type MaxProposals = CouncilMaxProposals;
+    type MaxMembers = CouncilMaxMembers;
+    type DefaultVote = pallet_collective::PrimeDefaultVote;
+    type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
@@ -528,6 +555,7 @@ construct_runtime!(
         AuthorityDiscovery: pallet_authority_discovery::{Pallet, Call, Config},
         Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         ElectionProviderMultiPhase: pallet_election_provider_multi_phase::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
