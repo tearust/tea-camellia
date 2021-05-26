@@ -6,6 +6,14 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+use frame_support::{
+    construct_runtime, parameter_types,
+    traits::{KeyOwnerProofSystem, LockIdentifier, U128CurrencyToVote},
+    weights::{
+        constants::{BlockExecutionWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+        DispatchClass, IdentityFee, Weight,
+    },
+};
 use node_primitives::{BlockNumber, Hash, Moment};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
@@ -29,15 +37,6 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
-pub use frame_support::{
-    construct_runtime, parameter_types,
-    traits::{KeyOwnerProofSystem, Randomness, U128CurrencyToVote},
-    weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-        IdentityFee, Weight,
-    },
-    StorageValue,
-};
 pub use node_primitives::{AccountId, Balance, Index, Signature};
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_staking::StakerStatus;
@@ -346,19 +345,8 @@ impl pallet_staking::Config for Runtime {
     type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
     type NextNewSession = Session;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
-    type ElectionProvider = Runtime;
+    type ElectionProvider = ElectionProviderMultiPhase;
     type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
-}
-
-// todo replace with ElectionProviderMultiPhase when implement election later
-impl frame_election_provider_support::ElectionProvider<AccountId, BlockNumber> for Runtime {
-    type Error = &'static str;
-    type DataProvider = pallet_staking::Pallet<Runtime>;
-
-    fn elect() -> Result<(frame_election_provider_support::Supports<AccountId>, Weight), Self::Error>
-    {
-        Ok((frame_election_provider_support::Supports::new(), 0))
-    }
 }
 
 parameter_types! {
@@ -382,6 +370,8 @@ impl pallet_offences::Config for Runtime {
 
 parameter_types! {
     pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::max_value();
+    /// We prioritize im-online heartbeats over election solution submission.
+    pub const StakingUnsignedPriority: TransactionPriority = TransactionPriority::max_value() / 2;
 }
 
 impl pallet_im_online::Config for Runtime {
@@ -392,6 +382,94 @@ impl pallet_im_online::Config for Runtime {
     type ReportUnresponsiveness = Offences;
     type UnsignedPriority = ImOnlineUnsignedPriority;
     type WeightInfo = pallet_im_online::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    // phase durations. 1/4 of the last session for each.
+    pub const SignedPhase: u32 = EPOCH_DURATION_IN_BLOCKS / 4;
+    pub const UnsignedPhase: u32 = EPOCH_DURATION_IN_BLOCKS / 4;
+
+    // fallback: no need to do on-chain phragmen initially.
+    pub const Fallback: pallet_election_provider_multi_phase::FallbackStrategy =
+        pallet_election_provider_multi_phase::FallbackStrategy::OnChain;
+
+    pub SolutionImprovementThreshold: Perbill = Perbill::from_rational(1u32, 10_000);
+
+    // miner configs
+    pub const MultiPhaseUnsignedPriority: TransactionPriority = StakingUnsignedPriority::get() - 1u64;
+    pub const MinerMaxIterations: u32 = 10;
+    pub MinerMaxWeight: Weight = BlockWeights::get()
+        .get(DispatchClass::Normal)
+        .max_extrinsic.expect("Normal extrinsics have a weight limit configured; qed")
+        .saturating_sub(BlockExecutionWeight::get());
+    // Solution can occupy 90% of normal block size
+    pub MinerMaxLength: u32 = Perbill::from_rational(9u32, 10) *
+        *BlockLength::get()
+        .max
+        .get(DispatchClass::Normal);
+}
+
+sp_npos_elections::generate_solution_type!(
+    #[compact]
+    pub struct NposCompactSolution16::<
+        VoterIndex = u32,
+        TargetIndex = u16,
+        Accuracy = sp_runtime::PerU16,
+    >(16)
+);
+
+pub const MAX_NOMINATIONS: u32 =
+    <NposCompactSolution16 as sp_npos_elections::CompactSolution>::LIMIT as u32;
+
+impl pallet_election_provider_multi_phase::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type SignedPhase = SignedPhase;
+    type UnsignedPhase = UnsignedPhase;
+    type SolutionImprovementThreshold = SolutionImprovementThreshold;
+    type OffchainRepeat = OffchainRepeat;
+    type MinerMaxIterations = MinerMaxIterations;
+    type MinerMaxWeight = MinerMaxWeight;
+    type MinerMaxLength = MinerMaxLength;
+    type MinerTxPriority = MultiPhaseUnsignedPriority;
+    type DataProvider = Staking;
+    type OnChainAccuracy = Perbill;
+    type CompactSolution = NposCompactSolution16;
+    type Fallback = Fallback;
+    type WeightInfo = pallet_election_provider_multi_phase::weights::SubstrateWeight<Runtime>;
+    type BenchmarkingConfig = ();
+}
+
+parameter_types! {
+    pub const CandidacyBond: Balance = 10 * DOLLARS;
+    // 1 storage item created, key size is 32 bytes, value size is 16+16.
+    pub const VotingBondBase: Balance = deposit(1, 64);
+    // additional data per vote is 32 bytes (account id).
+    pub const VotingBondFactor: Balance = deposit(0, 32);
+    pub const TermDuration: BlockNumber = 7 * DAYS;
+    pub const DesiredMembers: u32 = 13;
+    pub const DesiredRunnersUp: u32 = 7;
+    pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
+}
+
+impl pallet_elections_phragmen::Config for Runtime {
+    type Event = Event;
+    type PalletId = ElectionsPhragmenPalletId;
+    type Currency = Balances;
+    type ChangeMembers = ();
+    // NOTE: this implies that council's genesis members cannot be set directly and must come from
+    // this module.
+    type InitializeMembers = ();
+    type CurrencyToVote = U128CurrencyToVote;
+    type CandidacyBond = CandidacyBond;
+    type VotingBondBase = VotingBondBase;
+    type VotingBondFactor = VotingBondFactor;
+    type LoserCandidate = ();
+    type KickedMember = ();
+    type DesiredMembers = DesiredMembers;
+    type DesiredRunnersUp = DesiredRunnersUp;
+    type TermDuration = TermDuration;
+    type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
@@ -448,6 +526,8 @@ construct_runtime!(
         Offences: pallet_offences::{Pallet, Call, Storage, Event},
         ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>},
         AuthorityDiscovery: pallet_authority_discovery::{Pallet, Call, Config},
+        Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
+        ElectionProviderMultiPhase: pallet_election_provider_multi_phase::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,

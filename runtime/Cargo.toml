@@ -17,6 +17,7 @@ substrate-wasm-builder={version = '4.0.0', git = 'https://github.com/paritytech/
 # external dependencies
 codec = {default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0'}
 hex-literal= {optional = true, version = '0.3.1'}
+static_assertions = "1.1.0"
 
 # primitives
 node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
@@ -33,6 +34,7 @@ sp-transaction-pool = {default-features = false, version = '3.0.0', git = 'https
 sp-version = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-staking = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-authority-discovery = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+sp-npos-elections = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # Substrate dependencies
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
@@ -57,6 +59,8 @@ pallet-authorship = {default-features = false, version = '3.0.0', git = 'https:/
 pallet-offences = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-im-online = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-authority-discovery = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-elections-phragmen = {default-features = false, version = '4.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-election-provider-multi-phase = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
@@ -97,6 +101,7 @@ std = [
 	'sp-version/std',
     'sp-staking/std',
 	'sp-authority-discovery/std',
+    'sp-npos-elections/std',
 
 	'frame-executive/std',
 	'frame-support/std',
@@ -120,5 +125,7 @@ std = [
 	'pallet-offences/std',
     'pallet-im-online/std',
 	'pallet-authority-discovery/std',
+	'pallet-elections-phragmen/std',
+    'pallet-election-provider-multi-phase/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test

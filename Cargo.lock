@@ -700,6 +700,8 @@ dependencies = [
  "pallet-babe",
  "pallet-balances",
  "pallet-cml",
+ "pallet-election-provider-multi-phase",
+ "pallet-elections-phragmen",
  "pallet-grandpa",
  "pallet-im-online",
  "pallet-offences",
@@ -719,6 +721,7 @@ dependencies = [
  "sp-consensus-babe",
  "sp-core",
  "sp-inherents",
+ "sp-npos-elections",
  "sp-offchain",
  "sp-runtime",
  "sp-session",
@@ -726,6 +729,7 @@ dependencies = [
  "sp-std",
  "sp-transaction-pool",
  "sp-version",
+ "static_assertions",
  "substrate-wasm-builder",
 ]
 
@@ -3976,6 +3980,41 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-election-provider-multi-phase"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
+dependencies = [
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-npos-elections",
+ "sp-runtime",
+ "sp-std",
+ "static_assertions",
+]
+
+[[package]]
+name = "pallet-elections-phragmen"
+version = "4.0.0"
+source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-npos-elections",
  "sp-runtime",
  "sp-std",
 ]
