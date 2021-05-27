@@ -78,6 +78,8 @@ pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
     let jacky_account =
         crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
+	let kevin_account = 
+		crypto::AccountId32::from_str("5DFzp6FGWRkqm8Pm1KX9dWLoVyukeS51cTiQPNqUADEZMFZq").unwarp();
 
     Ok(ChainSpec::from_genesis(
         // Name
