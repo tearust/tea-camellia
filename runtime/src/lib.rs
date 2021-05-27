@@ -703,13 +703,14 @@ impl pallet_cml::Config for Runtime {
     type StakingPrice = StakingPrice;
 }
 
-// parameter_types! {
-    
-// }
+parameter_types! {
+    pub const AuctionDeposit: Balance = 10 * DOLLARS;
+}
 impl pallet_auction::Config for Runtime {
     type Event = Event;
     type AuctionId = u64;
     type Currency = Balances;
+    type AuctionDeposit = AuctionDeposit;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

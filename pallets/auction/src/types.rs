@@ -5,6 +5,7 @@ use sp_runtime::{
 	DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::prelude::*;
+
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
@@ -13,34 +14,36 @@ use sp_std::{
 
 // use super::auction;
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub enum Change<Value> {
-	/// No change.
-	NoChange,
-	/// Changed to new value.
-	NewValue(Value),
-}
+// #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+// pub enum Change<Value> {
+// 	/// No change.
+// 	NoChange,
+// 	/// Changed to new value.
+// 	NewValue(Value),
+// }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct AuctionItem<AuctionId, AccountId, AssetId, Balance, BlockNumber> {
-  id: AuctionId,
-  cml_id: AssetId,
-  cml_owner: AccountId,
-  starting_price: Balance,
-  buy_now_price: Balance,
-  start_at: BlockNumber,
-  end_at: BlockNumber,
+  pub id: AuctionId,
+  pub cml_id: AssetId,
+  pub cml_owner: AccountId,
+  pub starting_price: Balance,
+  pub buy_now_price: Option<Balance>,
+  pub start_at: BlockNumber,
+  pub end_at: BlockNumber,
 
-  status: Vec<u8>,
+  pub status: Vec<u8>,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct BidItem<AuctionId, AccountId, Balance, BlockNumber> {
-  auction_id: AuctionId,
-	user: AccountId,
-	price: Balance,
+  pub auction_id: AuctionId,
+	pub user: AccountId,
+	pub price: Balance,
 	
-	created_at: BlockNumber,
-	updated_at: BlockNumber,
+	pub created_at: BlockNumber,
+	pub updated_at: BlockNumber,
 }
+
+
 

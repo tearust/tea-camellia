@@ -16,6 +16,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", version = '3.0.0', d
 frame-support = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '90cfb952f' }
 frame-system = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '90cfb952f' }
 node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+log = "0.4.8"
 
 pallet-cml = { path = "../cml", version="3.0.0", default-features = false }
 

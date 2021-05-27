@@ -3937,6 +3937,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "log",
  "node-primitives",
  "pallet-balances",
  "pallet-cml",

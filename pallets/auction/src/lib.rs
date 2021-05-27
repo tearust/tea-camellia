@@ -4,18 +4,21 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
+use sp_std::prelude::*;
 use frame_support::pallet_prelude::*;
 use frame_support::{ensure};
 use frame_support::traits::{
-	Currency, 
+	Currency, LockableCurrency, LockIdentifier, WithdrawReasons,
 	Get,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
+  SaturatedConversion,
 	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchError, DispatchResult,
 };
-use node_primitives::Balance;
+// use node_primitives::Balance;
+use log::{info};
 
 mod mock;
 mod tests;
@@ -29,7 +32,9 @@ pub use types::*;
 pub use auction::*;
 use pallet_cml as cml;
 
-type BalanceOf<T> = 
+const AUCTION_ID: LockIdentifier = *b"_auction";
+
+pub type BalanceOf<T> = 
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
@@ -40,7 +45,7 @@ pub mod auction {
 	pub trait Config: frame_system::Config + cml::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-    type Currency: Currency<Self::AccountId>;
+    type Currency: LockableCurrency<Self::AccountId>;
 
 		/// The auction ID type.
 		type AuctionId: Parameter
@@ -52,12 +57,16 @@ pub mod auction {
 			+ Bounded
 			+ codec::FullCodec;
 
-
+    #[pallet::constant]
+    type AuctionDeposit: Get<BalanceOf<Self>>;
 		// type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
+    CmlIdInvalid,
+    NotEnoughBalance,
+    InvalidPrice,
 		// AuctionNotExist,
 		// AuctionNotStarted,
 		// BidNotAccepted,
@@ -69,27 +78,39 @@ pub mod auction {
 	#[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A bid is placed. [auction_id, bidder, bidding_amount]
-		Bid(T::AuctionId, T::AccountId, Balance),
+		Bid(T::AuctionId, T::AccountId, BalanceOf<T>),
 	}
 
-	/// Stores on-going and future auctions. Closed auction are removed.
 	#[pallet::storage]
 	#[pallet::getter(fn auction_store)]
   pub type AuctionStore<T: Config> = StorageMap<
     _, 
     Twox64Concat, 
     T::AuctionId, 
-    AuctionItem<T::AuctionId, T::AccountId, T::AssetId, Balance, T::BlockNumber>, 
+    AuctionItem<T::AuctionId, T::AccountId, T::AssetId, BalanceOf<T>, T::BlockNumber>, 
     OptionQuery
   >;
 
-	/// Track the next auction ID.
+	#[pallet::storage]
+  #[pallet::getter(fn user_auction_store)]
+  pub type UserAuctionStore<T: Config> = StorageMap<
+    _,
+    Blake2_128Concat,
+    T::AccountId,
+    Vec<T::AuctionId>,
+    OptionQuery
+  >;
+
+  
+  #[pallet::type_value]
+	pub fn DefaultAuctionId<T: Config>() -> T::AuctionId { <T::AuctionId>::saturated_from(1_u32) }
 	#[pallet::storage]
 	#[pallet::getter(fn auctions_index)]
-  pub type NextAuctionId<T: Config> = StorageValue<
+  pub type LastAuctionId<T: Config> = StorageValue<
     _, 
     T::AuctionId, 
-    ValueQuery
+    ValueQuery,
+    DefaultAuctionId<T>,
   >;
 
 	/// Index auctions by end time.
@@ -118,6 +139,44 @@ pub mod auction {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+
+    #[pallet::weight(10_000)]
+    pub fn putToStore(
+      origin: OriginFor<T>,
+      cml_id: T::AssetId,
+      starting_price: BalanceOf<T>,
+      buy_now_price: Option<BalanceOf<T>>,
+    ) -> DispatchResult {
+      let sender = ensure_signed(origin)?;
+
+      let (list, index) = cml::Pallet::<T>::find_cml_index(&sender, &cml_id);
+      info!("11111 => {:?}", index);
+
+      //TODO check cml status
+
+      ensure!(index >= 0, Error::<T>::CmlIdInvalid);
+
+      // let balance = T::Currency::free_balance(&sender);
+      // ensure!(buy_now_price >= starting_price, Error::<T>::NotEnoughBalance);
+      // if let Some(buy_now_price) = buy_now_price {
+      //   ensure!(buy_now_price > starting_price, Error::<T>::InvalidPrice);
+      //   ensure!(balance >= buy_now_price, Error::<T>::NotEnoughBalance);
+      // }
+
+      let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
+      info!("22222 => {:?}", auction_item);
+      UserAuctionStore::<T>::mutate(&sender, |maybe_list| {	
+        if let Some(ref mut list) = maybe_list {
+          list.push(auction_item.id);
+        }
+      });
+      AuctionStore::<T>::insert(auction_item.id, auction_item);
+
+      // let reason = WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE;
+      // <T as auction::Config>::Currency::set_lock(AUCTION_ID, &sender, T::AuctionDeposit::get(), reason);
+
+      Ok(())
+    }
 		
 	// 	#[pallet::weight(10_000)]
 	// 	pub fn bid(
