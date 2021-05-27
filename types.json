@@ -57,7 +57,7 @@
     "status": "Cid"
   },
 
-  "AuctionId": "u32",
+  "AuctionId": "u64",
   "AuctionItem": {
     "id": "AuctionId",
     "cml_id": "AssetId",

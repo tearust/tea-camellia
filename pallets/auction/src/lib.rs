@@ -95,7 +95,8 @@ pub mod auction {
   #[pallet::getter(fn user_auction_store)]
   pub type UserAuctionStore<T: Config> = StorageMap<
     _,
-    Blake2_128Concat,
+    // Blake2_128Concat,
+    Twox64Concat,
     T::AccountId,
     Vec<T::AuctionId>,
     OptionQuery
@@ -141,7 +142,7 @@ pub mod auction {
 	impl<T: Config> Pallet<T> {
 
     #[pallet::weight(10_000)]
-    pub fn putToStore(
+    pub fn put_to_store(
       origin: OriginFor<T>,
       cml_id: T::AssetId,
       starting_price: BalanceOf<T>,
@@ -150,7 +151,6 @@ pub mod auction {
       let sender = ensure_signed(origin)?;
 
       let (list, index) = cml::Pallet::<T>::find_cml_index(&sender, &cml_id);
-      info!("11111 => {:?}", index);
 
       //TODO check cml status
 
@@ -164,12 +164,16 @@ pub mod auction {
       // }
 
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
-      info!("22222 => {:?}", auction_item);
+      
       UserAuctionStore::<T>::mutate(&sender, |maybe_list| {	
         if let Some(ref mut list) = maybe_list {
           list.push(auction_item.id);
         }
+        else {
+          *maybe_list = Some(vec![auction_item.id]);
+        }
       });
+      
       AuctionStore::<T>::insert(auction_item.id, auction_item);
 
       // let reason = WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE;
