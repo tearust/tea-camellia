@@ -52,6 +52,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Constant values used within the runtime.
 pub mod constants;
+mod weights;
 use constants::{currency::*, time::*};
 
 /// Import the template pallet.
@@ -688,6 +689,7 @@ impl pallet_tea::Config for Runtime {
     type Event = Event;
     type RuntimeActivityThreshold = RuntimeActivityThreshold;
     type MinRaPassedThreshold = MinRaPassedThreshold;
+    type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
 }
 
 parameter_types! {
