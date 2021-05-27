@@ -72,6 +72,7 @@ pallet-identity = {default-features = false, version = '3.0.0', git = 'https://g
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
 pallet-cml = {default-features = false, path = '../pallets/cml'}
+pallet-auction = {default-features = false, path = '../pallets/auction'}
 
 [features]
 default = ['std']
@@ -125,6 +126,7 @@ std = [
 	'pallet-transaction-payment-rpc-runtime-api/std',
 	'pallet-transaction-payment/std',
 	'pallet-cml/std',
+	'pallet-auction/std',
 	'pallet-session/std',
 	'pallet-staking/std',
     'pallet-authorship/std',

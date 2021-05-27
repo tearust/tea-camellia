@@ -3,8 +3,11 @@
 use codec::{Decode, Encode};
 use sp_std::prelude::*;
 use sp_runtime::RuntimeDebug;
+use crate::cml;
 
 pub type Dai = u32;
+
+pub type CmlId<T> = <T as cml::Config>::AssetId;
 
 #[derive(Clone, Encode, Decode, Default, RuntimeDebug)]
 pub struct StakingItem<AccountId, AssetId> {
