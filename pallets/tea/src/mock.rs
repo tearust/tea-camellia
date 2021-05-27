@@ -64,6 +64,7 @@ impl pallet_tea::Config for Test {
     type Event = Event;
     type RuntimeActivityThreshold = RuntimeActivityThreshold;
     type MinRaPassedThreshold = MinRaPassedThreshold;
+    type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.

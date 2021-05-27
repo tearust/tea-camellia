@@ -53,10 +53,12 @@ pallet-timestamp = {default-features = false, version = '3.0.0', git = 'https://
 pallet-transaction-payment = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-transaction-payment-rpc-runtime-api = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-session = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-session-benchmarking = {default-features = false, optional = true, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-staking = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-staking-reward-curve = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-authorship = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-offences = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-offences-benchmarking = {default-features = false, optional = true, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-im-online = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-authority-discovery = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-elections-phragmen = {default-features = false, version = '4.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
@@ -84,12 +86,26 @@ runtime-benchmarks = [
 	'frame-system-benchmarking',
 	'frame-system/runtime-benchmarks',
 
-	"pallet-babe/runtime-benchmarks",
+	"pallet-grandpa/runtime-benchmarks",
+	'pallet-timestamp/runtime-benchmarks',
 	'pallet-balances/runtime-benchmarks',
+	"pallet-babe/runtime-benchmarks",
+	"pallet-session-benchmarking",
+	"pallet-staking/runtime-benchmarks",
+	"pallet-offences-benchmarking",
+	"pallet-im-online/runtime-benchmarks",
+	"pallet-elections-phragmen/runtime-benchmarks",
+	"pallet-election-provider-multi-phase/runtime-benchmarks",
+	"pallet-collective/runtime-benchmarks",
+	"pallet-membership/runtime-benchmarks",
+	"pallet-scheduler/runtime-benchmarks",
+	"pallet-democracy/runtime-benchmarks",
+	"pallet-utility/runtime-benchmarks",
+	"pallet-multisig/runtime-benchmarks",
+	"pallet-identity/runtime-benchmarks",
+
 	'pallet-tea/runtime-benchmarks',
 	'pallet-cml/runtime-benchmarks',
-	'pallet-timestamp/runtime-benchmarks',
-	"pallet-staking/runtime-benchmarks",
 ]
 std = [
 	'codec/std',

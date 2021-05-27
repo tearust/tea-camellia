@@ -52,6 +52,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Constant values used within the runtime.
 pub mod constants;
+mod weights;
 use constants::{currency::*, time::*};
 
 /// Import the template pallet.
@@ -688,6 +689,7 @@ impl pallet_tea::Config for Runtime {
     type Event = Event;
     type RuntimeActivityThreshold = RuntimeActivityThreshold;
     type MinRaPassedThreshold = MinRaPassedThreshold;
+    type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -962,7 +964,12 @@ impl_runtime_apis! {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
             use frame_system_benchmarking::Pallet as SystemBench;
+            use pallet_session_benchmarking::Pallet as SessionBench;
+            use pallet_offences_benchmarking::Pallet as OffencesBench;
+
             impl frame_system_benchmarking::Config for Runtime {}
+            impl pallet_session_benchmarking::Config for Runtime {}
+            impl pallet_offences_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
                 // Block Number
@@ -981,8 +988,24 @@ impl_runtime_apis! {
             let params = (&config, &whitelist);
 
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
-            add_benchmark!(params, batches, pallet_balances, Balances);
+            add_benchmark!(params, batches, pallet_grandpa, Grandpa);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+            add_benchmark!(params, batches, pallet_balances, Balances);
+            add_benchmark!(params, batches, pallet_babe, Babe);
+            add_benchmark!(params, batches, pallet_session, SessionBench::<Runtime>);
+            add_benchmark!(params, batches, pallet_staking, Staking);
+            add_benchmark!(params, batches, pallet_offences, OffencesBench::<Runtime>);
+            add_benchmark!(params, batches, pallet_im_online, ImOnline);
+            add_benchmark!(params, batches, pallet_elections_phragmen, Elections);
+            add_benchmark!(params, batches, pallet_election_provider_multi_phase, ElectionProviderMultiPhase);
+            add_benchmark!(params, batches, pallet_collective, Council);
+            add_benchmark!(params, batches, pallet_membership, TechnicalMembership);
+            add_benchmark!(params, batches, pallet_scheduler, Scheduler);
+            add_benchmark!(params, batches, pallet_democracy, Democracy);
+            add_benchmark!(params, batches, pallet_utility, Utility);
+            add_benchmark!(params, batches, pallet_multisig, Multisig);
+            add_benchmark!(params, batches, pallet_identity, Identity);
+
             add_benchmark!(params, batches, pallet_tea, Tea);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
