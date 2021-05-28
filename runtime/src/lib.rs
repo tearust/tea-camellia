@@ -8,7 +8,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use frame_support::{
     construct_runtime, parameter_types,
-    traits::{KeyOwnerProofSystem, LockIdentifier, U128CurrencyToVote},
+    traits::{Currency, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, U128CurrencyToVote},
     weights::{
         constants::{BlockExecutionWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
@@ -85,6 +85,31 @@ pub mod opaque {
             pub im_online: ImOnline,
             pub authority_discovery: AuthorityDiscovery,
         }
+    }
+}
+
+type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+
+pub struct DealWithFees;
+impl OnUnbalanced<NegativeImbalance> for DealWithFees {
+    fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
+        if let Some(fees) = fees_then_tips.next() {
+            // for fees, 0% to treasury, 100% to author
+            let mut split = fees.ration(0, 100);
+            if let Some(tips) = fees_then_tips.next() {
+                // for tips, if any, 0% to treasury, 100% to author
+                tips.ration_merge_into(0, 100, &mut split);
+            }
+            Treasury::on_unbalanced(split.0);
+            Author::on_unbalanced(split.1);
+        }
+    }
+}
+
+pub struct Author;
+impl OnUnbalanced<NegativeImbalance> for Author {
+    fn on_nonzero_unbalanced(amount: NegativeImbalance) {
+        Balances::resolve_creating(&Authorship::author(), amount);
     }
 }
 
@@ -279,7 +304,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-    type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
+    type OnChargeTransaction = CurrencyAdapter<Balances, DealWithFees>;
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = IdentityFee<Balance>;
     type FeeMultiplierUpdate =
