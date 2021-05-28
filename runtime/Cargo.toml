@@ -70,6 +70,7 @@ pallet-democracy = {default-features = false, version = '3.0.0', git = 'https://
 pallet-utility = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-multisig = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-identity = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+pallet-treasury = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
@@ -86,23 +87,24 @@ runtime-benchmarks = [
 	'frame-system-benchmarking',
 	'frame-system/runtime-benchmarks',
 
-	"pallet-grandpa/runtime-benchmarks",
+	'pallet-grandpa/runtime-benchmarks',
 	'pallet-timestamp/runtime-benchmarks',
 	'pallet-balances/runtime-benchmarks',
-	"pallet-babe/runtime-benchmarks",
-	"pallet-session-benchmarking",
-	"pallet-staking/runtime-benchmarks",
-	"pallet-offences-benchmarking",
-	"pallet-im-online/runtime-benchmarks",
-	"pallet-elections-phragmen/runtime-benchmarks",
-	"pallet-election-provider-multi-phase/runtime-benchmarks",
-	"pallet-collective/runtime-benchmarks",
-	"pallet-membership/runtime-benchmarks",
-	"pallet-scheduler/runtime-benchmarks",
-	"pallet-democracy/runtime-benchmarks",
-	"pallet-utility/runtime-benchmarks",
-	"pallet-multisig/runtime-benchmarks",
-	"pallet-identity/runtime-benchmarks",
+	'pallet-babe/runtime-benchmarks',
+	'pallet-session-benchmarking',
+	'pallet-staking/runtime-benchmarks',
+	'pallet-offences-benchmarking',
+	'pallet-im-online/runtime-benchmarks',
+	'pallet-elections-phragmen/runtime-benchmarks',
+	'pallet-election-provider-multi-phase/runtime-benchmarks',
+	'pallet-collective/runtime-benchmarks',
+	'pallet-membership/runtime-benchmarks',
+	'pallet-scheduler/runtime-benchmarks',
+	'pallet-democracy/runtime-benchmarks',
+	'pallet-utility/runtime-benchmarks',
+	'pallet-multisig/runtime-benchmarks',
+	'pallet-identity/runtime-benchmarks',
+	'pallet-treasury/runtime-benchmarks',
 
 	'pallet-tea/runtime-benchmarks',
 	'pallet-cml/runtime-benchmarks',
@@ -136,11 +138,9 @@ std = [
 	'pallet-grandpa/std',
 	'pallet-randomness-collective-flip/std',
 	'pallet-sudo/std',
-	'pallet-tea/std',
 	'pallet-timestamp/std',
 	'pallet-transaction-payment-rpc-runtime-api/std',
 	'pallet-transaction-payment/std',
-	'pallet-cml/std',
 	'pallet-session/std',
 	'pallet-staking/std',
     'pallet-authorship/std',
@@ -156,5 +156,9 @@ std = [
     'pallet-utility/std',
 	'pallet-multisig/std',
 	'pallet-identity/std',
+	'pallet-treasury/std',
+
+	'pallet-tea/std',
+	'pallet-cml/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test

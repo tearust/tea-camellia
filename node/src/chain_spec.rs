@@ -262,6 +262,7 @@ fn testnet_genesis(
         },
         pallet_membership_Instance1: Default::default(),
         pallet_democracy: DemocracyConfig::default(),
+        pallet_treasury: Default::default(),
 
         pallet_tea: TeaConfig {
             builtin_nodes: vec![
