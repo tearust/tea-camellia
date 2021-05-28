@@ -482,13 +482,18 @@ impl pallet_election_provider_multi_phase::Config for Runtime {
     type BenchmarkingConfig = ();
 }
 
+#[cfg(feature = "fast")]
+const TERM_DURATION: BlockNumber = 7 * DAYS;
+#[cfg(not(feature = "fast"))]
+const TERM_DURATION: BlockNumber = 10 * MINUTES;
+
 parameter_types! {
     pub const CandidacyBond: Balance = 10 * DOLLARS;
     // 1 storage item created, key size is 32 bytes, value size is 16+16.
     pub const VotingBondBase: Balance = deposit(1, 64);
     // additional data per vote is 32 bytes (account id).
     pub const VotingBondFactor: Balance = deposit(0, 32);
-    pub const TermDuration: BlockNumber = 7 * DAYS;
+    pub const TermDuration: BlockNumber = TERM_DURATION;
     pub const DesiredMembers: u32 = 13;
     pub const DesiredRunnersUp: u32 = 7;
     pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
