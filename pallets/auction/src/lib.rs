@@ -14,7 +14,7 @@ use frame_support::traits::{
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
   SaturatedConversion,
-	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
+	traits::{Saturating, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
 	DispatchError, DispatchResult,
 };
 // use node_primitives::Balance;
@@ -66,11 +66,11 @@ pub mod auction {
 	pub enum Error<T> {
     CmlIdInvalid,
     NotEnoughBalance,
-    InvalidPrice,
-		// AuctionNotExist,
+    AuctionNotExist,
+    InvalidBidPrice,
+
 		// AuctionNotStarted,
 		// BidNotAccepted,
-		// InvalidBidPrice,
 		// NoAvailableAuctionId,
 	}
 
@@ -114,11 +114,29 @@ pub mod auction {
     DefaultAuctionId<T>,
   >;
 
-	/// Index auctions by end time.
-	// #[pallet::storage]
-	// #[pallet::getter(fn auction_end_time)]
-	// pub type AuctionEndTime<T: Config> =
-	// 	StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Blake2_128Concat, T::AuctionId, (), OptionQuery>;
+  #[pallet::storage]
+  #[pallet::getter(fn bid_store)]
+  pub type BidStore<T: Config> = StorageDoubleMap<
+    _,
+    Twox64Concat, T::AccountId,
+    Twox64Concat, T::AuctionId,
+    BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+    OptionQuery,
+  >;
+  #[pallet::storage]
+  #[pallet::getter(fn auction_bid_store)]
+  pub type AuctionBidStore<T: Config> = StorageMap<
+    _,
+    Twox64Concat, T::AuctionId,
+    Vec<T::AccountId>,
+  >;
+  #[pallet::storage]
+  #[pallet::getter(fn user_bid_store)]
+  pub type UserBidStore<T: Config> = StorageMap<
+    _,
+    Twox64Concat, T::AccountId,
+    Vec<T::AuctionId>,
+  >;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -156,13 +174,6 @@ pub mod auction {
 
       ensure!(index >= 0, Error::<T>::CmlIdInvalid);
 
-      // let balance = T::Currency::free_balance(&sender);
-      // ensure!(buy_now_price >= starting_price, Error::<T>::NotEnoughBalance);
-      // if let Some(buy_now_price) = buy_now_price {
-      //   ensure!(buy_now_price > starting_price, Error::<T>::InvalidPrice);
-      //   ensure!(balance >= buy_now_price, Error::<T>::NotEnoughBalance);
-      // }
-
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
       
       UserAuctionStore::<T>::mutate(&sender, |maybe_list| {	
@@ -176,8 +187,69 @@ pub mod auction {
       
       AuctionStore::<T>::insert(auction_item.id, auction_item);
 
-      // let reason = WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE;
-      // <T as auction::Config>::Currency::set_lock(AUCTION_ID, &sender, T::AuctionDeposit::get(), reason);
+      let reason = WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE;
+      <T as auction::Config>::Currency::set_lock(AUCTION_ID, &sender, T::AuctionDeposit::get(), reason);
+
+      Ok(())
+    }
+
+    #[pallet::weight(10_000)]
+    pub fn bid_for_auction(
+      origin: OriginFor<T>,
+      auction_id: T::AuctionId,
+      cml_id: T::AssetId,
+      price: BalanceOf<T>,
+    ) -> DispatchResult {
+      let sender = ensure_signed(origin)?;
+
+      // validate balance
+      let balance = <T as auction::Config>::Currency::free_balance(&sender);
+      ensure!(balance >= price, Error::<T>::NotEnoughBalance);
+      
+      // check auction item
+      let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+      let min_price = Self::get_min_bid_price(&auction_item);
+      ensure!(min_price < price, Error::<T>::InvalidBidPrice);
+
+      // TODO complete auction
+      // if price >= auction_item.buy_now_price {}
+
+      let current_block = frame_system::Pallet::<T>::block_number();
+      let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
+      if let Some(bid_item) = maybe_bid_item {
+        // increase price
+        let new_price = bid_item.price.saturating_sub(price);
+        BidStore::<T>::mutate(&sender, &auction_id, |maybe_item| {
+          if let Some(ref mut item) = maybe_item {
+            item.price = new_price;
+            item.updated_at = current_block;
+          }
+        });
+      }
+      else {
+        // new bid
+        let item = Self::new_bid_item(auction_item.id, sender.clone(), price);
+
+        BidStore::<T>::insert(sender.clone(), auction_item.id, item);
+        AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
+          if let Some(ref mut list) = maybe_list {
+            list.push(sender.clone());
+          }
+          else {
+            *maybe_list = Some(vec![sender.clone()]);
+          }
+        });
+
+        UserBidStore::<T>::mutate(&sender, |maybe_list| {
+          if let Some(ref mut list) = maybe_list {
+            list.push(auction_item.id);
+          }
+          else {
+            *maybe_list = Some(vec![auction_item.id]);
+          }
+        });
+      }
+      Self::update_bid_price_for_auction_item(&auction_id, sender.clone());
 
       Ok(())
     }

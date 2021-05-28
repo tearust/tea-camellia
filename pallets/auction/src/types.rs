@@ -32,7 +32,9 @@ pub struct AuctionItem<AuctionId, AccountId, AssetId, Balance, BlockNumber> {
   pub start_at: BlockNumber,
   pub end_at: BlockNumber,
 
-  pub status: Vec<u8>,
+	pub status: Vec<u8>,
+	
+	pub bid_user: Option<AccountId>,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
