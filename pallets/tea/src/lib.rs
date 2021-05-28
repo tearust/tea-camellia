@@ -176,7 +176,7 @@ pub mod tea {
         }
 
         /// update node profile is an expensive operation to prevent abuse
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::update_node_profile())]
         pub fn update_node_profile(
             origin: OriginFor<T>,
             tea_id: TeaPubKey,
@@ -219,7 +219,7 @@ pub mod tea {
             Ok(())
         }
 
-        #[pallet::weight(100)]
+        #[pallet::weight(T::WeightInfo::remote_attestation())]
         pub fn remote_attestation(
             origin: OriginFor<T>,
             tea_id: TeaPubKey,
@@ -260,7 +260,7 @@ pub mod tea {
             Ok(())
         }
 
-        #[pallet::weight(100)]
+        #[pallet::weight(T::WeightInfo::update_runtime_activity())]
         pub fn update_runtime_activity(
             origin: OriginFor<T>,
             tea_id: TeaPubKey,
