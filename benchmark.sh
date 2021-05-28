@@ -106,6 +106,7 @@ elif [ $PRIME_COMMAND = "batch_weight" ]; then
     PALLET_NAME=pallet_utility && generate_weight
     PALLET_NAME=pallet_multisig && generate_weight
     PALLET_NAME=pallet_identity && generate_weight
+    PALLET_NAME=pallet_treasury && generate_weight
 
     PALLET_NAME=pallet_tea && generate_weight
 else
