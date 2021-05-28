@@ -66,6 +66,14 @@
     "buy_now_price": "Option<Balance>",
     "start_at": "BlockNumber",
     "end_at": "BlockNumber",
-    "status": "Cid"
+    "status": "Cid",
+    "bid_user": "Option<AccountId>"
+  },
+  "BidItem": {
+    "auction_id": "AuctionId",
+	  "user": "AccountId",
+	  "price": "Balance",
+	  "created_at": "BlockNumber",
+	  "updated_at": "BlockNumber"
   }
 }

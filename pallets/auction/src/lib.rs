@@ -4,7 +4,7 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
-use sp_std::prelude::*;
+use sp_std::{cmp::Ordering, prelude::*};
 use frame_support::pallet_prelude::*;
 use frame_support::{ensure};
 use frame_support::traits::{
@@ -68,6 +68,7 @@ pub mod auction {
     NotEnoughBalance,
     AuctionNotExist,
     InvalidBidPrice,
+    NoNeedBid,
 
 		// AuctionNotStarted,
 		// BidNotAccepted,
@@ -157,7 +158,7 @@ pub mod auction {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
+  impl<T: Config> Pallet<T> {
 
     #[pallet::weight(10_000)]
     pub fn put_to_store(
@@ -187,6 +188,7 @@ pub mod auction {
       
       AuctionStore::<T>::insert(auction_item.id, auction_item);
 
+      // TODO not work
       let reason = WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE;
       <T as auction::Config>::Currency::set_lock(AUCTION_ID, &sender, T::AuctionDeposit::get(), reason);
 
@@ -197,7 +199,6 @@ pub mod auction {
     pub fn bid_for_auction(
       origin: OriginFor<T>,
       auction_id: T::AuctionId,
-      cml_id: T::AssetId,
       price: BalanceOf<T>,
     ) -> DispatchResult {
       let sender = ensure_signed(origin)?;
@@ -208,8 +209,16 @@ pub mod auction {
       
       // check auction item
       let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
-      let min_price = Self::get_min_bid_price(&auction_item);
+      let min_price = Self::get_min_bid_price(&auction_item, &sender);
+      info!("1111 => {:?}", auction_item);
+      info!("2222 => {:?}", min_price);
+
+      if let Some(bid_user) = &auction_item.bid_user {
+        ensure!(&bid_user.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
+      }
+
       ensure!(min_price < price, Error::<T>::InvalidBidPrice);
+      ensure!(&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
 
       // TODO complete auction
       // if price >= auction_item.buy_now_price {}
@@ -218,18 +227,20 @@ pub mod auction {
       let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
       if let Some(bid_item) = maybe_bid_item {
         // increase price
-        let new_price = bid_item.price.saturating_sub(price);
+        let new_price = bid_item.price.saturating_add(price);
         BidStore::<T>::mutate(&sender, &auction_id, |maybe_item| {
           if let Some(ref mut item) = maybe_item {
             item.price = new_price;
             item.updated_at = current_block;
+
+            info!("3333 => {:?}", item);
           }
         });
       }
       else {
         // new bid
         let item = Self::new_bid_item(auction_item.id, sender.clone(), price);
-
+        info!("4444 => {:?}", item);
         BidStore::<T>::insert(sender.clone(), auction_item.id, item);
         AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
           if let Some(ref mut list) = maybe_list {
@@ -248,56 +259,16 @@ pub mod auction {
             *maybe_list = Some(vec![auction_item.id]);
           }
         });
+
       }
       Self::update_bid_price_for_auction_item(&auction_id, sender.clone());
+
+      // TODO deposit price to lock balance
 
       Ok(())
     }
 		
-	// 	#[pallet::weight(10_000)]
-	// 	pub fn bid(
-	// 		origin: OriginFor<T>,
-	// 		id: T::AuctionId,
-	// 		#[pallet::compact] value: T::Balance,
-	// 	) -> DispatchResultWithPostInfo {
-	// 		let from = ensure_signed(origin)?;
-
-	// 		Auctions::<T>::try_mutate_exists(id, |auction| -> DispatchResult {
-	// 			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
-
-	// 			let block_number = <frame_system::Pallet<T>>::block_number();
-
-	// 			// make sure auction is started
-	// 			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
-
-	// 			if let Some(ref current_bid) = auction.bid {
-	// 				ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
-	// 			} else {
-	// 				ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
-	// 			}
-	// 			let bid_result = T::Handler::on_new_bid(block_number, id, (from.clone(), value), auction.bid.clone());
-
-	// 			ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
-	// 			match bid_result.auction_end_change {
-	// 				Change::NewValue(new_end) => {
-	// 					if let Some(old_end_block) = auction.end {
-	// 						AuctionEndTime::<T>::remove(&old_end_block, id);
-	// 					}
-	// 					if let Some(new_end_block) = new_end {
-	// 						AuctionEndTime::<T>::insert(&new_end_block, id, ());
-	// 					}
-	// 					auction.end = new_end;
-	// 				}
-	// 				Change::NoChange => {}
-	// 			}
-	// 			auction.bid = Some((from.clone(), value));
-
-	// 			Ok(())
-	// 		})?;
-
-	// 		Self::deposit_event(Event::Bid(id, from, value));
-	// 		Ok(().into())
-	// 	}
+	
 	}
 }
 
