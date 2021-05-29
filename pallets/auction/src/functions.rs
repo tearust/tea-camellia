@@ -79,4 +79,75 @@ impl<T: auction::Config> auction::Pallet<T> {
     
     *min_price
   }
+
+  pub fn delete_auction(
+    auction_id: &T::AuctionId,
+  ) -> Result<(), Error<T>> {
+
+    // remove from AuctionStore
+    let auction_item = AuctionStore::<T>::take(&auction_id).unwrap();
+    let who = auction_item.cml_owner;
+
+    // remove from UserAuctionStore
+    UserAuctionStore::<T>::mutate(&who, |maybe_list| {
+      if let Some(ref mut list) = maybe_list {
+        if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+          list.remove(index);
+        }
+      }
+    });
+
+    // remove from AuctionBidStore
+    let bid_user_list = AuctionBidStore::<T>::take(&auction_id).unwrap();
+
+    
+    for user in bid_user_list.iter() {
+      // remove from BidStore
+      let _bid_item = BidStore::<T>::take(&user, &auction_id).unwrap();
+
+      // TODO return bid price
+
+      // remove from UserBidStore
+      UserBidStore::<T>::mutate(&user, |maybe_list| {
+        if let Some(ref mut list) = maybe_list {
+          if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+            list.remove(index);
+          }
+        }
+      });
+    }
+    
+    Ok(())
+  
+  }
+
+  pub fn delete_bid(
+    who: &T::AccountId,
+    auction_id: &T::AuctionId,
+  ) -> Result<(), Error<T>> {
+    // remove from BidStore
+    let _bid_item = BidStore::<T>::take(&who, &auction_id).unwrap();
+    // TODO return bid price.
+
+    // remove from UserBidStore
+    UserBidStore::<T>::mutate(&who, |maybe_list| {
+      if let Some(ref mut list) = maybe_list {
+        if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+          list.remove(index);
+        }
+      }
+    });
+
+    // remove from AuctionBidStore
+    AuctionBidStore::<T>::mutate(&auction_id, |maybe_list| {
+      if let Some(ref mut list) = maybe_list {
+        if let Some(index) = list.iter().position(|x| &x.cmp(&who) == &Ordering::Equal) {
+          list.remove(index);
+        }
+      }
+    });
+
+
+    Ok(())
+  }
 }

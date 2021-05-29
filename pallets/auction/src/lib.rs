@@ -64,11 +64,12 @@ pub mod auction {
 
 	#[pallet::error]
 	pub enum Error<T> {
-    CmlIdInvalid,
     NotEnoughBalance,
     AuctionNotExist,
     InvalidBidPrice,
     NoNeedBid,
+    AuctionOwnerInvalid,
+    NotAllowQuitBid,
 
 		// AuctionNotStarted,
 		// BidNotAccepted,
@@ -263,7 +264,43 @@ pub mod auction {
 
       Ok(())
     }
-		
+
+    #[pallet::weight(100_000)]
+    pub fn remove_from_store(
+      origin: OriginFor<T>,
+      auction_id: T::AuctionId,
+    ) -> DispatchResult {
+      let sender = ensure_signed(origin)?;
+
+      let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+      ensure!(&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal, Error::<T>::AuctionOwnerInvalid);
+
+      Self::delete_auction(&auction_id)?;
+
+      // TODO punish owner
+
+      Ok(())
+    }
+    
+    #[pallet::weight(100_000)]
+    pub fn remove_bid_for_auction(
+      origin: OriginFor<T>,
+      auction_id: T::AuctionId,
+    ) -> DispatchResult {
+      let sender = ensure_signed(origin)?;
+
+      let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+      
+      if let Some(bid_user) = auction_item.bid_user {
+        ensure!(&sender.cmp(&bid_user) != &Ordering::Equal, Error::<T>::NotAllowQuitBid);
+      }
+
+      
+      Self::delete_bid(&sender, &auction_id)?;
+      
+
+      Ok(())
+    }
 	
 	}
 }
