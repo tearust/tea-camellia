@@ -60,97 +60,75 @@ impl<T: cml::Config> cml::Pallet<T> {
 		who: &T::AccountId,
 		cml: CML<T::AssetId, T::AccountId, T::BlockNumber>,
 	) {
-		if CmlStore::<T>::contains_key(&who) {
-      let mut list = CmlStore::<T>::take(&who).unwrap();
-      list.insert(0, cml);
-      CmlStore::<T>::insert(&who, list);
+
+		CmlStore::<T>::insert(cml.id, cml.clone());
+
+		if UserCmlStore::<T>::contains_key(&who) {
+      let mut list = UserCmlStore::<T>::take(&who).unwrap();
+      list.insert(0, cml.id);
+      UserCmlStore::<T>::insert(&who, list);
     } 
     else {
-      CmlStore::<T>::insert(&who, vec![cml]);
+      UserCmlStore::<T>::insert(&who, vec![cml.id]);
     }
 	}
 
 	pub fn remove_cml_by_id() {}
 
-	fn get_cml_list_by_account(
-		who: &T::AccountId,
-	) -> Vec<CML<T::AssetId, T::AccountId, T::BlockNumber>> {
-		let list = {
-			if <CmlStore<T>>::contains_key(&who) {
-				CmlStore::<T>::get(&who).unwrap()
-			}
-			else {
-				vec![]
-			}
-		};
+	// fn get_cml_id_list_by_account(
+	// 	who: &T::AccountId,
+	// ) -> Vec<T::AssetId> {
+	// 	let list = {
+	// 		if <UserCmlStore<T>>::contains_key(&who) {
+	// 			UserCmlStore::<T>::get(&who).unwrap()
+	// 		}
+	// 		else {
+	// 			vec![]
+	// 		}
+	// 	};
 		
-		list
-	}
+	// 	list
+	// }
 
-	pub fn set_cml_by_index(
-		who: &T::AccountId,
+	pub fn update_cml(
 		cml: CML<T::AssetId, T::AccountId, T::BlockNumber>,
-		index: usize,
 	) {
-		CmlStore::<T>::mutate(&who, |maybe_list| {	
-			if let Some(ref mut list) = maybe_list {
-				list.remove(index);
-				list.insert(index, cml);
+		CmlStore::<T>::mutate(cml.id, |maybe_item| {	
+			if let Some(ref mut item) = maybe_item {
+				*item = cml;
 			}
 		});
 	}
 
-	pub fn find_cml_index(
-		who: &T::AccountId,
-		cml_id: &T::AssetId,
-	) -> (Vec<CML<T::AssetId, T::AccountId, T::BlockNumber>>, i32) {
-		let list = Self::get_cml_list_by_account(&who);
+	pub fn get_cml_by_id(
+		cml_id: &T::AssetId
+	) -> Result<CML<T::AssetId, T::AccountId, T::BlockNumber>, Error<T>> {
+		let cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
 
-		let index = match list.iter().position(|cml| cml.id == *cml_id) {
-			Some(i) => i as i32,
-			None => -1,
-		};
-
-		(list, index)
+		Ok(cml)
 	}
 
 	pub fn update_cml_to_active(
-		who: &T::AccountId,
 		cml_id: &T::AssetId,
 		miner_id: Vec<u8>,
 		staking_item: StakingItem<T::AccountId, T::AssetId>,
 	) -> Result<(), Error<T>> {
-		let (mut list, index) = Self::find_cml_index(&who, &cml_id);
 
-		if index < 0 {
-			return Err(Error::<T>::NotFoundCML);
-		}
-
-		let cml: &mut CML<T::AssetId, T::AccountId, T::BlockNumber> = list.get_mut(index as usize).unwrap();
-
+		let mut cml = Self::get_cml_by_id(&cml_id)?;
 		cml.status = b"CML_Live".to_vec();
 		cml.miner_id = miner_id;
-
 		cml.staking_slot.push(staking_item);
 
-		Self::set_cml_by_index(&who, cml.clone(), index as usize);
+		Self::update_cml(cml);
 
 		Ok(())
 	}
 
 	pub fn staking_to_cml(
 		staking_item: StakingItem<T::AccountId, T::AssetId>,
-
-		who: &T::AccountId,
 		target_cml_id: &T::AssetId,
 	) -> Result<(), Error<T>> {
-		let (mut list, index) = Self::find_cml_index(&who, &target_cml_id);
-
-		if index < 0 {
-			return Err(Error::<T>::NotFoundCML);
-		}
-
-		let cml: &mut CML<T::AssetId, T::AccountId, T::BlockNumber> = list.get_mut(index as usize).unwrap();
+		let mut cml = CmlStore::<T>::get(&target_cml_id).ok_or(Error::<T>::NotFoundCML)?;
 
 		if cml.status != b"CML_Live".to_vec() {
 			return Err(Error::<T>::CMLNotLive);
@@ -158,8 +136,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 		cml.staking_slot.push(staking_item);
 
-		Self::set_cml_by_index(&who, cml.clone(), index as usize);
-		
+		Self::update_cml(cml.clone());
+
 		Ok(())
 	}
 }

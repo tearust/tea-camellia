@@ -169,11 +169,7 @@ pub mod auction {
     ) -> DispatchResult {
       let sender = ensure_signed(origin)?;
 
-      let (list, index) = cml::Pallet::<T>::find_cml_index(&sender, &cml_id);
-
-      //TODO check cml status
-
-      ensure!(index >= 0, Error::<T>::CmlIdInvalid);
+      let cml = cml::Pallet::<T>::get_cml_by_id(&cml_id)?;
 
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
       
