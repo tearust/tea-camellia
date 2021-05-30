@@ -78,6 +78,8 @@ pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
     let jacky_account =
         crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
+    let _kevin_account =
+        crypto::AccountId32::from_str("5DFzp6FGWRkqm8Pm1KX9dWLoVyukeS51cTiQPNqUADEZMFZq").unwrap();
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -98,11 +100,13 @@ pub fn development_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    // kevin_account.clone(),
                     jacky_account.clone(),
                 ],
                 10000 * DOLLARS,
                 vec![
                     (get_account_id_from_seed::<sr25519::Public>("Alice"), 1389),
+                    // (kevin_account.clone(), 1389),
                     (jacky_account.clone(), 1389),
                 ],
             )
@@ -258,6 +262,7 @@ fn testnet_genesis(
         },
         pallet_membership_Instance1: Default::default(),
         pallet_democracy: DemocracyConfig::default(),
+        pallet_treasury: Default::default(),
 
         pallet_tea: TeaConfig {
             builtin_nodes: vec![

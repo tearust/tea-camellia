@@ -16,6 +16,7 @@ mod benchmarking;
 
 mod types;
 mod utils;
+mod weights;
 
 use frame_support::{
     dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Randomness,
@@ -25,6 +26,7 @@ use sp_core::{ed25519, U256};
 use sp_io::hashing::blake2_256;
 use sp_std::prelude::*;
 use types::*;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod tea {
@@ -42,6 +44,8 @@ pub mod tea {
         /// The minimum number of RA result commit to let the candidate node status become active.
         #[pallet::constant]
         type MinRaPassedThreshold: Get<u32>;
+        /// Weight information for extrinsics in this pallet.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::pallet]
@@ -151,8 +155,7 @@ pub mod tea {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// add new node is an expensive operation to prevent abuse
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::add_new_node())]
         pub fn add_new_node(origin: OriginFor<T>, tea_id: TeaPubKey) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
@@ -173,7 +176,7 @@ pub mod tea {
         }
 
         /// update node profile is an expensive operation to prevent abuse
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::update_node_profile())]
         pub fn update_node_profile(
             origin: OriginFor<T>,
             tea_id: TeaPubKey,
@@ -216,7 +219,7 @@ pub mod tea {
             Ok(())
         }
 
-        #[pallet::weight(100)]
+        #[pallet::weight(T::WeightInfo::remote_attestation())]
         pub fn remote_attestation(
             origin: OriginFor<T>,
             tea_id: TeaPubKey,
@@ -257,7 +260,7 @@ pub mod tea {
             Ok(())
         }
 
-        #[pallet::weight(100)]
+        #[pallet::weight(T::WeightInfo::update_runtime_activity())]
         pub fn update_runtime_activity(
             origin: OriginFor<T>,
             tea_id: TeaPubKey,

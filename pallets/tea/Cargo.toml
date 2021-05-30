@@ -20,27 +20,33 @@ codec = {default-features = false, features = ['derive'], package = 'parity-scal
 sp-std = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-core = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-io = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
-frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 frame-support = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 frame-system = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-randomness-collective-flip = { default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+
+# Only used in benchmarking to generate random contract code
+frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+hex = {default-features = false, optional = true, version = '0.4.3'}
 
 [dev-dependencies]
 serde = '1.0.119'
-hex = "0.4.3"
-rand = {version = '0.7', features = ['getrandom']}
 hex-literal = "0.3.1"
 ed25519-dalek = "1.0.0"
-sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+rand = '0.7.2'
 
 [features]
 default = ['std']
-runtime-benchmarks = ['frame-benchmarking']
+runtime-benchmarks = [
+	'frame-benchmarking',
+	'hex',
+]
 std = [
 	'codec/std',
 	'sp-std/std',
 	'sp-core/std',
     'sp-io/std',
+	'sp-runtime/std',
 	'frame-support/std',
 	'frame-system/std',
 	'frame-benchmarking/std',

@@ -711,9 +711,11 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-offences",
+ "pallet-offences-benchmarking",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-session-benchmarking",
  "pallet-staking",
  "pallet-staking-reward-curve",
  "pallet-sudo",
@@ -721,6 +723,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-treasury",
  "pallet-utility",
  "parity-scale-codec",
  "sp-api",
@@ -4035,6 +4038,7 @@ name = "pallet-collective"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -4065,11 +4069,13 @@ name = "pallet-election-provider-multi-phase"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
 dependencies = [
+ "frame-benchmarking",
  "frame-election-provider-support",
  "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",
+ "rand 0.7.3",
  "sp-arithmetic",
  "sp-core",
  "sp-io",
@@ -4084,6 +4090,7 @@ name = "pallet-elections-phragmen"
 version = "4.0.0"
 source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -4136,6 +4143,7 @@ name = "pallet-im-online"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -4169,6 +4177,7 @@ name = "pallet-multisig"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -4189,6 +4198,28 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "serde",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-offences-benchmarking"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
+dependencies = [
+ "frame-benchmarking",
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "pallet-babe",
+ "pallet-balances",
+ "pallet-grandpa",
+ "pallet-im-online",
+ "pallet-offences",
+ "pallet-session",
+ "pallet-staking",
+ "parity-scale-codec",
  "sp-runtime",
  "sp-staking",
  "sp-std",
@@ -4239,6 +4270,22 @@ dependencies = [
  "sp-staking",
  "sp-std",
  "sp-trie",
+]
+
+[[package]]
+name = "pallet-session-benchmarking"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-session",
+ "pallet-staking",
+ "rand 0.7.3",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
 ]
 
 [[package]]
@@ -4372,10 +4419,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-treasury"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples",
+ "pallet-balances",
+ "parity-scale-codec",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-utility"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?rev=90cfb952f#90cfb952f2e11bc6d327faf04b30dc5f4cf89df8"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
