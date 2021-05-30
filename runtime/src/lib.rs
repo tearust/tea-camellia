@@ -516,8 +516,7 @@ impl pallet_elections_phragmen::Config for Runtime {
     type DesiredMembers = DesiredMembers;
     type DesiredRunnersUp = DesiredRunnersUp;
     type TermDuration = TermDuration;
-    // todo replace with weights::pallet_elections_phragmen::WeightInfo<Runtime>;
-    type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_elections_phragmen::WeightInfo<Runtime>;
 }
 
 parameter_types! {
