@@ -68,12 +68,15 @@ impl<T: auction::Config> auction::Pallet<T> {
     who: &T::AccountId,
   ) -> BalanceOf<T> {
     let min_price = &auction_item.starting_price;
+    
+    // TODO calcaute min price
+
     // if let Some(bid_user) = &auction_item.bid_user {
     //   let bid_item = BidStore::<T>::get(&bid_user, auction_item.id).unwrap();
 
     //   return bid_item.price - auction_item.starting_price;
     // }
-    if let Some(bid_item) = BidStore::<T>::get(&who, auction_item.id) {
+    if let Some(_bid_item) = BidStore::<T>::get(&who, auction_item.id) {
       return <T as auction::Config>::Currency::minimum_balance();
     }
     

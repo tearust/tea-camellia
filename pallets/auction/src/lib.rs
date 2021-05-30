@@ -14,11 +14,11 @@ use frame_support::traits::{
 use frame_system::{ensure_signed, pallet_prelude::*};
 use sp_runtime::{
   SaturatedConversion,
-	traits::{Saturating, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
-	DispatchError, DispatchResult,
+	traits::{Saturating, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One},
+	DispatchResult,
 };
-// use node_primitives::Balance;
-use log::{info};
+
+// use log::{info};
 
 mod mock;
 mod tests;
@@ -77,7 +77,7 @@ pub mod auction {
 	}
 
 	#[pallet::event]
-	#[pallet::generate_deposit(fn deposit_event)]
+	// #[pallet::generate_deposit(fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A bid is placed. [auction_id, bidder, bidding_amount]
 		Bid(T::AuctionId, T::AccountId, BalanceOf<T>),
@@ -170,7 +170,7 @@ pub mod auction {
     ) -> DispatchResult {
       let sender = ensure_signed(origin)?;
 
-      let cml = cml::Pallet::<T>::get_cml_by_id(&cml_id)?;
+      let _cml = cml::Pallet::<T>::get_cml_by_id(&cml_id)?;
 
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
       
@@ -207,7 +207,7 @@ pub mod auction {
       // check auction item
       let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
       let min_price = Self::get_min_bid_price(&auction_item, &sender);
-      
+
       if let Some(bid_user) = &auction_item.bid_user {
         ensure!(&bid_user.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
       }
