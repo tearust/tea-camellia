@@ -73,9 +73,9 @@ pub mod cml {
 	pub struct Pallet<T>(_);
 
 	#[pallet::type_value]
-	pub(super) fn DefaultAssetId<T: Config>() -> T::AssetId { <T::AssetId>::saturated_from(10000_u32) }
+	pub fn DefaultAssetId<T: Config>() -> T::AssetId { <T::AssetId>::saturated_from(10000_u32) }
 	#[pallet::storage]
-	pub(super) type LastAssetId<T: Config> = StorageValue<
+	pub type LastAssetId<T: Config> = StorageValue<
 		_,
 		T::AssetId,
 		ValueQuery,
@@ -84,16 +84,24 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn cml_store)]
-	pub(super) type CmlStore<T: Config> = StorageMap<
+	pub type CmlStore<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
-		T::AccountId,
-		Vec<CML<T::AssetId, T::AccountId, T::BlockNumber>>,
+		T::AssetId,
+		CML<T::AssetId, T::AccountId, T::BlockNumber>,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn user_cml_store)]
+	pub type UserCmlStore<T: Config> = StorageMap<
+		_,
+		Twox64Concat, T::AccountId,
+		Vec<T::AssetId>
 	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn dai_store)]
-	pub(super) type DaiStore<T: Config> = StorageMap<
+	pub type DaiStore<T: Config> = StorageMap<
 		_, 
 		Twox64Concat, 
 		T::AccountId,
@@ -101,7 +109,7 @@ pub mod cml {
 	>;
 
 	#[pallet::storage]
-	pub(super) type MinerItemStore<T: Config> = StorageMap<
+	pub type MinerItemStore<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
 		Vec<u8>,
@@ -227,7 +235,7 @@ pub mod cml {
 				amount: T::StakingPrice::get(),
 				cml: None,
 			};
-			Self::update_cml_to_active(&sender, &cml_id, miner_id.clone(), staking_item)?;
+			Self::update_cml_to_active(&cml_id, miner_id.clone(), staking_item)?;
 			<MinerItemStore<T>>::insert(&miner_id, miner_item);
 
 			info!("TODO ---- lock balance");

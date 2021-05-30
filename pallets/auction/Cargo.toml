@@ -1,0 +1,41 @@
+[package]
+name = "pallet-auction"
+description = "Auction pallet"
+repository = "https://github.com/tearust/tea-camellia"
+license = "Apache-2.0"
+version = "3.0.0"
+homepage = "https://teaproject.org"
+edition = "2018"
+
+[dependencies]
+serde = { version = "1.0.124", optional = true }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '90cfb952f' }
+sp-std = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '90cfb952f' }
+
+frame-support = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '90cfb952f' }
+frame-system = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '90cfb952f' }
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+log = "0.4.8"
+
+pallet-cml = { path = "../cml", version="3.0.0", default-features = false }
+
+
+[dev-dependencies]
+sp-core = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+sp-io = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+
+[features]
+default = ["std"]
+std = [
+	"serde",
+	"codec/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	'node-primitives/std',
+	"frame-support/std",
+	"frame-system/std",
+	"pallet-cml/std",
+]
+try-runtime = ["frame-support/try-runtime"]

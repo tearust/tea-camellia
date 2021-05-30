@@ -6,6 +6,7 @@ use sp_runtime::RuntimeDebug;
 
 pub type Dai = u32;
 
+
 #[derive(Clone, Encode, Decode, Default, RuntimeDebug)]
 pub struct StakingItem<AccountId, AssetId> {
 	pub owner: AccountId,

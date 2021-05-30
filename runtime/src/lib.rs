@@ -61,6 +61,7 @@ use constants::{currency::*, time::*};
 /// Import the template pallet.
 pub use pallet_cml;
 pub use pallet_tea;
+pub use pallet_auction;
 
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
@@ -781,6 +782,16 @@ impl pallet_cml::Config for Runtime {
     type StakingPrice = StakingPrice;
 }
 
+parameter_types! {
+    pub const AuctionDeposit: Balance = 10 * DOLLARS;
+}
+impl pallet_auction::Config for Runtime {
+    type Event = Event;
+    type AuctionId = u64;
+    type Currency = Balances;
+    type AuctionDeposit = AuctionDeposit;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -817,6 +828,7 @@ construct_runtime!(
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
+        Auction: pallet_auction::{Pallet, Call, Storage, Event<T>} = 101,
     }
 );
 

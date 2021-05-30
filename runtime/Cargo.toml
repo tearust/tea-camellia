@@ -75,6 +75,7 @@ pallet-treasury = {default-features = false, version = '3.0.0', git = 'https://g
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
 pallet-cml = {default-features = false, path = '../pallets/cml'}
+pallet-auction = {default-features = false, path = '../pallets/auction'}
 
 [features]
 default = ['std']
@@ -160,5 +161,6 @@ std = [
 
 	'pallet-tea/std',
 	'pallet-cml/std',
+  'pallet-auction/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test

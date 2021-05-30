@@ -32,14 +32,13 @@
     "ephemeralId": "TeaPubKey",
     "updateHeight": "BlockNumber"
   },
-
-  "Dai": "u32",
   "StakingItem": {
     "owner": "AccountId",
     "category": "Cid",
     "amount": "u32",
     "cml": "Option<AssetId>"
   },
+  "Dai": "u32",
   "CML": {
     "id": "AssetId",
     "group": "Cid",
@@ -56,5 +55,25 @@
     "group": "Cid",
     "ip": "Cid",
     "status": "Cid"
+  },
+
+  "AuctionId": "u64",
+  "AuctionItem": {
+    "id": "AuctionId",
+    "cml_id": "AssetId",
+    "cml_owner": "AccountId",
+    "starting_price": "Balance",
+    "buy_now_price": "Option<Balance>",
+    "start_at": "BlockNumber",
+    "end_at": "BlockNumber",
+    "status": "Cid",
+    "bid_user": "Option<AccountId>"
+  },
+  "BidItem": {
+    "auction_id": "AuctionId",
+	  "user": "AccountId",
+	  "price": "Balance",
+	  "created_at": "BlockNumber",
+	  "updated_at": "BlockNumber"
   }
 }
