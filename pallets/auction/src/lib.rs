@@ -207,9 +207,7 @@ pub mod auction {
       // check auction item
       let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
       let min_price = Self::get_min_bid_price(&auction_item, &sender);
-      info!("1111 => {:?}", auction_item);
-      info!("2222 => {:?}", min_price);
-
+      
       if let Some(bid_user) = &auction_item.bid_user {
         ensure!(&bid_user.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
       }
@@ -230,14 +228,12 @@ pub mod auction {
             item.price = new_price;
             item.updated_at = current_block;
 
-            info!("3333 => {:?}", item);
           }
         });
       }
       else {
         // new bid
         let item = Self::new_bid_item(auction_item.id, sender.clone(), price);
-        info!("4444 => {:?}", item);
         BidStore::<T>::insert(sender.clone(), auction_item.id, item);
         AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
           if let Some(ref mut list) = maybe_list {
