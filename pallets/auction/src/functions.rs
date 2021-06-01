@@ -20,6 +20,8 @@ impl<T: auction::Config> auction::Pallet<T> {
     let current_block = frame_system::Pallet::<T>::block_number();
 
     let period: u64 = 1_000_000;
+
+    // TODO remove end_block
     let end_block = period.saturated_into::<T::BlockNumber>() + current_block;
 
     AuctionItem {
@@ -62,6 +64,56 @@ impl<T: auction::Config> auction::Pallet<T> {
       updated_at: current_block,
     }
   }
+
+  pub fn get_window_block() 
+  -> (T::BlockNumber, T::BlockNumber) {
+    let current_block = frame_system::Pallet::<T>::block_number();
+    let current_window = current_block / T::AuctionDealWindowBLock::get();
+    let next_window = (current_window + <T::BlockNumber>::saturated_from(1_u64)) * T::AuctionDealWindowBLock::get();
+
+    info!("11111 => {:?}", current_block % T::AuctionDealWindowBLock::get());
+
+    (current_window, next_window)
+  }
+
+  fn get_next_window(current_block: T::BlockNumber) -> T::BlockNumber {
+    current_block + T::AuctionDealWindowBLock::get()
+  }
+
+  pub fn add_auction_to_storage(
+    auction_item: AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
+    who: &T::AccountId,
+  ){
+
+    UserAuctionStore::<T>::mutate(&who, |maybe_list| {	
+      if let Some(ref mut list) = maybe_list {
+        list.push(auction_item.id);
+      }
+      else {
+        *maybe_list = Some(vec![auction_item.id]);
+      }
+    });
+
+    let (_, next_window) = Self::get_window_block();
+
+    EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
+      if let Some(ref mut list) = maybe_list {
+        list.push(auction_item.id);
+      }
+      else {
+        *maybe_list = Some(vec![auction_item.id]);
+      }
+    });
+
+    AuctionStore::<T>::insert(auction_item.id, auction_item);
+  }
+
+  // pub push_auction_to_next_window(){
+  //   let (current_window, next_window) = Self::get_window_block();
+  //   if let (auction_list) = EndblockAuctionStore::<T>::take(current_window) {
+  //     EndblockAuctionStore::<T>::insert(next_window, auction_list);
+  //   }
+  // }
 
   pub(super) fn get_min_bid_price(
     auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
@@ -150,6 +202,73 @@ impl<T: auction::Config> auction::Pallet<T> {
       }
     });
 
+
+    Ok(())
+  }
+
+  pub fn complete_auction(
+    auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
+    target: &T::AccountId,
+  ) -> Result<(), Error<T>> {
+
+    let rs = cml::Pallet::<T>::transfer_cml_other(
+      &auction_item.cml_owner, 
+      &auction_item.cml_id, 
+      &target,
+    );
+
+    match rs {
+      Ok(_) => {
+        Self::delete_auction(&auction_item.id)?;
+      },
+      Err(_) => {}
+    }
+
+    Ok(())
+  }
+
+  // when in window block, check each auction could complet or not.
+  pub fn check_auction_in_block_window(
+
+  ) -> Result<(), Error<T>> {
+    let (current_window, next_window) = Self::get_window_block();
+    let current_block = frame_system::Pallet::<T>::block_number();
+
+    if (current_block % T::AuctionDealWindowBLock::get()) > <T::BlockNumber>::saturated_from(3_u64) {
+      return Err(Error::<T>::NotInWindowBlock);
+    }
+
+    if let Some(auction_list) = EndblockAuctionStore::<T>::take(current_window) {
+      for auction_id in auction_list.iter() {
+        if let Some(auction_item) = AuctionStore::<T>::get(&auction_id) {
+          Self::check_each_auction_in_block_window(auction_item, next_window)?;
+        }
+        
+      }
+    }
+
+    Ok(())
+  }
+
+  fn check_each_auction_in_block_window(
+    auction_item: AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
+    next_window: T::BlockNumber,
+  ) -> Result<(), Error<T>> {
+    if let Some(ref bid_user) = auction_item.bid_user {
+
+      Self::complete_auction(&auction_item, &bid_user)?;
+    }
+    else {
+      // put to next block
+      EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
+        if let Some(ref mut list) = maybe_list {
+          list.push(auction_item.id);
+        }
+        else {
+          *maybe_list = Some(vec![auction_item.id]);
+        }
+      });
+    }
 
     Ok(())
   }

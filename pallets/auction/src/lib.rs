@@ -59,7 +59,9 @@ pub mod auction {
 
     #[pallet::constant]
     type AuctionDeposit: Get<BalanceOf<Self>>;
-		// type WeightInfo: WeightInfo;
+    // type WeightInfo: WeightInfo;
+    
+    type AuctionDealWindowBLock: Get<Self::BlockNumber>;
 	}
 
 	#[pallet::error]
@@ -70,6 +72,7 @@ pub mod auction {
     NoNeedBid,
     AuctionOwnerInvalid,
     NotAllowQuitBid,
+    NotInWindowBlock,
 
 		// AuctionNotStarted,
 		// BidNotAccepted,
@@ -140,6 +143,14 @@ pub mod auction {
     Vec<T::AuctionId>,
   >;
 
+  #[pallet::storage]
+  #[pallet::getter(fn endblock_auction_store)]
+  pub type EndblockAuctionStore<T: Config> = StorageMap<
+    _,
+    Twox64Concat, T::BlockNumber,
+    Vec<T::AuctionId>,
+  >;
+
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
@@ -174,19 +185,10 @@ pub mod auction {
 
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
       
-      UserAuctionStore::<T>::mutate(&sender, |maybe_list| {	
-        if let Some(ref mut list) = maybe_list {
-          list.push(auction_item.id);
-        }
-        else {
-          *maybe_list = Some(vec![auction_item.id]);
-        }
-      });
-      
-      AuctionStore::<T>::insert(auction_item.id, auction_item);
+      Self::add_auction_to_storage(auction_item, &sender);
 
       // TODO not work
-      let reason = WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE;
+      let reason = WithdrawReasons::all();
       <T as auction::Config>::Currency::set_lock(AUCTION_ID, &sender, T::AuctionDeposit::get(), reason);
 
       Ok(())
@@ -219,13 +221,7 @@ pub mod auction {
       if let Some(buy_now_price) = auction_item.buy_now_price {
         if price >= buy_now_price {
           
-          cml::Pallet::<T>::transfer_cml_other(
-            &auction_item.cml_owner, 
-            &auction_item.cml_id, 
-            &sender,
-          )?;
-
-          Self::delete_auction(&auction_id)?;
+          Self::complete_auction(&auction_item, &sender)?;
   
           // TODO balance
           info!("buy now price success.");
