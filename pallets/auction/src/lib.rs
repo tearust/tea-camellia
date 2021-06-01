@@ -89,7 +89,7 @@ pub mod auction {
     _, 
     Twox64Concat, 
     T::AuctionId, 
-    AuctionItem<T::AuctionId, T::AccountId, T::AssetId, BalanceOf<T>, T::BlockNumber>, 
+    AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>, 
     OptionQuery
   >;
 
@@ -164,7 +164,7 @@ pub mod auction {
     #[pallet::weight(10_000)]
     pub fn put_to_store(
       origin: OriginFor<T>,
-      cml_id: T::AssetId,
+      cml_id: T::CmlId,
       starting_price: BalanceOf<T>,
       buy_now_price: Option<BalanceOf<T>>,
     ) -> DispatchResult {

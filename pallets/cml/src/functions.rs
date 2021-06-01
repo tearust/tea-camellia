@@ -10,18 +10,18 @@ impl<T: cml::Config> cml::Pallet<T> {
 		10 as u8
 	}
 
-	pub fn get_next_id() -> T::AssetId {
-		let cid = LastAssetId::<T>::get();
+	pub fn get_next_id() -> T::CmlId {
+		let cid = LastCmlId::<T>::get();
 		let _id = cid.clone();
-		LastAssetId::<T>::mutate(|_id| *_id += One::one());
+		LastCmlId::<T>::mutate(|_id| *_id += One::one());
 
 		cid
 	}
 
 	pub fn new_cml_from_dai(
 		group: Vec<u8>,
-		status: Vec<u8>,  // Seed_Live, Seed_Frozen
-	) -> CML<T::AssetId, T::AccountId, T::BlockNumber> {
+		status: CmlStatus,
+	) -> CML<T::CmlId, T::AccountId, T::BlockNumber> {
 
 		// life time, lock time
 		let current_block = frame_system::Pallet::<T>::block_number();
@@ -58,7 +58,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn add_cml(
 		who: &T::AccountId,
-		cml: CML<T::AssetId, T::AccountId, T::BlockNumber>,
+		cml: CML<T::CmlId, T::AccountId, T::BlockNumber>,
 	) {
 
 		CmlStore::<T>::insert(cml.id, cml.clone());
@@ -77,7 +77,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	// fn get_cml_id_list_by_account(
 	// 	who: &T::AccountId,
-	// ) -> Vec<T::AssetId> {
+	// ) -> Vec<T::CmlId> {
 	// 	let list = {
 	// 		if <UserCmlStore<T>>::contains_key(&who) {
 	// 			UserCmlStore::<T>::get(&who).unwrap()
@@ -91,7 +91,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	// }
 
 	pub fn update_cml(
-		cml: CML<T::AssetId, T::AccountId, T::BlockNumber>,
+		cml: CML<T::CmlId, T::AccountId, T::BlockNumber>,
 	) {
 		CmlStore::<T>::mutate(cml.id, |maybe_item| {	
 			if let Some(ref mut item) = maybe_item {
@@ -101,21 +101,21 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn get_cml_by_id(
-		cml_id: &T::AssetId
-	) -> Result<CML<T::AssetId, T::AccountId, T::BlockNumber>, Error<T>> {
+		cml_id: &T::CmlId
+	) -> Result<CML<T::CmlId, T::AccountId, T::BlockNumber>, Error<T>> {
 		let cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
 
 		Ok(cml)
 	}
 
 	pub fn update_cml_to_active(
-		cml_id: &T::AssetId,
+		cml_id: &T::CmlId,
 		miner_id: Vec<u8>,
-		staking_item: StakingItem<T::AccountId, T::AssetId>,
+		staking_item: StakingItem<T::AccountId, T::CmlId>,
 	) -> Result<(), Error<T>> {
 
 		let mut cml = Self::get_cml_by_id(&cml_id)?;
-		cml.status = b"CML_Live".to_vec();
+		cml.status = CmlStatus::CmlLive;
 		cml.miner_id = miner_id;
 		cml.staking_slot.push(staking_item);
 
@@ -125,12 +125,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn staking_to_cml(
-		staking_item: StakingItem<T::AccountId, T::AssetId>,
-		target_cml_id: &T::AssetId,
+		staking_item: StakingItem<T::AccountId, T::CmlId>,
+		target_cml_id: &T::CmlId,
 	) -> Result<(), Error<T>> {
 		let mut cml = CmlStore::<T>::get(&target_cml_id).ok_or(Error::<T>::NotFoundCML)?;
 
-		if cml.status != b"CML_Live".to_vec() {
+		if cml.status != CmlStatus::CmlLive {
 			return Err(Error::<T>::CMLNotLive);
 		}
 

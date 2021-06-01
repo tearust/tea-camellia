@@ -776,7 +776,7 @@ parameter_types! {
 }
 impl pallet_cml::Config for Runtime {
     type Event = Event;
-    type AssetId = u32;
+    type CmlId = u32;
     type Currency = Balances;
     type Unit = Unit;
     type StakingPrice = StakingPrice;

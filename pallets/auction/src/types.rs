@@ -22,9 +22,9 @@ use sp_std::{
 // }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct AuctionItem<AuctionId, AccountId, AssetId, Balance, BlockNumber> {
+pub struct AuctionItem<AuctionId, AccountId, CmlId, Balance, BlockNumber> {
   pub id: AuctionId,
-  pub cml_id: AssetId,
+  pub cml_id: CmlId,
   pub cml_owner: AccountId,
   pub starting_price: Balance,
   pub buy_now_price: Option<Balance>,

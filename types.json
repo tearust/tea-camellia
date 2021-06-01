@@ -38,11 +38,16 @@
     "amount": "u32",
     "cml": "Option<AssetId>"
   },
+
+
   "Dai": "u32",
+  "CmlStatus": {
+    "_enum": ["SeedLive", "SeedFrozen", "CmlLive", "Staking", "Dead"]
+  },
   "CML": {
     "id": "AssetId",
     "group": "Cid",
-    "status": "Cid",
+    "status": "CmlStatus",
     "life_time": "BlockNumber",
     "lock_time": "BlockNumber",
     "mining_rate": "u8",

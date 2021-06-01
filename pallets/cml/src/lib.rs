@@ -57,7 +57,7 @@ pub mod cml {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		/// Identifier for the class of asset.
-		type AssetId: Parameter + AtLeast32Bit + Default + Copy;
+		type CmlId: Parameter + AtLeast32Bit + Default + Copy;
 
 		type Currency: Currency<Self::AccountId>;
 
@@ -73,11 +73,11 @@ pub mod cml {
 	pub struct Pallet<T>(_);
 
 	#[pallet::type_value]
-	pub fn DefaultAssetId<T: Config>() -> T::AssetId { <T::AssetId>::saturated_from(10000_u32) }
+	pub fn DefaultAssetId<T: Config>() -> T::CmlId { <T::CmlId>::saturated_from(10000_u32) }
 	#[pallet::storage]
-	pub type LastAssetId<T: Config> = StorageValue<
+	pub type LastCmlId<T: Config> = StorageValue<
 		_,
-		T::AssetId,
+		T::CmlId,
 		ValueQuery,
 		DefaultAssetId<T>,
 	>;
@@ -87,8 +87,8 @@ pub mod cml {
 	pub type CmlStore<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
-		T::AssetId,
-		CML<T::AssetId, T::AccountId, T::BlockNumber>,
+		T::CmlId,
+		CML<T::CmlId, T::AccountId, T::BlockNumber>,
 	>;
 
 	#[pallet::storage]
@@ -96,7 +96,7 @@ pub mod cml {
 	pub type UserCmlStore<T: Config> = StorageMap<
 		_,
 		Twox64Concat, T::AccountId,
-		Vec<T::AssetId>
+		Vec<T::CmlId>
 	>;
 
 	#[pallet::storage]
@@ -141,10 +141,10 @@ pub mod cml {
 	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(
 		T::AccountId = "AccountId",
-		T::AssetId = "AssetId"
+		T::CmlId = "CmlId"
 	)]
 	pub enum Event<T: Config> {
-		// Issued(T::AssetId, T::AccountId),
+		// Issued(T::CmlId, T::AccountId),
 	}
 
 	#[pallet::error]
@@ -194,7 +194,7 @@ pub mod cml {
 			ensure!(_sender_dai > Zero::zero(), Error::<T>::NotEnoughDai);
 
 			// TODO, check dai is frozen or live
-			let status = b"Seed_Frozen".to_vec();
+			let status = CmlStatus::SeedFrozen;
 
 			// dai - 1
 			Self::set_dai(&sender, _sender_dai.saturating_sub(1 as Dai));
@@ -209,7 +209,7 @@ pub mod cml {
 		#[pallet::weight(10_000)]
 		fn active_cml_for_nitro(
 			sender: OriginFor<T>,
-			cml_id: T::AssetId,
+			cml_id: T::CmlId,
 			miner_id: Vec<u8>,
 			miner_ip: Vec<u8>,
 		) -> DispatchResult {

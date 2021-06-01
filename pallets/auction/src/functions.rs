@@ -11,11 +11,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
   pub(super) fn new_auction_item(
-    cml_id: T::AssetId,
+    cml_id: T::CmlId,
     cml_owner: T::AccountId,
     starting_price: BalanceOf<T>,
     buy_now_price: Option<BalanceOf<T>>,
-  ) -> AuctionItem<T::AuctionId, T::AccountId, T::AssetId, BalanceOf<T>, T::BlockNumber> {
+  ) -> AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber> {
 
     let current_block = frame_system::Pallet::<T>::block_number();
 
@@ -64,7 +64,7 @@ impl<T: auction::Config> auction::Pallet<T> {
   }
 
   pub(super) fn get_min_bid_price(
-    auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::AssetId, BalanceOf<T>, T::BlockNumber>,
+    auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
     who: &T::AccountId,
   ) -> BalanceOf<T> {
     let min_price = &auction_item.starting_price;
