@@ -101,23 +101,23 @@ impl<T: auction::Config> auction::Pallet<T> {
     });
 
     // remove from AuctionBidStore
-    let bid_user_list = AuctionBidStore::<T>::take(&auction_id).unwrap();
+    if let Some(bid_user_list) = AuctionBidStore::<T>::take(&auction_id){
+      for user in bid_user_list.iter() {
 
-    
-    for user in bid_user_list.iter() {
-      // remove from BidStore
-      let _bid_item = BidStore::<T>::take(&user, &auction_id).unwrap();
-
-      // TODO return bid price
-
-      // remove from UserBidStore
-      UserBidStore::<T>::mutate(&user, |maybe_list| {
-        if let Some(ref mut list) = maybe_list {
-          if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-            list.remove(index);
+        // remove from BidStore
+        let _bid_item = BidStore::<T>::take(&user, &auction_id).unwrap();
+  
+        // TODO return bid price
+  
+        // remove from UserBidStore
+        UserBidStore::<T>::mutate(&user, |maybe_list| {
+          if let Some(ref mut list) = maybe_list {
+            if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+              list.remove(index);
+            }
           }
-        }
-      });
+        });
+      }
     }
     
     Ok(())

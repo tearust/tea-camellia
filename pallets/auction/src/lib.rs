@@ -18,7 +18,7 @@ use sp_runtime::{
 	DispatchResult,
 };
 
-// use log::{info};
+use log::{info};
 
 mod mock;
 mod tests;
@@ -215,8 +215,24 @@ pub mod auction {
       ensure!(min_price < price, Error::<T>::InvalidBidPrice);
       ensure!(&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
 
-      // TODO complete auction
-      // if price >= auction_item.buy_now_price {}
+      
+      if let Some(buy_now_price) = auction_item.buy_now_price {
+        if price >= buy_now_price {
+          
+          cml::Pallet::<T>::transfer_cml_other(
+            &auction_item.cml_owner, 
+            &auction_item.cml_id, 
+            &sender,
+          )?;
+
+          Self::delete_auction(&auction_id)?;
+  
+          // TODO balance
+          info!("buy now price success.");
+          return Ok(());
+        }
+      }
+      
 
       let current_block = frame_system::Pallet::<T>::block_number();
       let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);

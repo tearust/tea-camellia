@@ -154,6 +154,7 @@ pub mod cml {
 		CMLNotLive,
 		NotEnoughTeaToStaking,
 		MinerAlreadyExist,
+		CMLOwnerInvalid,
 	}
 
 	#[pallet::hooks]

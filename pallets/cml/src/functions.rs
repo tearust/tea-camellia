@@ -140,4 +140,56 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 		Ok(())
 	}
+
+
+	pub fn transfer_cml_other(
+		from_account: &T::AccountId,
+		cml_id: &T::CmlId,
+		target_account:  &T::AccountId,
+	) -> Result<(), Error<T>> {
+		let mut cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
+
+		let user_cml = UserCmlStore::<T>::get(&from_account).ok_or(Error::<T>::CMLOwnerInvalid)?;
+		let from_index = match user_cml.iter().position(|x| *x == *cml_id) {
+			Some(index) => index,
+			None => {
+				return Err(Error::<T>::CMLOwnerInvalid);
+			}
+		};
+
+		if cml.status == CmlStatus::CmlLive {
+			let staking_item = StakingItem {
+				owner: target_account.clone(),
+				category: b"tea".to_vec(),
+				amount: T::StakingPrice::get(),
+				cml: None,
+			};
+			cml.staking_slot.remove(0);
+			cml.staking_slot.insert(0, staking_item);
+
+			Self::update_cml(cml);
+
+			// TODO balance
+		}
+		
+
+		// remove from from UserCmlStore
+		UserCmlStore::<T>::mutate(&from_account, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				list.remove(from_index);
+			}
+		});
+
+		// add to target UserCmlStore
+		UserCmlStore::<T>::mutate(&target_account, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				list.push(*cml_id);
+			}
+			else {
+				*maybe_list = Some(vec![*cml_id]);
+			}
+		});
+			
+		Ok(())
+	}
 }
