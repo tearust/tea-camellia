@@ -776,20 +776,24 @@ parameter_types! {
 }
 impl pallet_cml::Config for Runtime {
     type Event = Event;
-    type AssetId = u32;
+    type CmlId = u32;
     type Currency = Balances;
     type Unit = Unit;
     type StakingPrice = StakingPrice;
 }
 
 parameter_types! {
-    pub const AuctionDeposit: Balance = 10 * DOLLARS;
+    pub const AuctionDealWindowBLock: BlockNumber = 50;
+    pub const BidDeposit: Balance = 100 * DOLLARS;
+    pub const MinPriceForBid: Balance = 1 * DOLLARS;
 }
 impl pallet_auction::Config for Runtime {
     type Event = Event;
     type AuctionId = u64;
     type Currency = Balances;
-    type AuctionDeposit = AuctionDeposit;
+    type AuctionDealWindowBLock = AuctionDealWindowBLock;
+    type BidDeposit = BidDeposit;
+    type MinPriceForBid = MinPriceForBid;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

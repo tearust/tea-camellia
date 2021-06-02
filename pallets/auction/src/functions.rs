@@ -11,15 +11,17 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
   pub(super) fn new_auction_item(
-    cml_id: T::AssetId,
+    cml_id: T::CmlId,
     cml_owner: T::AccountId,
     starting_price: BalanceOf<T>,
     buy_now_price: Option<BalanceOf<T>>,
-  ) -> AuctionItem<T::AuctionId, T::AccountId, T::AssetId, BalanceOf<T>, T::BlockNumber> {
+  ) -> AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber> {
 
     let current_block = frame_system::Pallet::<T>::block_number();
 
     let period: u64 = 1_000_000;
+
+    // TODO remove end_block
     let end_block = period.saturated_into::<T::BlockNumber>() + current_block;
 
     AuctionItem {
@@ -63,8 +65,48 @@ impl<T: auction::Config> auction::Pallet<T> {
     }
   }
 
+  // return current block window number and next.
+  pub fn get_window_block() 
+  -> (T::BlockNumber, T::BlockNumber) {
+    let current_block = frame_system::Pallet::<T>::block_number();
+    let current_window = current_block / T::AuctionDealWindowBLock::get();
+    let next_window = (current_window + <T::BlockNumber>::saturated_from(1_u64)) * T::AuctionDealWindowBLock::get();
+
+    let current_window = current_window * T::AuctionDealWindowBLock::get();
+    (current_window, next_window)
+  }
+
+
+  pub fn add_auction_to_storage(
+    auction_item: AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
+    who: &T::AccountId,
+  ){
+
+    UserAuctionStore::<T>::mutate(&who, |maybe_list| {	
+      if let Some(ref mut list) = maybe_list {
+        list.push(auction_item.id);
+      }
+      else {
+        *maybe_list = Some(vec![auction_item.id]);
+      }
+    });
+
+    let (_, next_window) = Self::get_window_block();
+
+    EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
+      if let Some(ref mut list) = maybe_list {
+        list.push(auction_item.id);
+      }
+      else {
+        *maybe_list = Some(vec![auction_item.id]);
+      }
+    });
+
+    AuctionStore::<T>::insert(auction_item.id, auction_item);
+  }
+
   pub(super) fn get_min_bid_price(
-    auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::AssetId, BalanceOf<T>, T::BlockNumber>,
+    auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
     who: &T::AccountId,
   ) -> BalanceOf<T> {
     let min_price = &auction_item.starting_price;
@@ -91,6 +133,10 @@ impl<T: auction::Config> auction::Pallet<T> {
     let auction_item = AuctionStore::<T>::take(&auction_id).unwrap();
     let who = auction_item.cml_owner;
 
+    // withdraw owner lock fee
+    // Self::lock_tea(&who, T::AuctionDeposit::get());
+    // <T as auction::Config>::Currency::unreserve(&who, T::AuctionDeposit::get())?;
+
     // remove from UserAuctionStore
     UserAuctionStore::<T>::mutate(&who, |maybe_list| {
       if let Some(ref mut list) = maybe_list {
@@ -101,23 +147,23 @@ impl<T: auction::Config> auction::Pallet<T> {
     });
 
     // remove from AuctionBidStore
-    let bid_user_list = AuctionBidStore::<T>::take(&auction_id).unwrap();
+    if let Some(bid_user_list) = AuctionBidStore::<T>::take(&auction_id){
+      for user in bid_user_list.iter() {
 
-    
-    for user in bid_user_list.iter() {
-      // remove from BidStore
-      let _bid_item = BidStore::<T>::take(&user, &auction_id).unwrap();
-
-      // TODO return bid price
-
-      // remove from UserBidStore
-      UserBidStore::<T>::mutate(&user, |maybe_list| {
-        if let Some(ref mut list) = maybe_list {
-          if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-            list.remove(index);
+        // remove from BidStore
+        let _bid_item = BidStore::<T>::take(&user, &auction_id).unwrap();
+  
+        // TODO return bid price
+  
+        // remove from UserBidStore
+        UserBidStore::<T>::mutate(&user, |maybe_list| {
+          if let Some(ref mut list) = maybe_list {
+            if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+              list.remove(index);
+            }
           }
-        }
-      });
+        });
+      }
     }
     
     Ok(())
@@ -151,6 +197,91 @@ impl<T: auction::Config> auction::Pallet<T> {
     });
 
 
+    Ok(())
+  }
+
+  pub fn complete_auction(
+    auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
+    target: &T::AccountId,
+  ) -> Result<(), Error<T>> {
+
+    let rs = cml::Pallet::<T>::transfer_cml_other(
+      &auction_item.cml_owner, 
+      &auction_item.cml_id, 
+      &target,
+    );
+
+    match rs {
+      Ok(_) => {
+        Self::delete_auction(&auction_item.id)?;
+      },
+      Err(_) => {}
+    }
+
+    Ok(())
+  }
+
+  // when in window block, check each auction could complet or not.
+  pub fn check_auction_in_block_window(
+
+  ) -> Result<(), Error<T>> {
+    let (current_window, next_window) = Self::get_window_block();
+    let current_block = frame_system::Pallet::<T>::block_number();
+
+    if (current_block % T::AuctionDealWindowBLock::get()) > <T::BlockNumber>::saturated_from(3_u64) {
+      return Err(Error::<T>::NotInWindowBlock);
+    }
+
+    if let Some(auction_list) = EndblockAuctionStore::<T>::take(current_window) {
+      info!("auction_list => {:?}", auction_list);
+      for auction_id in auction_list.iter() {
+        if let Some(auction_item) = AuctionStore::<T>::get(&auction_id) {
+          Self::check_each_auction_in_block_window(auction_item, next_window)?;
+        }
+        
+      }
+    }
+
+    Ok(())
+  }
+
+  fn check_each_auction_in_block_window(
+    auction_item: AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
+    next_window: T::BlockNumber,
+  ) -> Result<(), Error<T>> {
+    if let Some(ref bid_user) = auction_item.bid_user {
+
+      Self::complete_auction(&auction_item, &bid_user)?;
+    }
+    else {
+      // put to next block
+      EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
+        if let Some(ref mut list) = maybe_list {
+          list.push(auction_item.id);
+        }
+        else {
+          *maybe_list = Some(vec![auction_item.id]);
+        }
+      });
+    }
+
+    Ok(())
+  }
+
+  pub fn reserve(
+    who: &T::AccountId,
+    amount: BalanceOf<T>,
+  ) -> DispatchResult {
+
+    <T as auction::Config>::Currency::reserve(&who, amount)?;
+    Ok(())
+  }
+  pub fn unreserve(
+    who: &T::AccountId,
+    amount: BalanceOf<T>,
+  ) -> DispatchResult {
+
+    <T as auction::Config>::Currency::unreserve(&who, amount);
     Ok(())
   }
 }

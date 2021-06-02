@@ -38,11 +38,17 @@
     "amount": "u32",
     "cml": "Option<AssetId>"
   },
+
+
   "Dai": "u32",
+  "CmlId": "u32",
+  "CmlStatus": {
+    "_enum": ["SeedLive", "SeedFrozen", "CmlLive", "Staking", "Dead"]
+  },
   "CML": {
-    "id": "AssetId",
+    "id": "CmlId",
     "group": "Cid",
-    "status": "Cid",
+    "status": "CmlStatus",
     "life_time": "BlockNumber",
     "lock_time": "BlockNumber",
     "mining_rate": "u8",
@@ -60,7 +66,7 @@
   "AuctionId": "u64",
   "AuctionItem": {
     "id": "AuctionId",
-    "cml_id": "AssetId",
+    "cml_id": "CmlId",
     "cml_owner": "AccountId",
     "starting_price": "Balance",
     "buy_now_price": "Option<Balance>",

@@ -6,16 +6,25 @@ use sp_runtime::RuntimeDebug;
 
 pub type Dai = u32;
 
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+pub enum CmlStatus {
+	SeedLive, 
+	SeedFrozen, 
+	CmlLive, 
+	Staking, 
+	Dead,
+}
 
-#[derive(Clone, Encode, Decode, Default, RuntimeDebug)]
-pub struct StakingItem<AccountId, AssetId> {
+
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingItem<AccountId, CmlId> {
 	pub owner: AccountId,
 	pub category: Vec<u8>,   // seed, tea
 	pub amount: u32,  // amount of tea
-	pub cml: Option<AssetId>,
+	pub cml: Option<CmlId>,
 }
 
-#[derive(Clone, Encode, Decode, Default, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct MinerItem {
 	pub id: Vec<u8>,
 	pub group: Vec<u8>,
@@ -23,15 +32,15 @@ pub struct MinerItem {
 	pub status: Vec<u8>,
 }
 
-#[derive(Clone, Encode, Decode, Default, RuntimeDebug)]
-pub struct CML<AssetId, AccountId, BlockNumber> {
-  pub id: AssetId,
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct CML<CmlId, AccountId, BlockNumber> {
+  pub id: CmlId,
   pub group: Vec<u8>,   // nitro
-	pub status: Vec<u8>,  // Seed_Live, Seed_Frozen, Seed_Planting, CML_Live
+	pub status: CmlStatus,
 	pub life_time: BlockNumber, // whole life time for CML
 	pub lock_time: BlockNumber, 
 	pub mining_rate: u8, // 8 - 12, default 10
-	pub staking_slot: Vec<StakingItem<AccountId, AssetId>>,
+	pub staking_slot: Vec<StakingItem<AccountId, CmlId>>,
 	pub created_at: BlockNumber,
 	pub miner_id: Vec<u8>,
 }
