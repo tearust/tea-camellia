@@ -14,6 +14,7 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+mod functions;
 mod types;
 mod utils;
 mod weights;
@@ -175,7 +176,6 @@ pub mod tea {
             Ok(())
         }
 
-        /// update node profile is an expensive operation to prevent abuse
         #[pallet::weight(T::WeightInfo::update_node_profile())]
         pub fn update_node_profile(
             origin: OriginFor<T>,
@@ -283,130 +283,6 @@ pub mod tea {
 
             Self::deposit_event(Event::UpdateRuntimeActivity(sender, runtime_activity));
             Ok(())
-        }
-    }
-}
-
-impl<T: tea::Config> tea::Pallet<T> {
-    fn pop_existing_node(tea_id: &TeaPubKey) -> Node<T::BlockNumber> {
-        let old_node = Nodes::<T>::get(tea_id).unwrap();
-        BootNodes::<T>::remove(&old_node.tea_id);
-        EphemeralIds::<T>::remove(&old_node.ephemeral_id);
-        PeerIds::<T>::remove(&old_node.peer_id);
-        old_node
-    }
-
-    fn generate_random(sender: T::AccountId, tea_id: &TeaPubKey) -> U256 {
-        let random_seed = <pallet_randomness_collective_flip::Module<T>>::random_seed();
-        //pallet_randomness_collective_flip::Pallet::<T>::random_seed();
-        let payload = (
-            random_seed,
-            sender.clone(),
-            tea_id,
-            frame_system::Pallet::<T>::block_number(),
-        );
-        payload.using_encoded(blake2_256).into()
-    }
-
-    pub(crate) fn is_builtin_node(tea_id: &TeaPubKey) -> bool {
-        BuiltinNodes::<T>::get(tea_id).is_some()
-    }
-
-    fn get_initial_node_status(tea_id: &TeaPubKey) -> NodeStatus {
-        match Self::is_builtin_node(tea_id) {
-            true => NodeStatus::Active,
-            false => NodeStatus::Pending,
-        }
-    }
-
-    fn select_ra_nodes(tea_id: &TeaPubKey, _seed: U256) -> Vec<(TeaPubKey, bool)> {
-        if Self::is_builtin_node(tea_id) {
-            return Vec::new();
-        }
-
-        let mut ra_nodes = Vec::new();
-        // todo: select 4 active nodes(calculate with `seed`) as ra nodes.
-        for (tea_id, _) in BuiltinNodes::<T>::iter() {
-            ra_nodes.push((tea_id, false));
-        }
-        ra_nodes
-    }
-
-    fn get_index_in_ra_nodes(tea_id: &TeaPubKey, target_tea_id: &TeaPubKey) -> Option<usize> {
-        let target_node = Nodes::<T>::get(target_tea_id).unwrap();
-        for i in 0..target_node.ra_nodes.len() {
-            let (ra_tea_id, _) = target_node.ra_nodes[i];
-            if ra_tea_id.eq(tea_id) {
-                return Some(i);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn update_node_status(
-        tea_id: &TeaPubKey,
-        index: usize,
-        is_pass: bool,
-    ) -> NodeStatus {
-        let mut target_node = Nodes::<T>::get(tea_id).unwrap();
-        target_node.ra_nodes[index] = (tea_id.clone(), is_pass);
-        let status = if is_pass {
-            let approved_count = target_node
-                .ra_nodes
-                .iter()
-                .filter(|(_, is_pass)| *is_pass)
-                .count() as u32;
-            // need 3/4 vote at least for now.
-            if approved_count >= T::MinRaPassedThreshold::get() {
-                NodeStatus::Active
-            } else {
-                NodeStatus::Pending
-            }
-        } else {
-            NodeStatus::Invalid
-        };
-        target_node.status = status.clone();
-        Nodes::<T>::insert(tea_id, &target_node);
-
-        status
-    }
-
-    pub(crate) fn verify_ed25519_signature(
-        pubkey: &TeaPubKey,
-        content: &[u8],
-        signature: &Signature,
-    ) -> DispatchResult {
-        let ed25519_pubkey = ed25519::Public(pubkey.clone());
-        ensure!(signature.len() == 64, Error::<T>::InvalidSignatureLength);
-        let ed25519_sig = ed25519::Signature::from_slice(&signature[..]);
-        ensure!(
-            ed25519_sig.verify(content, &ed25519_pubkey),
-            Error::<T>::InvalidSignature
-        );
-        Ok(())
-    }
-
-    pub(crate) fn update_runtime_status(block_number: T::BlockNumber) {
-        for (tea_id, mut node) in Nodes::<T>::iter() {
-            if node.status == NodeStatus::Active {
-                if block_number - node.update_time <= T::RuntimeActivityThreshold::get().into() {
-                    continue;
-                }
-                match RuntimeActivities::<T>::get(&tea_id) {
-                    Some(runtime_activity) => {
-                        if block_number - runtime_activity.update_height
-                            > T::RuntimeActivityThreshold::get().into()
-                        {
-                            node.status = NodeStatus::Inactive;
-                            Nodes::<T>::insert(&tea_id, node);
-                        }
-                    }
-                    None => {
-                        node.status = NodeStatus::Inactive;
-                        Nodes::<T>::insert(&tea_id, node);
-                    }
-                }
-            }
         }
     }
 }
