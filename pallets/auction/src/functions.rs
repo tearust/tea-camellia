@@ -143,6 +143,10 @@ impl<T: auction::Config> auction::Pallet<T> {
     let auction_item = AuctionStore::<T>::take(&auction_id).unwrap();
     let who = auction_item.cml_owner;
 
+    // withdraw owner lock fee
+    // Self::lock_tea(&who, T::AuctionDeposit::get());
+    // <T as auction::Config>::Currency::unreserve(&who, T::AuctionDeposit::get())?;
+
     // remove from UserAuctionStore
     UserAuctionStore::<T>::mutate(&who, |maybe_list| {
       if let Some(ref mut list) = maybe_list {
@@ -270,6 +274,23 @@ impl<T: auction::Config> auction::Pallet<T> {
       });
     }
 
+    Ok(())
+  }
+
+  pub fn reserve(
+    who: &T::AccountId,
+    amount: BalanceOf<T>,
+  ) -> DispatchResult {
+
+    <T as auction::Config>::Currency::reserve(&who, amount)?;
+    Ok(())
+  }
+  pub fn unreserve(
+    who: &T::AccountId,
+    amount: BalanceOf<T>,
+  ) -> DispatchResult {
+
+    <T as auction::Config>::Currency::unreserve(&who, amount);
     Ok(())
   }
 }

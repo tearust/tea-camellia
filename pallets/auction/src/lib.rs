@@ -8,7 +8,8 @@ use sp_std::{cmp::Ordering, prelude::*};
 use frame_support::pallet_prelude::*;
 use frame_support::{ensure};
 use frame_support::traits::{
-	Currency, LockableCurrency, LockIdentifier, WithdrawReasons,
+  Currency, ReservableCurrency,
+  // LockIdentifier, WithdrawReasons,
 	Get,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
@@ -32,7 +33,7 @@ pub use types::*;
 pub use auction::*;
 use pallet_cml as cml;
 
-const AUCTION_ID: LockIdentifier = *b"_auction";
+// pub const AUCTION_ID: LockIdentifier = *b"_auction";
 
 pub type BalanceOf<T> = 
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -45,7 +46,7 @@ pub mod auction {
 	pub trait Config: frame_system::Config + cml::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-    type Currency: LockableCurrency<Self::AccountId>;
+    type Currency: ReservableCurrency<Self::AccountId>;
 
 		/// The auction ID type.
 		type AuctionId: Parameter
@@ -62,6 +63,9 @@ pub mod auction {
     // type WeightInfo: WeightInfo;
     
     type AuctionDealWindowBLock: Get<Self::BlockNumber>;
+
+    type BidDeposit: Get<BalanceOf<Self>>;
+    type MinPriceForBid: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::error]
@@ -74,6 +78,7 @@ pub mod auction {
     NotAllowQuitBid,
     NotInWindowBlock,
 
+    LockableInvalid,
 		// AuctionNotStarted,
 		// BidNotAccepted,
 		// NoAvailableAuctionId,
@@ -187,9 +192,9 @@ pub mod auction {
       
       Self::add_auction_to_storage(auction_item, &sender);
 
-      // TODO not work
-      let reason = WithdrawReasons::all();
-      <T as auction::Config>::Currency::set_lock(AUCTION_ID, &sender, T::AuctionDeposit::get(), reason);
+    
+      Self::reserve(&sender, T::AuctionDeposit::get())?;
+      // <T as auction::Config>::Currency::reserve(&sender, T::AuctionDeposit::get())?;
 
       Ok(())
     }
@@ -282,6 +287,9 @@ pub mod auction {
 
       let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
       ensure!(&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal, Error::<T>::AuctionOwnerInvalid);
+
+      // unserve
+      Self::unreserve(&sender, T::AuctionDeposit::get())?;
 
       Self::delete_auction(&auction_id)?;
 
