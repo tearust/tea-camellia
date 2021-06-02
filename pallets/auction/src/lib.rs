@@ -58,13 +58,15 @@ pub mod auction {
 			+ Bounded
 			+ codec::FullCodec;
 
-    #[pallet::constant]
-    type AuctionDeposit: Get<BalanceOf<Self>>;
     // type WeightInfo: WeightInfo;
     
+    #[pallet::constant]
     type AuctionDealWindowBLock: Get<Self::BlockNumber>;
 
+    #[pallet::constant]
     type BidDeposit: Get<BalanceOf<Self>>;
+
+    #[pallet::constant]
     type MinPriceForBid: Get<BalanceOf<Self>>;
 	}
 
@@ -162,16 +164,25 @@ pub mod auction {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		// fn on_initialize(now: T::BlockNumber) -> Weight {
-		// 	T::WeightInfo::on_finalize(AuctionEndTime::<T>::iter_prefix(&now).count() as u32)
+			
 		// }
 
-		// fn on_finalize(now: T::BlockNumber) {
-		// 	for (auction_id, _) in AuctionEndTime::<T>::drain_prefix(&now) {
-		// 		if let Some(auction) = Auctions::<T>::take(&auction_id) {
-		// 			T::Handler::on_auction_ended(auction_id, auction.bid);
-		// 		}
-		// 	}
-		// }
+		fn on_finalize(now: T::BlockNumber) {
+      let b = now % T::AuctionDealWindowBLock::get();
+
+      if b < <T::BlockNumber>::saturated_from(1_u64) {
+        info!("[check_auction_in_block_window] start");
+        let f = match Self::check_auction_in_block_window() {
+          Ok(_) => true,
+          Err(e) => {
+            info!("on_finalize error => {:?}", e);
+            false
+          }
+        };
+        info!("[check_auction_in_block_window] => {:?}", f);
+      }
+
+		}
 	}
 
 	#[pallet::call]
@@ -191,10 +202,6 @@ pub mod auction {
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
       
       Self::add_auction_to_storage(auction_item, &sender);
-
-    
-      Self::reserve(&sender, T::AuctionDeposit::get())?;
-      // <T as auction::Config>::Currency::reserve(&sender, T::AuctionDeposit::get())?;
 
       Ok(())
     }
@@ -287,9 +294,6 @@ pub mod auction {
 
       let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
       ensure!(&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal, Error::<T>::AuctionOwnerInvalid);
-
-      // unserve
-      Self::unreserve(&sender, T::AuctionDeposit::get())?;
 
       Self::delete_auction(&auction_id)?;
 
