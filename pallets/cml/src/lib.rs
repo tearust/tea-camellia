@@ -165,7 +165,7 @@ pub mod cml {
 	impl<T: Config> Pallet<T> {
 
 		#[pallet::weight(1_000)]
-		fn transfer_dai(
+		pub(crate) fn transfer_dai(
 			sender: OriginFor<T>,
 			target: T::AccountId,
 			#[pallet::compact] amount: Dai,
@@ -184,7 +184,7 @@ pub mod cml {
 		}
 
 		#[pallet::weight(10_000)]
-		fn convert_cml_from_dai(
+		pub(crate) fn convert_cml_from_dai(
 			sender: OriginFor<T>,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
@@ -207,7 +207,7 @@ pub mod cml {
 		}
 
 		#[pallet::weight(10_000)]
-		fn active_cml_for_nitro(
+		pub(crate) fn active_cml_for_nitro(
 			sender: OriginFor<T>,
 			cml_id: T::AssetId,
 			miner_id: Vec<u8>,
