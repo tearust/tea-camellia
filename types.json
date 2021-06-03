@@ -32,22 +32,37 @@
     "ephemeralId": "TeaPubKey",
     "updateHeight": "BlockNumber"
   },
-  "StakingItem": {
-    "owner": "AccountId",
-    "category": "Cid",
-    "amount": "u32",
-    "cml": "Option<AssetId>"
-  },
-
 
   "Dai": "u32",
   "CmlId": "u32",
   "CmlStatus": {
     "_enum": ["SeedLive", "SeedFrozen", "CmlLive", "Staking", "Dead"]
   },
+  "MinerStatus": {
+    "_enum": ["Active", "Offline"]
+  },
+  "CmlGroup": {
+    "_enum": ["Nitro", "Tpm"]
+  },
+  "StakingCategory": {
+    "_enum": ["Tea", "Cml"]
+  },
+
+  "StakingItem": {
+    "owner": "AccountId",
+    "category": "StakingCategory",
+    "amount": "Option<Balance>",
+    "cml": "Option<CmlId>"
+  },
+  "MinerItem": {
+    "id": "Cid",
+    "ip": "Cid",
+    "status": "MinerStatus"
+  },
+
   "CML": {
     "id": "CmlId",
-    "group": "Cid",
+    "group": "CmlGroup",
     "status": "CmlStatus",
     "life_time": "BlockNumber",
     "lock_time": "BlockNumber",
@@ -56,12 +71,7 @@
     "created_at": "BlockNumber",
     "miner_id": "Cid"
   },
-  "MinerItem": {
-    "id": "Cid",
-    "group": "Cid",
-    "ip": "Cid",
-    "status": "Cid"
-  },
+  
 
   "AuctionId": "u64",
   "AuctionItem": {
