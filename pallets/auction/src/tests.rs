@@ -71,8 +71,8 @@ fn put_inactive_cml_to_store_should_fail() {
         let mut cml = default_cml(id);
         cml.staking_slot = vec![StakingItem {
             owner: 1,
-            category: vec![],
-            amount: 1000,
+            category: pallet_cml::StakingCategory::Cml,
+            amount: Some(1000),
             cml: None,
         }];
         cml.status = status;
@@ -425,10 +425,10 @@ fn remove_not_my_bid_should_fail() {
     })
 }
 
-fn default_cml(cml_id: u64) -> CML<u64, u64, u64> {
+fn default_cml(cml_id: u64) -> CML<u64, u64, u64, u128> {
     CML {
         id: cml_id,
-        group: vec![],
+        group: pallet_cml::CmlGroup::Tpm,
         status: CmlStatus::SeedFrozen,
         life_time: 0,
         lock_time: 0,
