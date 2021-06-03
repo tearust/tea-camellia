@@ -108,21 +108,26 @@ impl<T: auction::Config> auction::Pallet<T> {
   pub(super) fn get_min_bid_price(
     auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
     who: &T::AccountId,
-  ) -> BalanceOf<T> {
-    let min_price = &auction_item.starting_price;
-    
-    // TODO calcaute min price
+  ) -> Result<BalanceOf<T>, Error<T>> {
+    let min_price = match BidStore::<T>::get(&who, auction_item.id) {
+      Some(bid_item) => bid_item.price,
+      None => <BalanceOf<T>>::saturated_from(0_u128)
+    };
 
-    // if let Some(bid_user) = &auction_item.bid_user {
-    //   let bid_item = BidStore::<T>::get(&bid_user, auction_item.id).unwrap();
+    let max_price = {
+      if let Some(bid_user) = &auction_item.bid_user {
+        let bid_item = BidStore::<T>::get(&bid_user, auction_item.id).ok_or(Error::<T>::NotFoundBid)?;
+  
+        bid_item.price
+      }
+      else {
+        auction_item.starting_price
+      }
+    };
 
-    //   return bid_item.price - auction_item.starting_price;
-    // }
-    if let Some(_bid_item) = BidStore::<T>::get(&who, auction_item.id) {
-      return <T as auction::Config>::Currency::minimum_balance();
-    }
+    let rs = max_price.saturating_sub(min_price).saturating_add(T::MinPriceForBid::get());
     
-    *min_price
+    Ok(rs)
   }
 
   pub fn delete_auction(
@@ -175,7 +180,7 @@ impl<T: auction::Config> auction::Pallet<T> {
     auction_id: &T::AuctionId,
   ) -> Result<(), Error<T>> {
     // remove from BidStore
-    let _bid_item = BidStore::<T>::take(&who, &auction_id).unwrap();
+    let _ = BidStore::<T>::take(&who, &auction_id).ok_or(Error::<T>::NotFoundBid)?;
     // TODO return bid price.
 
     // remove from UserBidStore

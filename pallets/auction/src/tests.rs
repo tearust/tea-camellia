@@ -225,8 +225,15 @@ fn bid_for_auction_im_win_for_now_should_work() {
         let mut auction_item = default_auction_item(auction_id, 2);
         auction_item.bid_user = Some(owner_id);
         AuctionStore::<Test>::insert(auction_id, auction_item);
+        BidStore::<Test>::insert(owner_id, auction_id, BidItem {
+            auction_id,
+            user: owner_id,
+            price: 5,
+            created_at: 0,
+            updated_at: 0
+        });
 
-        // todo: should not return error
+        
         assert_noop!(
             Auction::bid_for_auction(Origin::signed(owner_id), auction_id, 10),
             Error::<Test>::NoNeedBid
@@ -310,13 +317,12 @@ fn bid_for_auction_with_invalid_price_should_faild() {
             user1_bid_price,
         ));
 
-        let user2_bid_price = 130; // > starting_price && < user1_bid_price
-                                   // todo: should return `Error::<Test>::InvalidBidPrice` error
-        assert_ok!(Auction::bid_for_auction(
+        let user2_bid_price = 130; 
+        assert_noop!(Auction::bid_for_auction(
             Origin::signed(user2_id),
             auction_id,
             user2_bid_price
-        ),);
+        ), Error::<Test>::InvalidBidPrice);
     });
 
     // user add price should larger than the former price
@@ -345,12 +351,12 @@ fn bid_for_auction_with_invalid_price_should_faild() {
         ));
 
         let user1_add_price = 30; // user1_bid_price + user1_add_price < 200 (the second user bid price)
-                                  // todo: should return `Error::<Test>::InvalidBidPrice` error
-        assert_ok!(Auction::bid_for_auction(
+                                  
+        assert_noop!(Auction::bid_for_auction(
             Origin::signed(user1_id),
             auction_id,
             user1_add_price,
-        ));
+        ), Error::<Test>::InvalidBidPrice);
     })
 }
 
@@ -414,11 +420,10 @@ fn remove_not_my_bid_should_fail() {
             150
         ));
 
-        // todo: should work
-        // assert_noop!(
-        //     Auction::remove_bid_for_auction(Origin::signed(2), auction_id),
-        //     Error::<Test>::AuctionOwnerInvalid
-        // );
+        assert_noop!(
+            Auction::remove_bid_for_auction(Origin::signed(2), auction_id),
+            Error::<Test>::NotFoundBid
+        );
     })
 }
 
