@@ -21,8 +21,12 @@ use sp_runtime::{
 
 use log::{info};
 
+#[cfg(test)]
 mod mock;
+
+#[cfg(test)]
 mod tests;
+
 mod weights;
 mod types;
 mod functions;
