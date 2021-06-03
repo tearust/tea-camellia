@@ -92,7 +92,7 @@ fn active_cml_for_nitro_with_insufficient_free_balance() {
                 b"miner_id".to_vec(),
                 b"miner_id".to_vec()
             ),
-            Error::<Test>::NotEnoughTeaToStaking
+            Error::<Test>::NotFoundCML
         );
     })
 }

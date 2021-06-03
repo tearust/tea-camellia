@@ -208,6 +208,7 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
+			let _ = Self::get_cml_by_id(&cml_id)?;
 			Self::check_belongs(&cml_id, &sender)?;
 
 			let miner_item = MinerItem {
