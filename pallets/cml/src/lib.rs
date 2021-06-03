@@ -20,9 +20,7 @@ use sp_std::{
 use sp_runtime::{
 		SaturatedConversion,
 		traits::{
-		// AtLeast32BitUnsigned, 
 		AtLeast32Bit, Zero, One, 
-		// Saturating, CheckedSub, CheckedAdd, Bounded, StoredMapError,
 	}
 };
 use log::{info};
@@ -36,15 +34,13 @@ use frame_system::pallet_prelude::*;
 use frame_support::{ensure};
 use frame_support::traits::{
 	Currency, 
-	// ReservableCurrency, BalanceStatus, StoredMap, 
 	Get,
 };
 
-// use frame_system::Config as SystemConfig;
 pub use cml::*;
 
 
-type BalanceOf<T> = 
+pub type BalanceOf<T> = 
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
@@ -53,18 +49,14 @@ pub mod cml {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		/// Identifier for the class of asset.
 		type CmlId: Parameter + AtLeast32Bit + Default + Copy;
 
 		type Currency: Currency<Self::AccountId>;
 
-		type Unit: Get<BalanceOf<Self>>;
-
 		#[pallet::constant]
-		type StakingPrice: Get<u32>;
+		type StakingPrice: Get<BalanceOf<Self>>;
 
 	}
 
@@ -88,7 +80,7 @@ pub mod cml {
 		_,
 		Twox64Concat,
 		T::CmlId,
-		CML<T::CmlId, T::AccountId, T::BlockNumber>,
+		CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>,
 	>;
 
 	#[pallet::storage]
@@ -138,13 +130,13 @@ pub mod cml {
 	}
 
 	#[pallet::event]
-	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(
 		T::AccountId = "AccountId",
 		T::CmlId = "CmlId"
 	)]
 	pub enum Event<T: Config> {
-		// Issued(T::CmlId, T::AccountId),
+		ActiveCml(T::AccountId, T::CmlId),
 	}
 
 	#[pallet::error]
@@ -201,7 +193,7 @@ pub mod cml {
 			Self::set_dai(&sender, _sender_dai.saturating_sub(1 as Dai));
 
 			// add cml
-			let cml = Self::new_cml_from_dai(b"nitro".to_vec(), status);
+			let cml = Self::new_cml_from_dai(CmlGroup::Nitro, status);
 			Self::add_cml(&sender, cml);
 
 			Ok(())
@@ -216,31 +208,35 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
+			let user_cml = UserCmlStore::<T>::get(&sender).ok_or(Error::<T>::CMLOwnerInvalid)?;
+			ensure!(user_cml.contains(&cml_id), Error::<T>::CMLOwnerInvalid);
+
 			let miner_item = MinerItem {
 				id: miner_id.clone(),
-				group: b"nitro".to_vec(),
 				ip: miner_ip,
-				status: b"active".to_vec(),
+				status: MinerStatus::Active,
 			};
 
 			ensure!(!<MinerItemStore<T>>::contains_key(&miner_id), Error::<T>::MinerAlreadyExist);
 
 			let balance = T::Currency::free_balance(&sender);
 
-			let max_price: BalanceOf<T> = T::Unit::get() * T::StakingPrice::get().into();
-			ensure!(balance >= max_price, Error::<T>::NotEnoughTeaToStaking);
+			let max_price: BalanceOf<T> = T::StakingPrice::get();
+			ensure!(balance > max_price, Error::<T>::NotEnoughTeaToStaking);
 
 			let staking_item = StakingItem {
 				owner: sender.clone(),
-				category: b"tea".to_vec(),
-				amount: T::StakingPrice::get(),
+				category: StakingCategory::Tea,
+				amount: Some(T::StakingPrice::get()),
 				cml: None,
 			};
+
 			Self::update_cml_to_active(&cml_id, miner_id.clone(), staking_item)?;
 			<MinerItemStore<T>>::insert(&miner_id, miner_item);
 
 			info!("TODO ---- lock balance");
 
+			Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
 			Ok(())
 		}
 	}

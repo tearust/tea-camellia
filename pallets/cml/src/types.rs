@@ -15,32 +15,50 @@ pub enum CmlStatus {
 	Dead,
 }
 
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+pub enum MinerStatus {
+	Active,
+	Offline,
+	// ...
+}
+
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+pub enum CmlGroup {
+	Nitro,
+	Tpm,
+}
+
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+pub enum StakingCategory {
+	Tea,
+	Cml,
+}
+
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingItem<AccountId, CmlId> {
+pub struct StakingItem<AccountId, CmlId, Balance> {
 	pub owner: AccountId,
-	pub category: Vec<u8>,   // seed, tea
-	pub amount: u32,  // amount of tea
+	pub category: StakingCategory,
+	pub amount: Option<Balance>,
 	pub cml: Option<CmlId>,
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct MinerItem {
 	pub id: Vec<u8>,
-	pub group: Vec<u8>,
 	pub ip: Vec<u8>,
-	pub status: Vec<u8>,
+	pub status: MinerStatus,
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct CML<CmlId, AccountId, BlockNumber> {
+pub struct CML<CmlId, AccountId, BlockNumber, Balance> {
   pub id: CmlId,
-  pub group: Vec<u8>,   // nitro
+  pub group: CmlGroup,
 	pub status: CmlStatus,
 	pub life_time: BlockNumber, // whole life time for CML
 	pub lock_time: BlockNumber, 
 	pub mining_rate: u8, // 8 - 12, default 10
-	pub staking_slot: Vec<StakingItem<AccountId, CmlId>>,
+	pub staking_slot: Vec<StakingItem<AccountId, CmlId, Balance>>,
 	pub created_at: BlockNumber,
 	pub miner_id: Vec<u8>,
 }

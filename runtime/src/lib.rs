@@ -771,14 +771,12 @@ impl pallet_tea::Config for Runtime {
 }
 
 parameter_types! {
-    pub const Unit: Balance = 1 * DOLLARS;
-    pub const StakingPrice: u32 = 1000;
+    pub const StakingPrice: Balance = 1000 * DOLLARS;
 }
 impl pallet_cml::Config for Runtime {
     type Event = Event;
     type CmlId = u32;
     type Currency = Balances;
-    type Unit = Unit;
     type StakingPrice = StakingPrice;
 }
 

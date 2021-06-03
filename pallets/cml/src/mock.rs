@@ -57,15 +57,13 @@ impl system::Config for Test {
 
 parameter_types! {
     pub const MinRaPassedThreshold: u32 = 3;
-    pub const Unit: Balance = 100;
-    pub const StakingPrice: u32 = 1000;
+    pub const StakingPrice: Balance = 1000;
 }
 
 impl pallet_cml::Config for Test {
     type Event = Event;
     type CmlId = u64;
     type Currency = Balances;
-    type Unit = Unit;
     type StakingPrice = StakingPrice;
 }
 

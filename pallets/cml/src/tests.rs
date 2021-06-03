@@ -2,56 +2,6 @@ use crate::{mock::*, types::*, CmlStore, Config, DaiStore, Error, MinerItemStore
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 
 #[test]
-fn transfer_dai_works() {
-    new_test_ext().execute_with(|| {
-        DaiStore::<Test>::insert(1, 100);
-        DaiStore::<Test>::insert(2, 100);
-
-        assert_ok!(Cml::transfer_dai(Origin::signed(1), 2, 33));
-
-        assert_eq!(DaiStore::<Test>::get(1).unwrap(), 67);
-        assert_eq!(DaiStore::<Test>::get(2).unwrap(), 133);
-    })
-}
-
-#[test]
-fn transfer_dai_works_even_if_target_account_not_exist() {
-    new_test_ext().execute_with(|| {
-        DaiStore::<Test>::insert(1, 100);
-
-        assert_ok!(Cml::transfer_dai(Origin::signed(1), 2, 33));
-
-        assert_eq!(DaiStore::<Test>::get(1).unwrap(), 67);
-        assert_eq!(DaiStore::<Test>::get(2).unwrap(), 33);
-    })
-}
-
-#[test]
-fn transfer_with_insufficient_amounts() {
-    new_test_ext().execute_with(|| {
-        DaiStore::<Test>::insert(1, 100);
-        DaiStore::<Test>::insert(2, 100);
-        assert_noop!(
-            Cml::transfer_dai(Origin::signed(1), 2, 133),
-            Error::<Test>::NotEnoughDai
-        );
-    })
-}
-
-#[test]
-fn transfer_when_target_overflow() {
-    // todo: this should work
-    // new_test_ext().execute_with(|| {
-    //     DaiStore::<Test>::insert(1, 100);
-    //     DaiStore::<Test>::insert(2, u32::MAX);
-    //     assert_noop!(
-    //         Cml::transfer_dai(Origin::signed(1), 2, 33),
-    //         Error::<Test>::NotEnoughDai
-    //     );
-    // })
-}
-
-#[test]
 fn convert_cml_from_dai_works() {
     new_test_ext().execute_with(|| {
         DaiStore::<Test>::insert(1, 100);
@@ -66,7 +16,7 @@ fn convert_cml_from_dai_works() {
         assert!(cml.is_some());
         let cml = cml.unwrap();
         assert_eq!(cml.id, cml_list[0]);
-        assert_eq!(cml.group, b"nitro".to_vec());
+        assert_eq!(cml.group, CmlGroup::Nitro);
         assert_eq!(cml.status, CmlStatus::SeedFrozen);
     })
 }
@@ -126,8 +76,7 @@ fn active_cml_for_nitro_works() {
         let miner_item = MinerItemStore::<Test>::get(miner_id.clone()).unwrap();
         assert_eq!(miner_item.id, miner_id);
         assert_eq!(miner_item.id, cml.miner_id);
-        assert_eq!(miner_item.status, b"active".to_vec());
-        assert_eq!(miner_item.group, b"nitro".to_vec());
+        assert_eq!(miner_item.status, MinerStatus::Active);
         assert_eq!(miner_item.ip, miner_ip);
     });
 }
