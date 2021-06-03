@@ -1,12 +1,12 @@
 use crate as pallet_cml;
 use frame_support::parameter_types;
 use frame_system as system;
+use node_primitives::Balance;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
 };
-use node_primitives::Balance;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -63,7 +63,7 @@ parameter_types! {
 
 impl pallet_cml::Config for Test {
     type Event = Event;
-    type AssetId = u64;
+    type CmlId = u64;
     type Currency = Balances;
     type Unit = Unit;
     type StakingPrice = StakingPrice;

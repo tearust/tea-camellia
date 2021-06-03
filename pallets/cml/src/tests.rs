@@ -1,4 +1,4 @@
-use crate::{mock::*, CmlStore, Config, DaiStore, Error, MinerItemStore, UserCmlStore};
+use crate::{mock::*, types::*, CmlStore, Config, DaiStore, Error, MinerItemStore, UserCmlStore};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 
 #[test]
@@ -67,7 +67,7 @@ fn convert_cml_from_dai_works() {
         let cml = cml.unwrap();
         assert_eq!(cml.id, cml_list[0]);
         assert_eq!(cml.group, b"nitro".to_vec());
-        assert_eq!(cml.status, b"Seed_Frozen".to_vec());
+        assert_eq!(cml.status, CmlStatus::SeedFrozen);
     })
 }
 
@@ -114,7 +114,7 @@ fn active_cml_for_nitro_works() {
 
         let cml_list = UserCmlStore::<Test>::get(1).unwrap();
         let cml = CmlStore::<Test>::get(cml_list[0]).unwrap();
-        assert_eq!(cml.status, b"CML_Live".to_vec());
+        assert_eq!(cml.status, CmlStatus::CmlLive);
         assert_eq!(cml.staking_slot.len(), 1);
 
         let staking_item = cml.staking_slot.get(0).unwrap();
