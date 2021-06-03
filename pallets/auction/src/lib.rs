@@ -80,6 +80,8 @@ pub mod auction {
     AuctionNotExist,
     InvalidBidPrice,
     NoNeedBid,
+    /// The bid auction item belongs to extrinsic sender self
+    BidSelfBelongs,
     AuctionOwnerInvalid,
     NotAllowQuitBid,
     NotInWindowBlock,
@@ -231,7 +233,7 @@ pub mod auction {
       }
 
       ensure!(min_price < price, Error::<T>::InvalidBidPrice);
-      ensure!(&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
+      ensure!(&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal, Error::<T>::BidSelfBelongs);
 
       
       if let Some(buy_now_price) = auction_item.buy_now_price {
