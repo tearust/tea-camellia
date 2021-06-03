@@ -19,9 +19,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn new_cml_from_dai(
-		group: Vec<u8>,
+		group: CmlGroup,
 		status: CmlStatus,
-	) -> CML<T::CmlId, T::AccountId, T::BlockNumber> {
+	) -> CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>> {
 
 		// life time, lock time
 		let current_block = frame_system::Pallet::<T>::block_number();
@@ -58,7 +58,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn add_cml(
 		who: &T::AccountId,
-		cml: CML<T::CmlId, T::AccountId, T::BlockNumber>,
+		cml: CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>,
 	) {
 
 		CmlStore::<T>::insert(cml.id, cml.clone());
@@ -75,23 +75,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn remove_cml_by_id() {}
 
-	// fn get_cml_id_list_by_account(
-	// 	who: &T::AccountId,
-	// ) -> Vec<T::CmlId> {
-	// 	let list = {
-	// 		if <UserCmlStore<T>>::contains_key(&who) {
-	// 			UserCmlStore::<T>::get(&who).unwrap()
-	// 		}
-	// 		else {
-	// 			vec![]
-	// 		}
-	// 	};
-		
-	// 	list
-	// }
 
 	pub fn update_cml(
-		cml: CML<T::CmlId, T::AccountId, T::BlockNumber>,
+		cml: CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>,
 	) {
 		CmlStore::<T>::mutate(cml.id, |maybe_item| {	
 			if let Some(ref mut item) = maybe_item {
@@ -102,7 +88,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn get_cml_by_id(
 		cml_id: &T::CmlId
-	) -> Result<CML<T::CmlId, T::AccountId, T::BlockNumber>, Error<T>> {
+	) -> Result<CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>, Error<T>> {
 		let cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
 
 		Ok(cml)
@@ -111,7 +97,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub fn update_cml_to_active(
 		cml_id: &T::CmlId,
 		miner_id: Vec<u8>,
-		staking_item: StakingItem<T::AccountId, T::CmlId>,
+		staking_item: StakingItem<T::AccountId, T::CmlId, BalanceOf<T>>,
 	) -> Result<(), Error<T>> {
 
 		let mut cml = Self::get_cml_by_id(&cml_id)?;
@@ -125,7 +111,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn staking_to_cml(
-		staking_item: StakingItem<T::AccountId, T::CmlId>,
+		staking_item: StakingItem<T::AccountId, T::CmlId, BalanceOf<T>>,
 		target_cml_id: &T::CmlId,
 	) -> Result<(), Error<T>> {
 		let mut cml = CmlStore::<T>::get(&target_cml_id).ok_or(Error::<T>::NotFoundCML)?;
@@ -160,8 +146,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 		if cml.status == CmlStatus::CmlLive {
 			let staking_item = StakingItem {
 				owner: target_account.clone(),
-				category: b"tea".to_vec(),
-				amount: T::StakingPrice::get(),
+				category: StakingCategory::Tea,
+				amount: Some(T::StakingPrice::get()),
 				cml: None,
 			};
 			cml.staking_slot.remove(0);
