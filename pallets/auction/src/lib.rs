@@ -87,9 +87,8 @@ pub mod auction {
     NotInWindowBlock,
 
     LockableInvalid,
-		// AuctionNotStarted,
-		// BidNotAccepted,
-		// NoAvailableAuctionId,
+
+    NotAllowToAuction,
 	}
 
 	#[pallet::event]
@@ -204,8 +203,12 @@ pub mod auction {
     ) -> DispatchResult {
       let sender = ensure_signed(origin)?;
 
-      let _ = cml::Pallet::<T>::get_cml_by_id(&cml_id)?;
+      let cml_item = cml::Pallet::<T>::get_cml_by_id(&cml_id)?;
       cml::Pallet::<T>::check_belongs(&cml_id, &sender)?;
+
+      // check cml status
+      ensure!(cml_item.status != cml::CmlStatus::Dead, Error::<T>::NotAllowToAuction);
+
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
       Self::add_auction_to_storage(auction_item, &sender);
 

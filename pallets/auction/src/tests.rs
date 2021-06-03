@@ -60,13 +60,13 @@ fn put_not_my_cml_to_store_should_fail() {
         let cml_id = 11;
         CmlStore::<Test>::insert(cml_id, default_cml(cml_id));
 
-        // todo this should fail
-        assert_ok!(Auction::put_to_store(Origin::signed(1), cml_id, 1000, None));
+        let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
+        assert_noop!(rs, CmlError::<Test>::CMLOwnerInvalid);
     })
 }
 
 #[test]
-fn put_inactive_cml_to_store_should_fail() {
+fn put_inactive_cml_to_store_with_diff_cml_status() {
     let create_cml = |id, status| {
         let mut cml = default_cml(id);
         cml.staking_slot = vec![StakingItem {
@@ -82,33 +82,30 @@ fn put_inactive_cml_to_store_should_fail() {
 
     // fail if `CmlStatus` is Dead
     new_test_ext().execute_with(|| {
+        let user = 1;
         let cml_id = 11;
         let cml = create_cml(cml_id, CmlStatus::Dead);
-        CmlStore::<Test>::insert(cml_id, cml);
 
-        // todo this should fail
-        assert_ok!(Auction::put_to_store(Origin::signed(1), cml_id, 1000, None));
+        CmlStore::<Test>::insert(cml_id, cml);
+        UserCmlStore::<Test>::insert(user, vec![11]);
+
+        let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
+        assert_noop!(rs, Error::<Test>::NotAllowToAuction);
     });
 
-    // fail if `CmlStatus` is SeedFrozen
+    // success for other CmlStatus
     new_test_ext().execute_with(|| {
-        let cml_id = 11;
-        let cml = create_cml(cml_id, CmlStatus::SeedFrozen);
-        CmlStore::<Test>::insert(cml_id, cml);
-
-        // todo this should fail
-        assert_ok!(Auction::put_to_store(Origin::signed(1), cml_id, 1000, None));
-    });
-
-    // fail if `CmlStatus` is Staking
-    new_test_ext().execute_with(|| {
+        let user = 1;
         let cml_id = 11;
         let cml = create_cml(cml_id, CmlStatus::Staking);
-        CmlStore::<Test>::insert(cml_id, cml);
 
-        // todo this should fail
-        assert_ok!(Auction::put_to_store(Origin::signed(1), cml_id, 1000, None));
+        CmlStore::<Test>::insert(cml_id, cml);
+        UserCmlStore::<Test>::insert(user, vec![11]);
+
+        let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
+        assert_ok!(rs);
     });
+
 }
 
 #[test]
