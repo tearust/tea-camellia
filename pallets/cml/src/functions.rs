@@ -94,6 +94,18 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Ok(cml)
 	}
 
+	pub fn check_belongs(
+		cml_id: &T::CmlId,
+		who: &T::AccountId,
+	) -> Result<(), Error<T>>{
+		let user_cml = UserCmlStore::<T>::get(&who).ok_or(Error::<T>::CMLOwnerInvalid)?;
+		if !user_cml.contains(&cml_id) {
+			return Err(Error::<T>::CMLOwnerInvalid);
+		}
+
+		Ok(())
+	}
+
 	pub fn update_cml_to_active(
 		cml_id: &T::CmlId,
 		miner_id: Vec<u8>,

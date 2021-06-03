@@ -208,8 +208,7 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let user_cml = UserCmlStore::<T>::get(&sender).ok_or(Error::<T>::CMLOwnerInvalid)?;
-			ensure!(user_cml.contains(&cml_id), Error::<T>::CMLOwnerInvalid);
+			Self::check_belongs(&cml_id, &sender)?;
 
 			let miner_item = MinerItem {
 				id: miner_id.clone(),

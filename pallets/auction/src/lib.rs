@@ -118,7 +118,6 @@ pub mod auction {
     OptionQuery
   >;
 
-  
   #[pallet::type_value]
 	pub fn DefaultAuctionId<T: Config>() -> T::AuctionId { <T::AuctionId>::saturated_from(1_u32) }
 	#[pallet::storage]
@@ -139,6 +138,7 @@ pub mod auction {
     BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
     OptionQuery,
   >;
+
   #[pallet::storage]
   #[pallet::getter(fn auction_bid_store)]
   pub type AuctionBidStore<T: Config> = StorageMap<
@@ -146,6 +146,7 @@ pub mod auction {
     Twox64Concat, T::AuctionId,
     Vec<T::AccountId>,
   >;
+
   #[pallet::storage]
   #[pallet::getter(fn user_bid_store)]
   pub type UserBidStore<T: Config> = StorageMap<
@@ -201,10 +202,9 @@ pub mod auction {
     ) -> DispatchResult {
       let sender = ensure_signed(origin)?;
 
-      let _cml = cml::Pallet::<T>::get_cml_by_id(&cml_id)?;
-
+      let _ = cml::Pallet::<T>::get_cml_by_id(&cml_id)?;
+      cml::Pallet::<T>::check_belongs(&cml_id, &sender)?;
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
-      
       Self::add_auction_to_storage(auction_item, &sender);
 
       Ok(())
