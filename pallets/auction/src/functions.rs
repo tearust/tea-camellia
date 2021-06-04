@@ -172,30 +172,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 
     // remove from AuctionBidStore
     if let Some(bid_user_list) = AuctionBidStore::<T>::get(&auction_id){
-      let current_bid_user = auction_item.bid_user;
 
       for user in bid_user_list.into_iter() {
+
+        Self::delete_bid(&user, &auction_id)?;
        
-        // Not delete the current bid_user, need do it by the caller.
-        if current_bid_user.is_none() || current_bid_user.clone().unwrap().cmp(&user) != Ordering::Equal {
-          Self::delete_bid(&user, &auction_id)?;
-        }
-
-        
-        
-
-        // // remove from BidStore
-        // let _bid_item = BidStore::<T>::take(&user, &auction_id).unwrap();
-  
-  
-        // // remove from UserBidStore
-        // UserBidStore::<T>::mutate(&user, |maybe_list| {
-        //   if let Some(ref mut list) = maybe_list {
-        //     if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-        //       list.remove(index);
-        //     }
-        //   }
-        // });
       }
     }
     
@@ -245,6 +226,8 @@ impl<T: auction::Config> auction::Pallet<T> {
     target: &T::AccountId,
   ) -> Result<(), Error<T>> {
 
+    let bid_item = BidStore::<T>::get(&target, &auction_item.id).ok_or(Error::<T>::NotFoundBid)?;
+
     let rs = cml::Pallet::<T>::transfer_cml_other(
       &auction_item.cml_owner, 
       &auction_item.cml_id, 
@@ -253,6 +236,12 @@ impl<T: auction::Config> auction::Pallet<T> {
 
     if rs.is_ok() {
       Self::delete_auction(&auction_item.id)?;
+
+      // transfer price from bid_user to seller.
+      // TODO? how to dispatch the balance error directly.
+      Self::transfer_balance(&target, &auction_item.cml_owner, bid_item.price).map_err(|_| {
+        Error::<T>::BalanceTransferError
+      })?;
     }
 
     Ok(())
@@ -321,4 +310,42 @@ impl<T: auction::Config> auction::Pallet<T> {
     <T as auction::Config>::Currency::unreserve(&who, amount);
     Ok(())
   }
+
+  pub fn transfer_balance(
+    from: &T::AccountId,
+    to: &T::AccountId,
+    amount: BalanceOf<T>,
+  ) -> DispatchResult {
+    <T as auction::Config>::Currency::transfer(&from, &to, amount, AllowDeath)?;
+
+    Ok(())
+  }
 }
+
+// #[cfg(test)]
+// mod tests {
+//   #![warn(unused_imports)]
+
+//   use crate::{
+//     mock::*, types::*, Config,
+//   };
+//   use frame_support::{traits::Currency};
+//   // use pallet_cml::{
+//   //     CmlStatus, CmlStore, DaiStore, Error as CmlError, StakingItem, UserCmlStore, CML,
+//   // };
+
+//   #[test]
+//   fn transfer_balance_from_a_to_b_should_work(){
+//     new_test_ext().execute_with(||{
+//       let a = 1;
+//       let b = 2;
+
+//       <Test as Config>::Currency::make_free_balance_be(&a, 1000);
+//       <Test as Config>::Currency::make_free_balance_be(&b, 1000);
+
+//       Auction::transfer_balance(&a, &b, 100).unwrap();
+//       assert_eq!(<Test as Config>::Currency::free_balance(&a), 1000-100);
+//       assert_eq!(<Test as Config>::Currency::free_balance(&b), 1000+100);
+//     });
+//   }
+// }

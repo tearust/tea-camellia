@@ -762,6 +762,34 @@ fn after_remove_we_can_start_auction_again() {
     })
 }
 
+#[test]
+fn whole_process_for_auction_and_bid(){
+    
+    new_test_ext().execute_with(|| {
+        let owner = 1;
+        let ua = 2;
+        <Test as Config>::Currency::make_free_balance_be(&owner, 1000);
+        <Test as Config>::Currency::make_free_balance_be(&ua, 1000);
+
+        let auction_id = 10;
+        let mut auction_item = default_auction_item(auction_id, owner);
+        auction_item.starting_price = 100;
+        auction_item.buy_now_price = Some(200);
+
+        AuctionStore::<Test>::insert(auction_id, auction_item);
+        UserAuctionStore::<Test>::insert(&owner, vec![auction_id]);
+
+        assert_ok!(Auction::bid_for_auction(
+            Origin::signed(ua),
+            auction_id,
+            250
+        ));
+
+        assert_eq!(1000+250, <Test as Config>::Currency::free_balance(&owner));
+        assert_eq!(1000-250, <Test as Config>::Currency::free_balance(&ua));
+    });
+}
+
 fn default_cml(cml_id: u64) -> CML<u64, u64, u64, u128> {
     CML {
         id: cml_id,

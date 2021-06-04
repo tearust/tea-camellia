@@ -9,6 +9,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::{ensure};
 use frame_support::traits::{
   Currency, ReservableCurrency,
+  ExistenceRequirement::AllowDeath,
   // LockIdentifier, WithdrawReasons,
 	Get,
 };
@@ -91,6 +92,7 @@ pub mod auction {
 
     NotAllowToAuction,
     BalanceReserveOrUnreserveError,
+    BalanceTransferError,
 	}
 
 	#[pallet::event]
@@ -249,19 +251,7 @@ pub mod auction {
         },
         _ => None,
       };
-
-      if let Some(buy_now_price) = auction_item.buy_now_price {
-        if price >= buy_now_price {
-          
-          Self::complete_auction(&auction_item, &sender)?;
-  
-          // TODO balance
-          info!("buy now price success.");
-          return Ok(());
-        }
-      }
       
-
       let current_block = frame_system::Pallet::<T>::block_number();
       let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
       if let Some(bid_item) = maybe_bid_item {
@@ -306,6 +296,12 @@ pub mod auction {
       // lock bid price
       Self::reserve(&sender, price)?;
 
+      if let Some(buy_now_price) = auction_item.buy_now_price {
+        if price >= buy_now_price {    
+          Self::complete_auction(&auction_item, &sender)?;
+        }
+      }
+
       Ok(())
     }
 
@@ -320,10 +316,6 @@ pub mod auction {
       ensure!(&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal, Error::<T>::AuctionOwnerInvalid);
 
       Self::delete_auction(&auction_id)?;
-      // remove the current bid_user
-      if let Some(bid_user) = auction_item.bid_user {
-        Self::delete_bid(&bid_user, &auction_id)?;
-      }
 
       // TODO punish owner
 
