@@ -88,7 +88,8 @@
   "BidItem": {
     "auction_id": "AuctionId",
 	  "user": "AccountId",
-	  "price": "Balance",
+    "price": "Balance",
+    "deposit": "Option<Balance>",
 	  "created_at": "BlockNumber",
 	  "updated_at": "BlockNumber"
   }
