@@ -53,6 +53,7 @@ impl<T: auction::Config> auction::Pallet<T> {
     auction_id: T::AuctionId,
     who: T::AccountId,
     price: BalanceOf<T>,
+    deposit: Option<BalanceOf<T>>
   ) -> BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber> {
     let current_block = frame_system::Pallet::<T>::block_number();
 
@@ -60,6 +61,7 @@ impl<T: auction::Config> auction::Pallet<T> {
       auction_id,
       user: who,
       price,
+      deposit,
       created_at: current_block,
       updated_at: current_block,
     }

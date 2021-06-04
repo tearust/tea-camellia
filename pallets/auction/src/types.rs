@@ -41,6 +41,7 @@ pub struct BidItem<AuctionId, AccountId, Balance, BlockNumber> {
   pub auction_id: AuctionId,
 	pub user: AccountId,
 	pub price: Balance,
+	pub deposit: Option<Balance>,
 	
 	pub created_at: BlockNumber,
 	pub updated_at: BlockNumber,

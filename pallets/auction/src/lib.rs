@@ -239,6 +239,16 @@ pub mod auction {
       ensure!(min_price <= price, Error::<T>::InvalidBidPrice);
       ensure!(&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal, Error::<T>::BidSelfBelongs);
 
+      let cml_item = cml::Pallet::<T>::get_cml_by_id(&auction_item.cml_id)?;
+      let deposit_bid_price = match cml_item.status {
+        cml::CmlStatus::CmlLive => {
+          let total_price = price.saturating_add(T::BidDeposit::get());
+          ensure!(balance > total_price, Error::<T>::NotEnoughBalance);
+          Some(T::BidDeposit::get())
+        },
+        _ => None,
+      };
+
       if let Some(buy_now_price) = auction_item.buy_now_price {
         if price >= buy_now_price {
           
@@ -266,7 +276,10 @@ pub mod auction {
       }
       else {
         // new bid
-        let item = Self::new_bid_item(auction_item.id, sender.clone(), price);
+        if let Some(deposit_price) = deposit_bid_price.clone() {
+          Self::reserve(&sender, deposit_price)?;
+        }
+        let item = Self::new_bid_item(auction_item.id, sender.clone(), price, deposit_bid_price);
         BidStore::<T>::insert(sender.clone(), auction_item.id, item);
         AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
           if let Some(ref mut list) = maybe_list {
@@ -289,7 +302,8 @@ pub mod auction {
       }
       Self::update_bid_price_for_auction_item(&auction_id, sender.clone());
 
-      // TODO deposit price to lock balance
+      // lock bid price
+      Self::reserve(&sender, price)?;
 
       Ok(())
     }

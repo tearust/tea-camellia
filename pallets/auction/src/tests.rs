@@ -116,6 +116,7 @@ fn bid_for_auction_works() {
         let mut auction_item = default_auction_item(auction_id, 2);
         auction_item.starting_price = 100;
         AuctionStore::<Test>::insert(auction_id, auction_item);
+        // UserAuctionStore::<Test>::insert(&user_id, vec![auction_id]);
 
         assert_ok!(Auction::bid_for_auction(
             Origin::signed(user_id),
@@ -136,6 +137,73 @@ fn bid_for_auction_works() {
         assert_eq!(user_bid_list.len(), 1);
         assert_eq!(user_bid_list.get(0).unwrap(), &auction_id);
     })
+}
+
+#[test]
+fn bid_for_diff_auction_to_check_user_balance() {
+    // cml was not CmlLive, no need deposit.
+    new_test_ext().execute_with(|| {
+        let owner = 2;
+
+        let bid_user = 10;
+        <Test as Config>::Currency::make_free_balance_be(&bid_user, 1000);
+
+        let cml_id = 1;
+        let mut cml = default_cml(cml_id);
+        cml.status = CmlStatus::SeedFrozen;
+
+        Cml::add_cml(&owner, cml);
+
+        assert_ok!(Auction::put_to_store(Origin::signed(owner), cml_id, 100, None));
+
+        let auction_id = {
+            let tmp = UserAuctionStore::<Test>::get(owner).unwrap();
+            tmp.get(0).unwrap().clone()
+        };
+
+        // user bid cml with 150
+        assert_ok!(Auction::bid_for_auction(
+            Origin::signed(bid_user),
+            auction_id,
+            150,
+        ));
+
+        let balance = <Test as Config>::Currency::free_balance(bid_user);
+        // user balance was 850
+        assert_eq!(balance, 850);
+    });
+
+    // cml was CmlLive, need deposit.
+    new_test_ext().execute_with(|| {
+        let owner = 2;
+
+        let bid_user = 10;
+        <Test as Config>::Currency::make_free_balance_be(&bid_user, 1000);
+
+        let cml_id = 1;
+        let mut cml = default_cml(cml_id);
+        cml.status = CmlStatus::CmlLive;
+
+        Cml::add_cml(&owner, cml);
+
+        assert_ok!(Auction::put_to_store(Origin::signed(owner), cml_id, 100, None));
+
+        let auction_id = {
+            let tmp = UserAuctionStore::<Test>::get(owner).unwrap();
+            tmp.get(0).unwrap().clone()
+        };
+
+        // user bid cml with 150
+        assert_ok!(Auction::bid_for_auction(
+            Origin::signed(bid_user),
+            auction_id,
+            150,
+        ));
+
+        let balance = <Test as Config>::Currency::free_balance(bid_user);
+        // user balance was 1000-150-100
+        assert_eq!(balance, 750);
+    });
 }
 
 #[test]
@@ -231,6 +299,7 @@ fn bid_for_auction_im_win_for_now_should_work() {
                 auction_id,
                 user: owner_id,
                 price: 5,
+                deposit: None,
                 created_at: 0,
                 updated_at: 0,
             },
@@ -703,6 +772,8 @@ fn default_cml(cml_id: u64) -> CML<u64, u64, u64, u128> {
 }
 
 fn default_auction_item(id: u64, owner_id: u64) -> AuctionItem<u64, u64, u64, u128, u64> {
+    let cml_item = default_cml(0);
+    Cml::add_cml(&owner_id, cml_item);
     AuctionItem {
         id,
         cml_id: 0,
