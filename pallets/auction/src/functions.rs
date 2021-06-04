@@ -171,22 +171,31 @@ impl<T: auction::Config> auction::Pallet<T> {
     });
 
     // remove from AuctionBidStore
-    if let Some(bid_user_list) = AuctionBidStore::<T>::take(&auction_id){
-      for user in bid_user_list.iter() {
+    if let Some(bid_user_list) = AuctionBidStore::<T>::get(&auction_id){
+      let current_bid_user = auction_item.bid_user;
 
-        // remove from BidStore
-        let _bid_item = BidStore::<T>::take(&user, &auction_id).unwrap();
+      for user in bid_user_list.into_iter() {
+       
+        // Not delete the current bid_user, need do it by the caller.
+        if current_bid_user.is_none() || current_bid_user.clone().unwrap().cmp(&user) != Ordering::Equal {
+          Self::delete_bid(&user, &auction_id)?;
+        }
+
+        
+        
+
+        // // remove from BidStore
+        // let _bid_item = BidStore::<T>::take(&user, &auction_id).unwrap();
   
-        // TODO return bid price
   
-        // remove from UserBidStore
-        UserBidStore::<T>::mutate(&user, |maybe_list| {
-          if let Some(ref mut list) = maybe_list {
-            if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-              list.remove(index);
-            }
-          }
-        });
+        // // remove from UserBidStore
+        // UserBidStore::<T>::mutate(&user, |maybe_list| {
+        //   if let Some(ref mut list) = maybe_list {
+        //     if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+        //       list.remove(index);
+        //     }
+        //   }
+        // });
       }
     }
     
@@ -199,8 +208,7 @@ impl<T: auction::Config> auction::Pallet<T> {
     auction_id: &T::AuctionId,
   ) -> Result<(), Error<T>> {
     // remove from BidStore
-    let _ = BidStore::<T>::take(&who, &auction_id).ok_or(Error::<T>::NotFoundBid)?;
-    // TODO return bid price.
+    let bid_item = BidStore::<T>::take(&who, &auction_id).ok_or(Error::<T>::NotFoundBid)?;
 
     // remove from UserBidStore
     UserBidStore::<T>::mutate(&who, |maybe_list| {
@@ -220,6 +228,14 @@ impl<T: auction::Config> auction::Pallet<T> {
       }
     });
 
+    // return lock balance
+    let mut total = bid_item.price;
+    if let Some(deposit) = bid_item.deposit {
+      total = total.saturating_add(deposit);
+    }
+
+    Self::unreserve(&who, total)?;
+
 
     Ok(())
   }
@@ -235,11 +251,8 @@ impl<T: auction::Config> auction::Pallet<T> {
       &target,
     );
 
-    match rs {
-      Ok(_) => {
-        Self::delete_auction(&auction_item.id)?;
-      },
-      Err(_) => {}
+    if rs.is_ok() {
+      Self::delete_auction(&auction_item.id)?;
     }
 
     Ok(())
@@ -303,7 +316,7 @@ impl<T: auction::Config> auction::Pallet<T> {
   pub fn unreserve(
     who: &T::AccountId,
     amount: BalanceOf<T>,
-  ) -> DispatchResult {
+  ) -> Result<(), Error<T>> {
 
     <T as auction::Config>::Currency::unreserve(&who, amount);
     Ok(())

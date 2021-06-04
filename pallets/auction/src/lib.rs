@@ -90,6 +90,7 @@ pub mod auction {
     LockableInvalid,
 
     NotAllowToAuction,
+    BalanceReserveOrUnreserveError,
 	}
 
 	#[pallet::event]
@@ -319,6 +320,10 @@ pub mod auction {
       ensure!(&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal, Error::<T>::AuctionOwnerInvalid);
 
       Self::delete_auction(&auction_id)?;
+      // remove the current bid_user
+      if let Some(bid_user) = auction_item.bid_user {
+        Self::delete_bid(&bid_user, &auction_id)?;
+      }
 
       // TODO punish owner
 

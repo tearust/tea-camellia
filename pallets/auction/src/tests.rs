@@ -520,10 +520,14 @@ fn after_remove_we_can_bid_again() {
         let bid_item = BidStore::<Test>::get(user1_id, auction_id);
         assert!(bid_item.is_some());
 
+
         assert_ok!(Auction::remove_bid_for_auction(
             Origin::signed(user1_id),
             auction_id
         ));
+        // check user1 balance
+        assert_eq!(100*1000, <Test as Config>::Currency::free_balance(&user1_id));
+
         assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 1);
         assert_eq!(UserBidStore::<Test>::get(user1_id).unwrap().len(), 0);
         let bid_item = BidStore::<Test>::get(user1_id, auction_id);
@@ -656,7 +660,8 @@ fn remove_from_store_with_bid_works() {
             Origin::signed(owner_id),
             auction_id
         ));
-        assert!(AuctionBidStore::<Test>::get(auction_id).is_none());
+
+        assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 0);
         assert_eq!(UserBidStore::<Test>::get(user_id).unwrap().len(), 0);
         assert!(BidStore::<Test>::get(user_id, auction_id).is_none());
         // todo check balance of user and owner
