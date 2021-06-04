@@ -1,6 +1,6 @@
 use crate::{
     mock::*, types::*, AuctionBidStore, AuctionStore, BidStore, Config, EndblockAuctionStore,
-    Error, UserAuctionStore, UserBidStore,
+    Error, UserAuctionStore, UserBidStore, LastAuctionId,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_cml::{
@@ -539,10 +539,11 @@ fn remove_from_store_with_no_bid_works() {
             auction_id
         ));
         assert!(UserAuctionStore::<Test>::get(owner_id).unwrap().is_empty());
-        // todo: should deal with EndblockAuctionStore
-        // assert!(EndblockAuctionStore::<Test>::get(next_window)
-        //     .unwrap()
-        //     .is_empty());
+
+        assert!(EndblockAuctionStore::<Test>::get(next_window)
+            .unwrap()
+            .is_empty());
+
         assert!(AuctionStore::<Test>::get(auction_id).is_none());
         // todo check balance of owner
     })
@@ -660,10 +661,10 @@ fn after_remove_we_can_start_auction_again() {
             auction_id
         ));
         assert!(UserAuctionStore::<Test>::get(owner_id).unwrap().is_empty());
-        // todo: should deal with EndblockAuctionStore
-        // assert!(EndblockAuctionStore::<Test>::get(next_window)
-        //     .unwrap()
-        //     .is_empty());
+       
+        assert!(EndblockAuctionStore::<Test>::get(next_window)
+            .unwrap()
+            .is_empty());
         assert!(AuctionStore::<Test>::get(auction_id).is_none());
 
         // put to store and
@@ -674,15 +675,16 @@ fn after_remove_we_can_start_auction_again() {
             None
         ));
         assert_eq!(UserAuctionStore::<Test>::get(owner_id).unwrap().len(), 1);
-        // todo: should let assert pass
-        // assert_eq!(
-        //     EndblockAuctionStore::<Test>::get(next_window)
-        //         .unwrap()
-        //         .len(),
-        //     1
-        // );
-        // todo: should let assert pass
-        // assert!(AuctionStore::<Test>::get(auction_id).is_some());
+
+        assert_eq!(
+            EndblockAuctionStore::<Test>::get(next_window)
+                .unwrap()
+                .len(),
+            1
+        );
+
+        let last_auction_index = LastAuctionId::<Test>::get();
+        assert!(AuctionStore::<Test>::get(last_auction_index-1).is_some());
     })
 }
 

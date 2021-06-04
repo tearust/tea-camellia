@@ -151,6 +151,23 @@ impl<T: auction::Config> auction::Pallet<T> {
       }
     });
 
+    // remove from EndblockAuctionStore
+    let (current_window, next_window) = Self::get_window_block();
+    EndblockAuctionStore::<T>::mutate(current_window, |maybe_list| {
+      if let Some(ref mut list) = maybe_list {
+        if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+          list.remove(index);
+        }
+      }
+    });
+    EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
+      if let Some(ref mut list) = maybe_list {
+        if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+          list.remove(index);
+        }
+      }
+    });
+
     // remove from AuctionBidStore
     if let Some(bid_user_list) = AuctionBidStore::<T>::take(&auction_id){
       for user in bid_user_list.iter() {
