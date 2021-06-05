@@ -784,6 +784,7 @@ parameter_types! {
     pub const AuctionDealWindowBLock: BlockNumber = 50;
     pub const BidDeposit: Balance = 100 * DOLLARS;
     pub const MinPriceForBid: Balance = 1 * DOLLARS;
+    pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
 }
 impl pallet_auction::Config for Runtime {
     type Event = Event;
@@ -792,6 +793,7 @@ impl pallet_auction::Config for Runtime {
     type AuctionDealWindowBLock = AuctionDealWindowBLock;
     type BidDeposit = BidDeposit;
     type MinPriceForBid = MinPriceForBid;
+    type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

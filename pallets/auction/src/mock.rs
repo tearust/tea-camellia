@@ -72,6 +72,7 @@ parameter_types! {
     pub const AuctionDealWindowBLock: BlockNumber = 50;
     pub const BidDeposit: Balance = 100;
     pub const MinPriceForBid: Balance = 1;
+    pub const AuctionOwnerPenaltyForEachBid: Balance = 1;
 }
 
 impl pallet_auction::Config for Test {
@@ -81,6 +82,7 @@ impl pallet_auction::Config for Test {
     type AuctionDealWindowBLock = AuctionDealWindowBLock;
     type BidDeposit = BidDeposit;
     type MinPriceForBid = MinPriceForBid;
+    type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
 }
 
 parameter_types! {

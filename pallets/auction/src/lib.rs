@@ -73,6 +73,9 @@ pub mod auction {
 
     #[pallet::constant]
     type MinPriceForBid: Get<BalanceOf<Self>>;
+
+    #[pallet::constant]
+    type AuctionOwnerPenaltyForEachBid: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::error]
@@ -93,6 +96,8 @@ pub mod auction {
     NotAllowToAuction,
     BalanceReserveOrUnreserveError,
     BalanceTransferError,
+
+    NotEnoughBalanceForPenalty,
 	}
 
 	#[pallet::event]
@@ -315,9 +320,20 @@ pub mod auction {
       let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
       ensure!(&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal, Error::<T>::AuctionOwnerInvalid);
 
-      Self::delete_auction(&auction_id)?;
+      let maybe_list = AuctionBidStore::<T>::get(&auction_id);
+      if let Some(list) = maybe_list {
+        let len = list.len();
+        let penalty = T::AuctionOwnerPenaltyForEachBid::get().saturating_mul(<BalanceOf<T>>::saturated_from(len as u128));
+        ensure!(
+          penalty < <T as auction::Config>::Currency::free_balance(&sender), 
+          Error::<T>::NotEnoughBalanceForPenalty
+        );
 
-      // TODO punish owner
+        for user in list.into_iter() {
+          Self::transfer_balance(&sender, &user, T::AuctionOwnerPenaltyForEachBid::get())?;
+        }
+      }
+      Self::delete_auction(&auction_id)?;
 
       Ok(())
     }

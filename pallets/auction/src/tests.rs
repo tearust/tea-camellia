@@ -771,22 +771,42 @@ fn whole_process_for_auction_and_bid(){
         <Test as Config>::Currency::make_free_balance_be(&owner, 1000);
         <Test as Config>::Currency::make_free_balance_be(&ua, 1000);
 
-        let auction_id = 10;
-        let mut auction_item = default_auction_item(auction_id, owner);
-        auction_item.starting_price = 100;
-        auction_item.buy_now_price = Some(200);
+        let cml_id = 1;
+        let cml_item = default_cml(cml_id);
+        Cml::add_cml(&owner, cml_item);
 
-        AuctionStore::<Test>::insert(auction_id, auction_item);
-        UserAuctionStore::<Test>::insert(&owner, vec![auction_id]);
+        assert_ok!(Auction::put_to_store(
+            Origin::signed(owner),
+            cml_id,
+            100,
+            Some(200)
+        ));
+
+        let auction_id = {
+            let tmp = UserAuctionStore::<Test>::get(owner).unwrap();
+            tmp.get(0).unwrap().clone()
+        };
 
         assert_ok!(Auction::bid_for_auction(
             Origin::signed(ua),
             auction_id,
-            250
+            // 250,
+            110,
         ));
 
-        assert_eq!(1000+250, <Test as Config>::Currency::free_balance(&owner));
-        assert_eq!(1000-250, <Test as Config>::Currency::free_balance(&ua));
+        // assert_eq!(1000+250, <Test as Config>::Currency::free_balance(&owner));
+        // assert_eq!(1000-250, <Test as Config>::Currency::free_balance(&ua));
+
+        assert_ok!(Auction::remove_from_store(
+            Origin::signed(owner),
+            auction_id,
+        ));
+
+        // println!("11 => {:?}", <Test as Config>::Currency::free_balance(&owner));
+        // println!("11 => {:?}", <Test as Config>::Currency::free_balance(&ua));
+        assert_eq!(1000-1, <Test as Config>::Currency::free_balance(&owner));
+        assert_eq!(1000+1, <Test as Config>::Currency::free_balance(&ua));
+
     });
 }
 
