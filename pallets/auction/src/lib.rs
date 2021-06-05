@@ -240,9 +240,9 @@ pub mod auction {
       let auction_item = AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
       let min_price = Self::get_min_bid_price(&auction_item, &sender)?;
 
-      if let Some(bid_user) = &auction_item.bid_user {
-        ensure!(&bid_user.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
-      }
+      // if let Some(bid_user) = &auction_item.bid_user {
+      //   ensure!(&bid_user.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
+      // }
 
       ensure!(min_price <= price, Error::<T>::InvalidBidPrice);
       ensure!(&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal, Error::<T>::BidSelfBelongs);

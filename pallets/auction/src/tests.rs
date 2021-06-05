@@ -305,9 +305,9 @@ fn bid_for_auction_im_win_for_now_should_work() {
             },
         );
 
-        assert_noop!(
+        assert_ok!(
             Auction::bid_for_auction(Origin::signed(owner_id), auction_id, 10),
-            Error::<Test>::NoNeedBid
+            // Error::<Test>::NoNeedBid
         );
     })
 }

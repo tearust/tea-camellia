@@ -781,7 +781,7 @@ impl pallet_cml::Config for Runtime {
 }
 
 parameter_types! {
-    pub const AuctionDealWindowBLock: BlockNumber = 50;
+    pub const AuctionDealWindowBLock: BlockNumber = 500;
     pub const BidDeposit: Balance = 100 * DOLLARS;
     pub const MinPriceForBid: Balance = 1 * DOLLARS;
     pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
