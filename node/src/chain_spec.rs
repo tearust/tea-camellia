@@ -76,10 +76,10 @@ fn get_properties(symbol: &str) -> Properties {
 
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-    let jacky_account =
-        crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
-    // let kevin_account =
-    //     crypto::AccountId32::from_str("5DFzp6FGWRkqm8Pm1KX9dWLoVyukeS51cTiQPNqUADEZMFZq").unwrap();
+    // let jacky_account =
+        // crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
+    let kevin_account =
+        crypto::AccountId32::from_str("5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP").unwrap();
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -100,14 +100,14 @@ pub fn development_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    // kevin_account.clone(),
-                    jacky_account.clone(),
+                    kevin_account.clone(),
+                    // jacky_account.clone(),
                 ],
                 10000 * DOLLARS,
                 vec![
                     (get_account_id_from_seed::<sr25519::Public>("Alice"), 1389),
-                    // (kevin_account.clone(), 1389),
-                    (jacky_account.clone(), 1389),
+                    (kevin_account.clone(), 1389),
+                    // (jacky_account.clone(), 1389),
                 ],
             )
         },
