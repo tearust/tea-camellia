@@ -40,3 +40,10 @@ Or run the following command if you want to update single weight file:
 
 About the command params:
 - [pallet name]: is the pallet name defined in runtime
+
+# Testing account
+Use this mnemonic
+```
+runway where sponsor visual reject drill dwarf tired wild flag monitor test
+```
+to create a new account for testing, because this account `5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP` is hard coded for temp testing
