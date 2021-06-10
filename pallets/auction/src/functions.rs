@@ -242,6 +242,8 @@ impl<T: auction::Config> auction::Pallet<T> {
       Self::transfer_balance(&target, &auction_item.cml_owner, bid_item.price).map_err(|_| {
         Error::<T>::BalanceTransferError
       })?;
+
+      Self::deposit_event(Event::AuctionSuccess(auction_item.id, target.clone(), bid_item.price));
     }
 
     Ok(())

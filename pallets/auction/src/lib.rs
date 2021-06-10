@@ -101,10 +101,11 @@ pub mod auction {
 	}
 
 	#[pallet::event]
-	// #[pallet::generate_deposit(fn deposit_event)]
+	#[pallet::generate_deposit(pub fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// A bid is placed. [auction_id, bidder, bidding_amount]
-		Bid(T::AuctionId, T::AccountId, BalanceOf<T>),
+    BidAuction(T::AuctionId, T::AccountId, BalanceOf<T>),
+    NewAuctionToStore(T::AuctionId, T::AccountId),
+    AuctionSuccess(T::AuctionId, T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::storage]
@@ -219,8 +220,9 @@ pub mod auction {
       ensure!(cml_item.status != cml::CmlStatus::Dead, Error::<T>::NotAllowToAuction);
 
       let auction_item = Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
-      Self::add_auction_to_storage(auction_item, &sender);
+      Self::add_auction_to_storage(auction_item.clone(), &sender);
 
+      Self::deposit_event(Event::NewAuctionToStore(auction_item.id, sender.clone()));
       Ok(())
     }
 
@@ -306,6 +308,8 @@ pub mod auction {
           Self::complete_auction(&auction_item, &sender)?;
         }
       }
+
+      Self::deposit_event(Event::BidAuction(auction_id, sender.clone(), price));
 
       Ok(())
     }
