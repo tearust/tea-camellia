@@ -789,8 +789,10 @@ impl chainbridge::Config for Runtime {
 }
 
 parameter_types! {
+    // Hash id in hex: 0x7f2e90b3fb628e7678ed5c8561aa012b01
     pub HashId: chainbridge::ResourceId = chainbridge::derive_resource_id(1, &Blake2_128::hash(b"TEA-BRIDGE"));
     // Note: Chain ID is 0 indicating this is native to another chain
+    // Native token id in hex: 0xbfd1c21ce0cfc7adfb41ea867ea6b20c01
     pub NativeTokenId: chainbridge::ResourceId = chainbridge::derive_resource_id(0, &Blake2_128::hash(b"TEA"));
 }
 

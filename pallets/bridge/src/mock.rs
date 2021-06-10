@@ -82,8 +82,8 @@ impl chainbridge::Config for Test {
 }
 
 parameter_types! {
-    pub HashId: chainbridge::ResourceId = chainbridge::derive_resource_id(1, &blake2_128(b"hash"));
-    pub NativeTokenId: chainbridge::ResourceId = chainbridge::derive_resource_id(1, &blake2_128(b"DAV"));
+    pub HashId: chainbridge::ResourceId = chainbridge::derive_resource_id(1, &blake2_128(b"TEA-BRIDGE"));
+    pub NativeTokenId: chainbridge::ResourceId = chainbridge::derive_resource_id(1, &blake2_128(b"TEA"));
 }
 
 impl Config for Test {
