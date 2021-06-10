@@ -6,17 +6,12 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use frame_support::{
-    construct_runtime, parameter_types,
-    traits::{
+use frame_support::{Blake2_128, StorageHasher, PalletId, construct_runtime, parameter_types, traits::{
         Currency, Imbalance, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, U128CurrencyToVote,
-    },
-    weights::{
+    }, weights::{
         constants::{BlockExecutionWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
-    },
-    PalletId,
-};
+    }};
 use frame_system::{EnsureOneOf, EnsureRoot};
 use node_primitives::{BlockNumber, Hash, Moment};
 use pallet_grandpa::fg_primitives;
@@ -794,6 +789,20 @@ impl chainbridge::Config for Runtime {
 }
 
 parameter_types! {
+    pub HashId: chainbridge::ResourceId = chainbridge::derive_resource_id(1, &Blake2_128::hash(b"TEA-BRIDGE"));
+    // Note: Chain ID is 0 indicating this is native to another chain
+    pub NativeTokenId: chainbridge::ResourceId = chainbridge::derive_resource_id(0, &Blake2_128::hash(b"TEA"));
+}
+
+impl pallet_bridge::Config for Runtime {
+    type Event = Event;
+    type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
+    type Currency = pallet_balances::Pallet<Runtime>;
+    type HashId = HashId;
+    type NativeTokenId = NativeTokenId;
+}
+
+parameter_types! {
     pub const AuctionDealWindowBLock: BlockNumber = 500;
     pub const BidDeposit: Balance = 100 * DOLLARS;
     pub const MinPriceForBid: Balance = 1 * DOLLARS;
@@ -847,6 +856,7 @@ construct_runtime!(
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
         Auction: pallet_auction::{Pallet, Call, Storage, Event<T>} = 101,
+        Bridge: pallet_bridge::{Pallet, Call, Event<T>} = 102,
     }
 );
 
