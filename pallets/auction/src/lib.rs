@@ -268,7 +268,6 @@ pub mod auction {
           if let Some(ref mut item) = maybe_item {
             item.price = new_price;
             item.updated_at = current_block;
-
           }
         });
       }
@@ -303,10 +302,17 @@ pub mod auction {
       // lock bid price
       Self::reserve(&sender, price)?;
 
+      // check auction success or not.
       if let Some(buy_now_price) = auction_item.buy_now_price {
-        if price >= buy_now_price {    
-          Self::complete_auction(&auction_item, &sender)?;
+        let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
+        if let Some(bid_item) = maybe_bid_item {
+          if bid_item.price >= buy_now_price {    
+            Self::complete_auction(&auction_item, &sender)?;
+
+            return Ok(());
+          }
         }
+        
       }
 
       Self::deposit_event(Event::BidAuction(auction_id, sender.clone(), price));
