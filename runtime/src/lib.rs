@@ -58,10 +58,10 @@ pub mod constants;
 mod weights;
 use constants::{currency::*, time::*};
 
+pub use pallet_auction;
 /// Import the template pallet.
 pub use pallet_cml;
 pub use pallet_tea;
-pub use pallet_auction;
 
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
@@ -781,6 +781,19 @@ impl pallet_cml::Config for Runtime {
 }
 
 parameter_types! {
+    pub const ChainId: u8 = 1;
+    pub const ProposalLifetime: BlockNumber = 1000;
+}
+
+impl chainbridge::Config for Runtime {
+    type Event = Event;
+    type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
+    type Proposal = Call;
+    type ChainId = ChainId;
+    type ProposalLifetime = ProposalLifetime;
+}
+
+parameter_types! {
     pub const AuctionDealWindowBLock: BlockNumber = 500;
     pub const BidDeposit: Balance = 100 * DOLLARS;
     pub const MinPriceForBid: Balance = 1 * DOLLARS;
@@ -829,6 +842,7 @@ construct_runtime!(
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
+        ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,

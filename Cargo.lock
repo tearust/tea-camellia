@@ -688,6 +688,7 @@ checksum = "631ae5198c9be5e753e5cc215e1bd73c2b466a3565173db433f52bb9d3e66dba"
 name = "camellia-runtime"
 version = "0.0.1"
 dependencies = [
+ "chainbridge",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
@@ -829,6 +830,23 @@ dependencies = [
  "poly1305",
  "stream-cipher",
  "zeroize",
+]
+
+[[package]]
+name = "chainbridge"
+version = "0.0.2"
+source = "git+https://github.com/tearust/chainbridge-substrate?rev=13fb952#13fb952bdcc40bcfa9d29ee711532a2717690a43"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "substrate-wasm-builder-runner",
 ]
 
 [[package]]
@@ -7642,6 +7660,12 @@ dependencies = [
  "walkdir",
  "wasm-gc-api",
 ]
+
+[[package]]
+name = "substrate-wasm-builder-runner"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54cab12167e32b38a62c5ea5825aa0874cde315f907a46aad2b05aa8ef3d862f"
 
 [[package]]
 name = "subtle"
