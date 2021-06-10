@@ -92,5 +92,16 @@
     "deposit": "Option<Balance>",
 	  "created_at": "BlockNumber",
 	  "updated_at": "BlockNumber"
-  }
+  },
+
+  "chainbridge::ChainId": "u8",
+  "ChainId": "u8",
+  "ResourceId": "[u8; 32]",
+  "DepositNonce": "u64",
+  "ProposalVotes": {
+    "votes_for": "Vec<AccountId>",
+    "votes_against": "Vec<AccountId>",
+    "status": "enum"
+  },
+  "TokenId": "U256"
 }
