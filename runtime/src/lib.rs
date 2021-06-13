@@ -6,12 +6,17 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use frame_support::{Blake2_128, StorageHasher, PalletId, construct_runtime, parameter_types, traits::{
+use frame_support::{
+    construct_runtime, parameter_types,
+    traits::{
         Currency, Imbalance, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, U128CurrencyToVote,
-    }, weights::{
+    },
+    weights::{
         constants::{BlockExecutionWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
-    }};
+    },
+    Blake2_128, PalletId, StorageHasher,
+};
 use frame_system::{EnsureOneOf, EnsureRoot};
 use node_primitives::{BlockNumber, Hash, Moment};
 use pallet_grandpa::fg_primitives;
@@ -752,6 +757,10 @@ where
     type OverarchingCall = Call;
 }
 
+impl pallet_utils::Config for Runtime {
+    type Event = Event;
+}
+
 parameter_types! {
     /// (6 * 60 * 10) blocks equals (6 * 60 * 10 * 6secs) = 6hours
     pub const RuntimeActivityThreshold: u32 = 6 * 60 * 10;
@@ -763,6 +772,7 @@ impl pallet_tea::Config for Runtime {
     type RuntimeActivityThreshold = RuntimeActivityThreshold;
     type MinRaPassedThreshold = MinRaPassedThreshold;
     type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
+    type CommonUtils = Utils;
 }
 
 parameter_types! {
@@ -859,6 +869,7 @@ construct_runtime!(
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
         Auction: pallet_auction::{Pallet, Call, Storage, Event<T>} = 101,
         Bridge: pallet_bridge::{Pallet, Call, Event<T>} = 102,
+        Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
     }
 );
 

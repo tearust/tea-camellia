@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use traits::CommonUtils;
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
@@ -12,6 +13,7 @@ mod mock;
 mod tests;
 
 mod functions;
+pub mod traits;
 mod types;
 
 use frame_support::{pallet_prelude::*, traits::Randomness};

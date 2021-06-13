@@ -78,6 +78,7 @@ pallet-tea = {default-features = false, path = '../pallets/tea'}
 pallet-cml = {default-features = false, path = '../pallets/cml'}
 pallet-auction = {default-features = false, path = '../pallets/auction'}
 pallet-bridge = {default-features = false, path = '../pallets/bridge'}
+pallet-utils = {default-features = false, path = '../pallets/utils'}
 
 [features]
 default = ['std']
@@ -166,5 +167,6 @@ std = [
 	'pallet-cml/std',
   	'pallet-auction/std',
 	'pallet-bridge/std',
+	'pallet-utils/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test

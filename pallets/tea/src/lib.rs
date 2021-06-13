@@ -19,12 +19,9 @@ mod types;
 mod utils;
 mod weights;
 
-use frame_support::{
-    dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Randomness,
-};
+use frame_support::{dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify};
 use frame_system::pallet_prelude::*;
 use sp_core::{ed25519, U256};
-use sp_io::hashing::blake2_256;
 use sp_std::prelude::*;
 use types::*;
 pub use weights::WeightInfo;
@@ -32,6 +29,7 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod tea {
     use super::*;
+    use pallet_utils::traits::CommonUtils;
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -47,6 +45,8 @@ pub mod tea {
         type MinRaPassedThreshold: Get<u32>;
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
+        /// Common utils trait
+        type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -191,7 +191,7 @@ pub mod tea {
             ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
 
             let old_node = Self::pop_existing_node(&tea_id);
-            let seed = Self::generate_random(sender.clone(), &tea_id);
+            let seed = T::CommonUtils::generate_random(sender.clone(), &tea_id.to_vec());
 
             let current_block_number = frame_system::Pallet::<T>::block_number();
             let urls_count = urls.len();

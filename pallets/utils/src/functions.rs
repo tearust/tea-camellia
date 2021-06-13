@@ -1,7 +1,9 @@
 use super::*;
 
-impl<T: utils::Config> utils::Pallet<T> {
-    pub fn generate_random(sender: T::AccountId, salt: &RandomSalt) -> U256 {
+impl<T: utils::Config> CommonUtils for utils::Pallet<T> {
+    type AccountId = T::AccountId;
+
+    fn generate_random(sender: Self::AccountId, salt: &RandomSalt) -> U256 {
         let random_seed = <pallet_randomness_collective_flip::Module<T>>::random_seed();
         let payload = (
             random_seed,
@@ -16,6 +18,7 @@ impl<T: utils::Config> utils::Pallet<T> {
 #[cfg(test)]
 mod tests {
     use crate::mock::*;
+    use crate::CommonUtils;
 
     #[test]
     fn generate_random_works() {
@@ -41,7 +44,7 @@ mod tests {
             frame_system::Pallet::<Test>::set_block_number(100);
             let random1 = Utils::generate_random(1, &vec![1]);
             frame_system::Pallet::<Test>::set_block_number(101);
-            let random2 = Utils::generate_random(1, &vec![1]);
+            let random2 = <Utils as CommonUtils>::generate_random(1, &vec![1]);
             assert_ne!(random1, random2);
         })
     }

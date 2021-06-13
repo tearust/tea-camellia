@@ -21,6 +21,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Tea: pallet_tea::{Pallet, Call, Storage, Event<T>},
+        Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -60,11 +61,16 @@ parameter_types! {
     pub const MinRaPassedThreshold: u32 = 3;
 }
 
+impl pallet_utils::Config for Test {
+    type Event = Event;
+}
+
 impl pallet_tea::Config for Test {
     type Event = Event;
     type RuntimeActivityThreshold = RuntimeActivityThreshold;
     type MinRaPassedThreshold = MinRaPassedThreshold;
     type WeightInfo = ();
+    type CommonUtils = Utils;
 }
 
 // Build genesis storage according to the mock runtime.

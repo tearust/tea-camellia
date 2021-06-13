@@ -9,18 +9,6 @@ impl<T: tea::Config> tea::Pallet<T> {
         old_node
     }
 
-    pub(crate) fn generate_random(sender: T::AccountId, tea_id: &TeaPubKey) -> U256 {
-        let random_seed = <pallet_randomness_collective_flip::Module<T>>::random_seed();
-        //pallet_randomness_collective_flip::Pallet::<T>::random_seed();
-        let payload = (
-            random_seed,
-            sender.clone(),
-            tea_id,
-            frame_system::Pallet::<T>::block_number(),
-        );
-        payload.using_encoded(blake2_256).into()
-    }
-
     pub(crate) fn is_builtin_node(tea_id: &TeaPubKey) -> bool {
         BuiltinNodes::<T>::get(tea_id).is_some()
     }
