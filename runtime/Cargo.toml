@@ -71,11 +71,13 @@ pallet-utility = {default-features = false, version = '3.0.0', git = 'https://gi
 pallet-multisig = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-identity = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-treasury = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+chainbridge = {default-features = false, version = '0.0.2', git = 'https://github.com/tearust/chainbridge-substrate', rev = '13fb952'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
 pallet-cml = {default-features = false, path = '../pallets/cml'}
 pallet-auction = {default-features = false, path = '../pallets/auction'}
+pallet-bridge = {default-features = false, path = '../pallets/bridge'}
 
 [features]
 default = ['std']
@@ -158,9 +160,11 @@ std = [
 	'pallet-multisig/std',
 	'pallet-identity/std',
 	'pallet-treasury/std',
+	'chainbridge/std',
 
 	'pallet-tea/std',
 	'pallet-cml/std',
-  'pallet-auction/std',
+  	'pallet-auction/std',
+	'pallet-bridge/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test

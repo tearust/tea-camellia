@@ -6,17 +6,12 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use frame_support::{
-    construct_runtime, parameter_types,
-    traits::{
+use frame_support::{Blake2_128, StorageHasher, PalletId, construct_runtime, parameter_types, traits::{
         Currency, Imbalance, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, U128CurrencyToVote,
-    },
-    weights::{
+    }, weights::{
         constants::{BlockExecutionWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
-    },
-    PalletId,
-};
+    }};
 use frame_system::{EnsureOneOf, EnsureRoot};
 use node_primitives::{BlockNumber, Hash, Moment};
 use pallet_grandpa::fg_primitives;
@@ -58,10 +53,10 @@ pub mod constants;
 mod weights;
 use constants::{currency::*, time::*};
 
+pub use pallet_auction;
 /// Import the template pallet.
 pub use pallet_cml;
 pub use pallet_tea;
-pub use pallet_auction;
 
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
@@ -781,6 +776,35 @@ impl pallet_cml::Config for Runtime {
 }
 
 parameter_types! {
+    pub const ChainId: u8 = 1;
+    pub const ProposalLifetime: BlockNumber = 1000;
+}
+
+impl chainbridge::Config for Runtime {
+    type Event = Event;
+    type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
+    type Proposal = Call;
+    type ChainId = ChainId;
+    type ProposalLifetime = ProposalLifetime;
+}
+
+parameter_types! {
+    // Hash id in hex: 0x7f2e90b3fb628e7678ed5c8561aa012b01
+    pub HashId: chainbridge::ResourceId = chainbridge::derive_resource_id(1, &Blake2_128::hash(b"TEA-BRIDGE"));
+    // Note: Chain ID is 0 indicating this is native to another chain
+    // Native token id in hex: 0xbfd1c21ce0cfc7adfb41ea867ea6b20c01
+    pub NativeTokenId: chainbridge::ResourceId = chainbridge::derive_resource_id(0, &Blake2_128::hash(b"TEA"));
+}
+
+impl pallet_bridge::Config for Runtime {
+    type Event = Event;
+    type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
+    type Currency = pallet_balances::Pallet<Runtime>;
+    type HashId = HashId;
+    type NativeTokenId = NativeTokenId;
+}
+
+parameter_types! {
     pub const AuctionDealWindowBLock: BlockNumber = 500;
     pub const BidDeposit: Balance = 100 * DOLLARS;
     pub const MinPriceForBid: Balance = 1 * DOLLARS;
@@ -829,10 +853,12 @@ construct_runtime!(
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
         Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
+        ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
         // Include the custom logic from the pallets in the runtime.
         Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
         Auction: pallet_auction::{Pallet, Call, Storage, Event<T>} = 101,
+        Bridge: pallet_bridge::{Pallet, Call, Event<T>} = 102,
     }
 );
 
