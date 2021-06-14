@@ -1,6 +1,7 @@
 use crate as pallet_utils;
 use frame_support::parameter_types;
 use frame_system as system;
+use node_primitives::Balance;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -21,6 +22,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
     }
 );
 
@@ -47,7 +49,7 @@ impl system::Config for Test {
     type BlockHashCount = BlockHashCount;
     type Version = ();
     type PalletInfo = PalletInfo;
-    type AccountData = ();
+    type AccountData = pallet_balances::AccountData<Balance>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type SystemWeightInfo = ();
@@ -62,6 +64,22 @@ parameter_types! {
 
 impl pallet_utils::Config for Test {
     type Event = Event;
+    type Currency = Balances;
+}
+
+parameter_types! {
+    pub const ExistentialDeposit: u128 = 1;
+    pub const MaxLocks: u32 = 50;
+}
+
+impl pallet_balances::Config for Test {
+    type MaxLocks = MaxLocks;
+    type Balance = Balance;
+    type Event = Event;
+    type DustRemoval = ();
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.

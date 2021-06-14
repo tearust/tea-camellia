@@ -759,6 +759,7 @@ where
 
 impl pallet_utils::Config for Runtime {
     type Event = Event;
+    type Currency = Balances;
 }
 
 parameter_types! {

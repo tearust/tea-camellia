@@ -34,6 +34,8 @@ serde = '1.0.119'
 hex-literal = "0.3.1"
 ed25519-dalek = "1.0.0"
 rand = '0.7.2'
+pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 [features]
 default = ['std']
