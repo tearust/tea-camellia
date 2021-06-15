@@ -3966,6 +3966,7 @@ dependencies = [
  "node-primitives",
  "pallet-balances",
  "pallet-cml",
+ "pallet-utils",
  "parity-scale-codec",
  "serde",
  "sp-core",

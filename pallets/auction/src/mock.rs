@@ -22,6 +22,7 @@ frame_support::construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         Cml: pallet_cml::{Pallet, Call, Storage, Event<T>},
         Auction: pallet_auction::{Pallet, Call, Storage, Event<T>},
+        Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -83,6 +84,7 @@ impl pallet_auction::Config for Test {
     type BidDeposit = BidDeposit;
     type MinPriceForBid = MinPriceForBid;
     type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
+	type CurrencyOperations = Utils;
 }
 
 parameter_types! {
@@ -98,6 +100,13 @@ impl pallet_balances::Config for Test {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
+}
+
+impl pallet_utils::Config for Test {
+    type Event = Event;
+    type Currency = Balances;
+    type Reward = ();
+    type Slash = ();
 }
 
 // Build genesis storage according to the mock runtime.

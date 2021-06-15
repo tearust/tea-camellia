@@ -19,6 +19,7 @@ use sp_runtime::{
 	traits::{Saturating, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One},
 	DispatchResult,
 };
+use pallet_utils::traits::CurrencyOperations;
 
 use log::{info};
 
@@ -51,7 +52,12 @@ pub mod auction {
 	pub trait Config: frame_system::Config + cml::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-    type Currency: ReservableCurrency<Self::AccountId>;
+    type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+
+    type CurrencyOperations: CurrencyOperations<
+      AccountId = Self::AccountId,
+      Balance = BalanceOf<Self>,
+    >;
 
 		/// The auction ID type.
 		type AuctionId: Parameter
@@ -95,7 +101,6 @@ pub mod auction {
 
     NotAllowToAuction,
     BalanceReserveOrUnreserveError,
-    BalanceTransferError,
 
     NotEnoughBalanceForPenalty,
 	}
@@ -274,7 +279,7 @@ pub mod auction {
       else {
         // new bid
         if let Some(deposit_price) = deposit_bid_price.clone() {
-          Self::reserve(&sender, deposit_price)?;
+          T::CurrencyOperations::reserve(&sender, deposit_price)?;
         }
         let item = Self::new_bid_item(auction_item.id, sender.clone(), price, deposit_bid_price);
         BidStore::<T>::insert(sender.clone(), auction_item.id, item);
@@ -300,7 +305,7 @@ pub mod auction {
       Self::update_bid_price_for_auction_item(&auction_id, sender.clone());
 
       // lock bid price
-      Self::reserve(&sender, price)?;
+      T::CurrencyOperations::reserve(&sender, price)?;
 
       // check auction success or not.
       if let Some(buy_now_price) = auction_item.buy_now_price {
@@ -340,7 +345,7 @@ pub mod auction {
         );
 
         for user in list.into_iter() {
-          Self::transfer_balance(&sender, &user, T::AuctionOwnerPenaltyForEachBid::get())?;
+          T::CurrencyOperations::transfer(&sender, &user, T::AuctionOwnerPenaltyForEachBid::get(), AllowDeath)?;
         }
       }
       Self::delete_auction(&auction_id)?;

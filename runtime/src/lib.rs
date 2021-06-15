@@ -827,6 +827,7 @@ impl pallet_auction::Config for Runtime {
     type Event = Event;
     type AuctionId = u64;
     type Currency = Balances;
+    type CurrencyOperations = Utils;
     type AuctionDealWindowBLock = AuctionDealWindowBLock;
     type BidDeposit = BidDeposit;
     type MinPriceForBid = MinPriceForBid;

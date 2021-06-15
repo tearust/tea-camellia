@@ -134,7 +134,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 
   pub fn delete_auction(
     auction_id: &T::AuctionId,
-  ) -> Result<(), Error<T>> {
+  ) -> DispatchResult {
 
     // remove from AuctionStore
     let auction_item = AuctionStore::<T>::take(&auction_id).unwrap();
@@ -187,7 +187,7 @@ impl<T: auction::Config> auction::Pallet<T> {
   pub fn delete_bid(
     who: &T::AccountId,
     auction_id: &T::AuctionId,
-  ) -> Result<(), Error<T>> {
+  ) -> DispatchResult {
     // remove from BidStore
     let bid_item = BidStore::<T>::take(&who, &auction_id).ok_or(Error::<T>::NotFoundBid)?;
 
@@ -215,7 +215,7 @@ impl<T: auction::Config> auction::Pallet<T> {
       total = total.saturating_add(deposit);
     }
 
-    Self::unreserve(&who, total)?;
+    T::CurrencyOperations::unreserve(&who, total)?;
 
 
     Ok(())
@@ -224,7 +224,7 @@ impl<T: auction::Config> auction::Pallet<T> {
   pub fn complete_auction(
     auction_item: &AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
     target: &T::AccountId,
-  ) -> Result<(), Error<T>> {
+  ) -> DispatchResult {
 
     let bid_item = BidStore::<T>::get(&target, &auction_item.id).ok_or(Error::<T>::NotFoundBid)?;
 
@@ -238,10 +238,7 @@ impl<T: auction::Config> auction::Pallet<T> {
       Self::delete_auction(&auction_item.id)?;
 
       // transfer price from bid_user to seller.
-      // TODO? how to dispatch the balance error directly.
-      Self::transfer_balance(&target, &auction_item.cml_owner, bid_item.price).map_err(|_| {
-        Error::<T>::BalanceTransferError
-      })?;
+      T::CurrencyOperations::transfer(&target, &auction_item.cml_owner, bid_item.price, AllowDeath)?;
 
       Self::deposit_event(Event::AuctionSuccess(auction_item.id, target.clone(), bid_item.price));
     }
@@ -252,13 +249,14 @@ impl<T: auction::Config> auction::Pallet<T> {
   // when in window block, check each auction could complet or not.
   pub fn check_auction_in_block_window(
 
-  ) -> Result<(), Error<T>> {
+  ) -> DispatchResult {
     let (current_window, next_window) = Self::get_window_block();
     let current_block = frame_system::Pallet::<T>::block_number();
 
-    if (current_block % T::AuctionDealWindowBLock::get()) > <T::BlockNumber>::saturated_from(3_u64) {
-      return Err(Error::<T>::NotInWindowBlock);
-    }
+    ensure!(
+      (current_block % T::AuctionDealWindowBLock::get()) > <T::BlockNumber>::saturated_from(3_u64),
+      Error::<T>::NotInWindowBlock
+    );
 
     if let Some(auction_list) = EndblockAuctionStore::<T>::take(current_window) {
       info!("auction_list => {:?}", auction_list);
@@ -276,7 +274,7 @@ impl<T: auction::Config> auction::Pallet<T> {
   fn check_each_auction_in_block_window(
     auction_item: AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
     next_window: T::BlockNumber,
-  ) -> Result<(), Error<T>> {
+  ) -> DispatchResult {
     if let Some(ref bid_user) = auction_item.bid_user {
 
       Self::complete_auction(&auction_item, &bid_user)?;
@@ -292,33 +290,6 @@ impl<T: auction::Config> auction::Pallet<T> {
         }
       });
     }
-
-    Ok(())
-  }
-
-  pub fn reserve(
-    who: &T::AccountId,
-    amount: BalanceOf<T>,
-  ) -> DispatchResult {
-
-    <T as auction::Config>::Currency::reserve(&who, amount)?;
-    Ok(())
-  }
-  pub fn unreserve(
-    who: &T::AccountId,
-    amount: BalanceOf<T>,
-  ) -> Result<(), Error<T>> {
-
-    <T as auction::Config>::Currency::unreserve(&who, amount);
-    Ok(())
-  }
-
-  pub fn transfer_balance(
-    from: &T::AccountId,
-    to: &T::AccountId,
-    amount: BalanceOf<T>,
-  ) -> DispatchResult {
-    <T as auction::Config>::Currency::transfer(&from, &to, amount, AllowDeath)?;
 
     Ok(())
   }
