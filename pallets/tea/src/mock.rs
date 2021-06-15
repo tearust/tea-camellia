@@ -66,6 +66,8 @@ parameter_types! {
 impl pallet_utils::Config for Test {
     type Event = Event;
     type Currency = Balances;
+    type Reward = ();
+    type Slash = ();
 }
 
 parameter_types! {

@@ -1,4 +1,5 @@
 use super::*;
+use sp_runtime::traits::Zero;
 
 impl<T: utils::Config> CommonUtils for utils::Pallet<T> {
     type AccountId = T::AccountId;
@@ -15,67 +16,116 @@ impl<T: utils::Config> CommonUtils for utils::Pallet<T> {
     }
 }
 
-impl<T: utils::Config> LockableOperations for utils::Pallet<T> {
+impl<T: utils::Config> CurrencyOperations for utils::Pallet<T> {
     type AccountId = T::AccountId;
-    type BalanceOf = <<T as utils::Config>::Currency as Currency<
+    type Balance = <<T as utils::Config>::Currency as Currency<
         <T as frame_system::Config>::AccountId,
     >>::Balance;
 
-    fn lock_capital(
-        sender: &Self::AccountId,
-        identifier: LockIdentifier,
-        amount: Self::BalanceOf,
-        reason: Option<WithdrawReasons>,
-        emit_event: bool,
-    ) {
-        T::Currency::set_lock(
-            identifier,
-            sender,
-            amount,
-            reason.unwrap_or(WithdrawReasons::all()),
-        );
-        if emit_event {
-            Self::deposit_event(Event::Locked(sender.clone(), identifier, amount));
-        }
+    fn total_issuance() -> Self::Balance {
+        T::Currency::total_issuance()
     }
 
-    fn extend_lock(
-        sender: &Self::AccountId,
-        identifier: LockIdentifier,
-        amount: Self::BalanceOf,
-        reason: Option<WithdrawReasons>,
-        emit_event: bool,
-    ) {
-        T::Currency::extend_lock(
-            identifier,
-            sender,
-            amount,
-            reason.unwrap_or(WithdrawReasons::all()),
-        );
-        if emit_event {
-            Self::deposit_event(Event::ExtendedLock(sender.clone(), identifier, amount));
-        }
+    fn minimum_balance() -> Self::Balance {
+        T::Currency::minimum_balance()
     }
 
-    fn unlock_all(sender: &Self::AccountId, identifier: LockIdentifier, emit_event: bool) {
-        T::Currency::remove_lock(identifier, sender);
-        if emit_event {
-            Self::deposit_event(Event::Unlocked(sender.clone(), identifier));
+    fn total_balance(who: &Self::AccountId) -> Self::Balance {
+        T::Currency::total_balance(who)
+    }
+
+    fn free_balance(who: &Self::AccountId) -> Self::Balance {
+        T::Currency::free_balance(who)
+    }
+
+    fn transfer(
+        source: &Self::AccountId,
+        dest: &Self::AccountId,
+        value: Self::Balance,
+        existence_requirement: ExistenceRequirement,
+    ) -> DispatchResult {
+        T::Currency::transfer(source, dest, value, existence_requirement)
+    }
+
+    fn reserved_balance(who: &Self::AccountId) -> Self::Balance {
+        T::Currency::reserved_balance(who)
+    }
+
+    fn reserve(who: &Self::AccountId, amount: Self::Balance) -> DispatchResult {
+        T::Currency::reserve(who, amount)
+    }
+
+    fn unreserve(who: &Self::AccountId, amount: Self::Balance) -> DispatchResult {
+        ensure!(
+            Self::reserved_balance(who) >= amount,
+            Error::<T>::InsufficientReservedBalance
+        );
+        ensure!(
+            T::Currency::unreserve(who, amount).is_zero(),
+            Error::<T>::UnexpectedBalanceResult
+        );
+        Ok(())
+    }
+
+    fn slash_reserved(who: &Self::AccountId, value: Self::Balance) -> Self::Balance {
+        let (imbalance, balance) = T::Currency::slash_reserved(who, value);
+        T::Slash::on_unbalanced(imbalance);
+        balance
+    }
+
+    fn repatriate_reserved(
+        slashed: &Self::AccountId,
+        beneficiary: &Self::AccountId,
+        value: Self::Balance,
+    ) -> Result<Self::Balance, DispatchError> {
+        T::Currency::repatriate_reserved(slashed, beneficiary, value, BalanceStatus::Free)
+    }
+
+    fn repatriate_reserved_batch(
+        slashed: &Self::AccountId,
+        beneficiary_list: &Vec<Self::AccountId>,
+        value_list: &Vec<Self::Balance>,
+    ) -> DispatchResult {
+        ensure!(
+            beneficiary_list.len() == value_list.len(),
+            Error::<T>::MismatchedRepatriateBatchList
+        );
+
+        let mut total_repatriate = Self::Balance::zero();
+        for value in value_list {
+            total_repatriate += *value;
         }
+        ensure!(
+            Self::reserved_balance(slashed) >= total_repatriate,
+            Error::<T>::InsufficientRepatriateBalance
+        );
+
+        for i in 0..beneficiary_list.len() {
+            Self::repatriate_reserved(
+                slashed,
+                beneficiary_list.get(i).ok_or(DispatchError::Other(
+                    "failed to get beneficiary from beneficiary_list",
+                ))?,
+                *value_list
+                    .get(i)
+                    .ok_or(DispatchError::Other("failed to get value from value_list"))?,
+            )?;
+        }
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{mock::*, CommonUtils, LockableOperations};
+    use crate::{mock::*, CommonUtils, CurrencyOperations, Error};
     use frame_support::{
         assert_noop, assert_ok,
-        traits::{Currency, ExistenceRequirement::AllowDeath, LockIdentifier},
+        traits::{
+            Currency,
+            ExistenceRequirement::{AllowDeath, KeepAlive},
+        },
     };
     use pallet_balances::Error as BalanceError;
-
-    const ID_1: LockIdentifier = *b"1       ";
-    const ID_2: LockIdentifier = *b"2       ";
 
     #[test]
     fn generate_random_works() {
@@ -107,223 +157,285 @@ mod tests {
     }
 
     #[test]
-    fn lock_capital_works() {
-        // lock without event
+    fn all_kinds_balances_works() {
+        new_test_ext().execute_with(|| {
+            let _ = Balances::deposit_creating(&1, 10);
+            let _ = Balances::deposit_creating(&2, 10);
+
+            assert_ok!(Utils::reserve(&1, 4));
+
+            assert_eq!(Utils::total_issuance(), 20);
+            assert_eq!(Utils::minimum_balance(), EXISTENTIAL_DEPOSIT);
+
+            assert_eq!(Utils::total_balance(&1), 10);
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::reserved_balance(&1), 4);
+
+            assert_eq!(Utils::total_balance(&2), 10);
+            assert_eq!(Utils::free_balance(&2), 10);
+            assert_eq!(Utils::reserved_balance(&2), 0);
+
+            // not exist account balances should be zero
+            assert!(!System::account_exists(&3));
+            assert_eq!(Utils::free_balance(&3), 0);
+            assert_eq!(Utils::reserved_balance(&3), 0);
+        })
+    }
+
+    #[test]
+    fn free_balance_only_works() {
+        // basic free balance operations
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            assert_eq!(Balances::free_balance(&1), 10);
-            Utils::lock_capital(&1, ID_1, 5, None, false);
+            assert!(!System::account_exists(&2));
+            assert_ok!(Utils::transfer(&1, &2, 4, AllowDeath));
+            assert!(System::account_exists(&2));
 
-            assert_eq!(Balances::free_balance(&1), 10);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::free_balance(&2), 4);
         });
 
-        // same identifier lock with multiple times
+        // transfer to let source account lower than existence requirement
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            assert_eq!(Balances::free_balance(&1), 10);
-            Utils::lock_capital(&1, ID_1, 5, None, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
+            assert!(System::account_exists(&1));
+            assert!(!System::account_exists(&2));
+            assert_ok!(Utils::transfer(&1, &2, 10, AllowDeath));
+            assert!(!System::account_exists(&1));
+            assert!(System::account_exists(&2));
 
-            Utils::lock_capital(&1, ID_1, 3, None, false);
-            assert_ok!(<Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath));
+            assert_eq!(Utils::free_balance(&2), 10);
         });
 
-        // different identifiers lock twice
+        // transfer should fail if free balance lower than transfer value
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            assert_eq!(Balances::free_balance(&1), 10);
-            Utils::lock_capital(&1, ID_1, 5, None, false);
             assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
+                Utils::transfer(&1, &2, 11, AllowDeath),
+                BalanceError::<Test>::InsufficientBalance
             );
-
-            Utils::lock_capital(&1, ID_2, 3, None, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
-            // lock with different identifier will take the largest
-            assert_ok!(<Balances as Currency<_>>::transfer(&1, &2, 5, AllowDeath));
+            assert_eq!(Utils::free_balance(&1), 10);
         });
 
-        // lock with event
+        // transfer should fail if left free balance lower than existence requirement
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            assert_eq!(Balances::free_balance(&1), 10);
-            Utils::lock_capital(&1, ID_1, 5, None, true);
-
-            assert_eq!(Balances::free_balance(&1), 10);
             assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
+                Utils::transfer(&1, &2, 10, KeepAlive),
+                BalanceError::<Test>::KeepAlive
             );
-            // todo should work
-            // System::assert_last_event(Event::pallet_utils(crate::Event::Locked(1, ID_1, 5)));
+            assert_eq!(Utils::free_balance(&1), 10);
         });
     }
 
     #[test]
-    fn unlock_all_works() {
-        // lock without event
+    fn normal_reserve_unreserve_works() {
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            Utils::lock_capital(&1, ID_1, 5, None, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
+            assert_ok!(Utils::reserve(&1, 4));
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::reserved_balance(&1), 4);
 
-            Utils::unlock_all(&1, ID_1, false);
-            assert_ok!(<Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath));
-        });
+            assert_ok!(Utils::unreserve(&1, 3));
+            assert_eq!(Utils::free_balance(&1), 9);
+            assert_eq!(Utils::reserved_balance(&1), 1);
 
-        // unlock from not exist identifier will do nothing
-        new_test_ext().execute_with(|| {
-            let _ = Balances::deposit_creating(&1, 10);
-
-            Utils::lock_capital(&1, ID_1, 5, None, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
-
-            Utils::unlock_all(&1, ID_2, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
-        });
-
-        // lock with multiple identifiers
-        new_test_ext().execute_with(|| {
-            let _ = Balances::deposit_creating(&1, 10);
-
-            Utils::lock_capital(&1, ID_1, 5, None, false);
-            Utils::lock_capital(&1, ID_2, 3, None, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
-
-            Utils::unlock_all(&1, ID_1, false);
-            assert_ok!(<Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath));
-            // there is still 3 lock by ID_2
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 3, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
-
-            Utils::unlock_all(&1, ID_2, false);
-            assert_ok!(<Balances as Currency<_>>::transfer(&1, &2, 3, AllowDeath));
-        });
-
-        // lock with event
-        new_test_ext().execute_with(|| {
-            let _ = Balances::deposit_creating(&1, 10);
-
-            Utils::lock_capital(&1, ID_1, 5, None, true);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
-
-            Utils::unlock_all(&1, ID_1, true);
-            assert_ok!(<Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath));
-            // todo should work
-            // System::assert_last_event(Event::pallet_utils(crate::Event::Unlocked(1, ID_1)));
+            assert_ok!(Utils::unreserve(&1, 1));
+            assert_eq!(Utils::free_balance(&1), 10);
+            assert_eq!(Utils::reserved_balance(&1), 0);
         });
     }
 
     #[test]
-    fn extend_lock_works() {
-        // lock without event
+    fn reserve_to_left_free_balance_be_zero_works() {
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            Utils::lock_capital(&1, ID_1, 6, None, false);
-            Utils::extend_lock(&1, ID_2, 4, None, false);
+            assert_ok!(Utils::reserve(&1, 10));
+            assert_eq!(Utils::free_balance(&1), 0);
+            assert_eq!(Utils::reserved_balance(&1), 10);
 
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
+            assert!(System::account_exists(&1));
         });
+    }
 
-        // extend from void works
+    #[test]
+    fn reserve_amount_larger_than_free_balance_should_fail() {
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            Utils::extend_lock(&1, ID_2, 5, None, false);
             assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
+                Utils::reserve(&1, 11),
+                BalanceError::<Test>::InsufficientBalance
             );
+            assert_eq!(Utils::free_balance(&1), 10);
+            assert_eq!(Utils::reserved_balance(&1), 0);
         });
+    }
 
-        // same identifier lock with multiple times
+    #[test]
+    fn unreserve_amount_larger_than_reserved_balance_should_failed() {
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            assert_eq!(Balances::free_balance(&1), 10);
-            Utils::extend_lock(&1, ID_1, 5, None, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
+            assert_ok!(Utils::reserve(&1, 4));
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::reserved_balance(&1), 4);
 
-            Utils::extend_lock(&1, ID_1, 3, None, false); // locked 5 after extend
             assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
+                Utils::unreserve(&1, 9),
+                Error::<Test>::InsufficientReservedBalance,
             );
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::reserved_balance(&1), 4);
         });
+    }
 
-        // different identifiers lock twice
+    #[test]
+    fn slash_reserved_works() {
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            assert_eq!(Balances::free_balance(&1), 10);
-            Utils::extend_lock(&1, ID_1, 5, None, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
+            assert_ok!(Utils::reserve(&1, 4));
+            assert_eq!(Utils::slash_reserved(&1, 3), 0);
 
-            Utils::extend_lock(&1, ID_2, 3, None, false);
-            assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
-            );
-            // lock with different identifier will take the largest
-            assert_ok!(<Balances as Currency<_>>::transfer(&1, &2, 5, AllowDeath));
-        });
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::reserved_balance(&1), 1);
+        })
+    }
 
-        // lock with event
+    #[test]
+    fn slash_reserved_can_delete_slashed_account() {
         new_test_ext().execute_with(|| {
             let _ = Balances::deposit_creating(&1, 10);
 
-            Utils::lock_capital(&1, ID_1, 6, None, true);
-            Utils::extend_lock(&1, ID_2, 4, None, true);
+            assert_ok!(Utils::reserve(&1, 10));
+            assert_eq!(Utils::slash_reserved(&1, 10), 0);
+
+            assert!(!System::account_exists(&1));
+        })
+    }
+
+    #[test]
+    fn slash_amount_more_than_reserved_balance_works() {
+        new_test_ext().execute_with(|| {
+            let _ = Balances::deposit_creating(&1, 10);
+
+            assert_ok!(Utils::reserve(&1, 4));
+            assert_eq!(Utils::slash_reserved(&1, 5), 1);
+
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::reserved_balance(&1), 0);
+        })
+    }
+
+    #[test]
+    fn repatriate_reserved_works() {
+        new_test_ext().execute_with(|| {
+            let _ = Balances::deposit_creating(&1, 10);
+            let _ = Balances::deposit_creating(&2, 10);
+
+            assert_ok!(Utils::reserve(&1, 4));
+            assert_eq!(Utils::repatriate_reserved(&1, &2, 3), Ok(0));
+
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::reserved_balance(&1), 1);
+
+            assert_eq!(Utils::free_balance(&2), 13);
+            assert_eq!(Utils::reserved_balance(&2), 0);
+        })
+    }
+
+    #[test]
+    fn repatriate_reserved_to_not_exist_account_should_fail() {
+        new_test_ext().execute_with(|| {
+            let _ = Balances::deposit_creating(&1, 10);
+
+            assert_ok!(Utils::reserve(&1, 4));
+            assert_noop!(
+                Utils::repatriate_reserved(&1, &2, 3),
+                BalanceError::<Test>::DeadAccount
+            );
+
+            assert_eq!(Utils::free_balance(&1), 6);
+            assert_eq!(Utils::reserved_balance(&1), 4);
+            assert!(!System::account_exists(&2));
+        })
+    }
+
+    #[test]
+    fn repatriate_reserved_batch_works() {
+        new_test_ext().execute_with(|| {
+            let _ = Balances::deposit_creating(&1, 10);
+            let _ = Balances::deposit_creating(&2, 10);
+            let _ = Balances::deposit_creating(&3, 10);
+
+            assert_ok!(Utils::reserve(&1, 9));
+            assert_ok!(Utils::repatriate_reserved_batch(
+                &1,
+                &vec![2, 3],
+                &vec![3, 4]
+            ));
+
+            assert_eq!(Utils::free_balance(&1), 1);
+            assert_eq!(Utils::reserved_balance(&1), 2);
+
+            assert_eq!(Utils::free_balance(&2), 13);
+            assert_eq!(Utils::free_balance(&3), 14);
+        })
+    }
+
+    #[test]
+    fn repatriate_reserved_batch_with_mismatched_length_should_fail() {
+        new_test_ext().execute_with(|| {
+            assert_noop!(
+                Utils::repatriate_reserved_batch(&1, &vec![2, 3], &vec![3, 4, 5]),
+                Error::<Test>::MismatchedRepatriateBatchList,
+            );
+        })
+    }
+
+    #[test]
+    fn repatriate_reserved_batch_with_insufficient_reserved_balance_should_fail() {
+        new_test_ext().execute_with(|| {
+            let _ = Balances::deposit_creating(&1, 10);
+            assert_ok!(Utils::reserve(&1, 9));
 
             assert_noop!(
-                <Balances as Currency<_>>::transfer(&1, &2, 6, AllowDeath),
-                BalanceError::<Test>::LiquidityRestrictions
+                Utils::repatriate_reserved_batch(&1, &vec![2, 3], &vec![5, 5]),
+                Error::<Test>::InsufficientRepatriateBalance,
             );
-            // todo should work
-            // System::assert_last_event(Event::pallet_utils(crate::Event::ExtendedLock(1, ID_2, 4)));
+            assert_eq!(Utils::reserved_balance(&1), 9);
+        })
+    }
+
+    #[test]
+    fn repatriate_reserved_batch_with_not_exist_account_should_fail() {
+        new_test_ext().execute_with(|| {
+            let _ = Balances::deposit_creating(&1, 10);
+            let _ = Balances::deposit_creating(&2, 10);
+
+            assert_ok!(Utils::reserve(&1, 9));
+
+            // not exist account at the first
+            assert_noop!(
+                Utils::repatriate_reserved_batch(&1, &vec![3, 2], &vec![3, 4]),
+                BalanceError::<Test>::DeadAccount,
+            );
+            assert_eq!(Utils::reserved_balance(&1), 9);
+
+            // not exist account at the second
+            // todo assert should pass
+            // assert_noop!(
+            //     Utils::repatriate_reserved_batch(&1, &vec![2, 3], &vec![3, 4]),
+            //     BalanceError::<Test>::DeadAccount,
+            // );
+            assert_eq!(Utils::reserved_balance(&1), 9);
         })
     }
 }

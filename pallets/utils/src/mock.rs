@@ -9,6 +9,7 @@ use sp_runtime::{
 };
 
 pub const RUNTIME_ACTIVITY_THRESHOLD: u32 = 6 * 60 * 10;
+pub const EXISTENTIAL_DEPOSIT: u128 = 1;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -65,10 +66,12 @@ parameter_types! {
 impl pallet_utils::Config for Test {
     type Event = Event;
     type Currency = Balances;
+    type Reward = ();
+    type Slash = ();
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: u128 = 1;
+    pub const ExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT;
     pub const MaxLocks: u32 = 50;
 }
 
