@@ -1,13 +1,32 @@
 use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
-	pub fn get_random_life() -> T::BlockNumber {
-		let life: u64 = 20_000_000;
+	pub fn get_random_life(
+		voucher_group: VoucherGroup,
+	) -> T::BlockNumber {
+		// TODO random
+
+		let life: u64 = match voucher_group {
+			VoucherGroup::A => 40_000_000,
+			VoucherGroup::B => 20_000_000,
+			VoucherGroup::C => 10_000_000,
+		};
+
 		life.saturated_into::<T::BlockNumber>()
 	}
 
-	pub fn get_random_mining_rate() -> u8 {
-		10 as u8
+	pub fn get_random_mining_rate(
+		voucher_group: VoucherGroup,
+	) -> u8 {
+		// TODO random
+
+		let rate: u8 = match voucher_group {
+			VoucherGroup::A => 40,
+			VoucherGroup::B => 20,
+			VoucherGroup::C => 10,
+		};
+
+		rate
 	}
 
 	pub fn get_next_id() -> T::CmlId {
@@ -18,21 +37,21 @@ impl<T: cml::Config> cml::Pallet<T> {
 		cid
 	}
 
-	pub fn new_cml_from_dai(
+	fn new_one_cml_by_voucher(
 		group: CmlGroup,
-		status: CmlStatus,
+		voucher_group: VoucherGroup,
 	) -> CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>> {
 
 		// life time, lock time
 		let current_block = frame_system::Pallet::<T>::block_number();
-		let life_time = current_block + Self::get_random_life();
-		let lock_time = <T::BlockNumber>::saturated_from(0_u64);
+		let life_time = current_block + Self::get_random_life(voucher_group);
+		let lock_time = <T::BlockNumber>::saturated_from(0_u64);  //TODO random
 		
 		CML {
 			id: Self::get_next_id(),
 			group,
-			status,
-			mining_rate: Self::get_random_mining_rate(),
+			status: CmlStatus::SeedFrozen,
+			mining_rate: Self::get_random_mining_rate(voucher_group),
 			life_time,
 			lock_time,
 			staking_slot: vec![],
@@ -42,18 +61,42 @@ impl<T: cml::Config> cml::Pallet<T> {
 
   }
 
-	pub fn get_dai(who: &T::AccountId) -> Dai {
-    match DaiStore::<T>::get(&who) {
-			Some(n) => n,
-			None => 0 as Dai,
+	pub fn new_cml_from_voucher(
+		group: CmlGroup,
+		voucher_amount: u32,
+		voucher_group: VoucherGroup,
+	) -> Vec<CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>> {
+		let mut list = vec![];
+
+		let mut i = 0;
+		while i < voucher_amount {
+			let cml = Self::new_one_cml_by_voucher(group, voucher_group);
+			list.push(cml);
+			i += 1;
 		}
+
+		list
   }
 
-  pub fn set_dai(
-    who: &T::AccountId,
-    amount: Dai
+  pub fn set_voucher(
+		who: &T::AccountId,
+		group: VoucherGroup,
+    amount: u32
   ) {
-    DaiStore::<T>::mutate(&who, |n| *n = Some(amount));
+    UserVoucherStore::<T>::mutate(&who, group, |maybe_item| {
+			if let Some(ref mut item) = maybe_item {
+				item.amount = amount;
+			}
+			else {
+				// Run here means not from genesis block, so no lock amount and unlock type.
+				*maybe_item = Some(Voucher {
+					group,
+					amount,
+					lock: None,
+					unlock_type: None,
+				});
+			}
+		});
 	}
 
 	pub fn add_cml(

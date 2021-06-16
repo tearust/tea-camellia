@@ -1,10 +1,36 @@
 
 // use super::*;
 use codec::{Decode, Encode};
-use sp_std::prelude::*;
-use sp_runtime::RuntimeDebug;
+#[cfg(feature = "std")]
+use serde::{Serialize, Deserialize};
 
-pub type Dai = u32;
+use sp_std::prelude::*;
+use sp_runtime::{RuntimeDebug};
+
+
+#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum VoucherGroup {
+	A,
+	B,
+	C,
+}
+
+#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum VoucherUnlockType {
+	CoreTeam,
+	SeedRound,
+	ARound,
+}
+
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+pub struct Voucher {
+	pub amount: u32,
+	pub lock: Option<u32>,
+	pub unlock_type: Option<VoucherUnlockType>,
+	pub group: VoucherGroup,
+}
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
 pub enum CmlStatus {
@@ -22,13 +48,13 @@ pub enum MinerStatus {
 	// ...
 }
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
 pub enum CmlGroup {
 	Nitro,
 	Tpm,
 }
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
 pub enum StakingCategory {
 	Tea,
 	Cml,

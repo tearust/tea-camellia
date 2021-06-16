@@ -47,6 +47,7 @@ pub type BalanceOf<T> =
 pub mod cml {
 	use super::*;
 
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -92,12 +93,12 @@ pub mod cml {
 	>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn dai_store)]
-	pub type DaiStore<T: Config> = StorageMap<
-		_, 
-		Twox64Concat, 
-		T::AccountId,
-		Dai,
+	#[pallet::getter(fn voucher_user_store)]
+	pub type UserVoucherStore<T: Config> = StorageDoubleMap<
+		_,
+    Twox64Concat, T::AccountId,
+    Twox64Concat, VoucherGroup,
+		Voucher,
 	>;
 
 	#[pallet::storage]
@@ -110,21 +111,33 @@ pub mod cml {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub dai_list: Vec<(T::AccountId, Dai)>,
+		pub voucher_list: Vec<(
+			T::AccountId, 
+			VoucherGroup, 
+			u32, 
+			Option<u32>, 
+			Option<VoucherUnlockType>,
+		)>,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
-				dai_list: vec![],
+				voucher_list: vec![],
 			}
 		}
 	}
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for (account, amount) in self.dai_list.iter() {
-        Pallet::<T>::set_dai(&account, *amount);
+			for (account, group, amount, lock, unlock_type) in self.voucher_list.iter() {
+				let voucher = Voucher {
+					amount: *amount,
+					group: *group,
+					lock: *lock,
+					unlock_type: *unlock_type,
+				};
+				UserVoucherStore::<T>::insert(&account, group, voucher);
       }
 		}
 	}
@@ -141,7 +154,8 @@ pub mod cml {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		NotEnoughDai,
+		NotEnoughVoucher,
+		InvalidVoucherAmount,
 		NotFoundCML,
 		CMLNotLive,
 		NotEnoughTeaToStaking,
@@ -158,43 +172,51 @@ pub mod cml {
 	impl<T: Config> Pallet<T> {
 
 		#[pallet::weight(1_000)]
-		pub fn transfer_dai(
+		pub fn transfer_voucher(
 			sender: OriginFor<T>,
 			target: T::AccountId,
-			#[pallet::compact] amount: Dai,
+			group: VoucherGroup,
+			#[pallet::compact] amount: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let _sender_dai = Self::get_dai(&sender);
-			let _target_dai = Self::get_dai(&target);
-			
-			ensure!(_sender_dai >= amount, Error::<T>::NotEnoughDai);
+			let sender_voucher = UserVoucherStore::<T>::get(&sender, group).ok_or(Error::<T>::NotEnoughVoucher)?;
+			ensure!(sender_voucher.amount >= amount, Error::<T>::NotEnoughVoucher);
 
-			Self::set_dai(&sender, _sender_dai-amount);
-			Self::set_dai(&target, _target_dai+amount);
+			let from_amount = sender_voucher.amount.checked_sub(amount).ok_or(Error::<T>::InvalidVoucherAmount)?;
+			
+			if let Some(target_voucher) = UserVoucherStore::<T>::get(&target, group){
+				let to_amount = target_voucher.amount.checked_add(amount).ok_or(Error::<T>::InvalidVoucherAmount)?;
+				Self::set_voucher(&target, group, to_amount);
+			}
+			else {
+				Self::set_voucher(&target, group, amount);
+			}
+
+			Self::set_voucher(&sender, group, from_amount);
 			
 			Ok(())
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn convert_cml_from_dai(
+		pub fn convert_cml_from_voucher(
 			sender: OriginFor<T>,
+			group: VoucherGroup,
+			count: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			// check sender dai
-			let _sender_dai = Self::get_dai(&sender);
-			ensure!(_sender_dai > Zero::zero(), Error::<T>::NotEnoughDai);
+			let sender_voucher = UserVoucherStore::<T>::get(&sender, group).ok_or(Error::<T>::NotEnoughVoucher)?;
+			ensure!(sender_voucher.amount >= count, Error::<T>::NotEnoughVoucher);
 
-			// TODO, check dai is frozen or live
-			let status = CmlStatus::SeedFrozen;
+			let from_amount = sender_voucher.amount.checked_sub(count).ok_or(Error::<T>::InvalidVoucherAmount)?;
 
-			// dai - 1
-			Self::set_dai(&sender, _sender_dai.saturating_sub(1 as Dai));
+			let list = Self::new_cml_from_voucher(CmlGroup::Nitro, count, group);
+			Self::set_voucher(&sender, group, from_amount);
 
-			// add cml
-			let cml = Self::new_cml_from_dai(CmlGroup::Nitro, status);
-			Self::add_cml(&sender, cml);
+			for cml in list.iter() {
+				Self::add_cml(&sender, cml.clone());
+      }
 
 			Ok(())
 		}

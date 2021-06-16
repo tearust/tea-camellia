@@ -1,5 +1,7 @@
 use camellia_runtime::{
-    constants::currency::DOLLARS, opaque::SessionKeys, pallet_cml::Dai, AccountId,
+    constants::currency::DOLLARS, opaque::SessionKeys, 
+    pallet_cml::{VoucherGroup, VoucherUnlockType}, 
+    AccountId,
     AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig, CouncilConfig,
     DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig, SessionConfig,
     Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
@@ -18,6 +20,7 @@ use sp_runtime::{
     Perbill,
 };
 use std::str::FromStr;
+
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -105,9 +108,9 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 ],
                 10000 * DOLLARS,
                 vec![
-                    (get_account_id_from_seed::<sr25519::Public>("Alice"), 1389),
-                    (kevin_account.clone(), 1389),
-                    // (jacky_account.clone(), 1389),
+                    (kevin_account.clone(), VoucherGroup::A, 100, Some(100), Some(VoucherUnlockType::CoreTeam)),
+                    (kevin_account.clone(), VoucherGroup::B, 200, Some(1000), Some(VoucherUnlockType::CoreTeam)),
+                    (kevin_account.clone(), VoucherGroup::C, 400, Some(1000), Some(VoucherUnlockType::CoreTeam)),
                 ],
             )
         },
@@ -159,7 +162,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 1 << 60,
-                vec![(get_account_id_from_seed::<sr25519::Public>("Alice"), 1389)],
+                vec![],
             )
         },
         // Bootnodes
@@ -189,7 +192,13 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     endowed_balance: Balance,
-    dai_list: Vec<(AccountId, Dai)>,
+    voucher_list: Vec<(
+        AccountId, 
+		VoucherGroup, 
+		u32, 
+		Option<u32>, 
+		Option<VoucherUnlockType>,
+    )>,
 ) -> GenesisConfig {
     const STASH: Balance = 100 * DOLLARS;
     let num_endowed_accounts = endowed_accounts.len();
@@ -273,7 +282,7 @@ fn testnet_genesis(
                 hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
             ],
         },
-        pallet_cml: CmlConfig { dai_list },
+        pallet_cml: CmlConfig { voucher_list },
     }
 }
 
