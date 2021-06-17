@@ -19,7 +19,6 @@
 // --header=./file_header.txt
 // --output=runtime/src/weights/pallet_multisig.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
@@ -29,12 +28,12 @@ use sp_std::marker::PhantomData;
 /// Weight functions for pallet_multisig.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
-	fn as_multi_threshold_1(z: u32, ) -> Weight {
+	fn as_multi_threshold_1(z: u32) -> Weight {
 		(12_447_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((1_000 as Weight).saturating_mul(z as Weight))
 	}
-	fn as_multi_create(s: u32, z: u32, ) -> Weight {
+	fn as_multi_create(s: u32, z: u32) -> Weight {
 		(55_836_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((71_000 as Weight).saturating_mul(s as Weight))
@@ -43,7 +42,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn as_multi_create_store(s: u32, z: u32, ) -> Weight {
+	fn as_multi_create_store(s: u32, z: u32) -> Weight {
 		(62_545_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((76_000 as Weight).saturating_mul(s as Weight))
@@ -52,7 +51,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
-	fn as_multi_approve(s: u32, z: u32, ) -> Weight {
+	fn as_multi_approve(s: u32, z: u32) -> Weight {
 		(30_636_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((126_000 as Weight).saturating_mul(s as Weight))
@@ -61,7 +60,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn as_multi_approve_store(s: u32, z: u32, ) -> Weight {
+	fn as_multi_approve_store(s: u32, z: u32) -> Weight {
 		(60_419_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((99_000 as Weight).saturating_mul(s as Weight))
@@ -70,7 +69,7 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
-	fn as_multi_complete(s: u32, z: u32, ) -> Weight {
+	fn as_multi_complete(s: u32, z: u32) -> Weight {
 		(75_028_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((266_000 as Weight).saturating_mul(s as Weight))
@@ -79,28 +78,28 @@ impl<T: frame_system::Config> pallet_multisig::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
-	fn approve_as_multi_create(s: u32, ) -> Weight {
+	fn approve_as_multi_create(s: u32) -> Weight {
 		(57_073_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((76_000 as Weight).saturating_mul(s as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn approve_as_multi_approve(s: u32, ) -> Weight {
+	fn approve_as_multi_approve(s: u32) -> Weight {
 		(33_935_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((80_000 as Weight).saturating_mul(s as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn approve_as_multi_complete(s: u32, ) -> Weight {
+	fn approve_as_multi_complete(s: u32) -> Weight {
 		(151_342_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((271_000 as Weight).saturating_mul(s as Weight))
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
-	fn cancel_as_multi(s: u32, ) -> Weight {
+	fn cancel_as_multi(s: u32) -> Weight {
 		(104_473_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((109_000 as Weight).saturating_mul(s as Weight))

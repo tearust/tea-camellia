@@ -17,10 +17,10 @@ pub mod traits;
 mod types;
 
 use frame_support::{
-    pallet_prelude::*,
-    traits::{
-        BalanceStatus, Currency, ExistenceRequirement, OnUnbalanced, Randomness, ReservableCurrency,
-    },
+	pallet_prelude::*,
+	traits::{
+		BalanceStatus, Currency, ExistenceRequirement, OnUnbalanced, Randomness, ReservableCurrency,
+	},
 };
 use frame_system::pallet_prelude::*;
 use sp_core::U256;
@@ -30,48 +30,48 @@ use types::*;
 
 #[frame_support::pallet]
 pub mod utils {
-    use super::*;
+	use super::*;
 
-    type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
-        <T as frame_system::Config>::AccountId,
-    >>::PositiveImbalance;
-    type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
-        <T as frame_system::Config>::AccountId,
-    >>::NegativeImbalance;
+	type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::PositiveImbalance;
+	type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::NegativeImbalance;
 
-    /// Configure the pallet by specifying the parameters and types on which it depends.
-    #[pallet::config]
-    pub trait Config: frame_system::Config {
-        /// Because this pallet emits events, it depends on the runtime's definition of an event.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        /// The lockable currency type
-        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-        /// Handler for the unbalanced increment when rewarding
-        type Reward: OnUnbalanced<PositiveImbalanceOf<Self>>;
-        /// Handler for the unbalanced decrement when slashing
-        type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
-    }
+	/// Configure the pallet by specifying the parameters and types on which it depends.
+	#[pallet::config]
+	pub trait Config: frame_system::Config {
+		/// Because this pallet emits events, it depends on the runtime's definition of an event.
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		/// The lockable currency type
+		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		/// Handler for the unbalanced increment when rewarding
+		type Reward: OnUnbalanced<PositiveImbalanceOf<Self>>;
+		/// Handler for the unbalanced decrement when slashing
+		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
+	}
 
-    #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
-    pub struct Pallet<T>(_);
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T>(_);
 
-    #[pallet::event]
-    pub enum Event<T: Config> {}
+	#[pallet::event]
+	pub enum Event<T: Config> {}
 
-    // Errors inform users that something went wrong.
-    #[pallet::error]
-    pub enum Error<T> {
-        InsufficientReservedBalance,
-        InsufficientRepatriateBalance,
-        MismatchedRepatriateBatchList,
-        /// Generally this error should never happen, otherwise should check logic error.
-        UnexpectedBalanceResult,
-    }
+	// Errors inform users that something went wrong.
+	#[pallet::error]
+	pub enum Error<T> {
+		InsufficientReservedBalance,
+		InsufficientRepatriateBalance,
+		MismatchedRepatriateBatchList,
+		/// Generally this error should never happen, otherwise should check logic error.
+		UnexpectedBalanceResult,
+	}
 
-    #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
-    #[pallet::call]
-    impl<T: Config> Pallet<T> {}
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {}
 }

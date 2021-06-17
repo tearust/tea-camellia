@@ -19,7 +19,6 @@
 // --header=./file_header.txt
 // --output=runtime/src/weights/pallet_im_online.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
@@ -29,7 +28,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions for pallet_im_online.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_im_online::WeightInfo for WeightInfo<T> {
-	fn validate_unsigned_and_then_heartbeat(k: u32, e: u32, ) -> Weight {
+	fn validate_unsigned_and_then_heartbeat(k: u32, e: u32) -> Weight {
 		(99_386_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((239_000 as Weight).saturating_mul(k as Weight))

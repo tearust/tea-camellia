@@ -19,7 +19,6 @@
 // --header=./file_header.txt
 // --output=runtime/src/weights/pallet_collective.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
@@ -29,7 +28,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions for pallet_collective.
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
-	fn set_members(m: u32, n: u32, p: u32, ) -> Weight {
+	fn set_members(m: u32, n: u32, p: u32) -> Weight {
 		(0 as Weight)
 			// Standard Error: 13_000
 			.saturating_add((17_829_000 as Weight).saturating_mul(m as Weight))
@@ -42,7 +41,7 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes((1 as Weight).saturating_mul(p as Weight)))
 	}
-	fn execute(b: u32, m: u32, ) -> Weight {
+	fn execute(b: u32, m: u32) -> Weight {
 		(24_017_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((4_000 as Weight).saturating_mul(b as Weight))
@@ -50,7 +49,7 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add((113_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 	}
-	fn propose_execute(b: u32, m: u32, ) -> Weight {
+	fn propose_execute(b: u32, m: u32) -> Weight {
 		(29_777_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((3_000 as Weight).saturating_mul(b as Weight))
@@ -58,7 +57,7 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add((233_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 	}
-	fn propose_proposed(b: u32, m: u32, p: u32, ) -> Weight {
+	fn propose_proposed(b: u32, m: u32, p: u32) -> Weight {
 		(47_300_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((5_000 as Weight).saturating_mul(b as Weight))
@@ -69,14 +68,14 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
-	fn vote(m: u32, ) -> Weight {
+	fn vote(m: u32) -> Weight {
 		(39_864_000 as Weight)
 			// Standard Error: 4_000
 			.saturating_add((320_000 as Weight).saturating_mul(m as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn close_early_disapproved(m: u32, p: u32, ) -> Weight {
+	fn close_early_disapproved(m: u32, p: u32) -> Weight {
 		(47_454_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((228_000 as Weight).saturating_mul(m as Weight))
@@ -85,7 +84,7 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
-	fn close_early_approved(b: u32, m: u32, p: u32, ) -> Weight {
+	fn close_early_approved(b: u32, m: u32, p: u32) -> Weight {
 		(64_255_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((5_000 as Weight).saturating_mul(b as Weight))
@@ -96,7 +95,7 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
-	fn close_disapproved(m: u32, p: u32, ) -> Weight {
+	fn close_disapproved(m: u32, p: u32) -> Weight {
 		(52_389_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((233_000 as Weight).saturating_mul(m as Weight))
@@ -105,7 +104,7 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
-	fn close_approved(b: u32, m: u32, p: u32, ) -> Weight {
+	fn close_approved(b: u32, m: u32, p: u32) -> Weight {
 		(67_974_000 as Weight)
 			// Standard Error: 0
 			.saturating_add((7_000 as Weight).saturating_mul(b as Weight))
@@ -116,7 +115,7 @@ impl<T: frame_system::Config> pallet_collective::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
-	fn disapprove_proposal(p: u32, ) -> Weight {
+	fn disapprove_proposal(p: u32) -> Weight {
 		(27_924_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((532_000 as Weight).saturating_mul(p as Weight))

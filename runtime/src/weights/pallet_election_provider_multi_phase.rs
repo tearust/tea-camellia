@@ -19,7 +19,6 @@
 // --header=./file_header.txt
 // --output=runtime/src/weights/pallet_election_provider_multi_phase.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
@@ -30,8 +29,7 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> pallet_election_provider_multi_phase::WeightInfo for WeightInfo<T> {
 	fn on_initialize_nothing() -> Weight {
-		(21_820_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
+		(21_820_000 as Weight).saturating_add(T::DbWeight::get().reads(7 as Weight))
 	}
 	fn on_initialize_open_signed() -> Weight {
 		(108_827_000 as Weight)
@@ -53,7 +51,7 @@ impl<T: frame_system::Config> pallet_election_provider_multi_phase::WeightInfo f
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}
-	fn submit_unsigned(v: u32, _t: u32, a: u32, d: u32, ) -> Weight {
+	fn submit_unsigned(v: u32, _t: u32, a: u32, d: u32) -> Weight {
 		(0 as Weight)
 			// Standard Error: 21_000
 			.saturating_add((4_073_000 as Weight).saturating_mul(v as Weight))
@@ -64,7 +62,7 @@ impl<T: frame_system::Config> pallet_election_provider_multi_phase::WeightInfo f
 			.saturating_add(T::DbWeight::get().reads(6 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn feasibility_check(v: u32, t: u32, a: u32, d: u32, ) -> Weight {
+	fn feasibility_check(v: u32, t: u32, a: u32, d: u32) -> Weight {
 		(0 as Weight)
 			// Standard Error: 10_000
 			.saturating_add((4_212_000 as Weight).saturating_mul(v as Weight))

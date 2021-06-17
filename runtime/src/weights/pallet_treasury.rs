@@ -19,7 +19,6 @@
 // --header=./file_header.txt
 // --output=runtime/src/weights/pallet_treasury.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
@@ -39,14 +38,14 @@ impl<T: frame_system::Config> pallet_treasury::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
-	fn approve_proposal(p: u32, ) -> Weight {
+	fn approve_proposal(p: u32) -> Weight {
 		(15_108_000 as Weight)
 			// Standard Error: 1_000
 			.saturating_add((99_000 as Weight).saturating_mul(p as Weight))
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn on_initialize_proposals(p: u32, ) -> Weight {
+	fn on_initialize_proposals(p: u32) -> Weight {
 		(36_725_000 as Weight)
 			// Standard Error: 6_000
 			.saturating_add((5_866_000 as Weight).saturating_mul(p as Weight))

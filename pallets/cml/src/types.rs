@@ -1,12 +1,10 @@
-
 // use super::*;
 use codec::{Decode, Encode};
 #[cfg(feature = "std")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
+use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
-use sp_runtime::{RuntimeDebug};
-
 
 #[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -34,10 +32,10 @@ pub struct Voucher {
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
 pub enum CmlStatus {
-	SeedLive, 
-	SeedFrozen, 
-	CmlLive, 
-	Staking, 
+	SeedLive,
+	SeedFrozen,
+	CmlLive,
+	Staking,
 	Dead,
 }
 
@@ -60,7 +58,6 @@ pub enum StakingCategory {
 	Cml,
 }
 
-
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct StakingItem<AccountId, CmlId, Balance> {
 	pub owner: AccountId,
@@ -78,11 +75,11 @@ pub struct MinerItem {
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct CML<CmlId, AccountId, BlockNumber, Balance> {
-  pub id: CmlId,
-  pub group: CmlGroup,
+	pub id: CmlId,
+	pub group: CmlGroup,
 	pub status: CmlStatus,
 	pub life_time: BlockNumber, // whole life time for CML
-	pub lock_time: BlockNumber, 
+	pub lock_time: BlockNumber,
 	pub mining_rate: u8, // 8 - 12, default 10
 	pub staking_slot: Vec<StakingItem<AccountId, CmlId, Balance>>,
 	pub created_at: BlockNumber,

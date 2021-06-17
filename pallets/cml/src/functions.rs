@@ -1,9 +1,7 @@
 use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
-	pub fn get_random_life(
-		voucher_group: VoucherGroup,
-	) -> T::BlockNumber {
+	pub fn get_random_life(voucher_group: VoucherGroup) -> T::BlockNumber {
 		// TODO random
 
 		let life: u64 = match voucher_group {
@@ -15,9 +13,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		life.saturated_into::<T::BlockNumber>()
 	}
 
-	pub fn get_random_mining_rate(
-		voucher_group: VoucherGroup,
-	) -> u8 {
+	pub fn get_random_mining_rate(voucher_group: VoucherGroup) -> u8 {
 		// TODO random
 
 		let rate: u8 = match voucher_group {
@@ -41,12 +37,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 		group: CmlGroup,
 		voucher_group: VoucherGroup,
 	) -> CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>> {
-
 		// life time, lock time
 		let current_block = frame_system::Pallet::<T>::block_number();
 		let life_time = current_block + Self::get_random_life(voucher_group);
-		let lock_time = <T::BlockNumber>::saturated_from(0_u64);  //TODO random
-		
+		let lock_time = <T::BlockNumber>::saturated_from(0_u64); //TODO random
+
 		CML {
 			id: Self::get_next_id(),
 			group,
@@ -58,8 +53,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 			created_at: current_block,
 			miner_id: b"".to_vec(),
 		}
-
-  }
+	}
 
 	pub fn new_cml_from_voucher(
 		group: CmlGroup,
@@ -76,18 +70,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 
 		list
-  }
+	}
 
-  pub fn set_voucher(
-		who: &T::AccountId,
-		group: VoucherGroup,
-    amount: u32
-  ) {
-    UserVoucherStore::<T>::mutate(&who, group, |maybe_item| {
+	pub fn set_voucher(who: &T::AccountId, group: VoucherGroup, amount: u32) {
+		UserVoucherStore::<T>::mutate(&who, group, |maybe_item| {
 			if let Some(ref mut item) = maybe_item {
 				item.amount = amount;
-			}
-			else {
+			} else {
 				// Run here means not from genesis block, so no lock amount and unlock type.
 				*maybe_item = Some(Voucher {
 					group,
@@ -103,26 +92,21 @@ impl<T: cml::Config> cml::Pallet<T> {
 		who: &T::AccountId,
 		cml: CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>,
 	) {
-
 		CmlStore::<T>::insert(cml.id, cml.clone());
 
 		if UserCmlStore::<T>::contains_key(&who) {
-      let mut list = UserCmlStore::<T>::take(&who).unwrap();
-      list.insert(0, cml.id);
-      UserCmlStore::<T>::insert(&who, list);
-    } 
-    else {
-      UserCmlStore::<T>::insert(&who, vec![cml.id]);
-    }
+			let mut list = UserCmlStore::<T>::take(&who).unwrap();
+			list.insert(0, cml.id);
+			UserCmlStore::<T>::insert(&who, list);
+		} else {
+			UserCmlStore::<T>::insert(&who, vec![cml.id]);
+		}
 	}
 
 	pub fn remove_cml_by_id() {}
 
-
-	pub fn update_cml(
-		cml: CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>,
-	) {
-		CmlStore::<T>::mutate(cml.id, |maybe_item| {	
+	pub fn update_cml(cml: CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>) {
+		CmlStore::<T>::mutate(cml.id, |maybe_item| {
 			if let Some(ref mut item) = maybe_item {
 				*item = cml;
 			}
@@ -130,17 +114,14 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn get_cml_by_id(
-		cml_id: &T::CmlId
+		cml_id: &T::CmlId,
 	) -> Result<CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>, Error<T>> {
 		let cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
 
 		Ok(cml)
 	}
 
-	pub fn check_belongs(
-		cml_id: &T::CmlId,
-		who: &T::AccountId,
-	) -> Result<(), Error<T>>{
+	pub fn check_belongs(cml_id: &T::CmlId, who: &T::AccountId) -> Result<(), Error<T>> {
 		let user_cml = UserCmlStore::<T>::get(&who).ok_or(Error::<T>::CMLOwnerInvalid)?;
 		if !user_cml.contains(&cml_id) {
 			return Err(Error::<T>::CMLOwnerInvalid);
@@ -154,7 +135,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		miner_id: Vec<u8>,
 		staking_item: StakingItem<T::AccountId, T::CmlId, BalanceOf<T>>,
 	) -> Result<(), Error<T>> {
-
 		let mut cml = Self::get_cml_by_id(&cml_id)?;
 		cml.status = CmlStatus::CmlLive;
 		cml.miner_id = miner_id;
@@ -182,11 +162,10 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Ok(())
 	}
 
-
 	pub fn transfer_cml_other(
 		from_account: &T::AccountId,
 		cml_id: &T::CmlId,
-		target_account:  &T::AccountId,
+		target_account: &T::AccountId,
 	) -> Result<(), Error<T>> {
 		let mut cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
 
@@ -212,7 +191,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 			// TODO balance
 		}
-		
 
 		// remove from from UserCmlStore
 		UserCmlStore::<T>::mutate(&from_account, |maybe_list| {
@@ -225,12 +203,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 		UserCmlStore::<T>::mutate(&target_account, |maybe_list| {
 			if let Some(ref mut list) = maybe_list {
 				list.push(*cml_id);
-			}
-			else {
+			} else {
 				*maybe_list = Some(vec![*cml_id]);
 			}
 		});
-			
+
 		Ok(())
 	}
 }

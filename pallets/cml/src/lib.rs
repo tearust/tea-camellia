@@ -1,4 +1,3 @@
-
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -8,45 +7,32 @@ pub mod mock;
 #[cfg(test)]
 mod tests;
 
-mod impl_stored_map;
 mod functions;
+mod impl_stored_map;
 mod types;
 pub use types::*;
 
-use sp_std::{
-	prelude::*, 
-	// borrow::Borrow
-};
+use log::info;
 use sp_runtime::{
-		SaturatedConversion,
-		traits::{
-		AtLeast32Bit, Zero, One, 
-	}
+	traits::{AtLeast32Bit, One, Zero},
+	SaturatedConversion,
 };
-use log::{info};
+use sp_std::prelude::*;
 
-use frame_support::{
-	dispatch::DispatchResult,
-	pallet_prelude::*,
-};
+use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 // use codec::{HasCompact};
-use frame_support::{ensure};
-use frame_support::traits::{
-	Currency, 
-	Get,
-};
+use frame_support::ensure;
+use frame_support::traits::{Currency, Get};
 
 pub use cml::*;
 
-
-pub type BalanceOf<T> = 
+pub type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod cml {
 	use super::*;
-
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -58,7 +44,6 @@ pub mod cml {
 
 		#[pallet::constant]
 		type StakingPrice: Get<BalanceOf<Self>>;
-
 	}
 
 	#[pallet::pallet]
@@ -66,14 +51,11 @@ pub mod cml {
 	pub struct Pallet<T>(_);
 
 	#[pallet::type_value]
-	pub fn DefaultAssetId<T: Config>() -> T::CmlId { <T::CmlId>::saturated_from(10000_u32) }
+	pub fn DefaultAssetId<T: Config>() -> T::CmlId {
+		<T::CmlId>::saturated_from(10000_u32)
+	}
 	#[pallet::storage]
-	pub type LastCmlId<T: Config> = StorageValue<
-		_,
-		T::CmlId,
-		ValueQuery,
-		DefaultAssetId<T>,
-	>;
+	pub type LastCmlId<T: Config> = StorageValue<_, T::CmlId, ValueQuery, DefaultAssetId<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn cml_store)]
@@ -86,36 +68,23 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_cml_store)]
-	pub type UserCmlStore<T: Config> = StorageMap<
-		_,
-		Twox64Concat, T::AccountId,
-		Vec<T::CmlId>
-	>;
+	pub type UserCmlStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<T::CmlId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn voucher_user_store)]
-	pub type UserVoucherStore<T: Config> = StorageDoubleMap<
-		_,
-    Twox64Concat, T::AccountId,
-    Twox64Concat, VoucherGroup,
-		Voucher,
-	>;
+	pub type UserVoucherStore<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, VoucherGroup, Voucher>;
 
 	#[pallet::storage]
-	pub type MinerItemStore<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		Vec<u8>,
-		MinerItem,
-	>;
+	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, MinerItem>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub voucher_list: Vec<(
-			T::AccountId, 
-			VoucherGroup, 
-			u32, 
-			Option<u32>, 
+			T::AccountId,
+			VoucherGroup,
+			u32,
+			Option<u32>,
 			Option<VoucherUnlockType>,
 		)>,
 	}
@@ -138,16 +107,13 @@ pub mod cml {
 					unlock_type: *unlock_type,
 				};
 				UserVoucherStore::<T>::insert(&account, group, voucher);
-      }
+			}
 		}
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(
-		T::AccountId = "AccountId",
-		T::CmlId = "CmlId"
-	)]
+	#[pallet::metadata(T::AccountId = "AccountId", T::CmlId = "CmlId")]
 	pub enum Event<T: Config> {
 		ActiveCml(T::AccountId, T::CmlId),
 	}
@@ -170,7 +136,6 @@ pub mod cml {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		#[pallet::weight(1_000)]
 		pub fn transfer_voucher(
 			sender: OriginFor<T>,
@@ -180,21 +145,30 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let sender_voucher = UserVoucherStore::<T>::get(&sender, group).ok_or(Error::<T>::NotEnoughVoucher)?;
-			ensure!(sender_voucher.amount >= amount, Error::<T>::NotEnoughVoucher);
+			let sender_voucher =
+				UserVoucherStore::<T>::get(&sender, group).ok_or(Error::<T>::NotEnoughVoucher)?;
+			ensure!(
+				sender_voucher.amount >= amount,
+				Error::<T>::NotEnoughVoucher
+			);
 
-			let from_amount = sender_voucher.amount.checked_sub(amount).ok_or(Error::<T>::InvalidVoucherAmount)?;
-			
-			if let Some(target_voucher) = UserVoucherStore::<T>::get(&target, group){
-				let to_amount = target_voucher.amount.checked_add(amount).ok_or(Error::<T>::InvalidVoucherAmount)?;
+			let from_amount = sender_voucher
+				.amount
+				.checked_sub(amount)
+				.ok_or(Error::<T>::InvalidVoucherAmount)?;
+
+			if let Some(target_voucher) = UserVoucherStore::<T>::get(&target, group) {
+				let to_amount = target_voucher
+					.amount
+					.checked_add(amount)
+					.ok_or(Error::<T>::InvalidVoucherAmount)?;
 				Self::set_voucher(&target, group, to_amount);
-			}
-			else {
+			} else {
 				Self::set_voucher(&target, group, amount);
 			}
 
 			Self::set_voucher(&sender, group, from_amount);
-			
+
 			Ok(())
 		}
 
@@ -206,17 +180,21 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let sender_voucher = UserVoucherStore::<T>::get(&sender, group).ok_or(Error::<T>::NotEnoughVoucher)?;
+			let sender_voucher =
+				UserVoucherStore::<T>::get(&sender, group).ok_or(Error::<T>::NotEnoughVoucher)?;
 			ensure!(sender_voucher.amount >= count, Error::<T>::NotEnoughVoucher);
 
-			let from_amount = sender_voucher.amount.checked_sub(count).ok_or(Error::<T>::InvalidVoucherAmount)?;
+			let from_amount = sender_voucher
+				.amount
+				.checked_sub(count)
+				.ok_or(Error::<T>::InvalidVoucherAmount)?;
 
 			let list = Self::new_cml_from_voucher(CmlGroup::Nitro, count, group);
 			Self::set_voucher(&sender, group, from_amount);
 
 			for cml in list.iter() {
 				Self::add_cml(&sender, cml.clone());
-      }
+			}
 
 			Ok(())
 		}
@@ -239,7 +217,10 @@ pub mod cml {
 				status: MinerStatus::Active,
 			};
 
-			ensure!(!<MinerItemStore<T>>::contains_key(&miner_id), Error::<T>::MinerAlreadyExist);
+			ensure!(
+				!<MinerItemStore<T>>::contains_key(&miner_id),
+				Error::<T>::MinerAlreadyExist
+			);
 
 			let balance = T::Currency::free_balance(&sender);
 
@@ -263,5 +244,3 @@ pub mod cml {
 		}
 	}
 }
-
-

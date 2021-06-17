@@ -19,7 +19,6 @@
 // --header=./file_header.txt
 // --output=runtime/src/weights/pallet_tea.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
