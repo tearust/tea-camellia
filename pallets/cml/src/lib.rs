@@ -12,15 +12,14 @@ mod impl_stored_map;
 mod types;
 pub use types::*;
 
-use log::info;
-use sp_runtime::SaturatedConversion;
-use sp_std::prelude::*;
-
-use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
-use frame_system::pallet_prelude::*;
-// use codec::{HasCompact};
 use frame_support::ensure;
 use frame_support::traits::{Currency, Get};
+use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
+use frame_system::pallet_prelude::*;
+use log::info;
+use node_primitives::BlockNumber;
+use sp_runtime::SaturatedConversion;
+use sp_std::prelude::*;
 
 pub use cml::*;
 
@@ -39,11 +38,28 @@ pub mod cml {
 
 		#[pallet::constant]
 		type StakingPrice: Get<BalanceOf<Self>>;
+
+		/// The latest block height to draw seeds use voucher, after this block height the left
+		/// seeds shall be destroyed.
+		type TimoutHeight: Get<BlockNumber>;
 	}
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
+
+	#[pallet::storage]
+	#[pallet::getter(fn seeds)]
+	pub(super) type Seeds<T: Config> = StorageMap<_, Twox64Concat, CmlId, Seed>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn owner_seeds)]
+	pub(super) type OwnerSeedsMap<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, Vec<CmlId>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn seeds_cleaned)]
+	pub(super) type SeedsCleaned<T: Config> = StorageValue<_, bool>;
 
 	#[pallet::type_value]
 	pub fn DefaultAssetId<T: Config>() -> CmlId {
@@ -78,26 +94,40 @@ pub mod cml {
 			Option<u32>,
 			Option<VoucherUnlockType>,
 		)>,
+		pub genesis_seeds: GenesisSeeds,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
 				voucher_list: vec![],
+				genesis_seeds: GenesisSeeds::default(),
 			}
 		}
 	}
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for (account, group, amount, lock, unlock_type) in self.voucher_list.iter() {
+			for (account, cml_type, amount, lock, unlock_type) in self.voucher_list.iter() {
 				let voucher = Voucher {
 					amount: *amount,
-					group: *group,
+					group: *cml_type,
 					lock: *lock,
 					unlock_type: *unlock_type,
 				};
-				UserVoucherStore::<T>::insert(&account, group, voucher);
+				UserVoucherStore::<T>::insert(&account, cml_type, voucher);
+
+				SeedsCleaned::<T>::set(Some(false));
+
+				self.genesis_seeds.a_seeds.iter().for_each(|seed| {
+					Seeds::<T>::insert(seed.id, seed.clone());
+				});
+				self.genesis_seeds.b_seeds.iter().for_each(|seed| {
+					Seeds::<T>::insert(seed.id, seed.clone());
+				});
+				self.genesis_seeds.c_seeds.iter().for_each(|seed| {
+					Seeds::<T>::insert(seed.id, seed.clone());
+				});
 			}
 		}
 	}
@@ -122,7 +152,9 @@ pub mod cml {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		// TODO
+		fn on_finalize(n: BlockNumberFor<T>) {
+			Self::try_clean_outdated_seeds(n);
+		}
 	}
 
 	#[pallet::call]

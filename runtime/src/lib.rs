@@ -780,11 +780,14 @@ impl pallet_tea::Config for Runtime {
 
 parameter_types! {
 	pub const StakingPrice: Balance = 1000 * DOLLARS;
+	/// Timeout height is (1 * 30 * 24 * 60 * 10 * 6secs) about 1 month
+	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 }
 impl pallet_cml::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
+	type TimoutHeight = SeedsTimeoutHeight;
 }
 
 parameter_types! {

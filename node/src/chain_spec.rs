@@ -1,7 +1,7 @@
 use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
-	pallet_cml::{CmlType, VoucherUnlockType},
+	pallet_cml::{CmlType, GenesisSeeds, VoucherUnlockType},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
 	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
@@ -90,6 +90,8 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		"dev",
 		ChainType::Development,
 		move || {
+			// todo call generate function from pallet cml
+			let genesis_seeds = GenesisSeeds::default();
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
@@ -129,6 +131,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 						Some(VoucherUnlockType::CoreTeam),
 					),
 				],
+				genesis_seeds,
 			)
 		},
 		// Bootnodes
@@ -154,6 +157,9 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		"local_testnet",
 		ChainType::Local,
 		move || {
+			// todo call generate function from pallet cml
+			let genesis_seeds = GenesisSeeds::default();
+
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
@@ -180,6 +186,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 				],
 				1 << 60,
 				vec![],
+				genesis_seeds,
 			)
 		},
 		// Bootnodes
@@ -216,6 +223,7 @@ fn testnet_genesis(
 		Option<u32>,
 		Option<VoucherUnlockType>,
 	)>,
+	genesis_seeds: GenesisSeeds,
 ) -> GenesisConfig {
 	const STASH: Balance = 100 * DOLLARS;
 	let num_endowed_accounts = endowed_accounts.len();
@@ -299,7 +307,10 @@ fn testnet_genesis(
 				hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
 			],
 		},
-		pallet_cml: CmlConfig { voucher_list },
+		pallet_cml: CmlConfig {
+			voucher_list,
+			genesis_seeds,
+		},
 	}
 }
 

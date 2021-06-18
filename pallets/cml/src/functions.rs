@@ -206,4 +206,37 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 		Ok(())
 	}
+
+	pub(crate) fn get_all_seeds() -> Vec<Seed> {
+		Seeds::<T>::iter().map(|(_, seed)| seed).collect()
+	}
+
+	pub(crate) fn try_clean_outdated_seeds(block_number: T::BlockNumber) {
+		if block_number < T::TimoutHeight::get().into() || SeedsCleaned::<T>::get().unwrap_or(false)
+		{
+			return;
+		}
+
+		Seeds::<T>::remove_all();
+		SeedsCleaned::<T>::set(Some(true));
+	}
+
+	pub(crate) fn is_seed_owner(who: &T::AccountId, id: &CmlId) -> bool {
+		match OwnerSeedsMap::<T>::get(who) {
+			Some(l) => l.contains(id),
+			None => false,
+		}
+	}
+
+	pub(crate) fn take_seed(who: &T::AccountId, id: &CmlId) -> Seed {
+		OwnerSeedsMap::<T>::mutate(who, |item| match item {
+			Some(seed_list) => {
+				if let Some(index) = seed_list.iter().position(|x| *x == *id) {
+					seed_list.remove(index);
+				}
+			}
+			_ => {} // should never happen
+		});
+		Seeds::<T>::take(id).unwrap()
+	}
 }
