@@ -13,10 +13,7 @@ mod types;
 pub use types::*;
 
 use log::info;
-use sp_runtime::{
-	traits::{AtLeast32Bit, One, Zero},
-	SaturatedConversion,
-};
+use sp_runtime::SaturatedConversion;
 use sp_std::prelude::*;
 
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
@@ -38,8 +35,6 @@ pub mod cml {
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		type CmlId: Parameter + AtLeast32Bit + Default + Copy;
-
 		type Currency: Currency<Self::AccountId>;
 
 		#[pallet::constant]
@@ -51,29 +46,25 @@ pub mod cml {
 	pub struct Pallet<T>(_);
 
 	#[pallet::type_value]
-	pub fn DefaultAssetId<T: Config>() -> T::CmlId {
-		<T::CmlId>::saturated_from(10000_u32)
+	pub fn DefaultAssetId<T: Config>() -> CmlId {
+		<CmlId>::saturated_from(10000_u32)
 	}
 	#[pallet::storage]
-	pub type LastCmlId<T: Config> = StorageValue<_, T::CmlId, ValueQuery, DefaultAssetId<T>>;
+	pub type LastCmlId<T: Config> = StorageValue<_, CmlId, ValueQuery, DefaultAssetId<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn cml_store)]
-	pub type CmlStore<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		T::CmlId,
-		CML<T::CmlId, T::AccountId, T::BlockNumber, BalanceOf<T>>,
-	>;
+	pub type CmlStore<T: Config> =
+		StorageMap<_, Twox64Concat, CmlId, CML<T::AccountId, T::BlockNumber, BalanceOf<T>>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_cml_store)]
-	pub type UserCmlStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<T::CmlId>>;
+	pub type UserCmlStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<CmlId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn voucher_user_store)]
 	pub type UserVoucherStore<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, VoucherGroup, Voucher>;
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Voucher>;
 
 	#[pallet::storage]
 	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, MinerItem>;
@@ -82,7 +73,7 @@ pub mod cml {
 	pub struct GenesisConfig<T: Config> {
 		pub voucher_list: Vec<(
 			T::AccountId,
-			VoucherGroup,
+			CmlType,
 			u32,
 			Option<u32>,
 			Option<VoucherUnlockType>,
@@ -113,9 +104,9 @@ pub mod cml {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId", T::CmlId = "CmlId")]
+	#[pallet::metadata(T::AccountId = "AccountId", CmlId = "CmlId")]
 	pub enum Event<T: Config> {
-		ActiveCml(T::AccountId, T::CmlId),
+		ActiveCml(T::AccountId, CmlId),
 	}
 
 	#[pallet::error]
@@ -140,7 +131,7 @@ pub mod cml {
 		pub fn transfer_voucher(
 			sender: OriginFor<T>,
 			target: T::AccountId,
-			group: VoucherGroup,
+			group: CmlType,
 			#[pallet::compact] amount: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
@@ -175,7 +166,7 @@ pub mod cml {
 		#[pallet::weight(10_000)]
 		pub fn convert_cml_from_voucher(
 			sender: OriginFor<T>,
-			group: VoucherGroup,
+			group: CmlType,
 			count: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
@@ -202,7 +193,7 @@ pub mod cml {
 		#[pallet::weight(10_000)]
 		pub fn active_cml_for_nitro(
 			sender: OriginFor<T>,
-			cml_id: T::CmlId,
+			cml_id: CmlId,
 			miner_id: Vec<u8>,
 			miner_ip: Vec<u8>,
 		) -> DispatchResult {

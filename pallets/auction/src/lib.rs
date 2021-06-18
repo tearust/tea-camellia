@@ -36,7 +36,7 @@ pub use types::*;
 // pub use weights::WeightInfo;
 
 pub use auction::*;
-use pallet_cml as cml;
+use pallet_cml::{self as cml, CmlId};
 
 // pub const AUCTION_ID: LockIdentifier = *b"_auction";
 
@@ -118,7 +118,7 @@ pub mod auction {
 		_,
 		Twox64Concat,
 		T::AuctionId,
-		AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber>,
+		AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		OptionQuery,
 	>;
 
@@ -199,7 +199,7 @@ pub mod auction {
 		#[pallet::weight(10_000)]
 		pub fn put_to_store(
 			origin: OriginFor<T>,
-			cml_id: T::CmlId,
+			cml_id: CmlId,
 			starting_price: BalanceOf<T>,
 			buy_now_price: Option<BalanceOf<T>>,
 		) -> DispatchResult {

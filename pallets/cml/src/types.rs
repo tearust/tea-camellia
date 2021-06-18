@@ -6,9 +6,16 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
+pub mod param;
+pub mod seeds;
+
+pub type CmlId = u64;
+
+pub type MachineId = [u8; 32];
+
 #[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum VoucherGroup {
+pub enum CmlType {
 	A,
 	B,
 	C,
@@ -27,7 +34,7 @@ pub struct Voucher {
 	pub amount: u32,
 	pub lock: Option<u32>,
 	pub unlock_type: Option<VoucherUnlockType>,
-	pub group: VoucherGroup,
+	pub group: CmlType,
 }
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
@@ -74,7 +81,7 @@ pub struct MinerItem {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct CML<CmlId, AccountId, BlockNumber, Balance> {
+pub struct CML<AccountId, BlockNumber, Balance> {
 	pub id: CmlId,
 	pub group: CmlGroup,
 	pub status: CmlStatus,

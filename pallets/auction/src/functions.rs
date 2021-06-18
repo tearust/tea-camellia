@@ -10,11 +10,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub(super) fn new_auction_item(
-		cml_id: T::CmlId,
+		cml_id: CmlId,
 		cml_owner: T::AccountId,
 		starting_price: BalanceOf<T>,
 		buy_now_price: Option<BalanceOf<T>>,
-	) -> AuctionItem<T::AuctionId, T::AccountId, T::CmlId, BalanceOf<T>, T::BlockNumber> {
+	) -> AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber> {
 		let current_block = frame_system::Pallet::<T>::block_number();
 
 		let period: u64 = 1_000_000;
@@ -77,13 +77,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub fn add_auction_to_storage(
-		auction_item: AuctionItem<
-			T::AuctionId,
-			T::AccountId,
-			T::CmlId,
-			BalanceOf<T>,
-			T::BlockNumber,
-		>,
+		auction_item: AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		who: &T::AccountId,
 	) {
 		UserAuctionStore::<T>::mutate(&who, |maybe_list| {
@@ -108,13 +102,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub(super) fn get_min_bid_price(
-		auction_item: &AuctionItem<
-			T::AuctionId,
-			T::AccountId,
-			T::CmlId,
-			BalanceOf<T>,
-			T::BlockNumber,
-		>,
+		auction_item: &AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		who: &T::AccountId,
 	) -> Result<BalanceOf<T>, Error<T>> {
 		let min_price = match BidStore::<T>::get(&who, auction_item.id) {
@@ -219,13 +207,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub fn complete_auction(
-		auction_item: &AuctionItem<
-			T::AuctionId,
-			T::AccountId,
-			T::CmlId,
-			BalanceOf<T>,
-			T::BlockNumber,
-		>,
+		auction_item: &AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		target: &T::AccountId,
 	) -> DispatchResult {
 		let bid_item =
@@ -282,13 +264,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	fn check_each_auction_in_block_window(
-		auction_item: AuctionItem<
-			T::AuctionId,
-			T::AccountId,
-			T::CmlId,
-			BalanceOf<T>,
-			T::BlockNumber,
-		>,
+		auction_item: AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		next_window: T::BlockNumber,
 	) -> DispatchResult {
 		if let Some(ref bid_user) = auction_item.bid_user {

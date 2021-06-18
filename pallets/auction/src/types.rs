@@ -3,6 +3,7 @@ use codec::{Decode, Encode};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
+use pallet_cml::CmlId;
 use sp_std::cmp::{Eq, PartialEq};
 
 // use super::auction;
@@ -16,7 +17,7 @@ use sp_std::cmp::{Eq, PartialEq};
 // }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct AuctionItem<AuctionId, AccountId, CmlId, Balance, BlockNumber> {
+pub struct AuctionItem<AuctionId, AccountId, Balance, BlockNumber> {
 	pub id: AuctionId,
 	pub cml_id: CmlId,
 	pub cml_owner: AccountId,

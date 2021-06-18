@@ -1,7 +1,7 @@
 use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
-	pallet_cml::{VoucherGroup, VoucherUnlockType},
+	pallet_cml::{CmlType, VoucherUnlockType},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
 	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
@@ -109,21 +109,21 @@ pub fn development_config() -> Result<ChainSpec, String> {
 				vec![
 					(
 						kevin_account.clone(),
-						VoucherGroup::A,
+						CmlType::A,
 						100,
 						Some(100),
 						Some(VoucherUnlockType::CoreTeam),
 					),
 					(
 						kevin_account.clone(),
-						VoucherGroup::B,
+						CmlType::B,
 						200,
 						Some(1000),
 						Some(VoucherUnlockType::CoreTeam),
 					),
 					(
 						kevin_account.clone(),
-						VoucherGroup::C,
+						CmlType::C,
 						400,
 						Some(1000),
 						Some(VoucherUnlockType::CoreTeam),
@@ -211,7 +211,7 @@ fn testnet_genesis(
 	endowed_balance: Balance,
 	voucher_list: Vec<(
 		AccountId,
-		VoucherGroup,
+		CmlType,
 		u32,
 		Option<u32>,
 		Option<VoucherUnlockType>,
