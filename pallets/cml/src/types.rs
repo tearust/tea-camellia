@@ -35,7 +35,7 @@ pub struct Voucher {
 	pub amount: u32,
 	pub lock: Option<u32>,
 	pub unlock_type: Option<VoucherUnlockType>,
-	pub group: CmlType,
+	pub cml_type: CmlType,
 }
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]

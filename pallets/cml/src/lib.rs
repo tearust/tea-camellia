@@ -54,11 +54,6 @@ pub mod cml {
 	pub(super) type Seeds<T: Config> = StorageMap<_, Twox64Concat, CmlId, Seed>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn owner_seeds)]
-	pub(super) type OwnerSeedsMap<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, Vec<CmlId>>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn seeds_cleaned)]
 	pub(super) type SeedsCleaned<T: Config> = StorageValue<_, bool>;
 
@@ -112,7 +107,7 @@ pub mod cml {
 			for (account, cml_type, amount, lock, unlock_type) in self.voucher_list.iter() {
 				let voucher = Voucher {
 					amount: *amount,
-					group: *cml_type,
+					cml_type: *cml_type,
 					lock: *lock,
 					unlock_type: *unlock_type,
 				};
@@ -137,11 +132,13 @@ pub mod cml {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(T::AccountId = "AccountId", CmlId = "CmlId")]
 	pub enum Event<T: Config> {
+		DrawCmls(T::AccountId, u64),
 		ActiveCml(T::AccountId, CmlId),
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
+		WithoutVoucher,
 		NotEnoughVoucher,
 		InvalidVoucherAmount,
 		NotFoundCML,
@@ -197,29 +194,18 @@ pub mod cml {
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn convert_cml_from_voucher(
-			sender: OriginFor<T>,
-			group: CmlType,
-			count: u32,
-		) -> DispatchResult {
+		pub fn draw_cmls_from_voucher(sender: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let sender_voucher =
-				UserVoucherStore::<T>::get(&sender, group).ok_or(Error::<T>::NotEnoughVoucher)?;
-			ensure!(sender_voucher.amount >= count, Error::<T>::NotEnoughVoucher);
+			let vouchers = Self::take_vouchers(&sender);
+			ensure!(!vouchers.is_empty(), Error::<T>::WithoutVoucher);
 
-			let from_amount = sender_voucher
-				.amount
-				.checked_sub(count)
-				.ok_or(Error::<T>::InvalidVoucherAmount)?;
+			// todo: draws seeds by `vouchers` and put it into `seed_ids`
+			let seed_ids: Vec<CmlId> = Vec::new();
+			let seeds_count = seed_ids.len() as u64;
+			UserCmlStore::<T>::insert(&sender, seed_ids);
 
-			let list = Self::new_cml_from_voucher(CmlGroup::Nitro, count, group);
-			Self::set_voucher(&sender, group, from_amount);
-
-			for cml in list.iter() {
-				Self::add_cml(&sender, cml.clone());
-			}
-
+			Self::deposit_event(Event::DrawCmls(sender, seeds_count));
 			Ok(())
 		}
 

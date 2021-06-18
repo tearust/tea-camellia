@@ -71,14 +71,14 @@ impl<T: cml::Config> cml::Pallet<T> {
 		list
 	}
 
-	pub fn set_voucher(who: &T::AccountId, group: CmlType, amount: u32) {
-		UserVoucherStore::<T>::mutate(&who, group, |maybe_item| {
+	pub fn set_voucher(who: &T::AccountId, cml_type: CmlType, amount: u32) {
+		UserVoucherStore::<T>::mutate(&who, cml_type, |maybe_item| {
 			if let Some(ref mut item) = maybe_item {
 				item.amount = amount;
 			} else {
 				// Run here means not from genesis block, so no lock amount and unlock type.
 				*maybe_item = Some(Voucher {
-					group,
+					cml_type,
 					amount,
 					lock: None,
 					unlock_type: None,
@@ -222,14 +222,14 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn is_seed_owner(who: &T::AccountId, id: &CmlId) -> bool {
-		match OwnerSeedsMap::<T>::get(who) {
+		match UserCmlStore::<T>::get(who) {
 			Some(l) => l.contains(id),
 			None => false,
 		}
 	}
 
 	pub(crate) fn take_seed(who: &T::AccountId, id: &CmlId) -> Seed {
-		OwnerSeedsMap::<T>::mutate(who, |item| match item {
+		UserCmlStore::<T>::mutate(who, |item| match item {
 			Some(seed_list) => {
 				if let Some(index) = seed_list.iter().position(|x| *x == *id) {
 					seed_list.remove(index);
@@ -238,5 +238,18 @@ impl<T: cml::Config> cml::Pallet<T> {
 			_ => {} // should never happen
 		});
 		Seeds::<T>::take(id).unwrap()
+	}
+
+	pub(crate) fn take_vouchers(who: &T::AccountId) -> Vec<Voucher> {
+		let mut voucher_list: Vec<Voucher> = Vec::new();
+
+		let type_list = vec![CmlType::A, CmlType::B, CmlType::C];
+		for ty in type_list.iter() {
+			if let Some(voucher) = UserVoucherStore::<T>::take(who, ty) {
+				voucher_list.push(voucher);
+			}
+		}
+
+		voucher_list
 	}
 }
