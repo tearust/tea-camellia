@@ -32,45 +32,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		cid
 	}
 
-	fn new_one_cml_by_voucher(
-		group: CmlGroup,
-		voucher_group: CmlType,
-	) -> CML<T::AccountId, T::BlockNumber, BalanceOf<T>> {
-		// life time, lock time
-		let current_block = frame_system::Pallet::<T>::block_number();
-		let life_time = current_block + Self::get_random_life(voucher_group);
-		let lock_time = <T::BlockNumber>::saturated_from(0_u64); //TODO random
-
-		CML {
-			id: Self::get_next_id(),
-			group,
-			status: CmlStatus::SeedFrozen,
-			mining_rate: Self::get_random_mining_rate(voucher_group),
-			life_time,
-			lock_time,
-			staking_slot: vec![],
-			created_at: current_block,
-			miner_id: b"".to_vec(),
-		}
-	}
-
-	pub fn new_cml_from_voucher(
-		group: CmlGroup,
-		voucher_amount: u32,
-		voucher_group: CmlType,
-	) -> Vec<CML<T::AccountId, T::BlockNumber, BalanceOf<T>>> {
-		let mut list = vec![];
-
-		let mut i = 0;
-		while i < voucher_amount {
-			let cml = Self::new_one_cml_by_voucher(group, voucher_group);
-			list.push(cml);
-			i += 1;
-		}
-
-		list
-	}
-
 	pub fn set_voucher(who: &T::AccountId, cml_type: CmlType, amount: u32) {
 		UserVoucherStore::<T>::mutate(&who, cml_type, |maybe_item| {
 			if let Some(ref mut item) = maybe_item {
@@ -88,21 +49,21 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn add_cml(who: &T::AccountId, cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>>) {
-		CmlStore::<T>::insert(cml.id, cml.clone());
+		CmlStore::<T>::insert(cml.id(), cml.clone());
 
 		if UserCmlStore::<T>::contains_key(&who) {
 			let mut list = UserCmlStore::<T>::take(&who).unwrap();
-			list.insert(0, cml.id);
+			list.insert(0, cml.id());
 			UserCmlStore::<T>::insert(&who, list);
 		} else {
-			UserCmlStore::<T>::insert(&who, vec![cml.id]);
+			UserCmlStore::<T>::insert(&who, vec![cml.id()]);
 		}
 	}
 
 	pub fn remove_cml_by_id() {}
 
 	pub fn update_cml(cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>>) {
-		CmlStore::<T>::mutate(cml.id, |maybe_item| {
+		CmlStore::<T>::mutate(cml.id(), |maybe_item| {
 			if let Some(ref mut item) = maybe_item {
 				*item = cml;
 			}
@@ -128,13 +89,15 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn update_cml_to_active(
 		cml_id: &CmlId,
-		miner_id: Vec<u8>,
+		machine_id: MachineId,
 		staking_item: StakingItem<T::AccountId, CmlId, BalanceOf<T>>,
+		block_number: T::BlockNumber,
 	) -> Result<(), Error<T>> {
 		let mut cml = Self::get_cml_by_id(&cml_id)?;
 		cml.status = CmlStatus::CmlLive;
-		cml.miner_id = miner_id;
+		cml.machine_id = Some(machine_id);
 		cml.staking_slot.push(staking_item);
+		cml.planted_at = block_number;
 
 		Self::update_cml(cml);
 
@@ -207,37 +170,15 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn get_all_seeds() -> Vec<Seed> {
-		Seeds::<T>::iter().map(|(_, seed)| seed).collect()
-	}
-
 	pub(crate) fn try_clean_outdated_seeds(block_number: T::BlockNumber) {
 		if block_number < T::TimoutHeight::get().into() || SeedsCleaned::<T>::get().unwrap_or(false)
 		{
 			return;
 		}
 
-		Seeds::<T>::remove_all();
+		// todo remove updated cmls
+		// Seeds::<T>::remove_all();
 		SeedsCleaned::<T>::set(Some(true));
-	}
-
-	pub(crate) fn is_seed_owner(who: &T::AccountId, id: &CmlId) -> bool {
-		match UserCmlStore::<T>::get(who) {
-			Some(l) => l.contains(id),
-			None => false,
-		}
-	}
-
-	pub(crate) fn take_seed(who: &T::AccountId, id: &CmlId) -> Seed {
-		UserCmlStore::<T>::mutate(who, |item| match item {
-			Some(seed_list) => {
-				if let Some(index) = seed_list.iter().position(|x| *x == *id) {
-					seed_list.remove(index);
-				}
-			}
-			_ => {} // should never happen
-		});
-		Seeds::<T>::take(id).unwrap()
 	}
 
 	pub(crate) fn take_vouchers(who: &T::AccountId) -> Vec<Voucher> {

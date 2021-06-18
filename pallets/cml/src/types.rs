@@ -76,20 +76,49 @@ pub struct StakingItem<AccountId, CmlId, Balance> {
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct MinerItem {
-	pub id: Vec<u8>,
+	pub id: MachineId,
 	pub ip: Vec<u8>,
 	pub status: MinerStatus,
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct CML<AccountId, BlockNumber, Balance> {
-	pub id: CmlId,
+pub struct CML<AccountId, BlockNumber, Balance>
+where
+	BlockNumber: Default,
+{
+	pub intrinsic: Seed,
 	pub group: CmlGroup,
 	pub status: CmlStatus,
-	pub life_time: BlockNumber, // whole life time for CML
-	pub lock_time: BlockNumber,
 	pub mining_rate: u8, // 8 - 12, default 10
 	pub staking_slot: Vec<StakingItem<AccountId, CmlId, Balance>>,
-	pub created_at: BlockNumber,
-	pub miner_id: Vec<u8>,
+	pub planted_at: BlockNumber,
+	pub machine_id: Option<MachineId>,
+}
+
+impl<AccountId, BlockNumber, Balance> CML<AccountId, BlockNumber, Balance>
+where
+	BlockNumber: Default,
+{
+	pub(crate) fn new(intrinsic: Seed) -> Self {
+		CML {
+			intrinsic,
+			group: CmlGroup::Nitro, // todo init from intrinsic
+			status: CmlStatus::SeedFrozen,
+			mining_rate: 10,
+			staking_slot: vec![],
+			planted_at: BlockNumber::default(),
+			machine_id: None,
+		}
+	}
+
+	pub fn is_seed(&self) -> bool {
+		match self.status {
+			CmlStatus::SeedFrozen | CmlStatus::SeedLive => true,
+			_ => false,
+		}
+	}
+
+	pub fn id(&self) -> CmlId {
+		self.intrinsic.id
+	}
 }

@@ -50,10 +50,6 @@ pub mod cml {
 	pub struct Pallet<T>(_);
 
 	#[pallet::storage]
-	#[pallet::getter(fn seeds)]
-	pub(super) type Seeds<T: Config> = StorageMap<_, Twox64Concat, CmlId, Seed>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn seeds_cleaned)]
 	pub(super) type SeedsCleaned<T: Config> = StorageValue<_, bool>;
 
@@ -79,7 +75,7 @@ pub mod cml {
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Voucher>;
 
 	#[pallet::storage]
-	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, MinerItem>;
+	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, MachineId, MinerItem>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -116,13 +112,13 @@ pub mod cml {
 				SeedsCleaned::<T>::set(Some(false));
 
 				self.genesis_seeds.a_seeds.iter().for_each(|seed| {
-					Seeds::<T>::insert(seed.id, seed.clone());
+					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
 				});
 				self.genesis_seeds.b_seeds.iter().for_each(|seed| {
-					Seeds::<T>::insert(seed.id, seed.clone());
+					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
 				});
 				self.genesis_seeds.c_seeds.iter().for_each(|seed| {
-					Seeds::<T>::insert(seed.id, seed.clone());
+					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
 				});
 			}
 		}
@@ -213,7 +209,7 @@ pub mod cml {
 		pub fn active_cml_for_nitro(
 			sender: OriginFor<T>,
 			cml_id: CmlId,
-			miner_id: Vec<u8>,
+			machine_id: MachineId,
 			miner_ip: Vec<u8>,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
@@ -222,13 +218,13 @@ pub mod cml {
 			Self::check_belongs(&cml_id, &sender)?;
 
 			let miner_item = MinerItem {
-				id: miner_id.clone(),
+				id: machine_id.clone(),
 				ip: miner_ip,
 				status: MinerStatus::Active,
 			};
 
 			ensure!(
-				!<MinerItemStore<T>>::contains_key(&miner_id),
+				!<MinerItemStore<T>>::contains_key(&machine_id),
 				Error::<T>::MinerAlreadyExist
 			);
 
@@ -244,8 +240,14 @@ pub mod cml {
 				cml: None,
 			};
 
-			Self::update_cml_to_active(&cml_id, miner_id.clone(), staking_item)?;
-			<MinerItemStore<T>>::insert(&miner_id, miner_item);
+			let current_block_number = frame_system::Pallet::<T>::block_number();
+			Self::update_cml_to_active(
+				&cml_id,
+				machine_id.clone(),
+				staking_item,
+				current_block_number,
+			)?;
+			<MinerItemStore<T>>::insert(&machine_id, miner_item);
 
 			info!("TODO ---- lock balance");
 
