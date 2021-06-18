@@ -8,6 +8,7 @@ pub mod mock;
 mod tests;
 
 mod functions;
+pub mod generator;
 mod impl_stored_map;
 mod types;
 pub use types::*;

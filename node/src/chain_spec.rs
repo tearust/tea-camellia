@@ -1,7 +1,7 @@
 use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
-	pallet_cml::{CmlType, GenesisSeeds, VoucherUnlockType},
+	pallet_cml::{generator::init_genesis, CmlType, GenesisSeeds, VoucherUnlockType},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
 	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
@@ -90,8 +90,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		"dev",
 		ChainType::Development,
 		move || {
-			// todo call generate function from pallet cml
-			let genesis_seeds = GenesisSeeds::default();
+			let genesis_seeds = init_genesis();
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
@@ -157,8 +156,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		"local_testnet",
 		ChainType::Local,
 		move || {
-			// todo call generate function from pallet cml
-			let genesis_seeds = GenesisSeeds::default();
+			let genesis_seeds = init_genesis();
 
 			testnet_genesis(
 				wasm_binary,
