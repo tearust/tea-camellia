@@ -11,7 +11,7 @@ use sp_std::prelude::*;
 pub struct Seed {
 	pub id: CmlId, //seq id starting from 0, this is also the camellia id.
 	pub cml_type: CmlType,
-	// pub defrost_schedule: DefrostSchedule,
+	pub defrost_schedule: DefrostScheduleType,
 	pub defrost_time: BlockNumber,
 	pub lifespan: BlockNumber,
 	pub performance: Performance,
@@ -21,6 +21,7 @@ impl Seed {
 	pub fn generate(
 		cml_type: CmlType,
 		cml_id: CmlId,
+		defrost_schedule: DefrostScheduleType,
 		generate_defrost_time: impl Fn() -> BlockNumber,
 		lifespan: BlockNumber,
 		performance: Performance,
@@ -30,6 +31,7 @@ impl Seed {
 		Seed {
 			id,
 			cml_type,
+			defrost_schedule,
 			defrost_time,
 			lifespan,
 			performance,
@@ -43,8 +45,13 @@ pub struct GenesisSeeds {
 	pub a_seeds: Vec<Seed>,
 	pub b_seeds: Vec<Seed>,
 	pub c_seeds: Vec<Seed>,
+	pub a_lucky_draw_box: Vec<u64>,
+	pub b_lucky_draw_box: Vec<u64>,
+	pub c_lucky_draw_box: Vec<u64>,
 }
 
+#[derive(Encode, Decode, Clone, Debug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum DefrostScheduleType {
 	Investor,
 	Team,
@@ -56,6 +63,9 @@ impl Default for GenesisSeeds {
 			a_seeds: vec![],
 			b_seeds: vec![],
 			c_seeds: vec![],
+			a_lucky_draw_box: vec![],
+			b_lucky_draw_box: vec![],
+			c_lucky_draw_box: vec![],
 		}
 	}
 }
@@ -68,11 +78,16 @@ impl GenesisSeeds {
 		gen_performance: impl Fn(CmlType) -> Performance,
 	) -> Self {
 		let mut a_seeds: Vec<Seed> = Vec::new();
-		for id in 0..GENESIS_SEED_A_COUNT {
-			if id < GENESIS_SEED_A_COUNT * TEAM_PERCENTAGE / 100 {
+		let mut seq_id: u64 = 0;
+		let mut a_lucky_draw_box = Vec::new();
+		let mut b_lucky_draw_box = Vec::new();
+		let mut c_lucky_draw_box = Vec::new();
+		for i in 0..GENESIS_SEED_A_COUNT {
+			if i < GENESIS_SEED_A_COUNT * TEAM_PERCENTAGE / 100 {
 				a_seeds.push(Seed::generate(
 					CmlType::A,
-					id,
+					seq_id,
+					DefrostScheduleType::Team,
 					&gen_defrost_time_for_team,
 					gen_lifespan(CmlType::A),
 					gen_performance(CmlType::A),
@@ -80,19 +95,23 @@ impl GenesisSeeds {
 			} else {
 				a_seeds.push(Seed::generate(
 					CmlType::A,
-					id,
+					seq_id,
+					DefrostScheduleType::Investor,
 					&gen_defrost_time_for_investor,
 					gen_lifespan(CmlType::A),
 					gen_performance(CmlType::A),
 				));
 			}
+			a_lucky_draw_box.push(seq_id);
+			seq_id += 1;
 		}
 		let mut b_seeds: Vec<Seed> = Vec::new();
-		for id in 0..GENESIS_SEED_B_COUNT {
-			if id < GENESIS_SEED_B_COUNT * TEAM_PERCENTAGE / 100 {
+		for i in 0..GENESIS_SEED_B_COUNT {
+			if i < GENESIS_SEED_B_COUNT * TEAM_PERCENTAGE / 100 {
 				b_seeds.push(Seed::generate(
 					CmlType::B,
-					id,
+					seq_id,
+					DefrostScheduleType::Team,
 					&gen_defrost_time_for_team,
 					gen_lifespan(CmlType::B),
 					gen_performance(CmlType::B),
@@ -100,19 +119,24 @@ impl GenesisSeeds {
 			} else {
 				b_seeds.push(Seed::generate(
 					CmlType::B,
-					id,
+					seq_id,
+					DefrostScheduleType::Investor,
 					&gen_defrost_time_for_investor,
 					gen_lifespan(CmlType::B),
 					gen_performance(CmlType::B),
 				));
 			}
+			b_lucky_draw_box.push(seq_id);
+			seq_id += 1;
 		}
 		let mut c_seeds: Vec<Seed> = Vec::new();
-		for id in 0..GENESIS_SEED_C_COUNT {
-			if id < GENESIS_SEED_A_COUNT * TEAM_PERCENTAGE / 100 {
+
+		for i in 0..GENESIS_SEED_C_COUNT {
+			if i < GENESIS_SEED_C_COUNT * TEAM_PERCENTAGE / 100 {
 				c_seeds.push(Seed::generate(
 					CmlType::C,
-					id,
+					seq_id,
+					DefrostScheduleType::Team,
 					&gen_defrost_time_for_team,
 					gen_lifespan(CmlType::C),
 					gen_performance(CmlType::C),
@@ -120,17 +144,23 @@ impl GenesisSeeds {
 			} else {
 				c_seeds.push(Seed::generate(
 					CmlType::C,
-					id,
+					seq_id,
+					DefrostScheduleType::Investor,
 					&gen_defrost_time_for_investor,
 					gen_lifespan(CmlType::C),
 					gen_performance(CmlType::C),
 				));
 			}
+			c_lucky_draw_box.push(seq_id);
+			seq_id += 1;
 		}
 		GenesisSeeds {
 			a_seeds,
 			b_seeds,
 			c_seeds,
+			a_lucky_draw_box,
+			b_lucky_draw_box,
+			c_lucky_draw_box,
 		}
 	}
 }

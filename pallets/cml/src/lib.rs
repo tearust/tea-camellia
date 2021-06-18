@@ -21,6 +21,7 @@ use log::info;
 use node_primitives::BlockNumber;
 use sp_runtime::SaturatedConversion;
 use sp_std::prelude::*;
+use rand::{thread_rng, Rng};
 
 pub use cml::*;
 
@@ -197,7 +198,24 @@ pub mod cml {
 			ensure!(!vouchers.is_empty(), Error::<T>::WithoutVoucher);
 
 			// todo: draws seeds by `vouchers` and put it into `seed_ids`
-			let seed_ids: Vec<CmlId> = Vec::new();
+			
+			let mut seed_ids: Vec<CmlId> = Vec::new();
+			// for v in vouchers {
+			// 	let lucky_draw_box = { 
+			// 		match v.cml_type {
+			// 			CmlType::A => Self::take_genesis_seeds().a_lucky_draw_box,
+			// 			CmlType::B => Self::take_genesis_seeds().b_lucky_draw_box,
+			// 			CmlType::C => Self::take_genesis_seeds().c_lucky_draw_box,
+			// 		}
+			// 	};
+			// 	let rng = thread_rng();
+			// 	for _ in 0..v.amount {
+			// 		let r: u32 = rng.gen();
+			// 		let rand_index = (r as f64 / u32::MAX as f64 * lucky_draw_box.len() as f64) as usize;
+			// 		let seed_id = lucky_draw_box.swap_remove(rand_index);
+			// 		seed_ids.push(seed_id);
+			// 	}
+			// }
 			let seeds_count = seed_ids.len() as u64;
 			UserCmlStore::<T>::insert(&sender, seed_ids);
 
