@@ -55,16 +55,19 @@ impl system::Config for Test {
 	type OnSetCode = ();
 }
 
+pub const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
+
 parameter_types! {
 	pub const MinRaPassedThreshold: u32 = 3;
 	pub const StakingPrice: Balance = 1000;
+	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 }
 
 impl pallet_cml::Config for Test {
 	type Event = Event;
-	type CmlId = u64;
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
+	type TimoutHeight = SeedsTimeoutHeight;
 }
 
 parameter_types! {
