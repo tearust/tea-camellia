@@ -8,7 +8,7 @@ impl<T: utils::Config> CommonUtils for utils::Pallet<T> {
 		let random_seed = <pallet_randomness_collective_flip::Module<T>>::random_seed();
 		let payload = (
 			random_seed,
-			sender.clone(),
+			sender,
 			salt,
 			frame_system::Pallet::<T>::block_number(),
 		);

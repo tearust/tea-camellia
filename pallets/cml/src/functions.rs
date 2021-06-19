@@ -181,16 +181,54 @@ impl<T: cml::Config> cml::Pallet<T> {
 		SeedsCleaned::<T>::set(Some(true));
 	}
 
-	pub(crate) fn take_vouchers(who: &T::AccountId) -> Vec<Voucher> {
-		let mut voucher_list: Vec<Voucher> = Vec::new();
-
-		let type_list = vec![CmlType::A, CmlType::B, CmlType::C];
-		for ty in type_list.iter() {
-			if let Some(voucher) = UserVoucherStore::<T>::take(who, ty) {
-				voucher_list.push(voucher);
+	pub(crate) fn take_vouchers(who: &T::AccountId) -> (u32, u32, u32) {
+		let get_voucher_amount = |cml_type: CmlType, who: &T::AccountId| {
+			match UserVoucherStore::<T>::take(who, cml_type) {
+				Some(voucher) => voucher.amount,
+				None => 0,
 			}
-		}
+		};
 
-		voucher_list
+		(
+			get_voucher_amount(CmlType::A, who),
+			get_voucher_amount(CmlType::B, who),
+			get_voucher_amount(CmlType::C, who),
+		)
+	}
+
+	pub(crate) fn lucky_draw(
+		who: &T::AccountId,
+		a_coupon: u32,
+		b_coupon: u32,
+		c_coupon: u32,
+	) -> Result<Vec<CmlId>, DispatchError> {
+		let mut seed_ids = Vec::new();
+		let mut draw_handler = |draw_box: &mut Option<Vec<u64>>, coupon_len: u32| match draw_box {
+			Some(draw_box) => {
+				for i in 0..coupon_len {
+					ensure!(!draw_box.is_empty(), Error::<T>::NotEnoughDrawSeeds);
+
+					let rand_index =
+						Self::get_draw_seed_random_index(who, i, draw_box.len() as u32);
+					let seed_id = draw_box.swap_remove(rand_index as usize);
+					seed_ids.push(seed_id);
+				}
+				Ok(())
+			}
+			None => Err(Error::<T>::DrawBoxNotInitialized),
+		};
+
+		TypeALuckyDrawBox::<T>::mutate(|a_box| draw_handler(a_box, a_coupon))?;
+		TypeBLuckyDrawBox::<T>::mutate(|b_box| draw_handler(b_box, b_coupon))?;
+		TypeCLuckyDrawBox::<T>::mutate(|c_box| draw_handler(c_box, c_coupon))?;
+
+		Ok(seed_ids)
+	}
+
+	fn get_draw_seed_random_index(who: &T::AccountId, index: u32, box_len: u32) -> u32 {
+		let rand_value =
+			T::CommonUtils::generate_random(who.clone(), &index.to_le_bytes().to_vec());
+		let (_, div_mod) = rand_value.div_mod(sp_core::U256::from(box_len));
+		div_mod.as_u32()
 	}
 }

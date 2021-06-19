@@ -788,6 +788,7 @@ impl pallet_cml::Config for Runtime {
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
 	type TimoutHeight = SeedsTimeoutHeight;
+	type CommonUtils = Utils;
 }
 
 parameter_types! {

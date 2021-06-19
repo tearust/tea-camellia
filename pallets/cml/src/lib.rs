@@ -13,13 +13,16 @@ mod impl_stored_map;
 mod types;
 pub use types::*;
 
-use frame_support::ensure;
-use frame_support::traits::{Currency, Get};
-use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
+use frame_support::{
+	dispatch::DispatchResult,
+	ensure,
+	pallet_prelude::*,
+	traits::{Currency, Get},
+};
 use frame_system::pallet_prelude::*;
 use log::info;
 use node_primitives::BlockNumber;
-use rand::{thread_rng, Rng};
+use pallet_utils::CommonUtils;
 use sp_runtime::SaturatedConversion;
 use sp_std::prelude::*;
 
@@ -44,6 +47,8 @@ pub mod cml {
 		/// The latest block height to draw seeds use voucher, after this block height the left
 		/// seeds shall be destroyed.
 		type TimoutHeight: Get<BlockNumber>;
+		/// Common utils trait
+		type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -77,6 +82,18 @@ pub mod cml {
 
 	#[pallet::storage]
 	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, MachineId, MinerItem>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn type_a_lucky_draw_box)]
+	pub type TypeALuckyDrawBox<T: Config> = StorageValue<_, Vec<CmlId>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn type_b_lucky_draw_box)]
+	pub type TypeBLuckyDrawBox<T: Config> = StorageValue<_, Vec<CmlId>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn type_c_lucky_draw_box)]
+	pub type TypeCLuckyDrawBox<T: Config> = StorageValue<_, Vec<CmlId>>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -112,15 +129,26 @@ pub mod cml {
 
 				SeedsCleaned::<T>::set(Some(false));
 
+				let mut a_draw_box = Vec::new();
 				self.genesis_seeds.a_seeds.iter().for_each(|seed| {
 					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
+					a_draw_box.push(seed.id);
 				});
+				TypeALuckyDrawBox::<T>::set(Some(a_draw_box));
+
+				let mut b_draw_box = Vec::new();
 				self.genesis_seeds.b_seeds.iter().for_each(|seed| {
 					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
+					b_draw_box.push(seed.id);
 				});
+				TypeBLuckyDrawBox::<T>::set(Some(b_draw_box));
+
+				let mut c_draw_box = Vec::new();
 				self.genesis_seeds.c_seeds.iter().for_each(|seed| {
 					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
+					c_draw_box.push(seed.id);
 				});
+				TypeCLuckyDrawBox::<T>::set(Some(c_draw_box));
 			}
 		}
 	}
@@ -143,6 +171,8 @@ pub mod cml {
 		NotEnoughTeaToStaking,
 		MinerAlreadyExist,
 		CMLOwnerInvalid,
+		NotEnoughDrawSeeds,
+		DrawBoxNotInitialized,
 	}
 
 	#[pallet::hooks]
@@ -194,28 +224,13 @@ pub mod cml {
 		pub fn draw_cmls_from_voucher(sender: OriginFor<T>) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let vouchers = Self::take_vouchers(&sender);
-			ensure!(!vouchers.is_empty(), Error::<T>::WithoutVoucher);
+			let (a_coupon, b_coupon, c_coupon) = Self::take_vouchers(&sender);
+			ensure!(
+				a_coupon + b_coupon + c_coupon > 0,
+				Error::<T>::WithoutVoucher
+			);
 
-			// todo: draws seeds by `vouchers` and put it into `seed_ids`
-
-			let mut seed_ids: Vec<CmlId> = Vec::new();
-			// for v in vouchers {
-			// 	let lucky_draw_box = {
-			// 		match v.cml_type {
-			// 			CmlType::A => Self::take_genesis_seeds().a_lucky_draw_box,
-			// 			CmlType::B => Self::take_genesis_seeds().b_lucky_draw_box,
-			// 			CmlType::C => Self::take_genesis_seeds().c_lucky_draw_box,
-			// 		}
-			// 	};
-			// 	let rng = thread_rng();
-			// 	for _ in 0..v.amount {
-			// 		let r: u32 = rng.gen();
-			// 		let rand_index = (r as f64 / u32::MAX as f64 * lucky_draw_box.len() as f64) as usize;
-			// 		let seed_id = lucky_draw_box.swap_remove(rand_index);
-			// 		seed_ids.push(seed_id);
-			// 	}
-			// }
+			let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon)?;
 			let seeds_count = seed_ids.len() as u64;
 			UserCmlStore::<T>::insert(&sender, seed_ids);
 
