@@ -232,3 +232,15 @@ impl<T: cml::Config> cml::Pallet<T> {
 		div_mod.as_u32()
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	#[test]
+	fn div_mod_works() {
+		let a = sp_core::U256::from(30u32);
+		let b = sp_core::U256::from(7u32);
+		let (c, d) = a.div_mod(b);
+		assert_eq!(c, sp_core::U256::from(4));
+		assert_eq!(d, sp_core::U256::from(2));
+	}
+}

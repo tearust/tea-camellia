@@ -68,6 +68,7 @@ impl pallet_cml::Config for Test {
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
 	type TimoutHeight = SeedsTimeoutHeight;
+	type CommonUtils = Utils;
 }
 
 parameter_types! {

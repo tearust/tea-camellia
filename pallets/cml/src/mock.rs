@@ -21,6 +21,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Cml: pallet_cml::{Pallet, Call, Storage, Event<T>},
+		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -68,6 +69,14 @@ impl pallet_cml::Config for Test {
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
 	type TimoutHeight = SeedsTimeoutHeight;
+	type CommonUtils = Utils;
+}
+
+impl pallet_utils::Config for Test {
+	type Event = Event;
+	type Currency = Balances;
+	type Reward = ();
+	type Slash = ();
 }
 
 parameter_types! {
