@@ -1,30 +1,6 @@
 use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
-	pub fn get_random_life(voucher_group: CmlType) -> T::BlockNumber {
-		// TODO random
-
-		let life: u64 = match voucher_group {
-			CmlType::A => 40_000_000,
-			CmlType::B => 20_000_000,
-			CmlType::C => 10_000_000,
-		};
-
-		life.saturated_into::<T::BlockNumber>()
-	}
-
-	pub fn get_random_mining_rate(voucher_group: CmlType) -> u8 {
-		// TODO random
-
-		let rate: u8 = match voucher_group {
-			CmlType::A => 40,
-			CmlType::B => 20,
-			CmlType::C => 10,
-		};
-
-		rate
-	}
-
 	pub fn get_next_id() -> CmlId {
 		let cid = LastCmlId::<T>::get();
 		LastCmlId::<T>::mutate(|id| *id += 1);
