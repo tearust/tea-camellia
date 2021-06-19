@@ -499,6 +499,7 @@ dependencies = [
  "log",
  "node-primitives",
  "pallet-cml",
+ "rand 0.8.4",
 ]
 
 [[package]]

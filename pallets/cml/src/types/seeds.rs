@@ -45,9 +45,6 @@ pub struct GenesisSeeds {
 	pub a_seeds: Vec<Seed>,
 	pub b_seeds: Vec<Seed>,
 	pub c_seeds: Vec<Seed>,
-	pub a_lucky_draw_box: Vec<u64>,
-	pub b_lucky_draw_box: Vec<u64>,
-	pub c_lucky_draw_box: Vec<u64>,
 }
 
 #[derive(Encode, Decode, Clone, Debug)]
@@ -63,9 +60,6 @@ impl Default for GenesisSeeds {
 			a_seeds: vec![],
 			b_seeds: vec![],
 			c_seeds: vec![],
-			a_lucky_draw_box: vec![],
-			b_lucky_draw_box: vec![],
-			c_lucky_draw_box: vec![],
 		}
 	}
 }
@@ -79,9 +73,6 @@ impl GenesisSeeds {
 	) -> Self {
 		let mut a_seeds: Vec<Seed> = Vec::new();
 		let mut seq_id: u64 = 0;
-		let mut a_lucky_draw_box = Vec::new();
-		let mut b_lucky_draw_box = Vec::new();
-		let mut c_lucky_draw_box = Vec::new();
 		for i in 0..GENESIS_SEED_A_COUNT {
 			if i < GENESIS_SEED_A_COUNT * TEAM_PERCENTAGE / 100 {
 				a_seeds.push(Seed::generate(
@@ -102,7 +93,6 @@ impl GenesisSeeds {
 					gen_performance(CmlType::A),
 				));
 			}
-			a_lucky_draw_box.push(seq_id);
 			seq_id += 1;
 		}
 		let mut b_seeds: Vec<Seed> = Vec::new();
@@ -126,7 +116,6 @@ impl GenesisSeeds {
 					gen_performance(CmlType::B),
 				));
 			}
-			b_lucky_draw_box.push(seq_id);
 			seq_id += 1;
 		}
 		let mut c_seeds: Vec<Seed> = Vec::new();
@@ -151,16 +140,12 @@ impl GenesisSeeds {
 					gen_performance(CmlType::C),
 				));
 			}
-			c_lucky_draw_box.push(seq_id);
 			seq_id += 1;
 		}
 		GenesisSeeds {
 			a_seeds,
 			b_seeds,
 			c_seeds,
-			a_lucky_draw_box,
-			b_lucky_draw_box,
-			c_lucky_draw_box,
 		}
 	}
 }
