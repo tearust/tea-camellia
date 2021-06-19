@@ -965,6 +965,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmlsim"
+version = "0.1.0"
+dependencies = [
+ "clap 3.0.0-beta.2",
+ "env_logger 0.8.4",
+ "frame-support",
+ "frame-system",
+ "log",
+ "node-primitives",
+ "pallet-balances",
+ "pallet-cml",
+ "pallet-utils",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
