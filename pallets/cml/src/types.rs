@@ -17,9 +17,9 @@ pub type MachineId = [u8; 32];
 #[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CmlType {
-	A,
-	B,
-	C,
+	A = 1,
+	B = 2,
+	C = 3,
 }
 
 #[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]

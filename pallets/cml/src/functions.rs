@@ -189,13 +189,15 @@ impl<T: cml::Config> cml::Pallet<T> {
 		c_coupon: u32,
 	) -> Result<Vec<CmlId>, DispatchError> {
 		let mut seed_ids = Vec::new();
-		let mut draw_handler = |draw_box: &mut Option<Vec<u64>>, coupon_len: u32| match draw_box {
+		let mut draw_handler = |draw_box: &mut Option<Vec<u64>>,
+		                        cml_type: CmlType,
+		                        coupon_len: u32| match draw_box {
 			Some(draw_box) => {
 				for i in 0..coupon_len {
 					ensure!(!draw_box.is_empty(), Error::<T>::NotEnoughDrawSeeds);
 
 					let rand_index =
-						Self::get_draw_seed_random_index(who, i, draw_box.len() as u32);
+						Self::get_draw_seed_random_index(who, cml_type, i, draw_box.len() as u32);
 					let seed_id = draw_box.swap_remove(rand_index as usize);
 					seed_ids.push(seed_id);
 				}
@@ -204,16 +206,29 @@ impl<T: cml::Config> cml::Pallet<T> {
 			None => Err(Error::<T>::DrawBoxNotInitialized),
 		};
 
-		LuckyDrawBox::<T>::mutate(CmlType::A, |a_box| draw_handler(a_box, a_coupon))?;
-		LuckyDrawBox::<T>::mutate(CmlType::B, |b_box| draw_handler(b_box, b_coupon))?;
-		LuckyDrawBox::<T>::mutate(CmlType::C, |c_box| draw_handler(c_box, c_coupon))?;
+		LuckyDrawBox::<T>::mutate(CmlType::A, |a_box| {
+			draw_handler(a_box, CmlType::A, a_coupon)
+		})?;
+		LuckyDrawBox::<T>::mutate(CmlType::B, |b_box| {
+			draw_handler(b_box, CmlType::B, b_coupon)
+		})?;
+		LuckyDrawBox::<T>::mutate(CmlType::C, |c_box| {
+			draw_handler(c_box, CmlType::C, c_coupon)
+		})?;
 
 		Ok(seed_ids)
 	}
 
-	fn get_draw_seed_random_index(who: &T::AccountId, index: u32, box_len: u32) -> u32 {
-		let rand_value =
-			T::CommonUtils::generate_random(who.clone(), &index.to_le_bytes().to_vec());
+	fn get_draw_seed_random_index(
+		who: &T::AccountId,
+		cml_type: CmlType,
+		index: u32,
+		box_len: u32,
+	) -> u32 {
+		let mut salt = vec![cml_type as u8];
+		salt.append(&mut index.to_le_bytes().to_vec());
+
+		let rand_value = T::CommonUtils::generate_random(who.clone(), &salt);
 		let (_, div_mod) = rand_value.div_mod(sp_core::U256::from(box_len));
 		div_mod.as_u32()
 	}
