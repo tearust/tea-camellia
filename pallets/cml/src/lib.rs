@@ -19,9 +19,9 @@ use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 use log::info;
 use node_primitives::BlockNumber;
+use rand::{thread_rng, Rng};
 use sp_runtime::SaturatedConversion;
 use sp_std::prelude::*;
-use rand::{thread_rng, Rng};
 
 pub use cml::*;
 
@@ -198,10 +198,10 @@ pub mod cml {
 			ensure!(!vouchers.is_empty(), Error::<T>::WithoutVoucher);
 
 			// todo: draws seeds by `vouchers` and put it into `seed_ids`
-			
+
 			let mut seed_ids: Vec<CmlId> = Vec::new();
 			// for v in vouchers {
-			// 	let lucky_draw_box = { 
+			// 	let lucky_draw_box = {
 			// 		match v.cml_type {
 			// 			CmlType::A => Self::take_genesis_seeds().a_lucky_draw_box,
 			// 			CmlType::B => Self::take_genesis_seeds().b_lucky_draw_box,
