@@ -211,6 +211,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 #[cfg(test)]
 mod tests {
+	use crate::mock::new_test_ext;
+	use crate::{mock::*, TypeALuckyDrawBox, TypeBLuckyDrawBox, TypeCLuckyDrawBox};
+
 	#[test]
 	fn div_mod_works() {
 		let a = sp_core::U256::from(30u32);
@@ -218,5 +221,43 @@ mod tests {
 		let (c, d) = a.div_mod(b);
 		assert_eq!(c, sp_core::U256::from(4));
 		assert_eq!(d, sp_core::U256::from(2));
+	}
+
+	#[test]
+	fn lucky_draw_works() {
+		new_test_ext().execute_with(|| {
+			let origin_a_box: Vec<u64> = (1..=10).collect();
+			let origin_b_box: Vec<u64> = (11..=20).collect();
+			let origin_c_box: Vec<u64> = (21..=30).collect();
+
+			TypeALuckyDrawBox::<Test>::set(Some(origin_a_box.clone()));
+			TypeBLuckyDrawBox::<Test>::set(Some(origin_b_box.clone()));
+			TypeCLuckyDrawBox::<Test>::set(Some(origin_c_box.clone()));
+
+			frame_system::Pallet::<Test>::set_block_number(100);
+			let a_coupon = 2u32;
+			let b_coupon = 3u32;
+			let c_coupon = 4u32;
+			let res = Cml::lucky_draw(&1, a_coupon, b_coupon, c_coupon);
+			assert!(res.is_ok());
+
+			assert_eq!(
+				TypeALuckyDrawBox::<Test>::get().unwrap().len() as u32,
+				10 - a_coupon
+			);
+			assert_eq!(
+				TypeBLuckyDrawBox::<Test>::get().unwrap().len() as u32,
+				10 - b_coupon
+			);
+			assert_eq!(
+				TypeCLuckyDrawBox::<Test>::get().unwrap().len() as u32,
+				10 - c_coupon
+			);
+			assert_eq!(
+				res.clone().unwrap().len() as u32,
+				a_coupon + b_coupon + c_coupon
+			);
+			println!("seeds are: {:?}", res.unwrap());
+		})
 	}
 }
