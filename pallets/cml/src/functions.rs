@@ -152,8 +152,18 @@ impl<T: cml::Config> cml::Pallet<T> {
 			return;
 		}
 
-		// todo remove updated cmls
-		// Seeds::<T>::remove_all();
+		let remove_handler = |draw_box: &mut Option<Vec<u64>>| match draw_box {
+			Some(draw_box) => {
+				for id in draw_box.drain(0..) {
+					CmlStore::<T>::remove(id);
+				}
+			}
+			None => {}
+		};
+		LuckyDrawBox::<T>::mutate(CmlType::A, remove_handler);
+		LuckyDrawBox::<T>::mutate(CmlType::B, remove_handler);
+		LuckyDrawBox::<T>::mutate(CmlType::C, remove_handler);
+
 		SeedsCleaned::<T>::set(Some(true));
 	}
 
@@ -194,9 +204,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 			None => Err(Error::<T>::DrawBoxNotInitialized),
 		};
 
-		TypeALuckyDrawBox::<T>::mutate(|a_box| draw_handler(a_box, a_coupon))?;
-		TypeBLuckyDrawBox::<T>::mutate(|b_box| draw_handler(b_box, b_coupon))?;
-		TypeCLuckyDrawBox::<T>::mutate(|c_box| draw_handler(c_box, c_coupon))?;
+		LuckyDrawBox::<T>::mutate(CmlType::A, |a_box| draw_handler(a_box, a_coupon))?;
+		LuckyDrawBox::<T>::mutate(CmlType::B, |b_box| draw_handler(b_box, b_coupon))?;
+		LuckyDrawBox::<T>::mutate(CmlType::C, |c_box| draw_handler(c_box, c_coupon))?;
 
 		Ok(seed_ids)
 	}
@@ -212,7 +222,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 #[cfg(test)]
 mod tests {
 	use crate::mock::new_test_ext;
-	use crate::{mock::*, TypeALuckyDrawBox, TypeBLuckyDrawBox, TypeCLuckyDrawBox};
+	use crate::seeds::DefrostScheduleType;
+	use crate::{mock::*, CmlStore, CmlType, LuckyDrawBox, Seed, SeedsCleaned, CML};
 
 	#[test]
 	fn div_mod_works() {
@@ -230,9 +241,9 @@ mod tests {
 			let origin_b_box: Vec<u64> = (11..=20).collect();
 			let origin_c_box: Vec<u64> = (21..=30).collect();
 
-			TypeALuckyDrawBox::<Test>::set(Some(origin_a_box.clone()));
-			TypeBLuckyDrawBox::<Test>::set(Some(origin_b_box.clone()));
-			TypeCLuckyDrawBox::<Test>::set(Some(origin_c_box.clone()));
+			LuckyDrawBox::<Test>::insert(CmlType::A, origin_a_box.clone());
+			LuckyDrawBox::<Test>::insert(CmlType::B, origin_b_box.clone());
+			LuckyDrawBox::<Test>::insert(CmlType::C, origin_c_box.clone());
 
 			frame_system::Pallet::<Test>::set_block_number(100);
 			let a_coupon = 2u32;
@@ -242,15 +253,15 @@ mod tests {
 			assert!(res.is_ok());
 
 			assert_eq!(
-				TypeALuckyDrawBox::<Test>::get().unwrap().len() as u32,
+				LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len() as u32,
 				10 - a_coupon
 			);
 			assert_eq!(
-				TypeBLuckyDrawBox::<Test>::get().unwrap().len() as u32,
+				LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len() as u32,
 				10 - b_coupon
 			);
 			assert_eq!(
-				TypeCLuckyDrawBox::<Test>::get().unwrap().len() as u32,
+				LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len() as u32,
 				10 - c_coupon
 			);
 			assert_eq!(
@@ -259,5 +270,60 @@ mod tests {
 			);
 			println!("seeds are: {:?}", res.unwrap());
 		})
+	}
+
+	#[test]
+	fn try_clean_outdated_seeds_works() {
+		new_test_ext().execute_with(|| {
+			let origin_a_box: Vec<u64> = (1..=10).collect();
+			let origin_b_box: Vec<u64> = (11..=20).collect();
+			let origin_c_box: Vec<u64> = (21..=30).collect();
+
+			LuckyDrawBox::<Test>::insert(CmlType::A, origin_a_box.clone());
+			LuckyDrawBox::<Test>::insert(CmlType::B, origin_b_box.clone());
+			LuckyDrawBox::<Test>::insert(CmlType::C, origin_c_box.clone());
+			for id in origin_a_box.iter() {
+				CmlStore::<Test>::insert(id, CML::new(default_seed()));
+			}
+			for id in origin_b_box.iter() {
+				CmlStore::<Test>::insert(id, CML::new(default_seed()));
+			}
+			for id in origin_c_box.iter() {
+				CmlStore::<Test>::insert(id, CML::new(default_seed()));
+			}
+			SeedsCleaned::<Test>::set(Some(false));
+
+			Cml::try_clean_outdated_seeds((SEEDS_TIMEOUT_HEIGHT - 1) as u64);
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len(), 10); // not cleaned yet
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len(), 10); // not cleaned yet
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len(), 10); // not cleaned yet
+			assert_eq!(SeedsCleaned::<Test>::get(), Some(false));
+
+			Cml::try_clean_outdated_seeds(SEEDS_TIMEOUT_HEIGHT as u64);
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len(), 0);
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len(), 0);
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len(), 0);
+			assert_eq!(SeedsCleaned::<Test>::get(), Some(true));
+			for id in origin_a_box.iter() {
+				assert!(!CmlStore::<Test>::contains_key(id));
+			}
+			for id in origin_b_box.iter() {
+				assert!(!CmlStore::<Test>::contains_key(id));
+			}
+			for id in origin_c_box.iter() {
+				assert!(!CmlStore::<Test>::contains_key(id));
+			}
+		})
+	}
+
+	fn default_seed() -> Seed {
+		Seed {
+			id: 0,
+			cml_type: CmlType::A,
+			defrost_schedule: DefrostScheduleType::Team,
+			defrost_time: 0,
+			lifespan: 0,
+			performance: 0,
+		}
 	}
 }

@@ -84,16 +84,8 @@ pub mod cml {
 	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, MachineId, MinerItem>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn type_a_lucky_draw_box)]
-	pub type TypeALuckyDrawBox<T: Config> = StorageValue<_, Vec<CmlId>>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn type_b_lucky_draw_box)]
-	pub type TypeBLuckyDrawBox<T: Config> = StorageValue<_, Vec<CmlId>>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn type_c_lucky_draw_box)]
-	pub type TypeCLuckyDrawBox<T: Config> = StorageValue<_, Vec<CmlId>>;
+	#[pallet::getter(fn lucky_draw_box)]
+	pub type LuckyDrawBox<T: Config> = StorageMap<_, Twox64Concat, CmlType, Vec<CmlId>>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -134,21 +126,21 @@ pub mod cml {
 					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
 					a_draw_box.push(seed.id);
 				});
-				TypeALuckyDrawBox::<T>::set(Some(a_draw_box));
+				LuckyDrawBox::<T>::insert(CmlType::A, a_draw_box);
 
 				let mut b_draw_box = Vec::new();
 				self.genesis_seeds.b_seeds.iter().for_each(|seed| {
 					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
 					b_draw_box.push(seed.id);
 				});
-				TypeBLuckyDrawBox::<T>::set(Some(b_draw_box));
+				LuckyDrawBox::<T>::insert(CmlType::B, b_draw_box);
 
 				let mut c_draw_box = Vec::new();
 				self.genesis_seeds.c_seeds.iter().for_each(|seed| {
 					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
 					c_draw_box.push(seed.id);
 				});
-				TypeCLuckyDrawBox::<T>::set(Some(c_draw_box));
+				LuckyDrawBox::<T>::insert(CmlType::C, c_draw_box);
 			}
 		}
 	}
