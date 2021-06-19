@@ -48,7 +48,7 @@ fn simulate(end_block_height: u32) -> GlobalContext {
 				.genesis_seeds
 				.clone()
 				.unwrap()
-				.a_seeds
+				.b_seeds
 				.iter()
 				.map(|s| s.id)
 				.collect::<Vec<u64>>()
@@ -57,7 +57,7 @@ fn simulate(end_block_height: u32) -> GlobalContext {
 				.genesis_seeds
 				.clone()
 				.unwrap()
-				.a_seeds
+				.c_seeds
 				.iter()
 				.map(|s| s.id)
 				.collect::<Vec<u64>>()
