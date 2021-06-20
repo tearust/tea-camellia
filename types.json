@@ -63,7 +63,7 @@
     "cml": "Option<CmlId>"
   },
 
-  "MachineId": "u32",
+  "MachineId": "u64",
   "MinerItem": {
     "id": "MachineId",
     "ip": "Cid",
