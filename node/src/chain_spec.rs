@@ -109,7 +109,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 				10000 * DOLLARS,
 				GenesisVouchers {
 					vouchers: vec![
-						VoucherConfig::new(kevin_account.clone(), CmlType::A, 5),
+						VoucherConfig::new(kevin_account.clone(), CmlType::A, 10),
 						VoucherConfig::new(kevin_account.clone(), CmlType::B, 10),
 						VoucherConfig::new(kevin_account.clone(), CmlType::C, 10),
 					],
