@@ -93,8 +93,6 @@ pub mod cml {
 			T::AccountId,
 			CmlType,
 			u32,
-			Option<u32>,
-			Option<VoucherUnlockType>,
 		)>,
 		pub genesis_seeds: GenesisSeeds,
 	}
@@ -110,12 +108,10 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for (account, cml_type, amount, lock, unlock_type) in self.voucher_list.iter() {
+			for (account, cml_type, amount) in self.voucher_list.iter() {
 				let voucher = Voucher {
 					amount: *amount,
 					cml_type: *cml_type,
-					lock: *lock,
-					unlock_type: *unlock_type,
 				};
 				UserVoucherStore::<T>::insert(&account, cml_type, voucher);
 

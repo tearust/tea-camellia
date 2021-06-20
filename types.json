@@ -33,7 +33,15 @@
     "updateHeight": "BlockNumber"
   },
 
-  "Dai": "u32",
+  "CmlType": {
+    "_enum": ["A", "B", "C"]
+  },
+
+  "Voucher": {
+    "amount": "u32",
+    "cml_type": "CmlType"
+  },
+
   "CmlId": "u32",
   "CmlStatus": {
     "_enum": ["SeedLive", "SeedFrozen", "CmlLive", "Staking", "Dead"]
@@ -54,25 +62,37 @@
     "amount": "Option<Balance>",
     "cml": "Option<CmlId>"
   },
+
+  "MachineId": "u32",
   "MinerItem": {
-    "id": "Cid",
+    "id": "MachineId",
     "ip": "Cid",
     "status": "MinerStatus"
   },
 
-  "CML": {
+  "DefrostScheduleType": {
+    "_enum": ["Investor", "Team"]
+  },
+
+  "Seed": {
     "id": "CmlId",
+    "cml_type": "CmlType",
+    "defrost_schedule": "DefrostScheduleType",
+    "generate_defrost_time": "BlockNumber",
+    "lifespan": "BlockNumber",
+    "performance": "u32"
+  },
+
+  "CML": {
+    "intrinsic": "Seed",
     "group": "CmlGroup",
     "status": "CmlStatus",
-    "life_time": "BlockNumber",
-    "lock_time": "BlockNumber",
     "mining_rate": "u8",
     "staking_slot": "Vec<StakingItem>",
-    "created_at": "BlockNumber",
-    "miner_id": "Cid"
+    "planted_at": "BlockNumber",
+    "machine_id": "Option<MachineId>"
   },
   
-
   "AuctionId": "u64",
   "AuctionItem": {
     "id": "AuctionId",
