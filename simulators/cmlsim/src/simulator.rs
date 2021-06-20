@@ -1,16 +1,15 @@
 use crate::mock::*;
 use log::info;
-
 pub fn start_simulation(height: u64) {
 	const USER_COUNT: u32 = 100;
 	let mut builder = ExtBuilder::default();
+	let seeds = builder.seeds.clone();
 	builder.set_account_number(USER_COUNT);
 
 	builder.build().execute_with(|| {
 		let mut current_height = frame_system::Pallet::<Test>::block_number();
 		while current_height <= height {
 			info!("start block {}", current_height);
-
 			// do something here
 
 			current_height += 1;
@@ -18,6 +17,7 @@ pub fn start_simulation(height: u64) {
 		}
 
 		// dump results, account balances etc.
+		info!("seeds {:?}", seeds);
 		for i in 1..=USER_COUNT {
 			info!(
 				"user {} details: balance is {}",

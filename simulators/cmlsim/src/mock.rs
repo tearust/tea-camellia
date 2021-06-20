@@ -1,6 +1,7 @@
 use frame_support::parameter_types;
 use frame_system as system;
 use node_primitives::Balance;
+use pallet_cml::{generator::init_genesis, GenesisSeeds};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -96,6 +97,7 @@ impl pallet_balances::Config for Test {
 pub struct ExtBuilder {
 	account_number: u32,
 	initial_balance: Balance,
+	pub seeds: GenesisSeeds,
 }
 
 impl Default for ExtBuilder {
@@ -103,6 +105,7 @@ impl Default for ExtBuilder {
 		Self {
 			account_number: 50,
 			initial_balance: 10_000,
+			seeds: init_genesis(),
 		}
 	}
 }
