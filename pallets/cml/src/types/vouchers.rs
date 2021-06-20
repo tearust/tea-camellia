@@ -1,4 +1,4 @@
-use crate::{CmlType, Voucher, VoucherUnlockType};
+use crate::{CmlType, Voucher};
 use codec::{Decode, Encode};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -10,8 +10,6 @@ pub struct VoucherConfig<AccountId> {
 	pub account: AccountId,
 	pub cml_type: CmlType,
 	pub amount: u32,
-	pub lock: Option<u32>,
-	pub unlock_type: Option<VoucherUnlockType>,
 }
 
 #[derive(Encode, Decode, Clone, Debug)]
@@ -24,27 +22,17 @@ impl<AccountId> Into<Voucher> for VoucherConfig<AccountId> {
 	fn into(self) -> Voucher {
 		Voucher {
 			amount: self.amount,
-			lock: self.lock,
-			unlock_type: self.unlock_type,
 			cml_type: self.cml_type,
 		}
 	}
 }
 
 impl<AccountId> VoucherConfig<AccountId> {
-	pub fn new(
-		account: AccountId,
-		cml_type: CmlType,
-		amount: u32,
-		lock: Option<u32>,
-		unlock_type: Option<VoucherUnlockType>,
-	) -> Self {
+	pub fn new(account: AccountId, cml_type: CmlType, amount: u32) -> Self {
 		VoucherConfig {
 			account,
 			cml_type,
 			amount,
-			lock,
-			unlock_type,
 		}
 	}
 }

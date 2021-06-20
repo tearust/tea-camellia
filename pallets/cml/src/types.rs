@@ -19,24 +19,15 @@ pub type MachineId = [u8; 32];
 #[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CmlType {
-	A = 1,
-	B = 2,
-	C = 3,
+	A,
+	B,
+	C,
 }
 
-#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum VoucherUnlockType {
-	CoreTeam,
-	SeedRound,
-	ARound,
-}
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
 pub struct Voucher {
 	pub amount: u32,
-	pub lock: Option<u32>,
-	pub unlock_type: Option<VoucherUnlockType>,
 	pub cml_type: CmlType,
 }
 

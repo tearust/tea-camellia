@@ -297,15 +297,11 @@ fn genesis_build_related_logic_works() {
 		account: 1,
 		cml_type: CmlType::A,
 		amount: 100,
-		lock: None,
-		unlock_type: None,
 	};
 	let voucher_config2 = VoucherConfig {
 		account: 2,
 		cml_type: CmlType::B,
 		amount: 200,
-		lock: Some(300),
-		unlock_type: Some(VoucherUnlockType::CoreTeam),
 	};
 
 	ExtBuilder::default()
@@ -317,15 +313,11 @@ fn genesis_build_related_logic_works() {
 			assert!(voucher1.is_some());
 			let voucher1 = voucher1.unwrap();
 			assert_eq!(voucher1.amount, voucher_config1.amount);
-			assert_eq!(voucher1.lock, voucher_config1.lock);
-			assert_eq!(voucher1.unlock_type, voucher_config1.unlock_type);
 
 			let voucher2 = UserVoucherStore::<Test>::get(2, CmlType::B);
 			assert!(voucher2.is_some());
 			let voucher2 = voucher2.unwrap();
 			assert_eq!(voucher2.amount, voucher_config2.amount);
-			assert_eq!(voucher2.lock, voucher_config2.lock);
-			assert_eq!(voucher2.unlock_type, voucher_config2.unlock_type);
 
 			assert_eq!(SeedsCleaned::<Test>::get(), Some(false));
 
@@ -353,12 +345,7 @@ fn genesis_build_related_logic_works() {
 }
 
 fn new_voucher(amount: u32, cml_type: CmlType) -> Voucher {
-	Voucher {
-		amount,
-		cml_type,
-		lock: None,
-		unlock_type: None,
-	}
+	Voucher { amount, cml_type }
 }
 
 fn new_seed(id: CmlId) -> Seed {

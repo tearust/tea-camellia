@@ -1,10 +1,7 @@
 use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
-	pallet_cml::{
-		generator::init_genesis, CmlType, GenesisSeeds, GenesisVouchers, VoucherConfig,
-		VoucherUnlockType,
-	},
+	pallet_cml::{generator::init_genesis, CmlType, GenesisSeeds, GenesisVouchers, VoucherConfig},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
 	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
@@ -112,27 +109,9 @@ pub fn development_config() -> Result<ChainSpec, String> {
 				10000 * DOLLARS,
 				GenesisVouchers {
 					vouchers: vec![
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::A,
-							100,
-							Some(100),
-							Some(VoucherUnlockType::CoreTeam),
-						),
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::B,
-							200,
-							Some(1000),
-							Some(VoucherUnlockType::CoreTeam),
-						),
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::C,
-							400,
-							Some(1000),
-							Some(VoucherUnlockType::CoreTeam),
-						),
+						VoucherConfig::new(kevin_account.clone(), CmlType::A, 100),
+						VoucherConfig::new(kevin_account.clone(), CmlType::B, 200),
+						VoucherConfig::new(kevin_account.clone(), CmlType::C, 400),
 					],
 				},
 				genesis_seeds,

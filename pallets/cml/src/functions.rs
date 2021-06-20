@@ -17,8 +17,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 				*maybe_item = Some(Voucher {
 					cml_type,
 					amount,
-					lock: None,
-					unlock_type: None,
 				});
 			}
 		});
