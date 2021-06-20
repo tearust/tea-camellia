@@ -1,7 +1,10 @@
 use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
-	pallet_cml::{generator::init_genesis, CmlType, GenesisSeeds, VoucherUnlockType},
+	pallet_cml::{
+		generator::init_genesis, CmlType, GenesisSeeds, GenesisVouchers, VoucherConfig,
+		VoucherUnlockType,
+	},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
 	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
@@ -107,29 +110,31 @@ pub fn development_config() -> Result<ChainSpec, String> {
 					// jacky_account.clone(),
 				],
 				10000 * DOLLARS,
-				vec![
-					(
-						kevin_account.clone(),
-						CmlType::A,
-						100,
-						Some(100),
-						Some(VoucherUnlockType::CoreTeam),
-					),
-					(
-						kevin_account.clone(),
-						CmlType::B,
-						200,
-						Some(1000),
-						Some(VoucherUnlockType::CoreTeam),
-					),
-					(
-						kevin_account.clone(),
-						CmlType::C,
-						400,
-						Some(1000),
-						Some(VoucherUnlockType::CoreTeam),
-					),
-				],
+				GenesisVouchers {
+					vouchers: vec![
+						VoucherConfig::new(
+							kevin_account.clone(),
+							CmlType::A,
+							100,
+							Some(100),
+							Some(VoucherUnlockType::CoreTeam),
+						),
+						VoucherConfig::new(
+							kevin_account.clone(),
+							CmlType::B,
+							200,
+							Some(1000),
+							Some(VoucherUnlockType::CoreTeam),
+						),
+						VoucherConfig::new(
+							kevin_account.clone(),
+							CmlType::C,
+							400,
+							Some(1000),
+							Some(VoucherUnlockType::CoreTeam),
+						),
+					],
+				},
 				genesis_seeds,
 			)
 		},
@@ -149,7 +154,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
-	Ok(ChainSpec::(
+	Ok(ChainSpec::from_genesis(
 		// Name
 		"Local Testnet",
 		// ID
@@ -183,7 +188,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 				],
 				1 << 60,
-				vec![],
+				GenesisVouchers::default(),
 				genesis_seeds,
 			)
 		},
@@ -214,13 +219,7 @@ fn testnet_genesis(
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	endowed_balance: Balance,
-	voucher_list: Vec<(
-		AccountId,
-		CmlType,
-		u32,
-		Option<u32>,
-		Option<VoucherUnlockType>,
-	)>,
+	genesis_vouchers: GenesisVouchers<AccountId>,
 	genesis_seeds: GenesisSeeds,
 ) -> GenesisConfig {
 	const STASH: Balance = 100 * DOLLARS;
@@ -306,7 +305,7 @@ fn testnet_genesis(
 			],
 		},
 		pallet_cml: CmlConfig {
-			voucher_list,
+			genesis_vouchers,
 			genesis_seeds,
 		},
 	}

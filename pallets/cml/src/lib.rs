@@ -89,20 +89,14 @@ pub mod cml {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub voucher_list: Vec<(
-			T::AccountId,
-			CmlType,
-			u32,
-			Option<u32>,
-			Option<VoucherUnlockType>,
-		)>,
+		pub genesis_vouchers: GenesisVouchers<T::AccountId>,
 		pub genesis_seeds: GenesisSeeds,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
-				voucher_list: vec![],
+				genesis_vouchers: GenesisVouchers::default(),
 				genesis_seeds: GenesisSeeds::default(),
 			}
 		}
@@ -110,38 +104,40 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for (account, cml_type, amount, lock, unlock_type) in self.voucher_list.iter() {
-				let voucher = Voucher {
-					amount: *amount,
-					cml_type: *cml_type,
-					lock: *lock,
-					unlock_type: *unlock_type,
-				};
-				UserVoucherStore::<T>::insert(&account, cml_type, voucher);
-
-				SeedsCleaned::<T>::set(Some(false));
-
-				let mut a_draw_box = Vec::new();
-				self.genesis_seeds.a_seeds.iter().for_each(|seed| {
-					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
-					a_draw_box.push(seed.id);
+			self.genesis_vouchers
+				.vouchers
+				.iter()
+				.for_each(|voucher_config| {
+					let voucher: Voucher = voucher_config.clone().into();
+					UserVoucherStore::<T>::insert(
+						&voucher_config.account,
+						voucher_config.cml_type,
+						voucher,
+					);
 				});
-				LuckyDrawBox::<T>::insert(CmlType::A, a_draw_box);
 
-				let mut b_draw_box = Vec::new();
-				self.genesis_seeds.b_seeds.iter().for_each(|seed| {
-					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
-					b_draw_box.push(seed.id);
-				});
-				LuckyDrawBox::<T>::insert(CmlType::B, b_draw_box);
+			SeedsCleaned::<T>::set(Some(false));
 
-				let mut c_draw_box = Vec::new();
-				self.genesis_seeds.c_seeds.iter().for_each(|seed| {
-					CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
-					c_draw_box.push(seed.id);
-				});
-				LuckyDrawBox::<T>::insert(CmlType::C, c_draw_box);
-			}
+			let mut a_draw_box = Vec::new();
+			self.genesis_seeds.a_seeds.iter().for_each(|seed| {
+				CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
+				a_draw_box.push(seed.id);
+			});
+			LuckyDrawBox::<T>::insert(CmlType::A, a_draw_box);
+
+			let mut b_draw_box = Vec::new();
+			self.genesis_seeds.b_seeds.iter().for_each(|seed| {
+				CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
+				b_draw_box.push(seed.id);
+			});
+			LuckyDrawBox::<T>::insert(CmlType::B, b_draw_box);
+
+			let mut c_draw_box = Vec::new();
+			self.genesis_seeds.c_seeds.iter().for_each(|seed| {
+				CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
+				c_draw_box.push(seed.id);
+			});
+			LuckyDrawBox::<T>::insert(CmlType::C, c_draw_box);
 		}
 	}
 
@@ -239,7 +235,7 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let _ = Self::get_cml_by_id(&cml_id)?;
+			ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 			Self::check_belongs(&cml_id, &sender)?;
 
 			let miner_item = MinerItem {

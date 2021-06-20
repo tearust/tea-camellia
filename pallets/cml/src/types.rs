@@ -6,9 +6,11 @@ use serde::{Deserialize, Serialize};
 pub use seeds::{GenesisSeeds, Seed};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
+pub use vouchers::{GenesisVouchers, VoucherConfig};
 
 pub mod param;
 pub mod seeds;
+pub mod vouchers;
 
 pub type CmlId = u64;
 

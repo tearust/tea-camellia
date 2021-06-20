@@ -1,4 +1,7 @@
 use crate as pallet_cml;
+use crate::generator::init_genesis;
+use crate::{GenesisSeeds, GenesisVouchers, VoucherConfig};
+use frame_support::pallet_prelude::*;
 use frame_support::parameter_types;
 use frame_system as system;
 use node_primitives::Balance;
@@ -100,4 +103,47 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.build_storage::<Test>()
 		.unwrap()
 		.into()
+}
+
+pub struct ExtBuilder {
+	seeds: GenesisSeeds,
+	vouchers: GenesisVouchers<u64>,
+}
+
+impl Default for ExtBuilder {
+	fn default() -> Self {
+		Self {
+			seeds: GenesisSeeds::default(),
+			vouchers: GenesisVouchers::default(),
+		}
+	}
+}
+
+impl ExtBuilder {
+	pub fn init_seeds(mut self) -> Self {
+		self.seeds = init_genesis();
+		self
+	}
+
+	pub fn vouchers(mut self, vouchers: Vec<VoucherConfig<u64>>) -> Self {
+		self.vouchers.vouchers = vouchers;
+		self
+	}
+
+	pub fn build(self) -> sp_io::TestExternalities {
+		let mut t = frame_system::GenesisConfig::default()
+			.build_storage::<Test>()
+			.unwrap();
+
+		pallet_cml::GenesisConfig::<Test> {
+			genesis_seeds: self.seeds,
+			genesis_vouchers: self.vouchers,
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		let mut ext = sp_io::TestExternalities::new(t);
+		ext.execute_with(|| System::set_block_number(1));
+		ext
+	}
 }
