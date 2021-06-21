@@ -128,6 +128,66 @@ fn draw_cmls_from_voucher_works() {
 }
 
 #[test]
+fn draw_cmls_works_the_second_time_if_get_voucher_again() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let origin_a_box: Vec<u64> = (1..=10).collect();
+		let origin_b_box: Vec<u64> = (11..=20).collect();
+		let origin_c_box: Vec<u64> = (21..=30).collect();
+
+		LuckyDrawBox::<Test>::insert(CmlType::A, origin_a_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::B, origin_b_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::C, origin_c_box.clone());
+
+		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
+		UserVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
+		UserVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
+		UserVoucherStore::<Test>::insert(2, CmlType::A, new_voucher(1, CmlType::A));
+		UserVoucherStore::<Test>::insert(2, CmlType::B, new_voucher(2, CmlType::B));
+		UserVoucherStore::<Test>::insert(2, CmlType::C, new_voucher(3, CmlType::C));
+
+		assert_ok!(Cml::draw_cmls_from_voucher(Origin::signed(1)));
+		assert_eq!(UserCmlStore::<Test>::get(&1).unwrap().len(), 3 + 4 + 5);
+
+		assert_ok!(Cml::transfer_voucher(Origin::signed(2), 1, CmlType::A, 1));
+		assert_ok!(Cml::transfer_voucher(Origin::signed(2), 1, CmlType::B, 2));
+		assert_ok!(Cml::transfer_voucher(Origin::signed(2), 1, CmlType::C, 3));
+
+		assert_ok!(Cml::draw_cmls_from_voucher(Origin::signed(1)));
+		assert_eq!(
+			UserCmlStore::<Test>::get(&1).unwrap().len(),
+			3 + 4 + 5 + 1 + 2 + 3
+		);
+	})
+}
+
+#[test]
+fn draw_same_cmls_multiple_times_should_fail() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let origin_a_box: Vec<u64> = (1..=10).collect();
+		let origin_b_box: Vec<u64> = (11..=20).collect();
+		let origin_c_box: Vec<u64> = (21..=30).collect();
+
+		LuckyDrawBox::<Test>::insert(CmlType::A, origin_a_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::B, origin_b_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::C, origin_c_box.clone());
+
+		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
+		UserVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
+		UserVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
+
+		assert_ok!(Cml::draw_cmls_from_voucher(Origin::signed(1)));
+		assert_noop!(
+			Cml::draw_cmls_from_voucher(Origin::signed(1)),
+			Error::<Test>::WithoutVoucher
+		);
+	})
+}
+
+#[test]
 fn draw_cmls_should_fail_when_no_voucher_exist() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(

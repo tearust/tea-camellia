@@ -23,7 +23,7 @@ use frame_system::pallet_prelude::*;
 use log::info;
 use node_primitives::BlockNumber;
 use pallet_utils::CommonUtils;
-use sp_runtime::{traits::Zero, SaturatedConversion};
+use sp_runtime::traits::Zero;
 use sp_std::prelude::*;
 
 pub use cml::*;
@@ -235,9 +235,12 @@ pub mod cml {
 				Error::<T>::WithoutVoucher
 			);
 
-			let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon)?;
+			let mut seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon)?;
 			let seeds_count = seed_ids.len() as u64;
-			UserCmlStore::<T>::insert(&sender, seed_ids);
+			UserCmlStore::<T>::mutate(&sender, |ids| match ids {
+				Some(ids) => ids.append(&mut seed_ids),
+				None => *ids = Some(seed_ids),
+			});
 
 			Self::deposit_event(Event::DrawCmls(sender, seeds_count));
 			Ok(())
