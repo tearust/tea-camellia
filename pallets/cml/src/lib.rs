@@ -183,6 +183,7 @@ pub mod cml {
 		fn on_finalize(n: BlockNumberFor<T>) {
 			Self::try_clean_outdated_seeds(n);
 			Self::try_defrost_seeds(n);
+			Self::try_kill_cml(n);
 		}
 	}
 

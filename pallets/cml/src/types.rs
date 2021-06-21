@@ -77,6 +77,7 @@ pub struct MinerItem {
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct CML<AccountId, BlockNumber, Balance>
 where
+	AccountId: Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	pub intrinsic: Seed,
@@ -90,6 +91,7 @@ where
 
 impl<AccountId, BlockNumber, Balance> CML<AccountId, BlockNumber, Balance>
 where
+	AccountId: Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	pub(crate) fn new(intrinsic: Seed) -> Self {
@@ -117,5 +119,9 @@ where
 
 	pub fn should_death(&self, height: BlockNumber) -> bool {
 		height > self.planted_at.clone() + self.intrinsic.lifespan.into()
+	}
+
+	pub fn owner(&self) -> Option<AccountId> {
+		self.staking_slot.get(0).map(|slot| slot.owner.clone())
 	}
 }
