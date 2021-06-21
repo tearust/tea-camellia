@@ -23,7 +23,7 @@ use frame_system::pallet_prelude::*;
 use log::info;
 use node_primitives::BlockNumber;
 use pallet_utils::CommonUtils;
-use sp_runtime::SaturatedConversion;
+use sp_runtime::{traits::Zero, SaturatedConversion};
 use sp_std::prelude::*;
 
 pub use cml::*;
@@ -84,6 +84,10 @@ pub mod cml {
 	#[pallet::getter(fn lucky_draw_box)]
 	pub type LuckyDrawBox<T: Config> = StorageMap<_, Twox64Concat, CmlType, Vec<CmlId>>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn frozen_seeds)]
+	pub type FrozenSeeds<T: Config> = StorageMap<_, Twox64Concat, CmlId, T::BlockNumber>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub genesis_vouchers: GenesisVouchers<T::AccountId>,
@@ -101,6 +105,8 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			use crate::functions::convert_seeds_to_cmls;
+
 			self.genesis_vouchers
 				.vouchers
 				.iter()
@@ -115,26 +121,32 @@ pub mod cml {
 
 			SeedsCleaned::<T>::set(false);
 
-			let mut a_draw_box = Vec::new();
-			self.genesis_seeds.a_seeds.iter().for_each(|seed| {
-				CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
-				a_draw_box.push(seed.id);
-			});
+			let (a_cml_list, a_draw_box, a_frozen_seeds) =
+				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
+					&self.genesis_seeds.a_seeds,
+				);
+			let (b_cml_list, b_draw_box, b_frozen_seeds) =
+				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
+					&self.genesis_seeds.b_seeds,
+				);
+			let (c_cml_list, c_draw_box, c_frozen_seeds) =
+				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
+					&self.genesis_seeds.c_seeds,
+				);
 			LuckyDrawBox::<T>::insert(CmlType::A, a_draw_box);
-
-			let mut b_draw_box = Vec::new();
-			self.genesis_seeds.b_seeds.iter().for_each(|seed| {
-				CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
-				b_draw_box.push(seed.id);
-			});
 			LuckyDrawBox::<T>::insert(CmlType::B, b_draw_box);
-
-			let mut c_draw_box = Vec::new();
-			self.genesis_seeds.c_seeds.iter().for_each(|seed| {
-				CmlStore::<T>::insert(seed.id, CML::new(seed.clone()));
-				c_draw_box.push(seed.id);
-			});
 			LuckyDrawBox::<T>::insert(CmlType::C, c_draw_box);
+
+			a_cml_list
+				.iter()
+				.chain(b_cml_list.iter())
+				.chain(c_cml_list.iter())
+				.for_each(|cml| CmlStore::<T>::insert(cml.id(), cml.clone()));
+			a_frozen_seeds
+				.iter()
+				.chain(b_frozen_seeds.iter())
+				.chain(c_frozen_seeds.iter())
+				.for_each(|(id, time)| FrozenSeeds::<T>::insert(id, time));
 
 			LastCmlId::<T>::set(
 				(self.genesis_seeds.a_seeds.len()
@@ -170,6 +182,7 @@ pub mod cml {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
 			Self::try_clean_outdated_seeds(n);
+			Self::try_defrost_seeds(n);
 		}
 	}
 

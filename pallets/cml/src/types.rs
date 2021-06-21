@@ -4,6 +4,7 @@ use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 pub use seeds::{GenesisSeeds, Seed};
+use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 pub use vouchers::{GenesisVouchers, VoucherConfig};
@@ -23,7 +24,6 @@ pub enum CmlType {
 	B,
 	C,
 }
-
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
 pub struct Voucher {
@@ -77,7 +77,7 @@ pub struct MinerItem {
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct CML<AccountId, BlockNumber, Balance>
 where
-	BlockNumber: Default,
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	pub intrinsic: Seed,
 	pub group: CmlGroup,
@@ -90,7 +90,7 @@ where
 
 impl<AccountId, BlockNumber, Balance> CML<AccountId, BlockNumber, Balance>
 where
-	BlockNumber: Default,
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	pub(crate) fn new(intrinsic: Seed) -> Self {
 		CML {
@@ -113,5 +113,9 @@ where
 
 	pub fn id(&self) -> CmlId {
 		self.intrinsic.id
+	}
+
+	pub fn should_death(&self, height: BlockNumber) -> bool {
+		height > self.planted_at.clone() + self.intrinsic.lifespan.into()
 	}
 }

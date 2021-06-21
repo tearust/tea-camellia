@@ -1,4 +1,5 @@
 use super::*;
+use sp_runtime::traits::AtLeast32BitUnsigned;
 
 impl<T: cml::Config> cml::Pallet<T> {
 	pub fn get_next_id() -> CmlId {
@@ -161,6 +162,27 @@ impl<T: cml::Config> cml::Pallet<T> {
 		SeedsCleaned::<T>::set(true);
 	}
 
+	pub(crate) fn try_defrost_seeds(block_number: T::BlockNumber) -> Vec<CmlId> {
+		let defrost_seeds: Vec<CmlId> = FrozenSeeds::<T>::iter()
+			.filter(|(_, v)| block_number > *v)
+			.map(|(k, _)| {
+				CmlStore::<T>::mutate(k, |v| match v {
+					Some(cml) => {
+						cml.status = CmlStatus::SeedLive;
+						Some(k)
+					}
+					None => None,
+				})
+			})
+			.filter(|v| v.is_some())
+			.map(|v| v.unwrap())
+			.collect();
+		defrost_seeds
+			.iter()
+			.for_each(|id| FrozenSeeds::<T>::remove(id));
+		defrost_seeds
+	}
+
 	pub(crate) fn take_vouchers(who: &T::AccountId) -> (u32, u32, u32) {
 		let get_voucher_amount = |cml_type: CmlType, who: &T::AccountId| {
 			match UserVoucherStore::<T>::take(who, cml_type) {
@@ -228,11 +250,43 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
+pub fn convert_seeds_to_cmls<AccountId, BlockNumber, Balance>(
+	seeds: &Vec<Seed>,
+) -> (
+	Vec<CML<AccountId, BlockNumber, Balance>>,
+	Vec<CmlId>,
+	Vec<(CmlId, BlockNumber)>,
+)
+where
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+{
+	let mut cml_list = Vec::new();
+	let mut draw_box = Vec::new();
+	let mut frozen_seeds = Vec::new();
+
+	for seed in seeds {
+		let mut cml = CML::new(seed.clone());
+		if seed.defrost_time.is_zero() {
+			cml.status = CmlStatus::SeedLive;
+		} else {
+			frozen_seeds.push((cml.id(), cml.intrinsic.defrost_time.into()));
+		}
+
+		cml_list.push(cml);
+		draw_box.push(seed.id);
+	}
+
+	(cml_list, draw_box, frozen_seeds)
+}
+
 #[cfg(test)]
 mod tests {
 	use crate::mock::new_test_ext;
 	use crate::seeds::DefrostScheduleType;
-	use crate::{mock::*, CmlStore, CmlType, LuckyDrawBox, Seed, SeedsCleaned, CML};
+	use crate::{
+		mock::*, CmlId, CmlStatus, CmlStore, CmlType, FrozenSeeds, LuckyDrawBox, Seed,
+		SeedsCleaned, CML,
+	};
 
 	#[test]
 	fn div_mod_works() {
@@ -325,6 +379,36 @@ mod tests {
 		})
 	}
 
+	#[test]
+	fn try_defrost_seeds_works() {
+		new_test_ext().execute_with(|| {
+			const SEEDS_COUNT: usize = 100;
+			const START_HEIGHT: u64 = 1;
+			const STOP_HEIGHT: u64 = 2;
+
+			for i in 0..SEEDS_COUNT {
+				let frozen_time = 0;
+				CmlStore::<Test>::insert(i as CmlId, CML::new(seed_from_defrost_type(frozen_time)));
+				FrozenSeeds::<Test>::insert(i as CmlId, frozen_time as u64);
+			}
+
+			for i in START_HEIGHT..=STOP_HEIGHT {
+				let count_before = FrozenSeeds::<Test>::iter().count();
+				let defrosted_seeds = Cml::try_defrost_seeds(i);
+				for id in defrosted_seeds.iter() {
+					assert_eq!(
+						CmlStore::<Test>::get(id).unwrap().status,
+						CmlStatus::SeedLive
+					);
+				}
+				let count_after = FrozenSeeds::<Test>::iter().count();
+				assert_eq!(count_before, defrosted_seeds.len() + count_after);
+			}
+
+			assert_eq!(0, FrozenSeeds::<Test>::iter().count());
+		})
+	}
+
 	fn default_seed() -> Seed {
 		Seed {
 			id: 0,
@@ -334,5 +418,11 @@ mod tests {
 			lifespan: 0,
 			performance: 0,
 		}
+	}
+
+	fn seed_from_defrost_type(defrost_time: u32) -> Seed {
+		let mut seed = default_seed();
+		seed.defrost_time = defrost_time;
+		seed
 	}
 }

@@ -1,8 +1,8 @@
 use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::seeds::DefrostScheduleType;
 use crate::{
-	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, LastCmlId, LuckyDrawBox,
-	MinerItemStore, SeedsCleaned, UserCmlStore, UserVoucherStore,
+	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, FrozenSeeds, LastCmlId,
+	LuckyDrawBox, MinerItemStore, SeedsCleaned, UserCmlStore, UserVoucherStore,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 
@@ -334,13 +334,20 @@ fn genesis_build_related_logic_works() {
 				LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len() as u64
 			);
 
+			let mut live_seeds_count: usize = 0;
 			for i in 0..(GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT) {
 				let cml = CmlStore::<Test>::get(i);
 				assert!(cml.is_some());
 				let cml = cml.unwrap();
 				assert_eq!(cml.id(), i);
-				assert_eq!(cml.status, CmlStatus::SeedFrozen);
+
+				if cml.status == CmlStatus::SeedLive {
+					live_seeds_count += 1;
+				} else {
+					assert!(FrozenSeeds::<Test>::contains_key(cml.id()));
+				}
 			}
+			println!("live seeds count: {}", live_seeds_count);
 
 			assert_eq!(
 				LastCmlId::<Test>::get(),
