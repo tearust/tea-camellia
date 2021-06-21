@@ -14,10 +14,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 				item.amount = amount;
 			} else {
 				// Run here means not from genesis block, so no lock amount and unlock type.
-				*maybe_item = Some(Voucher {
-					cml_type,
-					amount,
-				});
+				*maybe_item = Some(Voucher { cml_type, amount });
 			}
 		});
 	}
@@ -145,8 +142,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn try_clean_outdated_seeds(block_number: T::BlockNumber) {
-		if block_number < T::TimoutHeight::get().into() || SeedsCleaned::<T>::get().unwrap_or(false)
-		{
+		if SeedsCleaned::<T>::get() || block_number < T::TimoutHeight::get().into() {
 			return;
 		}
 
@@ -162,7 +158,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		LuckyDrawBox::<T>::mutate(CmlType::B, remove_handler);
 		LuckyDrawBox::<T>::mutate(CmlType::C, remove_handler);
 
-		SeedsCleaned::<T>::set(Some(true));
+		SeedsCleaned::<T>::set(true);
 	}
 
 	pub(crate) fn take_vouchers(who: &T::AccountId) -> (u32, u32, u32) {
@@ -304,19 +300,19 @@ mod tests {
 			for id in origin_c_box.iter() {
 				CmlStore::<Test>::insert(id, CML::new(default_seed()));
 			}
-			SeedsCleaned::<Test>::set(Some(false));
+			SeedsCleaned::<Test>::set(false);
 
 			Cml::try_clean_outdated_seeds((SEEDS_TIMEOUT_HEIGHT - 1) as u64);
 			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len(), 10); // not cleaned yet
 			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len(), 10); // not cleaned yet
 			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len(), 10); // not cleaned yet
-			assert_eq!(SeedsCleaned::<Test>::get(), Some(false));
+			assert_eq!(SeedsCleaned::<Test>::get(), false);
 
 			Cml::try_clean_outdated_seeds(SEEDS_TIMEOUT_HEIGHT as u64);
 			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len(), 0);
 			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len(), 0);
 			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len(), 0);
-			assert_eq!(SeedsCleaned::<Test>::get(), Some(true));
+			assert_eq!(SeedsCleaned::<Test>::get(), true);
 			for id in origin_a_box.iter() {
 				assert!(!CmlStore::<Test>::contains_key(id));
 			}

@@ -319,7 +319,7 @@ fn genesis_build_related_logic_works() {
 			let voucher2 = voucher2.unwrap();
 			assert_eq!(voucher2.amount, voucher_config2.amount);
 
-			assert_eq!(SeedsCleaned::<Test>::get(), Some(false));
+			assert_eq!(SeedsCleaned::<Test>::get(), false);
 
 			assert_eq!(
 				GENESIS_SEED_A_COUNT,

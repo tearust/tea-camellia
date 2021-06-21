@@ -57,7 +57,7 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn seeds_cleaned)]
-	pub(super) type SeedsCleaned<T: Config> = StorageValue<_, bool>;
+	pub(super) type SeedsCleaned<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn last_cml_id)]
@@ -113,7 +113,7 @@ pub mod cml {
 					);
 				});
 
-			SeedsCleaned::<T>::set(Some(false));
+			SeedsCleaned::<T>::set(false);
 
 			let mut a_draw_box = Vec::new();
 			self.genesis_seeds.a_seeds.iter().for_each(|seed| {
