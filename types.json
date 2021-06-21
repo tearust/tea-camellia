@@ -42,7 +42,7 @@
     "cml_type": "CmlType"
   },
 
-  "CmlId": "u32",
+  "CmlId": "u64",
   "CmlStatus": {
     "_enum": ["SeedLive", "SeedFrozen", "CmlLive", "Staking", "Dead"]
   },
