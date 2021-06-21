@@ -59,12 +59,9 @@ pub mod cml {
 	#[pallet::getter(fn seeds_cleaned)]
 	pub(super) type SeedsCleaned<T: Config> = StorageValue<_, bool>;
 
-	#[pallet::type_value]
-	pub fn DefaultAssetId<T: Config>() -> CmlId {
-		<CmlId>::saturated_from(10000_u32)
-	}
 	#[pallet::storage]
-	pub type LastCmlId<T: Config> = StorageValue<_, CmlId, ValueQuery, DefaultAssetId<T>>;
+	#[pallet::getter(fn last_cml_id)]
+	pub type LastCmlId<T: Config> = StorageValue<_, CmlId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn cml_store)]
@@ -138,6 +135,12 @@ pub mod cml {
 				c_draw_box.push(seed.id);
 			});
 			LuckyDrawBox::<T>::insert(CmlType::C, c_draw_box);
+
+			LastCmlId::<T>::set(
+				(self.genesis_seeds.a_seeds.len()
+					+ self.genesis_seeds.b_seeds.len()
+					+ self.genesis_seeds.c_seeds.len()) as CmlId,
+			)
 		}
 	}
 

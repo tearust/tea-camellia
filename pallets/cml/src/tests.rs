@@ -1,8 +1,8 @@
 use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::seeds::DefrostScheduleType;
 use crate::{
-	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, LuckyDrawBox, MinerItemStore,
-	SeedsCleaned, UserCmlStore, UserVoucherStore,
+	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, LastCmlId, LuckyDrawBox,
+	MinerItemStore, SeedsCleaned, UserCmlStore, UserVoucherStore,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 
@@ -341,6 +341,11 @@ fn genesis_build_related_logic_works() {
 				assert_eq!(cml.id(), i);
 				assert_eq!(cml.status, CmlStatus::SeedFrozen);
 			}
+
+			assert_eq!(
+				LastCmlId::<Test>::get(),
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
+			);
 		});
 }
 
