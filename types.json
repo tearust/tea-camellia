@@ -47,7 +47,7 @@
 
   "CmlId": "u64",
   "CmlStatus": {
-    "_enum": ["SeedLive", "SeedFrozen", "CmlLive", "Staking", "Dead"]
+    "_enum": ["Seed", "SeedStaking", "Tree"]
   },
   "MinerStatus": {
     "_enum": ["Active", "Offline"]
