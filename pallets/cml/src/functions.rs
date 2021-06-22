@@ -41,7 +41,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 
 		Self::check_miner_staking_slot(&cml)?;
 
-		if cml.status == CmlStatus::CmlLive {
+		if cml.status == CmlStatus::Tree {
 			let staking_item = Self::create_balance_staking(target_account)?;
 			if let Some(first_slot) = cml.staking_slot.first_mut() {
 				*first_slot = staking_item;
@@ -117,7 +117,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		block_number: T::BlockNumber,
 	) -> Result<(), DispatchError> {
 		let mut cml = Self::get_cml_by_id(&cml_id)?;
-		cml.status = CmlStatus::CmlLive;
+		cml.status = CmlStatus::Tree;
 		cml.machine_id = Some(machine_id);
 		cml.staking_slot.push(staking_item);
 		cml.planted_at = block_number;
@@ -142,30 +142,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 		LuckyDrawBox::<T>::mutate(CmlType::C, remove_handler);
 	}
 
-	pub(crate) fn try_defrost_seeds(block_number: T::BlockNumber) -> Vec<CmlId> {
-		let defrost_seeds: Vec<CmlId> = FrozenSeeds::<T>::iter()
-			.filter(|(_, v)| block_number > *v)
-			.map(|(k, _)| {
-				CmlStore::<T>::mutate(k, |v| match v {
-					Some(cml) => {
-						cml.status = CmlStatus::SeedLive;
-						Some(k)
-					}
-					None => None,
-				})
-			})
-			.filter(|v| v.is_some())
-			.map(|v| v.unwrap())
-			.collect();
-		defrost_seeds
-			.iter()
-			.for_each(|id| FrozenSeeds::<T>::remove(id));
-		defrost_seeds
-	}
-
 	pub(crate) fn try_kill_cml(block_number: T::BlockNumber) -> Vec<CmlId> {
 		let dead_cmls: Vec<CmlId> = CmlStore::<T>::iter()
-			.filter(|(_, cml)| cml.status != CmlStatus::Dead && cml.should_death(block_number))
+			.filter(|(_, cml)| cml.should_dead(block_number))
 			.map(|(id, cml)| match cml.owner() {
 				Some(owner) => {
 					UserCmlStore::<T>::mutate(owner, |ids| {
@@ -278,32 +257,22 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 pub fn convert_seeds_to_cmls<AccountId, BlockNumber, Balance>(
 	seeds: &Vec<Seed>,
-) -> (
-	Vec<CML<AccountId, BlockNumber, Balance>>,
-	Vec<CmlId>,
-	Vec<(CmlId, BlockNumber)>,
-)
+) -> (Vec<CML<AccountId, BlockNumber, Balance>>, Vec<CmlId>)
 where
 	AccountId: Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	let mut cml_list = Vec::new();
 	let mut draw_box = Vec::new();
-	let mut frozen_seeds = Vec::new();
 
 	for seed in seeds {
 		let mut cml = CML::new(seed.clone());
-		if seed.defrost_time.is_zero() {
-			cml.status = CmlStatus::SeedLive;
-		} else {
-			frozen_seeds.push((cml.id(), cml.intrinsic.defrost_time.into()));
-		}
 
 		cml_list.push(cml);
 		draw_box.push(seed.id);
 	}
 
-	(cml_list, draw_box, frozen_seeds)
+	(cml_list, draw_box)
 }
 
 #[cfg(test)]
@@ -311,8 +280,8 @@ mod tests {
 	use crate::mock::new_test_ext;
 	use crate::seeds::DefrostScheduleType;
 	use crate::{
-		mock::*, CmlId, CmlStatus, CmlStore, CmlType, FrozenSeeds, LuckyDrawBox, Seed,
-		StakingCategory, StakingItem, UserCmlStore, CML,
+		mock::*, CmlId, CmlStatus, CmlStore, CmlType, LuckyDrawBox, Seed, StakingCategory,
+		StakingItem, UserCmlStore, CML,
 	};
 	use rand::{thread_rng, Rng};
 
@@ -405,37 +374,6 @@ mod tests {
 	}
 
 	#[test]
-	fn try_defrost_seeds_works() {
-		new_test_ext().execute_with(|| {
-			const SEEDS_COUNT: usize = 100;
-			const START_HEIGHT: u64 = 1;
-			const STOP_HEIGHT: u64 = 100;
-
-			let mut rng = thread_rng();
-			for i in 0..SEEDS_COUNT {
-				let frozen_time = rng.gen_range(START_HEIGHT..STOP_HEIGHT) as u32;
-				CmlStore::<Test>::insert(i as CmlId, CML::new(seed_from_defrost_type(frozen_time)));
-				FrozenSeeds::<Test>::insert(i as CmlId, frozen_time as u64);
-			}
-
-			for i in START_HEIGHT..=STOP_HEIGHT {
-				let count_before = FrozenSeeds::<Test>::iter().count();
-				let defrosted_seeds = Cml::try_defrost_seeds(i);
-				for id in defrosted_seeds.iter() {
-					assert_eq!(
-						CmlStore::<Test>::get(id).unwrap().status,
-						CmlStatus::SeedLive
-					);
-				}
-				let count_after = FrozenSeeds::<Test>::iter().count();
-				assert_eq!(count_before, defrosted_seeds.len() + count_after);
-			}
-
-			assert_eq!(0, FrozenSeeds::<Test>::iter().count());
-		})
-	}
-
-	#[test]
 	fn try_kill_cml_works() {
 		new_test_ext().execute_with(|| {
 			const SEEDS_COUNT: usize = 100;
@@ -451,6 +389,7 @@ mod tests {
 				let lifespan = rng.gen_range(START_HEIGHT..STOP_HEIGHT) as u32;
 
 				let mut cml = CML::new(seed_from_lifespan(lifespan));
+				cml.status = CmlStatus::Tree;
 				cml.planted_at = plant_time;
 				cml.staking_slot.push(StakingItem {
 					owner: user_id,

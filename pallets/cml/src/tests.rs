@@ -1,8 +1,8 @@
 use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::seeds::DefrostScheduleType;
 use crate::{
-	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, FrozenSeeds, LastCmlId,
-	LuckyDrawBox, MinerItemStore, UserCmlStore, UserVoucherStore,
+	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, LastCmlId, LuckyDrawBox,
+	MinerItemStore, UserCmlStore, UserVoucherStore,
 };
 use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
 use pallet_balances::Error as BalanceError;
@@ -269,9 +269,14 @@ fn active_cml_for_nitro_works() {
 		let amount = 100 * 1000; // Unit * StakingPrice
 		<Test as Config>::Currency::make_free_balance_be(&1, amount);
 
+		let current_height = frame_system::Pallet::<Test>::block_number();
+
 		let cml_id: CmlId = 4;
 		let cml = CML::new(new_seed(cml_id));
-		assert_eq!(cml.status, CmlStatus::SeedFrozen);
+		assert!(
+			cml.status == CmlStatus::Seed,
+			!cml.should_defrost(current_height)
+		);
 		UserCmlStore::<Test>::insert(1, vec![cml_id]);
 		CmlStore::<Test>::insert(cml_id, cml);
 
@@ -286,7 +291,7 @@ fn active_cml_for_nitro_works() {
 
 		let cml_list = UserCmlStore::<Test>::get(1).unwrap();
 		let cml = CmlStore::<Test>::get(cml_list[0]).unwrap();
-		assert_eq!(cml.status, CmlStatus::CmlLive);
+		assert_eq!(cml.status, CmlStatus::Tree);
 		assert_eq!(cml.staking_slot.len(), 1);
 
 		let staking_item = cml.staking_slot.get(0).unwrap();
@@ -322,7 +327,7 @@ fn active_not_drawn_cml_should_fail() {
 		// initial a cml not belongs to anyone, to simulate the not drawn situation
 		let cml_id: CmlId = 4;
 		let cml = CML::new(new_seed(cml_id));
-		assert_eq!(cml.status, CmlStatus::SeedFrozen);
+		assert!(!cml.should_defrost(frame_system::Pallet::<Test>::block_number()));
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_noop!(
@@ -337,7 +342,6 @@ fn active_cml_not_belongs_to_me_should_fail() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;
 		let cml = CML::new(new_seed(cml_id));
-		assert_eq!(cml.status, CmlStatus::SeedFrozen);
 		UserCmlStore::<Test>::insert(1, vec![cml_id]); // cml belongs to 1
 		CmlStore::<Test>::insert(cml_id, cml);
 
@@ -466,10 +470,8 @@ fn genesis_build_related_logic_works() {
 				let cml = cml.unwrap();
 				assert_eq!(cml.id(), i);
 
-				if cml.status == CmlStatus::SeedLive {
+				if cml.seed_valid(0) {
 					live_seeds_count += 1;
-				} else {
-					assert!(FrozenSeeds::<Test>::contains_key(cml.id()));
 				}
 			}
 			println!("live seeds count: {}", live_seeds_count);

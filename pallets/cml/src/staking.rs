@@ -18,16 +18,16 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub(crate) fn create_seed_staking(
 		who: &T::AccountId,
 		cml_id: CmlId,
+		current_height: T::BlockNumber,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
 		Self::check_belongs(&cml_id, who)?;
+		let cml = CmlStore::<T>::get(cml_id).ok_or(Error::<T>::NotFoundCML)?;
 		ensure!(
-			CmlStore::<T>::get(cml_id)
-				.ok_or(Error::<T>::NotFoundCML)?
-				.status == CmlStatus::SeedLive,
+			cml.seed_valid(current_height),
 			Error::<T>::ShouldStakingLiveSeed
 		);
 		CmlStore::<T>::mutate(cml_id, |cml| {
-			cml.as_mut().unwrap().status = CmlStatus::Staking
+			cml.as_mut().unwrap().status = CmlStatus::SeedStaking
 		});
 
 		Ok(StakingItem {
@@ -48,10 +48,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub fn staking_to_cml(
 		staking_item: StakingItem<T::AccountId, BalanceOf<T>>,
 		target_cml_id: &CmlId,
-	) -> Result<(), Error<T>> {
+		height: T::BlockNumber,
+	) -> DispatchResult {
 		let mut cml = CmlStore::<T>::get(&target_cml_id).ok_or(Error::<T>::NotFoundCML)?;
 
-		ensure!(cml.status == CmlStatus::CmlLive, Error::<T>::CMLNotLive);
+		ensure!(cml.should_dead(height), Error::<T>::CMLNotLive);
 		cml.staking_slot.push(staking_item);
 
 		Self::update_cml(cml.clone());

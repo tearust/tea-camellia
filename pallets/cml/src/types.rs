@@ -33,11 +33,9 @@ pub struct Voucher {
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
 pub enum CmlStatus {
-	SeedLive,
-	SeedFrozen,
-	CmlLive,
-	Staking,
-	Dead,
+	Seed,
+	SeedStaking,
+	Tree,
 }
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
@@ -98,7 +96,7 @@ where
 		CML {
 			intrinsic,
 			group: CmlGroup::Nitro, // todo init from intrinsic
-			status: CmlStatus::SeedFrozen,
+			status: CmlStatus::Seed,
 			mining_rate: 10,
 			staking_slot: vec![],
 			planted_at: BlockNumber::default(),
@@ -106,19 +104,13 @@ where
 		}
 	}
 
-	pub fn is_seed(&self) -> bool {
-		match self.status {
-			CmlStatus::SeedFrozen | CmlStatus::SeedLive => true,
-			_ => false,
-		}
-	}
-
 	pub fn id(&self) -> CmlId {
 		self.intrinsic.id
 	}
 
-	pub fn should_death(&self, height: BlockNumber) -> bool {
-		height > self.planted_at.clone() + self.intrinsic.lifespan.into()
+	pub fn should_dead(&self, height: BlockNumber) -> bool {
+		self.status == CmlStatus::Tree
+			&& height > self.planted_at.clone() + self.intrinsic.lifespan.into()
 	}
 
 	pub fn should_defrost(&self, height: BlockNumber) -> bool {
@@ -127,5 +119,13 @@ where
 
 	pub fn owner(&self) -> Option<AccountId> {
 		self.staking_slot.get(0).map(|slot| slot.owner.clone())
+	}
+
+	pub fn seed_valid(&self, height: BlockNumber) -> bool {
+		self.status == CmlStatus::Seed && self.should_defrost(height)
+	}
+
+	pub fn tree_valid(&self, height: BlockNumber) -> bool {
+		self.status == CmlStatus::Tree && !self.should_dead(height)
 	}
 }

@@ -86,10 +86,6 @@ pub mod cml {
 	#[pallet::getter(fn lucky_draw_box)]
 	pub type LuckyDrawBox<T: Config> = StorageMap<_, Twox64Concat, CmlType, Vec<CmlId>, ValueQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn frozen_seeds)]
-	pub type FrozenSeeds<T: Config> = StorageMap<_, Twox64Concat, CmlId, T::BlockNumber>;
-
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub genesis_vouchers: GenesisVouchers<T::AccountId>,
@@ -121,15 +117,15 @@ pub mod cml {
 					);
 				});
 
-			let (a_cml_list, a_draw_box, a_frozen_seeds) =
+			let (a_cml_list, a_draw_box) =
 				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.a_seeds,
 				);
-			let (b_cml_list, b_draw_box, b_frozen_seeds) =
+			let (b_cml_list, b_draw_box) =
 				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.b_seeds,
 				);
-			let (c_cml_list, c_draw_box, c_frozen_seeds) =
+			let (c_cml_list, c_draw_box) =
 				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.c_seeds,
 				);
@@ -142,11 +138,6 @@ pub mod cml {
 				.chain(b_cml_list.iter())
 				.chain(c_cml_list.iter())
 				.for_each(|cml| CmlStore::<T>::insert(cml.id(), cml.clone()));
-			a_frozen_seeds
-				.iter()
-				.chain(b_frozen_seeds.iter())
-				.chain(c_frozen_seeds.iter())
-				.for_each(|(id, time)| FrozenSeeds::<T>::insert(id, time));
 
 			LastCmlId::<T>::set(
 				(self.genesis_seeds.a_seeds.len()
@@ -169,21 +160,23 @@ pub mod cml {
 		WithoutVoucher,
 		NotEnoughVoucher,
 		InvalidVoucherAmount,
-		NotFoundCML,
-		CMLNotLive,
-		ShouldStakingLiveSeed,
-		MinerAlreadyExist,
-		CMLOwnerInvalid,
-		NotEnoughDrawSeeds,
+
 		DrawBoxNotInitialized,
+		NotEnoughDrawSeeds,
 		SeedsNotOutdatedYet,
 		NoNeedToCleanOutdatedSeeds,
+
+		NotFoundCML,
+		CMLNotLive,
+		CMLOwnerInvalid,
+		ShouldStakingLiveSeed,
+
+		MinerAlreadyExist,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
-			Self::try_defrost_seeds(n);
 			Self::try_kill_cml(n);
 		}
 	}

@@ -215,9 +215,11 @@ pub mod auction {
 			let cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
 			T::CmlOperation::check_belongs(&cml_id, &sender)?;
 
+			let current_height = frame_system::Pallet::<T>::block_number();
 			// check cml status
 			ensure!(
-				cml_item.status != cml::CmlStatus::Dead,
+				// todo tree valid should plus auction window
+				cml_item.seed_valid(current_height) || cml_item.tree_valid(current_height),
 				Error::<T>::NotAllowToAuction
 			);
 
@@ -258,7 +260,7 @@ pub mod auction {
 
 			let cml_item = T::CmlOperation::get_cml_by_id(&auction_item.cml_id)?;
 			let deposit_bid_price = match cml_item.status {
-				cml::CmlStatus::CmlLive => {
+				cml::CmlStatus::Tree => {
 					let total_price = price.saturating_add(T::BidDeposit::get());
 					ensure!(balance > total_price, Error::<T>::NotEnoughBalance);
 					Some(T::BidDeposit::get())
