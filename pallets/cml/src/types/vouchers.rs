@@ -1,4 +1,4 @@
-use crate::{CmlType, Voucher};
+use crate::{CmlType, DefrostScheduleType, Voucher};
 use codec::{Decode, Encode};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -9,6 +9,7 @@ use sp_std::prelude::*;
 pub struct VoucherConfig<AccountId> {
 	pub account: AccountId,
 	pub cml_type: CmlType,
+	pub schedule_type: DefrostScheduleType,
 	pub amount: u32,
 }
 
@@ -28,10 +29,16 @@ impl<AccountId> Into<Voucher> for VoucherConfig<AccountId> {
 }
 
 impl<AccountId> VoucherConfig<AccountId> {
-	pub fn new(account: AccountId, cml_type: CmlType, amount: u32) -> Self {
+	pub fn new(
+		account: AccountId,
+		cml_type: CmlType,
+		schedule_type: DefrostScheduleType,
+		amount: u32,
+	) -> Self {
 		VoucherConfig {
 			account,
 			cml_type,
+			schedule_type,
 			amount,
 		}
 	}

@@ -1,8 +1,8 @@
 use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::seeds::DefrostScheduleType;
 use crate::{
-	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, LastCmlId, LuckyDrawBox,
-	MinerItemStore, UserCmlStore, UserVoucherStore,
+	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, InvestorVoucherStore, LastCmlId,
+	LuckyDrawBox, MinerItemStore, TeamVoucherStore, UserCmlStore,
 };
 use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
 
@@ -11,9 +11,9 @@ fn clean_outdated_seeds_works() {
 	new_test_ext().execute_with(|| {
 		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
 
-		LuckyDrawBox::<Test>::insert(CmlType::A, vec![11]);
-		LuckyDrawBox::<Test>::insert(CmlType::B, vec![21]);
-		LuckyDrawBox::<Test>::insert(CmlType::C, vec![31]);
+		LuckyDrawBox::<Test>::insert(CmlType::A, DefrostScheduleType::Investor, vec![11]);
+		LuckyDrawBox::<Test>::insert(CmlType::B, DefrostScheduleType::Team, vec![21]);
+		LuckyDrawBox::<Test>::insert(CmlType::C, DefrostScheduleType::Investor, vec![31]);
 		CmlStore::<Test>::insert(11, CML::new(new_seed(11)));
 		CmlStore::<Test>::insert(12, CML::new(new_seed(12)));
 		CmlStore::<Test>::insert(21, CML::new(new_seed(21)));
@@ -23,9 +23,9 @@ fn clean_outdated_seeds_works() {
 
 		assert_ok!(Cml::clean_outdated_seeds(Origin::root()));
 
-		assert!(LuckyDrawBox::<Test>::get(CmlType::A).is_empty());
-		assert!(LuckyDrawBox::<Test>::get(CmlType::B).is_empty());
-		assert!(LuckyDrawBox::<Test>::get(CmlType::C).is_empty());
+		assert!(LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).is_empty());
+		assert!(LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Team).is_empty());
+		assert!(LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Investor).is_empty());
 		assert!(!CmlStore::<Test>::contains_key(11));
 		assert!(!CmlStore::<Test>::contains_key(21));
 		assert!(!CmlStore::<Test>::contains_key(31));
@@ -63,7 +63,10 @@ fn clean_should_fail_when_there_is_no_need_to_clean() {
 	new_test_ext().execute_with(|| {
 		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
 
-		assert!(Cml::lucky_draw_box_all_empty());
+		assert!(Cml::lucky_draw_box_all_empty(vec![
+			DefrostScheduleType::Investor,
+			DefrostScheduleType::Team
+		]));
 		assert_noop!(
 			Cml::clean_outdated_seeds(Origin::root()),
 			Error::<Test>::NoNeedToCleanOutdatedSeeds
@@ -74,41 +77,59 @@ fn clean_should_fail_when_there_is_no_need_to_clean() {
 #[test]
 fn transfer_voucher_works() {
 	new_test_ext().execute_with(|| {
-		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
-		UserVoucherStore::<Test>::insert(2, CmlType::A, new_voucher(10, CmlType::A));
-		UserVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(10, CmlType::B));
-		UserVoucherStore::<Test>::insert(2, CmlType::B, new_voucher(10, CmlType::B));
-		UserVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(10, CmlType::C));
-		UserVoucherStore::<Test>::insert(2, CmlType::C, new_voucher(10, CmlType::C));
+		TeamVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
+		TeamVoucherStore::<Test>::insert(2, CmlType::A, new_voucher(10, CmlType::A));
+		TeamVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(10, CmlType::B));
+		TeamVoucherStore::<Test>::insert(2, CmlType::B, new_voucher(10, CmlType::B));
+		TeamVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(10, CmlType::C));
+		TeamVoucherStore::<Test>::insert(2, CmlType::C, new_voucher(10, CmlType::C));
 
-		assert_ok!(Cml::transfer_voucher(Origin::signed(1), 2, CmlType::A, 3));
-		assert_ok!(Cml::transfer_voucher(Origin::signed(1), 2, CmlType::B, 4));
-		assert_ok!(Cml::transfer_voucher(Origin::signed(1), 2, CmlType::C, 5));
+		assert_ok!(Cml::transfer_voucher(
+			Origin::signed(1),
+			2,
+			CmlType::A,
+			DefrostScheduleType::Team,
+			3
+		));
+		assert_ok!(Cml::transfer_voucher(
+			Origin::signed(1),
+			2,
+			CmlType::B,
+			DefrostScheduleType::Team,
+			4
+		));
+		assert_ok!(Cml::transfer_voucher(
+			Origin::signed(1),
+			2,
+			CmlType::C,
+			DefrostScheduleType::Team,
+			5
+		));
 
 		assert_eq!(
-			UserVoucherStore::<Test>::get(1, CmlType::A).unwrap().amount,
+			TeamVoucherStore::<Test>::get(1, CmlType::A).unwrap().amount,
 			7
 		);
 		assert_eq!(
-			UserVoucherStore::<Test>::get(2, CmlType::A).unwrap().amount,
+			TeamVoucherStore::<Test>::get(2, CmlType::A).unwrap().amount,
 			13
 		);
 
 		assert_eq!(
-			UserVoucherStore::<Test>::get(1, CmlType::B).unwrap().amount,
+			TeamVoucherStore::<Test>::get(1, CmlType::B).unwrap().amount,
 			6
 		);
 		assert_eq!(
-			UserVoucherStore::<Test>::get(2, CmlType::B).unwrap().amount,
+			TeamVoucherStore::<Test>::get(2, CmlType::B).unwrap().amount,
 			14
 		);
 
 		assert_eq!(
-			UserVoucherStore::<Test>::get(1, CmlType::C).unwrap().amount,
+			TeamVoucherStore::<Test>::get(1, CmlType::C).unwrap().amount,
 			5
 		);
 		assert_eq!(
-			UserVoucherStore::<Test>::get(2, CmlType::C).unwrap().amount,
+			TeamVoucherStore::<Test>::get(2, CmlType::C).unwrap().amount,
 			15
 		);
 	})
@@ -117,17 +138,27 @@ fn transfer_voucher_works() {
 #[test]
 fn transfer_voucher_to_not_exist_account_works() {
 	new_test_ext().execute_with(|| {
-		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
+		InvestorVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
 
-		assert!(UserVoucherStore::<Test>::get(2, CmlType::A).is_none());
-		assert_ok!(Cml::transfer_voucher(Origin::signed(1), 2, CmlType::A, 3));
+		assert!(InvestorVoucherStore::<Test>::get(2, CmlType::A).is_none());
+		assert_ok!(Cml::transfer_voucher(
+			Origin::signed(1),
+			2,
+			CmlType::A,
+			DefrostScheduleType::Investor,
+			3
+		));
 
 		assert_eq!(
-			UserVoucherStore::<Test>::get(1, CmlType::A).unwrap().amount,
+			InvestorVoucherStore::<Test>::get(1, CmlType::A)
+				.unwrap()
+				.amount,
 			7
 		);
 		assert_eq!(
-			UserVoucherStore::<Test>::get(2, CmlType::A).unwrap().amount,
+			InvestorVoucherStore::<Test>::get(2, CmlType::A)
+				.unwrap()
+				.amount,
 			3
 		);
 	})
@@ -136,10 +167,16 @@ fn transfer_voucher_to_not_exist_account_works() {
 #[test]
 fn transfer_voucher_with_insufficient_amount_should_fail() {
 	new_test_ext().execute_with(|| {
-		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
+		TeamVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
 
 		assert_noop!(
-			Cml::transfer_voucher(Origin::signed(1), 2, CmlType::A, 11),
+			Cml::transfer_voucher(
+				Origin::signed(1),
+				2,
+				CmlType::A,
+				DefrostScheduleType::Team,
+				11
+			),
 			Error::<Test>::NotEnoughVoucher
 		);
 	})
@@ -149,7 +186,13 @@ fn transfer_voucher_with_insufficient_amount_should_fail() {
 fn transfer_voucher_from_not_existing_account_should_fail() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			Cml::transfer_voucher(Origin::signed(1), 2, CmlType::A, 1),
+			Cml::transfer_voucher(
+				Origin::signed(1),
+				2,
+				CmlType::A,
+				DefrostScheduleType::Team,
+				1
+			),
 			Error::<Test>::NotEnoughVoucher
 		);
 	})
@@ -158,11 +201,17 @@ fn transfer_voucher_from_not_existing_account_should_fail() {
 #[test]
 fn transfer_voucher_to_cause_to_amount_overflow() {
 	new_test_ext().execute_with(|| {
-		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
-		UserVoucherStore::<Test>::insert(2, CmlType::A, new_voucher(u32::MAX, CmlType::A));
+		TeamVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
+		TeamVoucherStore::<Test>::insert(2, CmlType::A, new_voucher(u32::MAX, CmlType::A));
 
 		assert_noop!(
-			Cml::transfer_voucher(Origin::signed(1), 2, CmlType::A, 3),
+			Cml::transfer_voucher(
+				Origin::signed(1),
+				2,
+				CmlType::A,
+				DefrostScheduleType::Team,
+				3
+			),
 			Error::<Test>::InvalidVoucherAmount
 		);
 	})
@@ -177,15 +226,18 @@ fn draw_cmls_from_voucher_works() {
 		let origin_b_box: Vec<u64> = (11..=20).collect();
 		let origin_c_box: Vec<u64> = (21..=30).collect();
 
-		LuckyDrawBox::<Test>::insert(CmlType::A, origin_a_box.clone());
-		LuckyDrawBox::<Test>::insert(CmlType::B, origin_b_box.clone());
-		LuckyDrawBox::<Test>::insert(CmlType::C, origin_c_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::A, DefrostScheduleType::Team, origin_a_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::B, DefrostScheduleType::Team, origin_b_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::C, DefrostScheduleType::Team, origin_c_box.clone());
 
-		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
-		UserVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
-		UserVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
+		TeamVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
+		TeamVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
+		TeamVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
 
-		assert_ok!(Cml::draw_cmls_from_voucher(Origin::signed(1)));
+		assert_ok!(Cml::draw_cmls_from_voucher(
+			Origin::signed(1),
+			DefrostScheduleType::Team
+		));
 
 		assert_eq!(UserCmlStore::<Test>::get(&1).unwrap().len(), 3 + 4 + 5);
 		System::assert_last_event(Event::pallet_cml(CmlEvent::DrawCmls(1, 3 + 4 + 5)));
@@ -201,25 +253,61 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 		let origin_b_box: Vec<u64> = (11..=20).collect();
 		let origin_c_box: Vec<u64> = (21..=30).collect();
 
-		LuckyDrawBox::<Test>::insert(CmlType::A, origin_a_box.clone());
-		LuckyDrawBox::<Test>::insert(CmlType::B, origin_b_box.clone());
-		LuckyDrawBox::<Test>::insert(CmlType::C, origin_c_box.clone());
+		LuckyDrawBox::<Test>::insert(
+			CmlType::A,
+			DefrostScheduleType::Investor,
+			origin_a_box.clone(),
+		);
+		LuckyDrawBox::<Test>::insert(
+			CmlType::B,
+			DefrostScheduleType::Investor,
+			origin_b_box.clone(),
+		);
+		LuckyDrawBox::<Test>::insert(
+			CmlType::C,
+			DefrostScheduleType::Investor,
+			origin_c_box.clone(),
+		);
 
-		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
-		UserVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
-		UserVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
-		UserVoucherStore::<Test>::insert(2, CmlType::A, new_voucher(1, CmlType::A));
-		UserVoucherStore::<Test>::insert(2, CmlType::B, new_voucher(2, CmlType::B));
-		UserVoucherStore::<Test>::insert(2, CmlType::C, new_voucher(3, CmlType::C));
+		InvestorVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
+		InvestorVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
+		InvestorVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
+		InvestorVoucherStore::<Test>::insert(2, CmlType::A, new_voucher(1, CmlType::A));
+		InvestorVoucherStore::<Test>::insert(2, CmlType::B, new_voucher(2, CmlType::B));
+		InvestorVoucherStore::<Test>::insert(2, CmlType::C, new_voucher(3, CmlType::C));
 
-		assert_ok!(Cml::draw_cmls_from_voucher(Origin::signed(1)));
+		assert_ok!(Cml::draw_cmls_from_voucher(
+			Origin::signed(1),
+			DefrostScheduleType::Investor
+		));
 		assert_eq!(UserCmlStore::<Test>::get(&1).unwrap().len(), 3 + 4 + 5);
 
-		assert_ok!(Cml::transfer_voucher(Origin::signed(2), 1, CmlType::A, 1));
-		assert_ok!(Cml::transfer_voucher(Origin::signed(2), 1, CmlType::B, 2));
-		assert_ok!(Cml::transfer_voucher(Origin::signed(2), 1, CmlType::C, 3));
+		assert_ok!(Cml::transfer_voucher(
+			Origin::signed(2),
+			1,
+			CmlType::A,
+			DefrostScheduleType::Investor,
+			1
+		));
+		assert_ok!(Cml::transfer_voucher(
+			Origin::signed(2),
+			1,
+			CmlType::B,
+			DefrostScheduleType::Investor,
+			2
+		));
+		assert_ok!(Cml::transfer_voucher(
+			Origin::signed(2),
+			1,
+			CmlType::C,
+			DefrostScheduleType::Investor,
+			3
+		));
 
-		assert_ok!(Cml::draw_cmls_from_voucher(Origin::signed(1)));
+		assert_ok!(Cml::draw_cmls_from_voucher(
+			Origin::signed(1),
+			DefrostScheduleType::Investor
+		));
 		assert_eq!(
 			UserCmlStore::<Test>::get(&1).unwrap().len(),
 			3 + 4 + 5 + 1 + 2 + 3
@@ -236,17 +324,20 @@ fn draw_same_cmls_multiple_times_should_fail() {
 		let origin_b_box: Vec<u64> = (11..=20).collect();
 		let origin_c_box: Vec<u64> = (21..=30).collect();
 
-		LuckyDrawBox::<Test>::insert(CmlType::A, origin_a_box.clone());
-		LuckyDrawBox::<Test>::insert(CmlType::B, origin_b_box.clone());
-		LuckyDrawBox::<Test>::insert(CmlType::C, origin_c_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::A, DefrostScheduleType::Team, origin_a_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::B, DefrostScheduleType::Team, origin_b_box.clone());
+		LuckyDrawBox::<Test>::insert(CmlType::C, DefrostScheduleType::Team, origin_c_box.clone());
 
-		UserVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
-		UserVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
-		UserVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
+		TeamVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
+		TeamVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
+		TeamVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
 
-		assert_ok!(Cml::draw_cmls_from_voucher(Origin::signed(1)));
+		assert_ok!(Cml::draw_cmls_from_voucher(
+			Origin::signed(1),
+			DefrostScheduleType::Team
+		));
 		assert_noop!(
-			Cml::draw_cmls_from_voucher(Origin::signed(1)),
+			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Team),
 			Error::<Test>::WithoutVoucher
 		);
 	})
@@ -256,7 +347,11 @@ fn draw_same_cmls_multiple_times_should_fail() {
 fn draw_cmls_should_fail_when_no_voucher_exist() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			Cml::draw_cmls_from_voucher(Origin::signed(1)),
+			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Team),
+			Error::<Test>::WithoutVoucher
+		);
+		assert_noop!(
+			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Investor),
 			Error::<Test>::WithoutVoucher
 		);
 	})
@@ -423,11 +518,13 @@ fn genesis_build_related_logic_works() {
 	let voucher_config1 = VoucherConfig {
 		account: 1,
 		cml_type: CmlType::A,
+		schedule_type: DefrostScheduleType::Team,
 		amount: 100,
 	};
 	let voucher_config2 = VoucherConfig {
 		account: 2,
 		cml_type: CmlType::B,
+		schedule_type: DefrostScheduleType::Investor,
 		amount: 200,
 	};
 
@@ -436,27 +533,30 @@ fn genesis_build_related_logic_works() {
 		.vouchers(vec![voucher_config1.clone(), voucher_config2.clone()])
 		.build()
 		.execute_with(|| {
-			let voucher1 = UserVoucherStore::<Test>::get(1, CmlType::A);
+			let voucher1 = TeamVoucherStore::<Test>::get(1, CmlType::A);
 			assert!(voucher1.is_some());
 			let voucher1 = voucher1.unwrap();
 			assert_eq!(voucher1.amount, voucher_config1.amount);
 
-			let voucher2 = UserVoucherStore::<Test>::get(2, CmlType::B);
+			let voucher2 = InvestorVoucherStore::<Test>::get(2, CmlType::B);
 			assert!(voucher2.is_some());
 			let voucher2 = voucher2.unwrap();
 			assert_eq!(voucher2.amount, voucher_config2.amount);
 
 			assert_eq!(
-				GENESIS_SEED_A_COUNT,
-				LuckyDrawBox::<Test>::get(CmlType::A).len() as u64
+				GENESIS_SEED_A_COUNT as usize,
+				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Team).len()
+					+ LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).len()
 			);
 			assert_eq!(
-				GENESIS_SEED_B_COUNT,
-				LuckyDrawBox::<Test>::get(CmlType::B).len() as u64
+				GENESIS_SEED_B_COUNT as usize,
+				LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Team).len()
+					+ LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Investor).len()
 			);
 			assert_eq!(
-				GENESIS_SEED_C_COUNT,
-				LuckyDrawBox::<Test>::get(CmlType::C).len() as u64
+				GENESIS_SEED_C_COUNT as usize,
+				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Team).len()
+					+ LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Investor).len()
 			);
 
 			let mut live_seeds_count: usize = 0;

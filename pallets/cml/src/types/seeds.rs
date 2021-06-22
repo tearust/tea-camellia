@@ -47,7 +47,7 @@ pub struct GenesisSeeds {
 	pub c_seeds: Vec<Seed>,
 }
 
-#[derive(Encode, Decode, Clone, Debug)]
+#[derive(Encode, Decode, PartialEq, Clone, Copy, Debug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum DefrostScheduleType {
 	Investor,

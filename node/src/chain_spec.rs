@@ -1,3 +1,4 @@
+use camellia_runtime::pallet_cml::DefrostScheduleType;
 use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
@@ -109,9 +110,24 @@ pub fn development_config() -> Result<ChainSpec, String> {
 				10000 * DOLLARS,
 				GenesisVouchers {
 					vouchers: vec![
-						VoucherConfig::new(kevin_account.clone(), CmlType::A, 10),
-						VoucherConfig::new(kevin_account.clone(), CmlType::B, 10),
-						VoucherConfig::new(kevin_account.clone(), CmlType::C, 10),
+						VoucherConfig::new(
+							kevin_account.clone(),
+							CmlType::A,
+							DefrostScheduleType::Team,
+							10,
+						),
+						VoucherConfig::new(
+							kevin_account.clone(),
+							CmlType::B,
+							DefrostScheduleType::Team,
+							10,
+						),
+						VoucherConfig::new(
+							kevin_account.clone(),
+							CmlType::C,
+							DefrostScheduleType::Team,
+							10,
+						),
 					],
 				},
 				genesis_seeds,

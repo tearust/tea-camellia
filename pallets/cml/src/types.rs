@@ -3,7 +3,7 @@ use codec::{Decode, Encode};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-pub use seeds::{GenesisSeeds, Seed};
+pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
 use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;

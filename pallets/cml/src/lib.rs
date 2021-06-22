@@ -76,8 +76,13 @@ pub mod cml {
 	pub type UserCmlStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<CmlId>>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn voucher_user_store)]
-	pub type UserVoucherStore<T: Config> =
+	#[pallet::getter(fn investor_user_store)]
+	pub type InvestorVoucherStore<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Voucher>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn team_user_store)]
+	pub type TeamVoucherStore<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Voucher>;
 
 	#[pallet::storage]
@@ -85,7 +90,15 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn lucky_draw_box)]
-	pub type LuckyDrawBox<T: Config> = StorageMap<_, Twox64Concat, CmlType, Vec<CmlId>, ValueQuery>;
+	pub type LuckyDrawBox<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		CmlType,
+		Twox64Concat,
+		DefrostScheduleType,
+		Vec<CmlId>,
+		ValueQuery,
+	>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -111,28 +124,50 @@ pub mod cml {
 				.iter()
 				.for_each(|voucher_config| {
 					let voucher: Voucher = voucher_config.clone().into();
-					UserVoucherStore::<T>::insert(
-						&voucher_config.account,
-						voucher_config.cml_type,
-						voucher,
-					);
+					match voucher_config.schedule_type {
+						DefrostScheduleType::Investor => InvestorVoucherStore::<T>::insert(
+							&voucher_config.account,
+							voucher_config.cml_type,
+							voucher,
+						),
+						DefrostScheduleType::Team => TeamVoucherStore::<T>::insert(
+							&voucher_config.account,
+							voucher_config.cml_type,
+							voucher,
+						),
+					}
 				});
 
-			let (a_cml_list, a_draw_box) =
+			let (a_cml_list, investor_a_draw_box, team_a_draw_box) =
 				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.a_seeds,
 				);
-			let (b_cml_list, b_draw_box) =
+			let (b_cml_list, investor_b_draw_box, team_b_draw_box) =
 				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.b_seeds,
 				);
-			let (c_cml_list, c_draw_box) =
+			let (c_cml_list, investor_c_draw_box, team_c_draw_box) =
 				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.c_seeds,
 				);
-			LuckyDrawBox::<T>::insert(CmlType::A, a_draw_box);
-			LuckyDrawBox::<T>::insert(CmlType::B, b_draw_box);
-			LuckyDrawBox::<T>::insert(CmlType::C, c_draw_box);
+			LuckyDrawBox::<T>::insert(
+				CmlType::A,
+				DefrostScheduleType::Investor,
+				investor_a_draw_box,
+			);
+			LuckyDrawBox::<T>::insert(CmlType::A, DefrostScheduleType::Team, team_a_draw_box);
+			LuckyDrawBox::<T>::insert(
+				CmlType::B,
+				DefrostScheduleType::Investor,
+				investor_b_draw_box,
+			);
+			LuckyDrawBox::<T>::insert(CmlType::B, DefrostScheduleType::Team, team_b_draw_box);
+			LuckyDrawBox::<T>::insert(
+				CmlType::C,
+				DefrostScheduleType::Investor,
+				investor_c_draw_box,
+			);
+			LuckyDrawBox::<T>::insert(CmlType::C, DefrostScheduleType::Team, team_c_draw_box);
 
 			a_cml_list
 				.iter()
@@ -199,7 +234,10 @@ pub mod cml {
 				Error::<T>::SeedsNotOutdatedYet
 			);
 			ensure!(
-				!Self::lucky_draw_box_all_empty(),
+				!Self::lucky_draw_box_all_empty(vec![
+					DefrostScheduleType::Investor,
+					DefrostScheduleType::Team
+				]),
 				Error::<T>::NoNeedToCleanOutdatedSeeds,
 			);
 
@@ -211,13 +249,18 @@ pub mod cml {
 		pub fn transfer_voucher(
 			sender: OriginFor<T>,
 			target: T::AccountId,
-			group: CmlType,
+			cml_type: CmlType,
+			schedule_type: DefrostScheduleType,
 			#[pallet::compact] amount: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let sender_voucher =
-				UserVoucherStore::<T>::get(&sender, group).ok_or(Error::<T>::NotEnoughVoucher)?;
+			let sender_voucher = match schedule_type {
+				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::get(&sender, cml_type),
+				DefrostScheduleType::Team => TeamVoucherStore::<T>::get(&sender, cml_type),
+			};
+			ensure!(sender_voucher.is_some(), Error::<T>::NotEnoughVoucher);
+			let sender_voucher = sender_voucher.unwrap();
 			ensure!(
 				sender_voucher.amount >= amount,
 				Error::<T>::NotEnoughVoucher
@@ -228,32 +271,41 @@ pub mod cml {
 				.checked_sub(amount)
 				.ok_or(Error::<T>::InvalidVoucherAmount)?;
 
-			if let Some(target_voucher) = UserVoucherStore::<T>::get(&target, group) {
-				let to_amount = target_voucher
-					.amount
-					.checked_add(amount)
-					.ok_or(Error::<T>::InvalidVoucherAmount)?;
-				Self::set_voucher(&target, group, to_amount);
-			} else {
-				Self::set_voucher(&target, group, amount);
+			let target_voucher = match schedule_type {
+				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::get(&target, cml_type),
+				DefrostScheduleType::Team => TeamVoucherStore::<T>::get(&target, cml_type),
+			};
+			match target_voucher {
+				Some(target_voucher) => {
+					let to_amount = target_voucher
+						.amount
+						.checked_add(amount)
+						.ok_or(Error::<T>::InvalidVoucherAmount)?;
+					Self::set_voucher(&target, cml_type, schedule_type, to_amount);
+				}
+				None => Self::set_voucher(&target, cml_type, schedule_type, amount),
 			}
 
-			Self::set_voucher(&sender, group, from_amount);
+			Self::set_voucher(&sender, cml_type, schedule_type, from_amount);
 
 			Ok(())
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn draw_cmls_from_voucher(sender: OriginFor<T>) -> DispatchResult {
+		pub fn draw_cmls_from_voucher(
+			sender: OriginFor<T>,
+			schedule_type: DefrostScheduleType,
+		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
-			let (a_coupon, b_coupon, c_coupon) = Self::take_vouchers(&sender);
+			let (a_coupon, b_coupon, c_coupon) = Self::take_vouchers(&sender, schedule_type);
 			ensure!(
 				a_coupon + b_coupon + c_coupon > 0,
 				Error::<T>::WithoutVoucher
 			);
 
-			let mut seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon)?;
+			let mut seed_ids =
+				Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type)?;
 			let seeds_count = seed_ids.len() as u64;
 			UserCmlStore::<T>::mutate(&sender, |ids| match ids {
 				Some(ids) => ids.append(&mut seed_ids),
