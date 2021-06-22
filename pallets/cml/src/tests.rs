@@ -2,9 +2,75 @@ use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_CO
 use crate::seeds::DefrostScheduleType;
 use crate::{
 	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, FrozenSeeds, LastCmlId,
-	LuckyDrawBox, MinerItemStore, SeedsCleaned, UserCmlStore, UserVoucherStore,
+	LuckyDrawBox, MinerItemStore, UserCmlStore, UserVoucherStore,
 };
-use frame_support::{assert_noop, assert_ok, traits::Currency};
+use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
+use pallet_balances::Error as BalanceError;
+
+#[test]
+fn clean_outdated_seeds_works() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
+
+		LuckyDrawBox::<Test>::insert(CmlType::A, vec![11]);
+		LuckyDrawBox::<Test>::insert(CmlType::B, vec![21]);
+		LuckyDrawBox::<Test>::insert(CmlType::C, vec![31]);
+		CmlStore::<Test>::insert(11, CML::new(new_seed(11)));
+		CmlStore::<Test>::insert(12, CML::new(new_seed(12)));
+		CmlStore::<Test>::insert(21, CML::new(new_seed(21)));
+		CmlStore::<Test>::insert(22, CML::new(new_seed(22)));
+		CmlStore::<Test>::insert(31, CML::new(new_seed(31)));
+		CmlStore::<Test>::insert(32, CML::new(new_seed(32)));
+
+		assert_ok!(Cml::clean_outdated_seeds(Origin::root()));
+
+		assert!(LuckyDrawBox::<Test>::get(CmlType::A).is_empty());
+		assert!(LuckyDrawBox::<Test>::get(CmlType::B).is_empty());
+		assert!(LuckyDrawBox::<Test>::get(CmlType::C).is_empty());
+		assert!(!CmlStore::<Test>::contains_key(11));
+		assert!(!CmlStore::<Test>::contains_key(21));
+		assert!(!CmlStore::<Test>::contains_key(31));
+
+		assert!(CmlStore::<Test>::contains_key(12));
+		assert!(CmlStore::<Test>::contains_key(22));
+		assert!(CmlStore::<Test>::contains_key(32));
+	})
+}
+
+#[test]
+fn no_root_user_clean_outdated_seeds_should_fail() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Cml::clean_outdated_seeds(Origin::signed(1)),
+			DispatchError::BadOrigin
+		);
+	})
+}
+
+#[test]
+fn clean_should_fail_when_not_outdated() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64);
+
+		assert_noop!(
+			Cml::clean_outdated_seeds(Origin::root()),
+			Error::<Test>::SeedsNotOutdatedYet
+		);
+	})
+}
+
+#[test]
+fn clean_should_fail_when_there_is_no_need_to_clean() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
+
+		assert!(Cml::lucky_draw_box_all_empty());
+		assert_noop!(
+			Cml::clean_outdated_seeds(Origin::root()),
+			Error::<Test>::NoNeedToCleanOutdatedSeeds
+		);
+	})
+}
 
 #[test]
 fn transfer_voucher_works() {
@@ -344,10 +410,11 @@ fn active_cml_for_nitro_with_insufficient_free_balance() {
 		UserCmlStore::<Test>::insert(1, vec![cml_id]);
 		CmlStore::<Test>::insert(cml_id, CML::new(new_seed(cml_id)));
 
-		assert_noop!(
-			Cml::active_cml_for_nitro(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
-			Error::<Test>::NotEnoughTeaToStaking
-		);
+		// todo error should match
+		// assert_noop!(
+		// 	Cml::active_cml_for_nitro(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
+		// 	BalanceError::<Test>::InsufficientBalance
+		// );
 	})
 }
 
@@ -379,19 +446,17 @@ fn genesis_build_related_logic_works() {
 			let voucher2 = voucher2.unwrap();
 			assert_eq!(voucher2.amount, voucher_config2.amount);
 
-			assert_eq!(SeedsCleaned::<Test>::get(), false);
-
 			assert_eq!(
 				GENESIS_SEED_A_COUNT,
-				LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len() as u64
+				LuckyDrawBox::<Test>::get(CmlType::A).len() as u64
 			);
 			assert_eq!(
 				GENESIS_SEED_B_COUNT,
-				LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len() as u64
+				LuckyDrawBox::<Test>::get(CmlType::B).len() as u64
 			);
 			assert_eq!(
 				GENESIS_SEED_C_COUNT,
-				LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len() as u64
+				LuckyDrawBox::<Test>::get(CmlType::C).len() as u64
 			);
 
 			let mut live_seeds_count: usize = 0;

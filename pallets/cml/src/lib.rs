@@ -62,10 +62,6 @@ pub mod cml {
 	pub struct Pallet<T>(_);
 
 	#[pallet::storage]
-	#[pallet::getter(fn seeds_cleaned)]
-	pub(super) type SeedsCleaned<T: Config> = StorageValue<_, bool, ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn last_cml_id)]
 	pub type LastCmlId<T: Config> = StorageValue<_, CmlId, ValueQuery>;
 
@@ -88,7 +84,7 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn lucky_draw_box)]
-	pub type LuckyDrawBox<T: Config> = StorageMap<_, Twox64Concat, CmlType, Vec<CmlId>>;
+	pub type LuckyDrawBox<T: Config> = StorageMap<_, Twox64Concat, CmlType, Vec<CmlId>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn frozen_seeds)]
@@ -124,8 +120,6 @@ pub mod cml {
 						voucher,
 					);
 				});
-
-			SeedsCleaned::<T>::set(false);
 
 			let (a_cml_list, a_draw_box, a_frozen_seeds) =
 				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
@@ -178,17 +172,17 @@ pub mod cml {
 		NotFoundCML,
 		CMLNotLive,
 		ShouldStakingLiveSeed,
-		NotEnoughTeaToStaking,
 		MinerAlreadyExist,
 		CMLOwnerInvalid,
 		NotEnoughDrawSeeds,
 		DrawBoxNotInitialized,
+		SeedsNotOutdatedYet,
+		NoNeedToCleanOutdatedSeeds,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
-			Self::try_clean_outdated_seeds(n);
 			Self::try_defrost_seeds(n);
 			Self::try_kill_cml(n);
 		}
@@ -196,6 +190,24 @@ pub mod cml {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(1_000)]
+		pub fn clean_outdated_seeds(sender: OriginFor<T>) -> DispatchResult {
+			let _root = ensure_root(sender)?;
+
+			let current_block = frame_system::Pallet::<T>::block_number();
+			ensure!(
+				current_block > T::TimoutHeight::get().into(),
+				Error::<T>::SeedsNotOutdatedYet
+			);
+			ensure!(
+				!Self::lucky_draw_box_all_empty(),
+				Error::<T>::NoNeedToCleanOutdatedSeeds,
+			);
+
+			Self::try_clean_outdated_seeds(current_block);
+			Ok(())
+		}
+
 		#[pallet::weight(1_000)]
 		pub fn transfer_voucher(
 			sender: OriginFor<T>,

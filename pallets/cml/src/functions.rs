@@ -128,23 +128,18 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn try_clean_outdated_seeds(block_number: T::BlockNumber) {
-		if SeedsCleaned::<T>::get() || block_number < T::TimoutHeight::get().into() {
+		if block_number < T::TimoutHeight::get().into() {
 			return;
 		}
 
-		let remove_handler = |draw_box: &mut Option<Vec<u64>>| match draw_box {
-			Some(draw_box) => {
-				for id in draw_box.drain(0..) {
-					CmlStore::<T>::remove(id);
-				}
+		let remove_handler = |draw_box: &mut Vec<u64>| {
+			for id in draw_box.drain(0..) {
+				CmlStore::<T>::remove(id);
 			}
-			None => {}
 		};
 		LuckyDrawBox::<T>::mutate(CmlType::A, remove_handler);
 		LuckyDrawBox::<T>::mutate(CmlType::B, remove_handler);
 		LuckyDrawBox::<T>::mutate(CmlType::C, remove_handler);
-
-		SeedsCleaned::<T>::set(true);
 	}
 
 	pub(crate) fn try_defrost_seeds(block_number: T::BlockNumber) -> Vec<CmlId> {
@@ -210,6 +205,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 		)
 	}
 
+	pub(crate) fn lucky_draw_box_all_empty() -> bool {
+		LuckyDrawBox::<T>::get(CmlType::A).is_empty()
+			&& LuckyDrawBox::<T>::get(CmlType::B).is_empty()
+			&& LuckyDrawBox::<T>::get(CmlType::C).is_empty()
+	}
+
 	pub(crate) fn lucky_draw(
 		who: &T::AccountId,
 		a_coupon: u32,
@@ -217,21 +218,19 @@ impl<T: cml::Config> cml::Pallet<T> {
 		c_coupon: u32,
 	) -> Result<Vec<CmlId>, DispatchError> {
 		let mut seed_ids = Vec::new();
-		let mut draw_handler = |draw_box: &mut Option<Vec<u64>>,
+		let mut draw_handler = |draw_box: &mut Vec<u64>,
 		                        cml_type: CmlType,
-		                        coupon_len: u32| match draw_box {
-			Some(draw_box) => {
-				for i in 0..coupon_len {
-					ensure!(!draw_box.is_empty(), Error::<T>::NotEnoughDrawSeeds);
+		                        coupon_len: u32|
+		 -> Result<(), DispatchError> {
+			for i in 0..coupon_len {
+				ensure!(!draw_box.is_empty(), Error::<T>::NotEnoughDrawSeeds);
 
-					let rand_index =
-						Self::get_draw_seed_random_index(who, cml_type, i, draw_box.len() as u32);
-					let seed_id = draw_box.swap_remove(rand_index as usize);
-					seed_ids.push(seed_id);
-				}
-				Ok(())
+				let rand_index =
+					Self::get_draw_seed_random_index(who, cml_type, i, draw_box.len() as u32);
+				let seed_id = draw_box.swap_remove(rand_index as usize);
+				seed_ids.push(seed_id);
 			}
-			None => Err(Error::<T>::DrawBoxNotInitialized),
+			Ok(())
 		};
 
 		LuckyDrawBox::<T>::mutate(CmlType::A, |a_box| {
@@ -313,7 +312,7 @@ mod tests {
 	use crate::seeds::DefrostScheduleType;
 	use crate::{
 		mock::*, CmlId, CmlStatus, CmlStore, CmlType, FrozenSeeds, LuckyDrawBox, Seed,
-		SeedsCleaned, StakingCategory, StakingItem, UserCmlStore, CML,
+		StakingCategory, StakingItem, UserCmlStore, CML,
 	};
 	use rand::{thread_rng, Rng};
 
@@ -345,15 +344,15 @@ mod tests {
 			assert!(res.is_ok());
 
 			assert_eq!(
-				LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len() as u32,
+				LuckyDrawBox::<Test>::get(CmlType::A).len() as u32,
 				10 - a_coupon
 			);
 			assert_eq!(
-				LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len() as u32,
+				LuckyDrawBox::<Test>::get(CmlType::B).len() as u32,
 				10 - b_coupon
 			);
 			assert_eq!(
-				LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len() as u32,
+				LuckyDrawBox::<Test>::get(CmlType::C).len() as u32,
 				10 - c_coupon
 			);
 			assert_eq!(
@@ -383,19 +382,16 @@ mod tests {
 			for id in origin_c_box.iter() {
 				CmlStore::<Test>::insert(id, CML::new(default_seed()));
 			}
-			SeedsCleaned::<Test>::set(false);
 
 			Cml::try_clean_outdated_seeds((SEEDS_TIMEOUT_HEIGHT - 1) as u64);
-			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len(), 10); // not cleaned yet
-			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len(), 10); // not cleaned yet
-			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len(), 10); // not cleaned yet
-			assert_eq!(SeedsCleaned::<Test>::get(), false);
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::A).len(), 10); // not cleaned yet
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::B).len(), 10); // not cleaned yet
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::C).len(), 10); // not cleaned yet
 
 			Cml::try_clean_outdated_seeds(SEEDS_TIMEOUT_HEIGHT as u64);
-			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::A).unwrap().len(), 0);
-			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::B).unwrap().len(), 0);
-			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::C).unwrap().len(), 0);
-			assert_eq!(SeedsCleaned::<Test>::get(), true);
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::A).len(), 0);
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::B).len(), 0);
+			assert_eq!(LuckyDrawBox::<Test>::get(CmlType::C).len(), 0);
 			for id in origin_a_box.iter() {
 				assert!(!CmlStore::<Test>::contains_key(id));
 			}

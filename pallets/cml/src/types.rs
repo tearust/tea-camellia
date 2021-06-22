@@ -121,6 +121,10 @@ where
 		height > self.planted_at.clone() + self.intrinsic.lifespan.into()
 	}
 
+	pub fn should_defrost(&self, height: BlockNumber) -> bool {
+		height > self.intrinsic.defrost_time.into()
+	}
+
 	pub fn owner(&self) -> Option<AccountId> {
 		self.staking_slot.get(0).map(|slot| slot.owner.clone())
 	}

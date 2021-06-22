@@ -5,10 +5,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		who: &T::AccountId,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
 		let staking_price: BalanceOf<T> = T::StakingPrice::get();
-		ensure!(
-			T::Currency::free_balance(who) > staking_price,
-			Error::<T>::NotEnoughTeaToStaking
-		);
 
 		T::CurrencyOperations::reserve(who, staking_price)?;
 		Ok(StakingItem {
