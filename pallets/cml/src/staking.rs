@@ -1,6 +1,14 @@
 use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
+	pub(crate) fn is_staking_period_start(height: T::BlockNumber) -> bool {
+		height % T::StakingPeriodLength::get() == 1u32.into()
+	}
+
+	pub(crate) fn is_staking_period_end(height: T::BlockNumber) -> bool {
+		height % T::StakingPeriodLength::get() == 0u32.into()
+	}
+
 	pub(crate) fn create_balance_staking(
 		who: &T::AccountId,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
@@ -59,5 +67,28 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Self::update_cml(cml.clone());
 
 		Ok(())
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::mock::*;
+
+	#[test]
+	fn staking_period_related_works() {
+		new_test_ext().execute_with(|| {
+			assert!(Cml::is_staking_period_end(0));
+			assert!(Cml::is_staking_period_start(1));
+
+			for i in 2..STAKING_PERIOD_LENGTH as u64 {
+				assert!(!Cml::is_staking_period_end(i));
+				assert!(!Cml::is_staking_period_start(i));
+			}
+
+			assert!(Cml::is_staking_period_end(STAKING_PERIOD_LENGTH as u64));
+			assert!(Cml::is_staking_period_start(
+				STAKING_PERIOD_LENGTH as u64 + 1
+			));
+		})
 	}
 }

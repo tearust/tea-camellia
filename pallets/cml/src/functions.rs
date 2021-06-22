@@ -128,7 +128,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn try_clean_outdated_seeds(block_number: T::BlockNumber) {
-		if block_number < T::TimoutHeight::get().into() {
+		if block_number < T::TimoutHeight::get() {
 			return;
 		}
 
@@ -277,7 +277,6 @@ where
 
 #[cfg(test)]
 mod tests {
-	use crate::mock::new_test_ext;
 	use crate::seeds::DefrostScheduleType;
 	use crate::{
 		mock::*, CmlId, CmlStatus, CmlStore, CmlType, LuckyDrawBox, Seed, StakingCategory,

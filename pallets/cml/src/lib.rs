@@ -21,7 +21,6 @@ use frame_support::{
 	traits::{Currency, Get},
 };
 use frame_system::pallet_prelude::*;
-use node_primitives::BlockNumber;
 use pallet_utils::{CommonUtils, CurrencyOperations};
 use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_std::prelude::*;
@@ -46,7 +45,10 @@ pub mod cml {
 
 		/// The latest block height to draw seeds use voucher, after this block height the left
 		/// seeds shall be destroyed.
-		type TimoutHeight: Get<BlockNumber>;
+		type TimoutHeight: Get<Self::BlockNumber>;
+
+		type StakingPeriodLength: Get<Self::BlockNumber>;
+
 		/// Common utils trait
 		type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
 
@@ -176,7 +178,12 @@ pub mod cml {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
-			Self::try_kill_cml(n);
+			if Self::is_staking_period_start(n) {
+				// initialize staking related
+			} else if Self::is_staking_period_end(n) {
+				Self::try_kill_cml(n);
+				// calculate staking rewards
+			}
 		}
 	}
 
@@ -188,7 +195,7 @@ pub mod cml {
 
 			let current_block = frame_system::Pallet::<T>::block_number();
 			ensure!(
-				current_block > T::TimoutHeight::get().into(),
+				current_block > T::TimoutHeight::get(),
 				Error::<T>::SeedsNotOutdatedYet
 			);
 			ensure!(
