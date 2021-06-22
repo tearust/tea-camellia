@@ -69,6 +69,7 @@ impl pallet_cml::Config for Test {
 	type StakingPrice = StakingPrice;
 	type TimoutHeight = SeedsTimeoutHeight;
 	type CommonUtils = Utils;
+	type CurrencyOperations = Utils;
 }
 
 parameter_types! {
@@ -87,6 +88,7 @@ impl pallet_auction::Config for Test {
 	type MinPriceForBid = MinPriceForBid;
 	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
 	type CurrencyOperations = Utils;
+	type CmlOperation = Cml;
 }
 
 parameter_types! {

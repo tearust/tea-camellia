@@ -70,6 +70,7 @@ impl pallet_cml::Config for Test {
 	type StakingPrice = StakingPrice;
 	type TimoutHeight = SeedsTimeoutHeight;
 	type CommonUtils = Utils;
+	type CurrencyOperations = Utils;
 }
 
 impl pallet_utils::Config for Test {

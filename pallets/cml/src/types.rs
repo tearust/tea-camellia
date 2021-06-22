@@ -60,7 +60,7 @@ pub enum StakingCategory {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingItem<AccountId, CmlId, Balance> {
+pub struct StakingItem<AccountId, Balance> {
 	pub owner: AccountId,
 	pub category: StakingCategory,
 	pub amount: Option<Balance>,
@@ -84,7 +84,7 @@ where
 	pub group: CmlGroup,
 	pub status: CmlStatus,
 	pub mining_rate: u8, // 8 - 12, default 10
-	pub staking_slot: Vec<StakingItem<AccountId, CmlId, Balance>>,
+	pub staking_slot: Vec<StakingItem<AccountId, Balance>>,
 	pub planted_at: BlockNumber,
 	pub machine_id: Option<MachineId>,
 }

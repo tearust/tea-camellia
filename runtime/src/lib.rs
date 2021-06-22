@@ -789,6 +789,7 @@ impl pallet_cml::Config for Runtime {
 	type StakingPrice = StakingPrice;
 	type TimoutHeight = SeedsTimeoutHeight;
 	type CommonUtils = Utils;
+	type CurrencyOperations = Utils;
 }
 
 parameter_types! {
@@ -831,6 +832,7 @@ impl pallet_auction::Config for Runtime {
 	type AuctionId = u64;
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
+	type CmlOperation = Cml;
 	type AuctionDealWindowBLock = AuctionDealWindowBLock;
 	type BidDeposit = BidDeposit;
 	type MinPriceForBid = MinPriceForBid;

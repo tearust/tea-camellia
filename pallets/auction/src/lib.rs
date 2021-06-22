@@ -13,6 +13,7 @@ use frame_support::traits::{
 	ReservableCurrency,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
+use pallet_cml::CmlOperation;
 use pallet_utils::traits::CurrencyOperations;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Saturating},
@@ -48,7 +49,7 @@ pub mod auction {
 	use super::*;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + cml::Config {
+	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
@@ -56,6 +57,12 @@ pub mod auction {
 		type CurrencyOperations: CurrencyOperations<
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
+		>;
+
+		type CmlOperation: CmlOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+			BlockNumber = Self::BlockNumber,
 		>;
 
 		/// The auction ID type.
@@ -205,8 +212,8 @@ pub mod auction {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let cml_item = cml::Pallet::<T>::get_cml_by_id(&cml_id)?;
-			cml::Pallet::<T>::check_belongs(&cml_id, &sender)?;
+			let cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
+			T::CmlOperation::check_belongs(&cml_id, &sender)?;
 
 			// check cml status
 			ensure!(
@@ -249,7 +256,7 @@ pub mod auction {
 				Error::<T>::BidSelfBelongs
 			);
 
-			let cml_item = cml::Pallet::<T>::get_cml_by_id(&auction_item.cml_id)?;
+			let cml_item = T::CmlOperation::get_cml_by_id(&auction_item.cml_id)?;
 			let deposit_bid_price = match cml_item.status {
 				cml::CmlStatus::CmlLive => {
 					let total_price = price.saturating_add(T::BidDeposit::get());

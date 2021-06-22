@@ -1,5 +1,75 @@
 use super::*;
-use sp_runtime::traits::AtLeast32BitUnsigned;
+
+impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
+	type AccountId = T::AccountId;
+	type Balance = BalanceOf<T>;
+	type BlockNumber = T::BlockNumber;
+
+	fn get_cml_by_id(
+		cml_id: &CmlId,
+	) -> Result<CML<Self::AccountId, Self::BlockNumber, Self::Balance>, DispatchError> {
+		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
+		Ok(CmlStore::<T>::get(cml_id).unwrap())
+	}
+
+	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> Result<(), DispatchError> {
+		ensure!(
+			UserCmlStore::<T>::contains_key(who),
+			Error::<T>::CMLOwnerInvalid
+		);
+		let user_cml = UserCmlStore::<T>::get(&who).unwrap();
+		ensure!(user_cml.contains(cml_id), Error::<T>::CMLOwnerInvalid);
+		Ok(())
+	}
+
+	fn transfer_cml_other(
+		from_account: &Self::AccountId,
+		cml_id: &CmlId,
+		target_account: &Self::AccountId,
+	) -> Result<(), DispatchError> {
+		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
+		ensure!(
+			UserCmlStore::<T>::contains_key(from_account),
+			Error::<T>::CMLOwnerInvalid
+		);
+
+		let mut cml = CmlStore::<T>::get(&cml_id).unwrap();
+		let user_cml = UserCmlStore::<T>::get(&from_account).unwrap();
+		let from_index = user_cml.iter().position(|x| *x == *cml_id);
+		ensure!(from_index.is_some(), Error::<T>::CMLOwnerInvalid);
+		let from_index = from_index.unwrap();
+
+		Self::check_miner_staking_slot(&cml)?;
+
+		if cml.status == CmlStatus::CmlLive {
+			let staking_item = Self::create_balance_staking(target_account)?;
+			if let Some(first_slot) = cml.staking_slot.first_mut() {
+				*first_slot = staking_item;
+			}
+			Self::update_cml(cml);
+
+			// TODO balance
+		}
+
+		// remove from from UserCmlStore
+		UserCmlStore::<T>::mutate(&from_account, |maybe_list| {
+			if let Some(list) = maybe_list {
+				list.remove(from_index);
+			}
+		});
+
+		// add to target UserCmlStore
+		UserCmlStore::<T>::mutate(&target_account, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				list.push(*cml_id);
+			} else {
+				*maybe_list = Some(vec![*cml_id]);
+			}
+		});
+
+		Ok(())
+	}
+}
 
 impl<T: cml::Config> cml::Pallet<T> {
 	pub fn get_next_id() -> CmlId {
@@ -32,8 +102,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 	}
 
-	pub fn remove_cml_by_id() {}
-
 	pub fn update_cml(cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>>) {
 		CmlStore::<T>::mutate(cml.id(), |maybe_item| {
 			if let Some(ref mut item) = maybe_item {
@@ -42,29 +110,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 		});
 	}
 
-	pub fn get_cml_by_id(
-		cml_id: &CmlId,
-	) -> Result<CML<T::AccountId, T::BlockNumber, BalanceOf<T>>, Error<T>> {
-		let cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
-
-		Ok(cml)
-	}
-
-	pub fn check_belongs(cml_id: &CmlId, who: &T::AccountId) -> Result<(), Error<T>> {
-		let user_cml = UserCmlStore::<T>::get(&who).ok_or(Error::<T>::CMLOwnerInvalid)?;
-		if !user_cml.contains(&cml_id) {
-			return Err(Error::<T>::CMLOwnerInvalid);
-		}
-
-		Ok(())
-	}
-
 	pub fn update_cml_to_active(
 		cml_id: &CmlId,
 		machine_id: MachineId,
-		staking_item: StakingItem<T::AccountId, CmlId, BalanceOf<T>>,
+		staking_item: StakingItem<T::AccountId, BalanceOf<T>>,
 		block_number: T::BlockNumber,
-	) -> Result<(), Error<T>> {
+	) -> Result<(), DispatchError> {
 		let mut cml = Self::get_cml_by_id(&cml_id)?;
 		cml.status = CmlStatus::CmlLive;
 		cml.machine_id = Some(machine_id);
@@ -72,72 +123,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		cml.planted_at = block_number;
 
 		Self::update_cml(cml);
-
-		Ok(())
-	}
-
-	pub fn staking_to_cml(
-		staking_item: StakingItem<T::AccountId, CmlId, BalanceOf<T>>,
-		target_cml_id: &CmlId,
-	) -> Result<(), Error<T>> {
-		let mut cml = CmlStore::<T>::get(&target_cml_id).ok_or(Error::<T>::NotFoundCML)?;
-
-		if cml.status != CmlStatus::CmlLive {
-			return Err(Error::<T>::CMLNotLive);
-		}
-
-		cml.staking_slot.push(staking_item);
-
-		Self::update_cml(cml.clone());
-
-		Ok(())
-	}
-
-	pub fn transfer_cml_other(
-		from_account: &T::AccountId,
-		cml_id: &CmlId,
-		target_account: &T::AccountId,
-	) -> Result<(), Error<T>> {
-		let mut cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
-
-		let user_cml = UserCmlStore::<T>::get(&from_account).ok_or(Error::<T>::CMLOwnerInvalid)?;
-		let from_index = match user_cml.iter().position(|x| *x == *cml_id) {
-			Some(index) => index,
-			None => {
-				return Err(Error::<T>::CMLOwnerInvalid);
-			}
-		};
-
-		if cml.status == CmlStatus::CmlLive {
-			let staking_item = StakingItem {
-				owner: target_account.clone(),
-				category: StakingCategory::Tea,
-				amount: Some(T::StakingPrice::get()),
-				cml: None,
-			};
-			cml.staking_slot.remove(0);
-			cml.staking_slot.insert(0, staking_item);
-
-			Self::update_cml(cml);
-
-			// TODO balance
-		}
-
-		// remove from from UserCmlStore
-		UserCmlStore::<T>::mutate(&from_account, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				list.remove(from_index);
-			}
-		});
-
-		// add to target UserCmlStore
-		UserCmlStore::<T>::mutate(&target_account, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				list.push(*cml_id);
-			} else {
-				*maybe_list = Some(vec![*cml_id]);
-			}
-		});
 
 		Ok(())
 	}
@@ -274,6 +259,21 @@ impl<T: cml::Config> cml::Pallet<T> {
 		let rand_value = T::CommonUtils::generate_random(who.clone(), &salt);
 		let (_, div_mod) = rand_value.div_mod(sp_core::U256::from(box_len));
 		div_mod.as_u32()
+	}
+
+	pub(crate) fn init_miner_item(machine_id: MachineId, miner_ip: Vec<u8>) -> DispatchResult {
+		ensure!(
+			!<MinerItemStore<T>>::contains_key(&machine_id),
+			Error::<T>::MinerAlreadyExist
+		);
+
+		let miner_item = MinerItem {
+			id: machine_id.clone(),
+			ip: miner_ip,
+			status: MinerStatus::Active,
+		};
+		MinerItemStore::<T>::insert(&machine_id, miner_item);
+		Ok(())
 	}
 }
 

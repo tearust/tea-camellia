@@ -213,7 +213,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		let bid_item =
 			BidStore::<T>::get(&target, &auction_item.id).ok_or(Error::<T>::NotFoundBid)?;
 
-		let rs = cml::Pallet::<T>::transfer_cml_other(
+		let rs = T::CmlOperation::transfer_cml_other(
 			&auction_item.cml_owner,
 			&auction_item.cml_id,
 			&target,

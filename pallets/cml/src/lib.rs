@@ -10,6 +10,7 @@ mod tests;
 mod functions;
 pub mod generator;
 mod impl_stored_map;
+mod staking;
 mod types;
 pub use types::*;
 
@@ -22,8 +23,8 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use log::info;
 use node_primitives::BlockNumber;
-use pallet_utils::CommonUtils;
-use sp_runtime::traits::Zero;
+use pallet_utils::{CommonUtils, CurrencyOperations};
+use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
 use sp_std::prelude::*;
 
 pub use cml::*;
@@ -49,6 +50,11 @@ pub mod cml {
 		type TimoutHeight: Get<BlockNumber>;
 		/// Common utils trait
 		type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
+
+		type CurrencyOperations: CurrencyOperations<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+		>;
 	}
 
 	#[pallet::pallet]
@@ -171,6 +177,7 @@ pub mod cml {
 		InvalidVoucherAmount,
 		NotFoundCML,
 		CMLNotLive,
+		ShouldStakingLiveSeed,
 		NotEnoughTeaToStaking,
 		MinerAlreadyExist,
 		CMLOwnerInvalid,
@@ -258,42 +265,37 @@ pub mod cml {
 			ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 			Self::check_belongs(&cml_id, &sender)?;
 
-			let miner_item = MinerItem {
-				id: machine_id.clone(),
-				ip: miner_ip,
-				status: MinerStatus::Active,
-			};
-
-			ensure!(
-				!<MinerItemStore<T>>::contains_key(&machine_id),
-				Error::<T>::MinerAlreadyExist
-			);
-
-			let balance = T::Currency::free_balance(&sender);
-
-			let max_price: BalanceOf<T> = T::StakingPrice::get();
-			ensure!(balance > max_price, Error::<T>::NotEnoughTeaToStaking);
-
-			let staking_item = StakingItem {
-				owner: sender.clone(),
-				category: StakingCategory::Tea,
-				amount: Some(T::StakingPrice::get()),
-				cml: None,
-			};
+			Self::init_miner_item(machine_id, miner_ip)?;
 
 			let current_block_number = frame_system::Pallet::<T>::block_number();
+			let staking_item = Self::create_balance_staking(&sender)?;
 			Self::update_cml_to_active(
 				&cml_id,
 				machine_id.clone(),
 				staking_item,
 				current_block_number,
 			)?;
-			<MinerItemStore<T>>::insert(&machine_id, miner_item);
-
-			info!("TODO ---- lock balance");
 
 			Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
 			Ok(())
 		}
 	}
+}
+
+pub trait CmlOperation {
+	type AccountId: Clone;
+	type Balance;
+	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
+
+	fn get_cml_by_id(
+		cml_id: &CmlId,
+	) -> Result<CML<Self::AccountId, Self::BlockNumber, Self::Balance>, DispatchError>;
+
+	fn check_belongs(cml_id: &CmlId, who: &Self::AccountId) -> Result<(), DispatchError>;
+
+	fn transfer_cml_other(
+		from_account: &Self::AccountId,
+		cml_id: &CmlId,
+		target_account: &Self::AccountId,
+	) -> Result<(), DispatchError>;
 }
