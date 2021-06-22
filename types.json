@@ -36,6 +36,9 @@
   "CmlType": {
     "_enum": ["A", "B", "C"]
   },
+  "DefrostScheduleType": {
+    "_enum": ["Investor", "Team"]
+  },
 
   "Voucher": {
     "amount": "u32",
@@ -68,10 +71,6 @@
     "id": "MachineId",
     "ip": "Cid",
     "status": "MinerStatus"
-  },
-
-  "DefrostScheduleType": {
-    "_enum": ["Investor", "Team"]
   },
 
   "Seed": {

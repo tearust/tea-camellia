@@ -89,7 +89,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 			if let Some(ref mut item) = maybe_item {
 				item.amount = amount;
 			} else {
-				// Run here means not from genesis block, so no lock amount and unlock type.
 				*maybe_item = Some(Voucher { cml_type, amount });
 			}
 		};

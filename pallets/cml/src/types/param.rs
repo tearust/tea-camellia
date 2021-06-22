@@ -6,7 +6,7 @@ use node_primitives::BlockNumber;
 pub const GENESIS_SEED_A_COUNT: u64 = 10;
 pub const GENESIS_SEED_B_COUNT: u64 = 30;
 pub const GENESIS_SEED_C_COUNT: u64 = 60;
-pub const TEAM_PERCENTAGE: u64 = 60;
+pub const TEAM_PERCENTAGE: u64 = 80;
 
 pub const BLOCKS_IN_A_MONTH: u32 = 438000; //365*24*600/12
 pub const BLOCKS_IN_A_DAY: u32 = 14400; //24*600
