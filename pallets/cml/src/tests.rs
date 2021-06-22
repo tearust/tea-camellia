@@ -5,7 +5,6 @@ use crate::{
 	MinerItemStore, UserCmlStore, UserVoucherStore,
 };
 use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
-use pallet_balances::Error as BalanceError;
 
 #[test]
 fn clean_outdated_seeds_works() {
@@ -273,10 +272,7 @@ fn active_cml_for_nitro_works() {
 
 		let cml_id: CmlId = 4;
 		let cml = CML::new(new_seed(cml_id));
-		assert!(
-			cml.status == CmlStatus::Seed,
-			!cml.should_defrost(current_height)
-		);
+		assert!(cml.status == CmlStatus::Seed && !cml.should_defrost(current_height));
 		UserCmlStore::<Test>::insert(1, vec![cml_id]);
 		CmlStore::<Test>::insert(cml_id, cml);
 

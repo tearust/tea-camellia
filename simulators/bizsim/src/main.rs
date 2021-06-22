@@ -71,7 +71,7 @@ fn simulate(end_block_height: u32) -> GlobalContext {
 }
 
 fn lucky_draw(
-	mut global_context: &mut GlobalContext,
+	global_context: &mut GlobalContext,
 	// mut a_box: Vec<u64>,
 	// mut b_box: Vec<u64>,
 	// mut c_box: Vec<u64>,

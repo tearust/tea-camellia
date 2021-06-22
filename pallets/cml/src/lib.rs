@@ -21,10 +21,9 @@ use frame_support::{
 	traits::{Currency, Get},
 };
 use frame_system::pallet_prelude::*;
-use log::info;
 use node_primitives::BlockNumber;
 use pallet_utils::{CommonUtils, CurrencyOperations};
-use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
+use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_std::prelude::*;
 
 pub use cml::*;

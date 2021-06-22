@@ -15,6 +15,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		})
 	}
 
+	#[allow(dead_code)]
 	pub(crate) fn create_seed_staking(
 		who: &T::AccountId,
 		cml_id: CmlId,
@@ -39,7 +40,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn check_miner_staking_slot(
-		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>>,
+		_cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>>,
 	) -> Result<(), DispatchError> {
 		// todo implement me
 		Ok(())

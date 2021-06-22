@@ -266,7 +266,7 @@ where
 	let mut draw_box = Vec::new();
 
 	for seed in seeds {
-		let mut cml = CML::new(seed.clone());
+		let cml = CML::new(seed.clone());
 
 		cml_list.push(cml);
 		draw_box.push(seed.id);
@@ -432,12 +432,6 @@ mod tests {
 			lifespan: 0,
 			performance: 0,
 		}
-	}
-
-	fn seed_from_defrost_type(defrost_time: u32) -> Seed {
-		let mut seed = default_seed();
-		seed.defrost_time = defrost_time;
-		seed
 	}
 
 	fn seed_from_lifespan(lifespan: u32) -> Seed {
