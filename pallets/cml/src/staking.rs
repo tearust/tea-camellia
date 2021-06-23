@@ -36,7 +36,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 			Error::<T>::ShouldStakingLiveSeed
 		);
 		CmlStore::<T>::mutate(cml_id, |cml| {
-			cml.as_mut().unwrap().status = CmlStatus::SeedStaking
+			cml.as_mut().unwrap().status = CmlStatus::Staking
 		});
 
 		Ok(StakingItem {

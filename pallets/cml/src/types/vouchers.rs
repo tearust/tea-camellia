@@ -4,6 +4,12 @@ use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use sp_std::prelude::*;
 
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+pub struct Voucher {
+	pub amount: u32,
+	pub cml_type: CmlType,
+}
+
 #[derive(Encode, Decode, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct VoucherConfig<AccountId> {

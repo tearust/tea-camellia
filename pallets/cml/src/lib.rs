@@ -45,7 +45,9 @@ pub mod cml {
 
 		/// The latest block height to draw seeds use voucher, after this block height the left
 		/// seeds shall be destroyed.
-		type TimoutHeight: Get<Self::BlockNumber>;
+		type VoucherTimoutHeight: Get<Self::BlockNumber>;
+
+		type SeedRottenDuration: Get<Self::BlockNumber>;
 
 		type StakingPeriodLength: Get<Self::BlockNumber>;
 
@@ -117,7 +119,7 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			use crate::functions::convert_seeds_to_cmls;
+			use crate::functions::convert_genesis_seeds_to_cmls;
 
 			self.genesis_vouchers
 				.vouchers
@@ -139,15 +141,15 @@ pub mod cml {
 				});
 
 			let (a_cml_list, investor_a_draw_box, team_a_draw_box) =
-				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
+				convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.a_seeds,
 				);
 			let (b_cml_list, investor_b_draw_box, team_b_draw_box) =
-				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
+				convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.b_seeds,
 				);
 			let (c_cml_list, investor_c_draw_box, team_c_draw_box) =
-				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
+				convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
 					&self.genesis_seeds.c_seeds,
 				);
 			LuckyDrawBox::<T>::insert(
@@ -200,6 +202,7 @@ pub mod cml {
 		DrawBoxNotInitialized,
 		NotEnoughDrawSeeds,
 		SeedsNotOutdatedYet,
+		VouchersHasOutdated,
 		NoNeedToCleanOutdatedSeeds,
 
 		NotFoundCML,
@@ -230,7 +233,7 @@ pub mod cml {
 
 			let current_block = frame_system::Pallet::<T>::block_number();
 			ensure!(
-				current_block > T::TimoutHeight::get(),
+				Self::is_voucher_outdated(current_block),
 				Error::<T>::SeedsNotOutdatedYet
 			);
 			ensure!(
@@ -241,7 +244,7 @@ pub mod cml {
 				Error::<T>::NoNeedToCleanOutdatedSeeds,
 			);
 
-			Self::try_clean_outdated_seeds(current_block);
+			Self::try_clean_outdated_vouchers(current_block);
 			Ok(())
 		}
 
@@ -254,6 +257,11 @@ pub mod cml {
 			#[pallet::compact] amount: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
+
+			ensure!(
+				!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
+				Error::<T>::VouchersHasOutdated
+			);
 
 			let sender_voucher = match schedule_type {
 				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::get(&sender, cml_type),
@@ -297,6 +305,11 @@ pub mod cml {
 			schedule_type: DefrostScheduleType,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
+
+			ensure!(
+				!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
+				Error::<T>::VouchersHasOutdated
+			);
 
 			let (a_coupon, b_coupon, c_coupon) = Self::take_vouchers(&sender, schedule_type);
 			ensure!(
