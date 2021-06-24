@@ -70,8 +70,12 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn cml_store)]
-	pub type CmlStore<T: Config> =
-		StorageMap<_, Twox64Concat, CmlId, CML<T::AccountId, T::BlockNumber, BalanceOf<T>>>;
+	pub type CmlStore<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		CmlId,
+		CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedRottenDuration>,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_cml_store)]
@@ -140,18 +144,24 @@ pub mod cml {
 					}
 				});
 
-			let (a_cml_list, investor_a_draw_box, team_a_draw_box) =
-				convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
-					&self.genesis_seeds.a_seeds,
-				);
-			let (b_cml_list, investor_b_draw_box, team_b_draw_box) =
-				convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
-					&self.genesis_seeds.b_seeds,
-				);
-			let (c_cml_list, investor_c_draw_box, team_c_draw_box) =
-				convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
-					&self.genesis_seeds.c_seeds,
-				);
+			let (a_cml_list, investor_a_draw_box, team_a_draw_box) = convert_genesis_seeds_to_cmls::<
+				T::AccountId,
+				T::BlockNumber,
+				BalanceOf<T>,
+				T::SeedRottenDuration,
+			>(&self.genesis_seeds.a_seeds);
+			let (b_cml_list, investor_b_draw_box, team_b_draw_box) = convert_genesis_seeds_to_cmls::<
+				T::AccountId,
+				T::BlockNumber,
+				BalanceOf<T>,
+				T::SeedRottenDuration,
+			>(&self.genesis_seeds.b_seeds);
+			let (c_cml_list, investor_c_draw_box, team_c_draw_box) = convert_genesis_seeds_to_cmls::<
+				T::AccountId,
+				T::BlockNumber,
+				BalanceOf<T>,
+				T::SeedRottenDuration,
+			>(&self.genesis_seeds.c_seeds);
 			LuckyDrawBox::<T>::insert(
 				CmlType::A,
 				DefrostScheduleType::Investor,
@@ -208,9 +218,26 @@ pub mod cml {
 		NotFoundCML,
 		CMLNotLive,
 		CMLOwnerInvalid,
+		SeedIsRotten,
 		ShouldStakingLiveSeed,
 
 		MinerAlreadyExist,
+
+		// from cml
+		SproutAtIsNone,
+		PlantAtIsNone,
+		DefrostTimeIsNone,
+		DefrostFailed,
+		CmlStatusConvertFailed,
+		NotValidFreshSeed,
+		SlotShouldBeEmpty,
+		CmlOwnerIsNone,
+		ConfusedStakingType,
+		CmlIsNotStaking,
+		UnstakingSlotOwnerMismatch,
+		InvalidStatusToMine,
+		AlreadyHasMachineId,
+		CmlIsNotMining,
 	}
 
 	#[pallet::hooks]
@@ -330,42 +357,95 @@ pub mod cml {
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn active_cml_for_nitro(
+		pub fn active_cml(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
+			let sender = ensure_signed(sender)?;
+			Self::check_belongs(&cml_id, &sender)?;
+
+			let current_block_number = frame_system::Pallet::<T>::block_number();
+			CmlStore::<T>::mutate(cml_id, |cml| match cml {
+				Some(cml) => {
+					cml.convert_to_tree(&current_block_number)?;
+					Ok(())
+				}
+				None => Err(Error::<T>::NotFoundCML),
+			})?;
+
+			Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
+			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn start_mining(
 			sender: OriginFor<T>,
 			cml_id: CmlId,
 			machine_id: MachineId,
 			miner_ip: Vec<u8>,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-
-			ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 			Self::check_belongs(&cml_id, &sender)?;
 
-			Self::init_miner_item(machine_id, miner_ip)?;
-
-			let current_block_number = frame_system::Pallet::<T>::block_number();
 			let staking_item = Self::create_balance_staking(&sender)?;
-			Self::update_cml_to_active(
-				&cml_id,
-				machine_id.clone(),
-				staking_item,
-				current_block_number,
-			)?;
-
-			Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
+			Self::init_miner_item(machine_id, miner_ip)?;
+			CmlStore::<T>::mutate(cml_id, |cml| match cml {
+				Some(cml) => {
+					cml.start_mining(machine_id, staking_item)?;
+					Ok(())
+				}
+				None => Err(Error::<T>::NotFoundCML),
+			})?;
 			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn stop_mining(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
+			let sender = ensure_signed(sender)?;
+			Self::check_belongs(&cml_id, &sender)?;
+
+			CmlStore::<T>::mutate(cml_id, |cml| match cml {
+				Some(cml) => {
+					cml.stop_mining()?;
+					Ok(())
+				}
+				None => Err(Error::<T>::NotFoundCML),
+			})?;
+			Ok(())
+		}
+	}
+
+	impl<T: Config> From<CmlError> for Error<T> {
+		fn from(cml_error: CmlError) -> Self {
+			match cml_error {
+				CmlError::SproutAtIsNone => Error::<T>::SproutAtIsNone,
+				CmlError::PlantAtIsNone => Error::<T>::PlantAtIsNone,
+				CmlError::DefrostTimeIsNone => Error::<T>::DefrostTimeIsNone,
+				CmlError::DefrostFailed => Error::<T>::DefrostFailed,
+				CmlError::CmlStatusConvertFailed => Error::<T>::CmlStatusConvertFailed,
+				CmlError::NotValidFreshSeed => Error::<T>::NotValidFreshSeed,
+				CmlError::SlotShouldBeEmpty => Error::<T>::SlotShouldBeEmpty,
+				CmlError::CmlOwnerIsNone => Error::<T>::CmlOwnerIsNone,
+				CmlError::ConfusedStakingType => Error::<T>::ConfusedStakingType,
+				CmlError::CmlIsNotStaking => Error::<T>::CmlIsNotStaking,
+				CmlError::UnstakingSlotOwnerMismatch => Error::<T>::UnstakingSlotOwnerMismatch,
+				CmlError::InvalidStatusToMine => Error::<T>::InvalidStatusToMine,
+				CmlError::AlreadyHasMachineId => Error::<T>::AlreadyHasMachineId,
+				CmlError::CmlIsNotMining => Error::<T>::CmlIsNotMining,
+			}
 		}
 	}
 }
 
 pub trait CmlOperation {
-	type AccountId: Clone;
-	type Balance;
+	type AccountId: PartialEq + Clone;
+	type Balance: Clone;
 	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
+	type RottenDuration: Get<Self::BlockNumber>;
 
 	fn get_cml_by_id(
 		cml_id: &CmlId,
-	) -> Result<CML<Self::AccountId, Self::BlockNumber, Self::Balance>, DispatchError>;
+	) -> Result<
+		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::RottenDuration>,
+		DispatchError,
+	>;
 
 	fn check_belongs(cml_id: &CmlId, who: &Self::AccountId) -> Result<(), DispatchError>;
 

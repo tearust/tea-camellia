@@ -13,7 +13,7 @@ use frame_support::traits::{
 	ReservableCurrency,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use pallet_cml::CmlOperation;
+use pallet_cml::{CmlId, CmlOperation};
 use pallet_utils::traits::CurrencyOperations;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Saturating},
@@ -37,7 +37,6 @@ pub use types::*;
 // pub use weights::WeightInfo;
 
 pub use auction::*;
-use pallet_cml::{self as cml, CmlId};
 
 // pub const AUCTION_ID: LockIdentifier = *b"_auction";
 
@@ -47,6 +46,7 @@ pub type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod auction {
 	use super::*;
+	use pallet_cml::SeedProperties;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -212,16 +212,16 @@ pub mod auction {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
+			let _cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
 			T::CmlOperation::check_belongs(&cml_id, &sender)?;
 
-			let current_height = frame_system::Pallet::<T>::block_number();
+			let _current_height = frame_system::Pallet::<T>::block_number();
 			// check cml status
-			ensure!(
-				// todo tree valid should plus auction window
-				cml_item.seed_valid(current_height) || cml_item.tree_valid(current_height),
-				Error::<T>::NotAllowToAuction
-			);
+			// ensure!(
+			// 	// todo tree valid should plus auction window
+			// 	cml_item.seed_valid(&current_height)? || cml_item.tree_valid(&current_height)?,
+			// 	Error::<T>::NotAllowToAuction
+			// );
 
 			let auction_item =
 				Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
@@ -259,13 +259,12 @@ pub mod auction {
 			);
 
 			let cml_item = T::CmlOperation::get_cml_by_id(&auction_item.cml_id)?;
-			let deposit_bid_price = match cml_item.status {
-				cml::CmlStatus::Tree => {
-					let total_price = price.saturating_add(T::BidDeposit::get());
-					ensure!(balance > total_price, Error::<T>::NotEnoughBalance);
-					Some(T::BidDeposit::get())
-				}
-				_ => None,
+			let deposit_bid_price = if !cml_item.is_seed() {
+				let total_price = price.saturating_add(T::BidDeposit::get());
+				ensure!(balance > total_price, Error::<T>::NotEnoughBalance);
+				Some(T::BidDeposit::get())
+			} else {
+				None
 			};
 
 			let current_block = frame_system::Pallet::<T>::block_number();

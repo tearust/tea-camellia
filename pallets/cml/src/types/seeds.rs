@@ -1,5 +1,4 @@
 use super::param::*;
-use crate::types::cml::CmlType;
 use crate::{CmlId, CmlType};
 use codec::{Decode, Encode};
 use node_primitives::BlockNumber;

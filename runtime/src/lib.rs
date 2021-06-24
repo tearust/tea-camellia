@@ -784,6 +784,8 @@ parameter_types! {
 	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 	/// Staking period length is (1 * 24 * 60 * 10) about 1 day
 	pub const StakingPeriodLength: u32 = 1 * 24 * 60 * 10;
+	/// Seed rotten duration is (7 * 24 * 60 * 10) about 1 week
+	pub const SeedRottenDuration: u32 = 7 * 24 * 60 * 10;
 }
 impl pallet_cml::Config for Runtime {
 	type Event = Event;
@@ -791,6 +793,7 @@ impl pallet_cml::Config for Runtime {
 	type StakingPrice = StakingPrice;
 	type VoucherTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
+	type SeedRottenDuration = SeedRottenDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 }

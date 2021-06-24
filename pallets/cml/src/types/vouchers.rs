@@ -1,7 +1,8 @@
-use crate::{CmlType, DefrostScheduleType, Voucher};
+use crate::{CmlType, DefrostScheduleType};
 use codec::{Decode, Encode};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]

@@ -1,3 +1,7 @@
+use codec::{Decode, Encode};
+use sp_runtime::RuntimeDebug;
+use sp_std::prelude::*;
+
 pub type MachineId = [u8; 32];
 
 #[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]

@@ -3,8 +3,7 @@
 use crate::generator::defrost::make_generate_defrost_time_fn;
 use crate::generator::lifespan::make_generate_lifespan_fn;
 use crate::generator::performance::make_generate_performance_fn;
-use crate::seeds::DefrostScheduleType;
-use crate::GenesisSeeds;
+use crate::{DefrostScheduleType, GenesisSeeds};
 use log::info;
 
 mod defrost;
