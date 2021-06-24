@@ -7,7 +7,7 @@ mod seeds;
 mod staking;
 mod vouchers;
 
-pub use cml::{CmlError, CmlId, CmlStatus, CmlType, CML};
+pub use cml::{CmlError, CmlId, CmlType, CML};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
 pub use staking::{StakingCategory, StakingItem};
@@ -71,6 +71,8 @@ pub trait StakingProperties<AccountId, Balance> {
 
 pub trait MiningProperties<AccountId, Balance> {
 	fn is_mining(&self) -> bool;
+
+	fn machine_id(&self) -> Option<&MachineId>;
 
 	fn get_performance(&self) -> param::Performance;
 

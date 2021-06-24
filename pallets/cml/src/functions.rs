@@ -148,7 +148,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub(crate) fn try_kill_cml(block_number: T::BlockNumber) -> Vec<CmlId> {
 		let dead_cmls: Vec<CmlId> = CmlStore::<T>::iter()
 			// todo change should_dead error handling method if needed later
-			.filter(|(_, cml)| cml.should_dead(&block_number).unwrap_or(false))
+			.filter(|(_, cml)| cml.should_dead(&block_number).unwrap())
 			.map(|(id, cml)| match cml.owner() {
 				Some(owner) => {
 					UserCmlStore::<T>::mutate(owner, |ids| {
@@ -307,10 +307,10 @@ where
 
 #[cfg(test)]
 mod tests {
-	use crate::seeds::DefrostScheduleType;
 	use crate::{
-		mock::*, CmlId, CmlStatus, CmlStore, CmlType, DefrostScheduleType, InvestorVoucherStore,
-		LuckyDrawBox, Seed, StakingCategory, StakingItem, TeamVoucherStore, UserCmlStore, CML,
+		mock::*, CmlId, CmlStore, CmlType, DefrostScheduleType, InvestorVoucherStore, LuckyDrawBox,
+		MiningProperties, Seed, SeedProperties, StakingCategory, StakingItem, TeamVoucherStore,
+		UserCmlStore, CML,
 	};
 	use rand::{thread_rng, Rng};
 
@@ -471,37 +471,37 @@ mod tests {
 			for id in origin_investor_a_box.iter() {
 				CmlStore::<Test>::insert(
 					id,
-					CML::new(default_genesis_seed(DefrostScheduleType::Investor)),
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Investor)),
 				);
 			}
 			for id in origin_investor_b_box.iter() {
 				CmlStore::<Test>::insert(
 					id,
-					CML::new(default_genesis_seed(DefrostScheduleType::Investor)),
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Investor)),
 				);
 			}
 			for id in origin_investor_c_box.iter() {
 				CmlStore::<Test>::insert(
 					id,
-					CML::new(default_genesis_seed(DefrostScheduleType::Investor)),
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Investor)),
 				);
 			}
 			for id in origin_team_a_box.iter() {
 				CmlStore::<Test>::insert(
 					id,
-					CML::new(default_genesis_seed(DefrostScheduleType::Team)),
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Team)),
 				);
 			}
 			for id in origin_team_b_box.iter() {
 				CmlStore::<Test>::insert(
 					id,
-					CML::new(default_genesis_seed(DefrostScheduleType::Team)),
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Team)),
 				);
 			}
 			for id in origin_team_c_box.iter() {
 				CmlStore::<Test>::insert(
 					id,
-					CML::new(default_genesis_seed(DefrostScheduleType::Team)),
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Team)),
 				);
 			}
 
@@ -596,15 +596,19 @@ mod tests {
 				let plant_time = rng.gen_range(START_HEIGHT..STOP_HEIGHT);
 				let lifespan = rng.gen_range(START_HEIGHT..STOP_HEIGHT) as u32;
 
-				let mut cml = CML::new(seed_from_lifespan(lifespan, DefrostScheduleType::Team));
-				cml.status = CmlStatus::Tree;
-				cml.planted_at = plant_time;
-				cml.staking_slot.push(StakingItem {
-					owner: user_id,
-					category: StakingCategory::Cml,
-					amount: None,
-					cml: None,
-				});
+				let mut cml =
+					CML::from_genesis_seed(seed_from_lifespan(lifespan, DefrostScheduleType::Team));
+				cml.convert_to_tree(&plant_time).unwrap();
+				cml.start_mining(
+					[1u8; 32],
+					StakingItem {
+						owner: user_id,
+						category: StakingCategory::Cml,
+						amount: None,
+						cml: None,
+					},
+				)
+				.unwrap();
 
 				CmlStore::<Test>::insert(i as CmlId, cml);
 				UserCmlStore::<Test>::mutate(user_id, |ids| match ids {

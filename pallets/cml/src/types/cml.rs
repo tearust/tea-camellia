@@ -79,6 +79,7 @@ where
 	}
 }
 
+#[derive(Debug)]
 pub enum CmlError {
 	SproutAtIsNone,
 	PlantAtIsNone,
@@ -353,6 +354,10 @@ where
 {
 	fn is_mining(&self) -> bool {
 		self.machine_id.is_some()
+	}
+
+	fn machine_id(&self) -> Option<&MachineId> {
+		self.machine_id.as_ref()
 	}
 
 	fn get_performance(&self) -> Performance {
