@@ -259,19 +259,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 		div_mod.as_u32()
 	}
 
-	pub(crate) fn init_miner_item(machine_id: MachineId, miner_ip: Vec<u8>) -> DispatchResult {
-		ensure!(
-			!<MinerItemStore<T>>::contains_key(&machine_id),
-			Error::<T>::MinerAlreadyExist
-		);
-
+	pub(crate) fn init_miner_item(machine_id: MachineId, miner_ip: Vec<u8>) {
 		let miner_item = MinerItem {
 			id: machine_id.clone(),
 			ip: miner_ip,
 			status: MinerStatus::Active,
 		};
 		MinerItemStore::<T>::insert(&machine_id, miner_item);
-		Ok(())
 	}
 }
 
@@ -309,8 +303,7 @@ where
 mod tests {
 	use crate::{
 		mock::*, CmlId, CmlStore, CmlType, DefrostScheduleType, InvestorVoucherStore, LuckyDrawBox,
-		MiningProperties, Seed, SeedProperties, StakingCategory, StakingItem, TeamVoucherStore,
-		UserCmlStore, CML,
+		Seed, SeedProperties, TeamVoucherStore, TreeProperties, UserCmlStore, CML,
 	};
 	use rand::{thread_rng, Rng};
 
@@ -596,26 +589,25 @@ mod tests {
 				let plant_time = rng.gen_range(START_HEIGHT..STOP_HEIGHT);
 				let lifespan = rng.gen_range(START_HEIGHT..STOP_HEIGHT) as u32;
 
-				let mut cml =
-					CML::from_genesis_seed(seed_from_lifespan(lifespan, DefrostScheduleType::Team));
+				let mut cml = CML::from_genesis_seed(seed_from_lifespan(
+					i as u64,
+					lifespan,
+					DefrostScheduleType::Team,
+				));
+				cml.defrost(&0).unwrap();
+				cml.set_owner(&user_id);
 				cml.convert_to_tree(&plant_time).unwrap();
-				cml.start_mining(
-					[1u8; 32],
-					StakingItem {
-						owner: user_id,
-						category: StakingCategory::Cml,
-						amount: None,
-						cml: None,
-					},
-				)
-				.unwrap();
 
-				CmlStore::<Test>::insert(i as CmlId, cml);
+				CmlStore::<Test>::insert(cml.id(), cml);
 				UserCmlStore::<Test>::mutate(user_id, |ids| match ids {
 					Some(ids) => ids.push(i as CmlId),
 					None => *ids = Some(vec![i as CmlId]),
 				});
 			}
+
+			CmlStore::<Test>::iter().for_each(|(_, cml)| {
+				assert!(cml.should_dead(&(STOP_HEIGHT * 2)).unwrap());
+			});
 
 			for i in START_HEIGHT..=(STOP_HEIGHT * 2) {
 				let count_before = CmlStore::<Test>::iter().count();
@@ -646,8 +638,9 @@ mod tests {
 		}
 	}
 
-	fn seed_from_lifespan(lifespan: u32, schedule_type: DefrostScheduleType) -> Seed {
+	fn seed_from_lifespan(id: CmlId, lifespan: u32, schedule_type: DefrostScheduleType) -> Seed {
 		let mut seed = default_genesis_seed(schedule_type);
+		seed.id = id;
 		seed.lifespan = lifespan;
 		seed
 	}

@@ -399,8 +399,9 @@ fn active_cml_for_nitro_works() {
 		let current_height = frame_system::Pallet::<Test>::block_number();
 
 		let cml_id: CmlId = 4;
-		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
-		assert!(cml.is_seed() && !cml.can_be_defrost(&current_height).unwrap());
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		assert!(cml.is_seed() && cml.can_be_defrost(&current_height).unwrap());
+		cml.defrost(&current_height).unwrap();
 		UserCmlStore::<Test>::insert(1, vec![cml_id]);
 		CmlStore::<Test>::insert(cml_id, cml);
 
@@ -441,7 +442,7 @@ fn active_not_exist_cml_for_nitro_should_fail() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
 			Cml::active_cml(Origin::signed(1), 1),
-			Error::<Test>::NotFoundCML
+			Error::<Test>::CMLOwnerInvalid
 		);
 	})
 }
@@ -452,9 +453,6 @@ fn active_not_drawn_cml_should_fail() {
 		// initial a cml not belongs to anyone, to simulate the not drawn situation
 		let cml_id: CmlId = 4;
 		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
-		assert!(!cml
-			.can_be_defrost(&frame_system::Pallet::<Test>::block_number())
-			.unwrap());
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_noop!(
@@ -567,11 +565,10 @@ fn start_mining_with_insufficient_free_balance_should_fail() {
 		UserCmlStore::<Test>::insert(1, vec![cml_id]);
 		CmlStore::<Test>::insert(cml_id, CML::from_genesis_seed(new_genesis_seed(cml_id)));
 
-		// // todo error should match
-		// assert_noop!(
-		// 	Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
-		// 	BalanceError::<Test>::InsufficientBalance
-		// );
+		assert_noop!(
+			Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
+			Error::<Test>::InsufficientFreeBalance
+		);
 	})
 }
 

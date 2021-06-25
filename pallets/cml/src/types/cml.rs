@@ -123,10 +123,6 @@ where
 	Balance: Clone,
 	RottenDuration: Get<BlockNumber>,
 {
-	pub fn is_from_genesis(seed: &Seed) -> bool {
-		seed.id < GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
-	}
-
 	pub(crate) fn from_genesis_seed(intrinsic: Seed) -> Self {
 		CML {
 			intrinsic,
@@ -152,12 +148,16 @@ where
 		}
 	}
 
-	pub fn owner(&self) -> Option<&AccountId> {
-		self.owner.as_ref()
+	pub fn can_convert(&self, to_status: &CmlStatus<BlockNumber>) -> bool {
+		self.status.valid_conversion(to_status)
+	}
+
+	pub fn set_owner(&mut self, account: &AccountId) {
+		self.owner = Some(account.clone());
 	}
 
 	pub fn try_to_convert(&mut self, to_status: CmlStatus<BlockNumber>) -> Result<(), CmlError> {
-		if !self.status.valid_conversion(&to_status) {
+		if !self.can_convert(&to_status) {
 			return Err(CmlError::CmlStatusConvertFailed);
 		}
 
@@ -179,7 +179,7 @@ where
 	}
 
 	fn is_seed(&self) -> bool {
-		self.is_frozen_seed() && self.is_fresh_seed()
+		self.is_frozen_seed() || self.is_fresh_seed()
 	}
 
 	fn is_frozen_seed(&self) -> bool {
@@ -196,7 +196,7 @@ where
 	fn can_be_defrost(&self, height: &BlockNumber) -> Result<bool, CmlError> {
 		Ok(self.is_frozen_seed()
 			&& *height
-				> self
+				>= self
 					.intrinsic
 					.defrost_time
 					.ok_or(CmlError::DefrostTimeIsNone)?
@@ -204,7 +204,7 @@ where
 	}
 
 	fn defrost(&mut self, height: &BlockNumber) -> Result<(), CmlError> {
-		if self.can_be_defrost(height)? {
+		if !self.can_be_defrost(height)? {
 			return Err(CmlError::DefrostFailed);
 		}
 
@@ -234,10 +234,14 @@ where
 	fn has_rotten(&self, height: &BlockNumber) -> Result<bool, CmlError> {
 		Ok(self.is_fresh_seed()
 			&& *height
-				> self
+				>= self
 					.get_sprout_at()
 					.ok_or(CmlError::SproutAtIsNone)?
 					.clone() + self.get_rotten_duration())
+	}
+
+	fn is_from_genesis(&self) -> bool {
+		self.id() < GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
 	}
 }
 
@@ -261,11 +265,15 @@ where
 	fn should_dead(&self, height: &BlockNumber) -> Result<bool, CmlError> {
 		Ok(!self.is_seed()
 			&& *height
-				> self
+				>= self
 					.planted_at
 					.as_ref()
 					.ok_or(CmlError::PlantAtIsNone)?
 					.clone() + self.intrinsic.lifespan.into())
+	}
+
+	fn owner(&self) -> Option<&AccountId> {
+		self.owner.as_ref()
 	}
 }
 
@@ -399,5 +407,102 @@ where
 		self.machine_id = None;
 		self.staking_slot.clear();
 		Ok(())
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::{CmlId, CmlType, DefrostScheduleType, Seed};
+
+	mod seed_properties_tests {
+		use super::new_genesis_seed;
+		use crate::{CmlError, SeedProperties, CML};
+		use frame_support::traits::ConstU32;
+
+		#[test]
+		fn genesis_seed_works() -> Result<(), CmlError> {
+			let id = 10;
+			const DEFROST_AT: u32 = 100;
+			let mut seed = new_genesis_seed(id);
+			seed.defrost_time = Some(DEFROST_AT);
+			let cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(id));
+
+			assert_eq!(cml.id(), id);
+			assert!(cml.is_from_genesis());
+
+			assert!(cml.is_seed());
+			assert!(cml.is_frozen_seed());
+			assert!(!cml.is_fresh_seed());
+			assert!(cml.can_be_defrost(&DEFROST_AT)?);
+
+			Ok(())
+		}
+
+		#[test]
+		fn defrost_seed_works() -> Result<(), CmlError> {
+			const DEFROST_AT: u32 = 100;
+			let mut seed = new_genesis_seed(10);
+			seed.defrost_time = Some(DEFROST_AT);
+			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
+
+			assert!(!cml.can_be_defrost(&0)?);
+			assert!(cml.can_be_defrost(&DEFROST_AT)?);
+
+			assert!(cml.is_frozen_seed());
+			cml.defrost(&DEFROST_AT)?;
+			assert!(cml.is_fresh_seed());
+			Ok(())
+		}
+
+		#[test]
+		fn genesis_seed_defrost_at_initial() -> Result<(), CmlError> {
+			let cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
+			assert_eq!(cml.intrinsic.defrost_time, Some(0));
+			assert!(cml.can_be_defrost(&0)?);
+			Ok(())
+		}
+	}
+
+	mod tree_properties_tests {
+		use super::seed_from_lifespan;
+		use crate::{CmlError, SeedProperties, TreeProperties, CML};
+		use frame_support::traits::ConstU32;
+
+		#[test]
+		fn should_dead_works() -> Result<(), CmlError> {
+			let lifespan = 10;
+			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
+				seed_from_lifespan(1, lifespan),
+			);
+			assert!(!cml.should_dead(&lifespan)?); // frozen seed cannot dead
+
+			cml.defrost(&0)?;
+			assert!(!cml.should_dead(&lifespan)?); // fresh seed cannot dead
+
+			cml.convert_to_tree(&0)?;
+			assert_eq!(cml.get_plant_at(), Some(&0));
+
+			assert!(!cml.should_dead(&(lifespan - 1))?);
+			assert!(cml.should_dead(&lifespan)?);
+
+			Ok(())
+		}
+	}
+
+	pub fn new_genesis_seed(id: CmlId) -> Seed {
+		Seed {
+			id,
+			cml_type: CmlType::A,
+			defrost_schedule: Some(DefrostScheduleType::Team),
+			defrost_time: Some(0),
+			lifespan: 0,
+			performance: 0,
+		}
+	}
+
+	fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
+		let mut seed = new_genesis_seed(id);
+		seed.lifespan = lifespan;
+		seed
 	}
 }

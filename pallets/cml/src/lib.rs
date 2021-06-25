@@ -221,6 +221,7 @@ pub mod cml {
 		SeedIsRotten,
 		ShouldStakingLiveSeed,
 
+		InsufficientFreeBalance,
 		MinerAlreadyExist,
 
 		// from cml
@@ -347,6 +348,13 @@ pub mod cml {
 			let mut seed_ids =
 				Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type)?;
 			let seeds_count = seed_ids.len() as u64;
+			seed_ids.iter_mut().for_each(|id| {
+				CmlStore::<T>::mutate(id, |cml| {
+					if let Some(cml) = cml {
+						cml.set_owner(&sender);
+					}
+				})
+			});
 			UserCmlStore::<T>::mutate(&sender, |ids| match ids {
 				Some(ids) => ids.append(&mut seed_ids),
 				None => *ids = Some(seed_ids),
@@ -383,9 +391,17 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 			Self::check_belongs(&cml_id, &sender)?;
+			ensure!(
+				!<MinerItemStore<T>>::contains_key(&machine_id),
+				Error::<T>::MinerAlreadyExist
+			);
+			ensure!(
+				T::CurrencyOperations::free_balance(&sender) > T::StakingPrice::get(),
+				Error::<T>::InsufficientFreeBalance,
+			);
 
 			let staking_item = Self::create_balance_staking(&sender)?;
-			Self::init_miner_item(machine_id, miner_ip)?;
+			Self::init_miner_item(machine_id, miner_ip);
 			CmlStore::<T>::mutate(cml_id, |cml| match cml {
 				Some(cml) => {
 					cml.start_mining(machine_id, staking_item)?;

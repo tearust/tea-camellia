@@ -38,6 +38,8 @@ pub trait SeedProperties<BlockNumber> {
 	fn seed_valid(&self, height: &BlockNumber) -> Result<bool, CmlError> {
 		Ok(self.can_be_defrost(height)? || !self.has_rotten(height)?)
 	}
+
+	fn is_from_genesis(&self) -> bool;
 }
 
 pub trait TreeProperties<AccountId, BlockNumber, Balance> {
@@ -46,6 +48,8 @@ pub trait TreeProperties<AccountId, BlockNumber, Balance> {
 	fn tree_valid(&self, height: &BlockNumber) -> Result<bool, CmlError>;
 
 	fn should_dead(&self, height: &BlockNumber) -> Result<bool, CmlError>;
+
+	fn owner(&self) -> Option<&AccountId>;
 }
 
 pub trait StakingProperties<AccountId, Balance> {
