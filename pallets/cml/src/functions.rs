@@ -18,11 +18,9 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 
 	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> Result<(), DispatchError> {
 		ensure!(
-			UserCmlStore::<T>::contains_key(who),
+			UserCmlStore::<T>::contains_key(who, cml_id),
 			Error::<T>::CMLOwnerInvalid
 		);
-		let user_cml = UserCmlStore::<T>::get(&who).unwrap();
-		ensure!(user_cml.contains(cml_id), Error::<T>::CMLOwnerInvalid);
 		Ok(())
 	}
 
@@ -31,6 +29,11 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
 	) -> Result<(), DispatchError> {
+		ensure!(
+			UserCmlStore::<T>::contains_key(from_account, cml_id),
+			Error::<T>::CMLOwnerInvalid
+		);
+
 		CmlStore::<T>::mutate(&cml_id, |cml| -> DispatchResult {
 			match cml {
 				Some(cml) => {
@@ -47,26 +50,8 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		})?;
 
 		// remove from from UserCmlStore
-		UserCmlStore::<T>::mutate(&from_account, |maybe_list| match maybe_list {
-			Some(list) => {
-				list.remove(
-					list.iter()
-						.position(|x| *x == *cml_id)
-						.ok_or(Error::<T>::CMLOwnerInvalid)?,
-				);
-				Ok(())
-			}
-			None => Err(Error::<T>::CMLOwnerInvalid),
-		})?;
-
-		// add to target UserCmlStore
-		UserCmlStore::<T>::mutate(&target_account, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				list.push(*cml_id);
-			} else {
-				*maybe_list = Some(vec![*cml_id]);
-			}
-		});
+		UserCmlStore::<T>::remove(from_account, cml_id);
+		UserCmlStore::<T>::insert(target_account, cml_id, ());
 
 		Ok(())
 	}
@@ -110,14 +95,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	) {
 		let cml_id = cml.id();
 		CmlStore::<T>::insert(cml_id, cml);
-
-		if UserCmlStore::<T>::contains_key(&who) {
-			let mut list = UserCmlStore::<T>::take(&who).unwrap();
-			list.insert(0, cml_id);
-			UserCmlStore::<T>::insert(&who, list);
-		} else {
-			UserCmlStore::<T>::insert(&who, vec![cml_id]);
-		}
+		UserCmlStore::<T>::insert(who, cml_id, ());
 	}
 
 	pub(crate) fn is_voucher_outdated(block_number: T::BlockNumber) -> bool {
@@ -151,13 +129,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 			.filter(|(_, cml)| cml.should_dead(&block_number).unwrap())
 			.map(|(id, cml)| match cml.owner() {
 				Some(owner) => {
-					UserCmlStore::<T>::mutate(owner, |ids| {
-						if let Some(ids) = ids {
-							if let Some(index) = ids.iter().position(|v| *v == id) {
-								ids.remove(index);
-							}
-						}
-					});
+					UserCmlStore::<T>::remove(owner, id);
 					Some(id)
 				}
 				None => {
@@ -599,10 +571,7 @@ mod tests {
 				cml.convert_to_tree(&plant_time).unwrap();
 
 				CmlStore::<Test>::insert(cml.id(), cml);
-				UserCmlStore::<Test>::mutate(user_id, |ids| match ids {
-					Some(ids) => ids.push(i as CmlId),
-					None => *ids = Some(vec![i as CmlId]),
-				});
+				UserCmlStore::<Test>::insert(user_id, i as CmlId, ());
 			}
 
 			CmlStore::<Test>::iter().for_each(|(_, cml)| {
@@ -619,11 +588,8 @@ mod tests {
 				assert_eq!(count_before, dead_cmls.len() + count_after);
 			}
 
-			assert_eq!(0, CmlStore::<Test>::iter().count());
-			for i in START_USER_ID..=STOP_USER_ID {
-				let cml_list = UserCmlStore::<Test>::get(i);
-				assert!(cml_list.is_none() || cml_list.unwrap().is_empty());
-			}
+			assert_eq!(CmlStore::<Test>::iter().count(), 0);
+			assert_eq!(UserCmlStore::<Test>::iter().count(), 0);
 		})
 	}
 

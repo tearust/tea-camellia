@@ -257,7 +257,12 @@ fn draw_cmls_from_voucher_works() {
 			DefrostScheduleType::Team
 		));
 
-		assert_eq!(UserCmlStore::<Test>::get(&1).unwrap().len(), 3 + 4 + 5);
+		assert_eq!(
+			UserCmlStore::<Test>::iter()
+				.filter(|(k1, _, _)| *k1 == 1)
+				.count(),
+			3 + 4 + 5
+		);
 		System::assert_last_event(Event::pallet_cml(CmlEvent::DrawCmls(1, 3 + 4 + 5)));
 	})
 }
@@ -298,7 +303,12 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 			Origin::signed(1),
 			DefrostScheduleType::Investor
 		));
-		assert_eq!(UserCmlStore::<Test>::get(&1).unwrap().len(), 3 + 4 + 5);
+		assert_eq!(
+			UserCmlStore::<Test>::iter()
+				.filter(|(k1, _, _)| *k1 == 1)
+				.count(),
+			3 + 4 + 5
+		);
 
 		assert_ok!(Cml::transfer_voucher(
 			Origin::signed(2),
@@ -327,7 +337,9 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 			DefrostScheduleType::Investor
 		));
 		assert_eq!(
-			UserCmlStore::<Test>::get(&1).unwrap().len(),
+			UserCmlStore::<Test>::iter()
+				.filter(|(k1, _, _)| *k1 == 1)
+				.count(),
 			3 + 4 + 5 + 1 + 2 + 3
 		);
 	})
@@ -402,7 +414,7 @@ fn active_cml_for_nitro_works() {
 		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		assert!(cml.is_seed() && cml.can_be_defrost(&current_height).unwrap());
 		cml.defrost(&current_height).unwrap();
-		UserCmlStore::<Test>::insert(1, vec![cml_id]);
+		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
@@ -415,8 +427,7 @@ fn active_cml_for_nitro_works() {
 			miner_ip.clone()
 		));
 
-		let cml_list = UserCmlStore::<Test>::get(1).unwrap();
-		let cml = CmlStore::<Test>::get(cml_list[0]).unwrap();
+		let cml = CmlStore::<Test>::get(cml_id).unwrap();
 		assert!(!cml.is_seed());
 		assert_eq!(cml.staking_slots().len(), 1);
 
@@ -467,7 +478,7 @@ fn active_cml_not_belongs_to_me_should_fail() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;
 		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
-		UserCmlStore::<Test>::insert(1, vec![cml_id]); // cml belongs to 1
+		UserCmlStore::<Test>::insert(1, cml_id, ()); // cml belongs to 1
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_noop!(
@@ -482,7 +493,7 @@ fn start_mining_not_belongs_to_me_should_fail() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;
 		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
-		UserCmlStore::<Test>::insert(1, vec![cml_id]); // cml belongs to 1
+		UserCmlStore::<Test>::insert(1, cml_id, ()); // cml belongs to 1
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_noop!(
@@ -508,7 +519,8 @@ fn start_mining_with_same_machine_id_should_fail() {
 		cml2.defrost(&0).unwrap();
 		cml2.convert_to_tree(&0).unwrap();
 
-		UserCmlStore::<Test>::insert(1, vec![cml1_id, cml2_id]);
+		UserCmlStore::<Test>::insert(1, cml1_id, ());
+		UserCmlStore::<Test>::insert(1, cml2_id, ());
 		CmlStore::<Test>::insert(cml1_id, cml1);
 		CmlStore::<Test>::insert(cml2_id, cml2);
 
@@ -535,7 +547,7 @@ fn start_mining_with_multiple_times_should_fail() {
 		<Test as Config>::Currency::make_free_balance_be(&1, amount);
 
 		let cml_id: CmlId = 4;
-		UserCmlStore::<Test>::insert(1, vec![cml_id]);
+		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		cml.defrost(&0).unwrap();
 		cml.convert_to_tree(&0).unwrap();
@@ -562,7 +574,7 @@ fn start_mining_with_insufficient_free_balance_should_fail() {
 	new_test_ext().execute_with(|| {
 		// default account `1` free balance is 0
 		let cml_id: CmlId = 4;
-		UserCmlStore::<Test>::insert(1, vec![cml_id]);
+		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, CML::from_genesis_seed(new_genesis_seed(cml_id)));
 
 		assert_noop!(

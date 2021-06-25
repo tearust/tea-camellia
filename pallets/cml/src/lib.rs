@@ -79,7 +79,8 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_cml_store)]
-	pub type UserCmlStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<CmlId>>;
+	pub type UserCmlStore<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlId, ()>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn investor_user_store)]
@@ -345,19 +346,15 @@ pub mod cml {
 				Error::<T>::WithoutVoucher
 			);
 
-			let mut seed_ids =
-				Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type)?;
+			let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type)?;
 			let seeds_count = seed_ids.len() as u64;
-			seed_ids.iter_mut().for_each(|id| {
+			seed_ids.iter().for_each(|id| {
 				CmlStore::<T>::mutate(id, |cml| {
 					if let Some(cml) = cml {
 						cml.set_owner(&sender);
 					}
-				})
-			});
-			UserCmlStore::<T>::mutate(&sender, |ids| match ids {
-				Some(ids) => ids.append(&mut seed_ids),
-				None => *ids = Some(seed_ids),
+				});
+				UserCmlStore::<T>::insert(&sender, id, ());
 			});
 
 			Self::deposit_event(Event::DrawCmls(sender, seeds_count));
