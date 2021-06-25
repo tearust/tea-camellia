@@ -13,7 +13,7 @@ use frame_support::traits::{
 	ReservableCurrency,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use pallet_cml::{CmlId, CmlOperation};
+use pallet_cml::{CmlId, CmlOperation, TreeProperties};
 use pallet_utils::traits::CurrencyOperations;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Saturating},
@@ -212,16 +212,15 @@ pub mod auction {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let _cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
+			let cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
 			T::CmlOperation::check_belongs(&cml_id, &sender)?;
 
-			let _current_height = frame_system::Pallet::<T>::block_number();
+			let current_height = frame_system::Pallet::<T>::block_number();
 			// check cml status
-			// ensure!(
-			// 	// todo tree valid should plus auction window
-			// 	cml_item.seed_valid(&current_height)? || cml_item.tree_valid(&current_height)?,
-			// 	Error::<T>::NotAllowToAuction
-			// );
+			ensure!(
+				cml_item.is_seed() || cml_item.tree_valid(&current_height).unwrap_or(false),
+				Error::<T>::NotAllowToAuction
+			);
 
 			let auction_item =
 				Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
