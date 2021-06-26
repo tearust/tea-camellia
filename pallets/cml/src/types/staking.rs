@@ -3,6 +3,8 @@ use codec::{Decode, Encode};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
+pub type StakingIndex = u64;
+
 #[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
 pub enum StakingCategory {
 	Tea,

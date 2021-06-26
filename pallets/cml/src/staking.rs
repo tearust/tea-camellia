@@ -34,11 +34,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn check_seed_staking(
-		who: &T::AccountId,
 		cml_id: CmlId,
 		current_height: &T::BlockNumber,
 	) -> DispatchResult {
-		Self::check_belongs(&cml_id, who)?;
 		let cml = CmlStore::<T>::get(cml_id);
 		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
 		let cml = cml.unwrap();
@@ -59,15 +57,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 		cml_id: CmlId,
 		current_height: &T::BlockNumber,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
-		Self::check_belongs(&cml_id, who)?;
-
 		CmlStore::<T>::mutate(cml_id, |cml| match cml {
 			Some(cml) => {
-				ensure!(
-					cml.seed_valid(&current_height)?,
-					Error::<T>::ShouldStakingLiveTree
-				);
-				cml.convert_to_tree(&current_height)?;
+				if cml.is_seed() {
+					Self::seed_to_tree(cml, current_height)?;
+				}
 				Ok(())
 			}
 			None => Err(Error::<T>::NotFoundCML),

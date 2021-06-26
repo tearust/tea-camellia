@@ -496,7 +496,7 @@ fn start_mining_with_frozen_seed_works() {
 
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
-		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		assert!(cml.is_seed());
 		assert!(cml.can_be_defrost(&0).unwrap());
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -617,7 +617,7 @@ fn stop_mining_works() {
 
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
-		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];

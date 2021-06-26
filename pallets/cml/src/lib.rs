@@ -202,6 +202,7 @@ pub mod cml {
 	pub enum Event<T: Config> {
 		DrawCmls(T::AccountId, u64),
 		ActiveCml(T::AccountId, CmlId),
+		Staked(T::AccountId, CmlId, StakingIndex),
 	}
 
 	#[pallet::error]
@@ -225,6 +226,10 @@ pub mod cml {
 		InsufficientFreeBalance,
 		MinerAlreadyExist,
 		NotFoundMiner,
+
+		StakingIndexIsNone,
+		InvalidStakingIndex,
+		InvalidStakingOwner,
 
 		// from cml
 		SproutAtIsNone,
@@ -402,9 +407,11 @@ pub mod cml {
 			let current_block_number = frame_system::Pallet::<T>::block_number();
 			CmlStore::<T>::mutate(cml_id, |cml| match cml {
 				Some(cml) => {
-					cml.seed_valid(&current_block_number)?;
+					if cml.is_seed() {
+						cml.seed_valid(&current_block_number)?;
+						Self::seed_to_tree(cml, &current_block_number)?;
+					}
 
-					Self::seed_to_tree(cml, &current_block_number)?;
 					cml.start_mining(machine_id, staking_item)?;
 					Ok(())
 				}
@@ -434,6 +441,116 @@ pub mod cml {
 				None => Err(Error::<T>::NotFoundCML),
 			})?;
 			MinerItemStore::<T>::remove(machine_id);
+
+			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn start_staking(
+			sender: OriginFor<T>,
+			staking_to: CmlId,
+			staking_cml: Option<CmlId>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+			ensure!(
+				CmlStore::<T>::contains_key(staking_to),
+				Error::<T>::NotFoundCML
+			);
+			ensure!(
+				CmlStore::<T>::get(staking_to).unwrap().is_mining(),
+				Error::<T>::CmlIsNotMining,
+			);
+			let current_block_number = frame_system::Pallet::<T>::block_number();
+			match staking_cml {
+				Some(cml_id) => {
+					Self::check_belongs(&cml_id, &who)?;
+					Self::check_seed_staking(cml_id, &current_block_number)?;
+				}
+				None => Self::check_balance_staking(&who)?,
+			}
+
+			let staking_index: Option<StakingIndex> = CmlStore::<T>::mutate(staking_to, |cml| {
+				if let Some(staking_to) = cml {
+					return match staking_cml {
+						Some(cml_id) => {
+							CmlStore::<T>::mutate(cml_id, |cml| -> Option<StakingIndex> {
+								match cml {
+									Some(cml) => staking_to.stake(&who, None, Some(cml)).ok(),
+									None => None,
+								}
+							})
+						}
+						None => {
+							T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
+							staking_to
+								.stake::<CML<
+									T::AccountId,
+									T::BlockNumber,
+									BalanceOf<T>,
+									T::SeedRottenDuration,
+								>>(&who, Some(T::StakingPrice::get()), None)
+								.ok()
+						}
+					};
+				}
+				None
+			});
+			ensure!(staking_index.is_some(), Error::<T>::StakingIndexIsNone); // should never happen
+
+			Self::deposit_event(Event::Staked(who, staking_to, staking_index.unwrap()));
+			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn stop_staking(
+			sender: OriginFor<T>,
+			staking_to: CmlId,
+			staking_index: StakingIndex,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+			ensure!(
+				CmlStore::<T>::contains_key(staking_to),
+				Error::<T>::NotFoundCML
+			);
+			let cml = CmlStore::<T>::get(staking_to).unwrap();
+			ensure!(
+				cml.staking_slots().len() > staking_index as usize,
+				Error::<T>::InvalidStakingIndex,
+			);
+			let staking_item: &StakingItem<T::AccountId, BalanceOf<T>> = cml
+				.staking_slots()
+				.get(staking_index as usize)
+				.ok_or(Error::<T>::InvalidStakingIndex)?;
+			ensure!(staking_item.owner == who, Error::<T>::InvalidStakingOwner);
+			if let Some(cml_id) = staking_item.cml {
+				Self::check_belongs(&cml_id, &who)?;
+			}
+
+			CmlStore::<T>::mutate(staking_to, |cml| {
+				if let Some(staking_to) = cml {
+					let staking_item: &StakingItem<T::AccountId, BalanceOf<T>> = staking_to
+						.staking_slots()
+						.get(staking_index as usize)
+						.unwrap();
+
+					return match staking_item.cml {
+						Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| {
+							if let Some(cml) = cml {
+								staking_to.unstake(None, Some(cml))?;
+							}
+							Ok(())
+						}),
+						None => staking_to.unstake::<CML<
+							T::AccountId,
+							T::BlockNumber,
+							BalanceOf<T>,
+							T::SeedRottenDuration,
+						>>(Some(staking_index), None),
+					};
+				}
+				Ok(())
+			})
+			.map_err(|e| Error::<T>::from(e))?;
 
 			Ok(())
 		}

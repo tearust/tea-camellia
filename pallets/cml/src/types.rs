@@ -7,10 +7,10 @@ mod seeds;
 mod staking;
 mod vouchers;
 
-pub use cml::{CmlError, CmlId, CmlType, CML};
+pub use cml::{CmlError, CmlId, CmlStatus, CmlType, CML};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
-pub use staking::{StakingCategory, StakingItem};
+pub use staking::{StakingCategory, StakingIndex, StakingItem};
 pub use vouchers::{GenesisVouchers, Voucher, VoucherConfig};
 
 pub trait SeedProperties<BlockNumber> {
@@ -52,25 +52,37 @@ pub trait TreeProperties<AccountId, BlockNumber, Balance> {
 	fn owner(&self) -> Option<&AccountId>;
 }
 
-pub trait StakingProperties<AccountId, Balance> {
+pub trait StakingProperties<AccountId, BlockNumber, Balance>
+where
+	BlockNumber: Default + sp_runtime::traits::AtLeast32BitUnsigned + Clone,
+{
 	fn is_staking(&self) -> bool;
 
 	fn staking_slots(&self) -> &Vec<StakingItem<AccountId, Balance>>;
 
 	fn staking_slots_mut(&mut self) -> &mut Vec<StakingItem<AccountId, Balance>>;
 
-	fn stake<StakeTo, BlockNumber>(
+	fn stake<StakeEntity>(
 		&mut self,
-		stake_to: &mut StakeTo,
+		account: &AccountId,
 		amount: Option<Balance>,
-		cml: Option<CmlId>,
-	) -> Result<StakingItem<AccountId, Balance>, CmlError>
+		cml: Option<&mut StakeEntity>,
+	) -> Result<StakingIndex, CmlError>
 	where
-		StakeTo: StakingProperties<AccountId, Balance> + SeedProperties<BlockNumber>;
+		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
+			+ SeedProperties<BlockNumber>
+			+ UtilsProperties<BlockNumber>;
 
-	fn unstake<StakeTo, BlockNumber>(&mut self, stake_to: &mut StakeTo) -> Result<(), CmlError>
+	fn unstake<StakeEntity>(
+		&mut self,
+		index: Option<StakingIndex>,
+		cml: Option<&mut StakeEntity>,
+	) -> Result<(), CmlError>
 	where
-		StakeTo: StakingProperties<AccountId, Balance> + SeedProperties<BlockNumber>;
+		BlockNumber: Default + sp_runtime::traits::AtLeast32BitUnsigned + Clone,
+		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
+			+ TreeProperties<AccountId, BlockNumber, Balance>
+			+ UtilsProperties<BlockNumber>;
 }
 
 pub trait MiningProperties<AccountId, Balance> {
@@ -89,4 +101,13 @@ pub trait MiningProperties<AccountId, Balance> {
 	) -> Result<(), CmlError>;
 
 	fn stop_mining(&mut self) -> Result<(), CmlError>;
+}
+
+pub trait UtilsProperties<BlockNumber>
+where
+	BlockNumber: Default + sp_runtime::traits::AtLeast32BitUnsigned + Clone,
+{
+	fn status(&self) -> &CmlStatus<BlockNumber>;
+
+	fn try_to_convert(&mut self, to_status: CmlStatus<BlockNumber>) -> Result<(), CmlError>;
 }

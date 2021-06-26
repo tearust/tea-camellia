@@ -1,7 +1,7 @@
 use crate::param::{Performance, GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::{
-	MachineId, MiningProperties, Seed, SeedProperties, StakingCategory, StakingItem,
-	StakingProperties, TreeProperties,
+	MachineId, MiningProperties, Seed, SeedProperties, StakingCategory, StakingIndex, StakingItem,
+	StakingProperties, TreeProperties, UtilsProperties,
 };
 use codec::{Decode, Encode};
 use frame_support::sp_runtime::traits::AtLeast32BitUnsigned;
@@ -45,7 +45,7 @@ where
 	///
 	/// The first parameter is the CmlId staked to, and the second parameter is the index in staking
 	/// slot.
-	Staking(CmlId, u64),
+	Staking(CmlId, StakingIndex),
 }
 
 impl<BlockNumber> CmlStatus<BlockNumber>
@@ -154,15 +154,6 @@ where
 
 	pub fn set_owner(&mut self, account: &AccountId) {
 		self.owner = Some(account.clone());
-	}
-
-	pub fn try_to_convert(&mut self, to_status: CmlStatus<BlockNumber>) -> Result<(), CmlError> {
-		if !self.can_convert(&to_status) {
-			return Err(CmlError::CmlStatusConvertFailed);
-		}
-
-		self.status = to_status;
-		Ok(())
 	}
 }
 
@@ -277,7 +268,8 @@ where
 	}
 }
 
-impl<AccountId, BlockNumber, Balance, RottenDuration> StakingProperties<AccountId, Balance>
+impl<AccountId, BlockNumber, Balance, RottenDuration>
+	StakingProperties<AccountId, BlockNumber, Balance>
 	for CML<AccountId, BlockNumber, Balance, RottenDuration>
 where
 	AccountId: PartialEq + Clone,
@@ -300,55 +292,82 @@ where
 		self.staking_slot.as_mut()
 	}
 
-	fn stake<StakeTo, StakeBlockNumber>(
+	fn stake<StakeEntity>(
 		&mut self,
-		stake_to: &mut StakeTo,
+		account: &AccountId,
 		amount: Option<Balance>,
-		cml: Option<CmlId>,
-	) -> Result<StakingItem<AccountId, Balance>, CmlError>
+		cml: Option<&mut StakeEntity>,
+	) -> Result<StakingIndex, CmlError>
 	where
-		StakeTo: StakingProperties<AccountId, Balance> + SeedProperties<StakeBlockNumber>,
+		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
+			+ SeedProperties<BlockNumber>
+			+ UtilsProperties<BlockNumber>,
 	{
 		if (amount.is_some() && cml.is_some()) || (amount.is_none() && cml.is_none()) {
 			return Err(CmlError::ConfusedStakingType);
 		}
 
+		let staking_index = self.staking_slots().len() as StakingIndex;
+
 		let staking_item = StakingItem {
-			owner: self.owner().ok_or(CmlError::CmlOwnerIsNone)?.clone(),
+			owner: account.clone(),
 			category: if amount.is_some() {
 				StakingCategory::Tea
 			} else {
 				StakingCategory::Cml
 			},
 			amount,
-			cml,
+			cml: cml.as_ref().map(|cml| cml.id()),
 		};
-		stake_to.staking_slots_mut().push(staking_item.clone());
-		self.try_to_convert(CmlStatus::Staking(
-			stake_to.id(),
-			stake_to.staking_slots().len() as u64 - 1,
-		))?;
+		if let Some(cml) = cml {
+			cml.try_to_convert(CmlStatus::Staking(self.id(), staking_index))?;
+		}
+		self.staking_slots_mut().push(staking_item.clone());
 
-		Ok(staking_item)
+		Ok(staking_index)
 	}
 
-	fn unstake<StakeTo, StakeBlockNumber>(&mut self, stake_to: &mut StakeTo) -> Result<(), CmlError>
+	fn unstake<StakeEntity>(
+		&mut self,
+		index: Option<StakingIndex>,
+		cml: Option<&mut StakeEntity>,
+	) -> Result<(), CmlError>
 	where
-		StakeTo: StakingProperties<AccountId, Balance> + SeedProperties<StakeBlockNumber>,
+		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
+			+ TreeProperties<AccountId, BlockNumber, Balance>
+			+ UtilsProperties<BlockNumber>,
 	{
-		match self.status {
-			CmlStatus::Staking(_, staking_index) => {
-				let staking_item = stake_to.staking_slots_mut().remove(staking_index as usize);
-				if !staking_item
-					.owner
-					.eq(self.owner.as_ref().ok_or(CmlError::CmlOwnerIsNone)?)
-				{
-					return Err(CmlError::UnstakingSlotOwnerMismatch);
-				}
-				Ok(())
-			}
-			_ => Err(CmlError::CmlIsNotStaking),
+		if !self.is_mining() {
+			return Err(CmlError::CmlIsNotMining);
 		}
+		if (index.is_some() && cml.is_some()) || (index.is_none() && cml.is_none()) {
+			return Err(CmlError::ConfusedStakingType);
+		}
+		if cml.is_some() && !cml.as_ref().unwrap().is_staking() {
+			return Err(CmlError::CmlIsNotStaking);
+		}
+
+		if let Some(index) = index {
+			let _ = self.staking_slots_mut().remove(index as usize);
+		}
+
+		if let Some(cml) = cml {
+			match cml.status() {
+				CmlStatus::Staking(_, staking_index) => {
+					let staking_item = self.staking_slots_mut().remove(*staking_index as usize);
+					if !staking_item
+						.owner
+						.eq(cml.owner().ok_or(CmlError::CmlOwnerIsNone)?)
+					{
+						return Err(CmlError::UnstakingSlotOwnerMismatch);
+					}
+					cml.try_to_convert(CmlStatus::Tree)?;
+				}
+				_ => {} // should never happen
+			}
+		}
+
+		Ok(())
 	}
 }
 
@@ -406,6 +425,28 @@ where
 
 		self.machine_id = None;
 		self.staking_slot.clear();
+		Ok(())
+	}
+}
+
+impl<AccountId, BlockNumber, Balance, RottenDuration> UtilsProperties<BlockNumber>
+	for CML<AccountId, BlockNumber, Balance, RottenDuration>
+where
+	AccountId: PartialEq + Clone,
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	Balance: Clone,
+	RottenDuration: Get<BlockNumber>,
+{
+	fn status(&self) -> &CmlStatus<BlockNumber> {
+		&self.status
+	}
+
+	fn try_to_convert(&mut self, to_status: CmlStatus<BlockNumber>) -> Result<(), CmlError> {
+		if !self.can_convert(&to_status) {
+			return Err(CmlError::CmlStatusConvertFailed);
+		}
+
+		self.status = to_status;
 		Ok(())
 	}
 }
