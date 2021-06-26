@@ -565,6 +565,38 @@ fn start_mining_with_same_machine_id_should_fail() {
 }
 
 #[test]
+fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+
+		let cml1_id: CmlId = 4;
+		let mut cml1 = CML::from_genesis_seed(new_genesis_seed(cml1_id));
+		cml1.defrost(&0).unwrap();
+		cml1.convert_to_tree(&0).unwrap();
+
+		UserCmlStore::<Test>::insert(1, cml1_id, ());
+		CmlStore::<Test>::insert(cml1_id, cml1);
+
+		let machine_id_1: MachineId = [1u8; 32];
+		let miner_ip_1 = b"miner_ip_1".to_vec();
+		let machine_id_2: MachineId = [2u8; 32];
+		let miner_ip_2 = b"miner_ip_2".to_vec();
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml1_id,
+			machine_id_1,
+			miner_ip_1.clone()
+		));
+
+		assert_noop!(
+			Cml::start_mining(Origin::signed(1), cml1_id, machine_id_2, miner_ip_2.clone()),
+			Error::<Test>::MinerAlreadyExist
+		);
+	})
+}
+
+#[test]
 fn start_mining_with_multiple_times_should_fail() {
 	new_test_ext().execute_with(|| {
 		let amount = 100 * 1000; // Unit * StakingPrice
