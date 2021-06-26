@@ -224,6 +224,7 @@ pub mod cml {
 		ShouldStakingLiveTree,
 
 		InsufficientFreeBalance,
+		InsufficientReservedBalance,
 		MinerAlreadyExist,
 		NotFoundMiner,
 
@@ -475,7 +476,12 @@ pub mod cml {
 						Some(cml_id) => {
 							CmlStore::<T>::mutate(cml_id, |cml| -> Option<StakingIndex> {
 								match cml {
-									Some(cml) => staking_to.stake(&who, None, Some(cml)).ok(),
+									Some(cml) => {
+										if cml.is_seed() {
+											Self::seed_to_tree(cml, &current_block_number).unwrap();
+										}
+										staking_to.stake(&who, None, Some(cml)).ok()
+									}
 									None => None,
 								}
 							})
@@ -524,6 +530,11 @@ pub mod cml {
 			ensure!(staking_item.owner == who, Error::<T>::InvalidStakingOwner);
 			if let Some(cml_id) = staking_item.cml {
 				Self::check_belongs(&cml_id, &who)?;
+			} else {
+				ensure!(
+					T::CurrencyOperations::reserved_balance(&who) >= T::StakingPrice::get(),
+					Error::<T>::InsufficientReservedBalance
+				);
 			}
 
 			CmlStore::<T>::mutate(staking_to, |cml| {
@@ -540,12 +551,15 @@ pub mod cml {
 							}
 							Ok(())
 						}),
-						None => staking_to.unstake::<CML<
-							T::AccountId,
-							T::BlockNumber,
-							BalanceOf<T>,
-							T::SeedRottenDuration,
-						>>(Some(staking_index), None),
+						None => {
+							T::CurrencyOperations::unreserve(&who, T::StakingPrice::get()).unwrap();
+							staking_to.unstake::<CML<
+								T::AccountId,
+								T::BlockNumber,
+								BalanceOf<T>,
+								T::SeedRottenDuration,
+							>>(Some(staking_index), None)
+						}
 					};
 				}
 				Ok(())
