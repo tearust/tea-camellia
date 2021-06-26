@@ -4,21 +4,24 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 	type AccountId = T::AccountId;
 	type Balance = BalanceOf<T>;
 	type BlockNumber = T::BlockNumber;
+	type RottenDuration = T::SeedRottenDuration;
 
 	fn get_cml_by_id(
 		cml_id: &CmlId,
-	) -> Result<CML<Self::AccountId, Self::BlockNumber, Self::Balance>, DispatchError> {
+	) -> Result<
+		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::RottenDuration>,
+		DispatchError,
+	> {
 		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 		Ok(CmlStore::<T>::get(cml_id).unwrap())
 	}
 
-	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> Result<(), DispatchError> {
+	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> DispatchResult {
+		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 		ensure!(
-			UserCmlStore::<T>::contains_key(who),
+			UserCmlStore::<T>::contains_key(who, cml_id),
 			Error::<T>::CMLOwnerInvalid
 		);
-		let user_cml = UserCmlStore::<T>::get(&who).unwrap();
-		ensure!(user_cml.contains(cml_id), Error::<T>::CMLOwnerInvalid);
 		Ok(())
 	}
 
@@ -27,45 +30,29 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
 	) -> Result<(), DispatchError> {
-		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 		ensure!(
-			UserCmlStore::<T>::contains_key(from_account),
+			UserCmlStore::<T>::contains_key(from_account, cml_id),
 			Error::<T>::CMLOwnerInvalid
 		);
 
-		let mut cml = CmlStore::<T>::get(&cml_id).unwrap();
-		let user_cml = UserCmlStore::<T>::get(&from_account).unwrap();
-		let from_index = user_cml.iter().position(|x| *x == *cml_id);
-		ensure!(from_index.is_some(), Error::<T>::CMLOwnerInvalid);
-		let from_index = from_index.unwrap();
+		CmlStore::<T>::mutate(&cml_id, |cml| -> DispatchResult {
+			match cml {
+				Some(cml) => {
+					if cml.is_mining() {
+						let staking_item = Self::create_balance_staking(target_account)?;
+						cml.swap_first_slot(staking_item);
 
-		Self::check_miner_staking_slot(&cml)?;
-
-		if cml.status == CmlStatus::Tree {
-			let staking_item = Self::create_balance_staking(target_account)?;
-			if let Some(first_slot) = cml.staking_slot.first_mut() {
-				*first_slot = staking_item;
+						// TODO balance
+					}
+					Ok(())
+				}
+				None => Err(Error::<T>::NotFoundCML.into()),
 			}
-			Self::update_cml(cml);
-
-			// TODO balance
-		}
+		})?;
 
 		// remove from from UserCmlStore
-		UserCmlStore::<T>::mutate(&from_account, |maybe_list| {
-			if let Some(list) = maybe_list {
-				list.remove(from_index);
-			}
-		});
-
-		// add to target UserCmlStore
-		UserCmlStore::<T>::mutate(&target_account, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				list.push(*cml_id);
-			} else {
-				*maybe_list = Some(vec![*cml_id]);
-			}
-		});
+		UserCmlStore::<T>::remove(from_account, cml_id);
+		UserCmlStore::<T>::insert(target_account, cml_id, ());
 
 		Ok(())
 	}
@@ -77,6 +64,21 @@ impl<T: cml::Config> cml::Pallet<T> {
 		LastCmlId::<T>::mutate(|id| *id += 1);
 
 		cid
+	}
+
+	pub fn seed_to_tree(
+		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedRottenDuration>,
+		height: &T::BlockNumber,
+	) -> Result<(), Error<T>> {
+		if cml.is_frozen_seed() {
+			cml.defrost(height)?;
+		}
+
+		if cml.is_fresh_seed() {
+			cml.convert_to_tree(height)?;
+		}
+
+		Ok(())
 	}
 
 	pub fn set_voucher(
@@ -102,45 +104,21 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 	}
 
-	pub fn add_cml(who: &T::AccountId, cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>>) {
-		CmlStore::<T>::insert(cml.id(), cml.clone());
-
-		if UserCmlStore::<T>::contains_key(&who) {
-			let mut list = UserCmlStore::<T>::take(&who).unwrap();
-			list.insert(0, cml.id());
-			UserCmlStore::<T>::insert(&who, list);
-		} else {
-			UserCmlStore::<T>::insert(&who, vec![cml.id()]);
-		}
+	pub fn add_cml(
+		who: &T::AccountId,
+		cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedRottenDuration>,
+	) {
+		let cml_id = cml.id();
+		CmlStore::<T>::insert(cml_id, cml);
+		UserCmlStore::<T>::insert(who, cml_id, ());
 	}
 
-	pub fn update_cml(cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>>) {
-		CmlStore::<T>::mutate(cml.id(), |maybe_item| {
-			if let Some(ref mut item) = maybe_item {
-				*item = cml;
-			}
-		});
+	pub(crate) fn is_voucher_outdated(block_number: T::BlockNumber) -> bool {
+		block_number > T::VoucherTimoutHeight::get()
 	}
 
-	pub fn update_cml_to_active(
-		cml_id: &CmlId,
-		machine_id: MachineId,
-		staking_item: StakingItem<T::AccountId, BalanceOf<T>>,
-		block_number: T::BlockNumber,
-	) -> Result<(), DispatchError> {
-		let mut cml = Self::get_cml_by_id(&cml_id)?;
-		cml.status = CmlStatus::Tree;
-		cml.machine_id = Some(machine_id);
-		cml.staking_slot.push(staking_item);
-		cml.planted_at = block_number;
-
-		Self::update_cml(cml);
-
-		Ok(())
-	}
-
-	pub(crate) fn try_clean_outdated_seeds(block_number: T::BlockNumber) {
-		if block_number < T::TimoutHeight::get() {
+	pub(crate) fn try_clean_outdated_vouchers(block_number: T::BlockNumber) {
+		if !Self::is_voucher_outdated(block_number) {
 			return;
 		}
 
@@ -155,20 +133,18 @@ impl<T: cml::Config> cml::Pallet<T> {
 		LuckyDrawBox::<T>::mutate(CmlType::B, DefrostScheduleType::Team, remove_handler);
 		LuckyDrawBox::<T>::mutate(CmlType::C, DefrostScheduleType::Investor, remove_handler);
 		LuckyDrawBox::<T>::mutate(CmlType::C, DefrostScheduleType::Team, remove_handler);
+
+		InvestorVoucherStore::<T>::remove_all();
+		TeamVoucherStore::<T>::remove_all();
 	}
 
 	pub(crate) fn try_kill_cml(block_number: T::BlockNumber) -> Vec<CmlId> {
 		let dead_cmls: Vec<CmlId> = CmlStore::<T>::iter()
-			.filter(|(_, cml)| cml.should_dead(block_number))
+			// todo change should_dead error handling method if needed later
+			.filter(|(_, cml)| cml.should_dead(&block_number).unwrap())
 			.map(|(id, cml)| match cml.owner() {
 				Some(owner) => {
-					UserCmlStore::<T>::mutate(owner, |ids| {
-						if let Some(ids) = ids {
-							if let Some(index) = ids.iter().position(|v| *v == id) {
-								ids.remove(index);
-							}
-						}
-					});
+					UserCmlStore::<T>::remove(owner, id);
 					Some(id)
 				}
 				None => {
@@ -270,42 +246,38 @@ impl<T: cml::Config> cml::Pallet<T> {
 		div_mod.as_u32()
 	}
 
-	pub(crate) fn init_miner_item(machine_id: MachineId, miner_ip: Vec<u8>) -> DispatchResult {
-		ensure!(
-			!<MinerItemStore<T>>::contains_key(&machine_id),
-			Error::<T>::MinerAlreadyExist
-		);
-
+	pub(crate) fn init_miner_item(machine_id: MachineId, miner_ip: Vec<u8>) {
 		let miner_item = MinerItem {
 			id: machine_id.clone(),
 			ip: miner_ip,
 			status: MinerStatus::Active,
 		};
 		MinerItemStore::<T>::insert(&machine_id, miner_item);
-		Ok(())
 	}
 }
 
-pub fn convert_seeds_to_cmls<AccountId, BlockNumber, Balance>(
+pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber, Balance, RottenDuration>(
 	seeds: &Vec<Seed>,
 ) -> (
-	Vec<CML<AccountId, BlockNumber, Balance>>,
+	Vec<CML<AccountId, BlockNumber, Balance, RottenDuration>>,
 	Vec<CmlId>,
 	Vec<CmlId>,
 )
 where
-	AccountId: Clone,
+	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	Balance: Clone,
+	RottenDuration: Get<BlockNumber>,
 {
 	let mut cml_list = Vec::new();
 	let mut investor_draw_box = Vec::new();
 	let mut team_draw_box = Vec::new();
 
 	for seed in seeds {
-		let cml = CML::new(seed.clone());
+		let cml = CML::from_genesis_seed(seed.clone());
 
 		cml_list.push(cml);
-		match seed.defrost_schedule {
+		match seed.defrost_schedule.unwrap() {
 			DefrostScheduleType::Investor => investor_draw_box.push(seed.id),
 			DefrostScheduleType::Team => team_draw_box.push(seed.id),
 		}
@@ -316,10 +288,9 @@ where
 
 #[cfg(test)]
 mod tests {
-	use crate::seeds::DefrostScheduleType;
 	use crate::{
-		mock::*, CmlId, CmlStatus, CmlStore, CmlType, LuckyDrawBox, Seed, StakingCategory,
-		StakingItem, UserCmlStore, CML,
+		mock::*, CmlId, CmlStore, CmlType, DefrostScheduleType, InvestorVoucherStore, LuckyDrawBox,
+		Seed, SeedProperties, TeamVoucherStore, TreeProperties, UserCmlStore, CML,
 	};
 	use rand::{thread_rng, Rng};
 
@@ -438,7 +409,7 @@ mod tests {
 	}
 
 	#[test]
-	fn try_clean_outdated_seeds_works() {
+	fn try_clean_outdated_vouchers_works() {
 		new_test_ext().execute_with(|| {
 			let origin_investor_a_box: Vec<u64> = (1..=10).collect();
 			let origin_investor_b_box: Vec<u64> = (11..=20).collect();
@@ -478,25 +449,43 @@ mod tests {
 				origin_team_c_box.clone(),
 			);
 			for id in origin_investor_a_box.iter() {
-				CmlStore::<Test>::insert(id, CML::new(default_seed(DefrostScheduleType::Investor)));
+				CmlStore::<Test>::insert(
+					id,
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Investor)),
+				);
 			}
 			for id in origin_investor_b_box.iter() {
-				CmlStore::<Test>::insert(id, CML::new(default_seed(DefrostScheduleType::Investor)));
+				CmlStore::<Test>::insert(
+					id,
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Investor)),
+				);
 			}
 			for id in origin_investor_c_box.iter() {
-				CmlStore::<Test>::insert(id, CML::new(default_seed(DefrostScheduleType::Investor)));
+				CmlStore::<Test>::insert(
+					id,
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Investor)),
+				);
 			}
 			for id in origin_team_a_box.iter() {
-				CmlStore::<Test>::insert(id, CML::new(default_seed(DefrostScheduleType::Team)));
+				CmlStore::<Test>::insert(
+					id,
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Team)),
+				);
 			}
 			for id in origin_team_b_box.iter() {
-				CmlStore::<Test>::insert(id, CML::new(default_seed(DefrostScheduleType::Team)));
+				CmlStore::<Test>::insert(
+					id,
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Team)),
+				);
 			}
 			for id in origin_team_c_box.iter() {
-				CmlStore::<Test>::insert(id, CML::new(default_seed(DefrostScheduleType::Team)));
+				CmlStore::<Test>::insert(
+					id,
+					CML::from_genesis_seed(default_genesis_seed(DefrostScheduleType::Team)),
+				);
 			}
 
-			Cml::try_clean_outdated_seeds((SEEDS_TIMEOUT_HEIGHT - 1) as u64);
+			Cml::try_clean_outdated_vouchers(SEEDS_TIMEOUT_HEIGHT as u64);
 			assert_eq!(
 				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).len(),
 				10
@@ -522,7 +511,7 @@ mod tests {
 				10
 			); // not cleaned yet
 
-			Cml::try_clean_outdated_seeds(SEEDS_TIMEOUT_HEIGHT as u64);
+			Cml::try_clean_outdated_vouchers(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
 			assert_eq!(
 				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).len(),
 				0
@@ -566,6 +555,9 @@ mod tests {
 			for id in origin_team_c_box.iter() {
 				assert!(!CmlStore::<Test>::contains_key(id));
 			}
+
+			assert_eq!(InvestorVoucherStore::<Test>::iter().count(), 0);
+			assert_eq!(TeamVoucherStore::<Test>::iter().count(), 0);
 		})
 	}
 
@@ -584,22 +576,22 @@ mod tests {
 				let plant_time = rng.gen_range(START_HEIGHT..STOP_HEIGHT);
 				let lifespan = rng.gen_range(START_HEIGHT..STOP_HEIGHT) as u32;
 
-				let mut cml = CML::new(seed_from_lifespan(lifespan, DefrostScheduleType::Team));
-				cml.status = CmlStatus::Tree;
-				cml.planted_at = plant_time;
-				cml.staking_slot.push(StakingItem {
-					owner: user_id,
-					category: StakingCategory::Cml,
-					amount: None,
-					cml: None,
-				});
+				let mut cml = CML::from_genesis_seed(seed_from_lifespan(
+					i as u64,
+					lifespan,
+					DefrostScheduleType::Team,
+				));
+				cml.defrost(&0).unwrap();
+				cml.set_owner(&user_id);
+				cml.convert_to_tree(&plant_time).unwrap();
 
-				CmlStore::<Test>::insert(i as CmlId, cml);
-				UserCmlStore::<Test>::mutate(user_id, |ids| match ids {
-					Some(ids) => ids.push(i as CmlId),
-					None => *ids = Some(vec![i as CmlId]),
-				});
+				CmlStore::<Test>::insert(cml.id(), cml);
+				UserCmlStore::<Test>::insert(user_id, i as CmlId, ());
 			}
+
+			CmlStore::<Test>::iter().for_each(|(_, cml)| {
+				assert!(cml.should_dead(&(STOP_HEIGHT * 2)).unwrap());
+			});
 
 			for i in START_HEIGHT..=(STOP_HEIGHT * 2) {
 				let count_before = CmlStore::<Test>::iter().count();
@@ -611,27 +603,25 @@ mod tests {
 				assert_eq!(count_before, dead_cmls.len() + count_after);
 			}
 
-			assert_eq!(0, CmlStore::<Test>::iter().count());
-			for i in START_USER_ID..=STOP_USER_ID {
-				let cml_list = UserCmlStore::<Test>::get(i);
-				assert!(cml_list.is_none() || cml_list.unwrap().is_empty());
-			}
+			assert_eq!(CmlStore::<Test>::iter().count(), 0);
+			assert_eq!(UserCmlStore::<Test>::iter().count(), 0);
 		})
 	}
 
-	fn default_seed(schedule_type: DefrostScheduleType) -> Seed {
+	fn default_genesis_seed(schedule_type: DefrostScheduleType) -> Seed {
 		Seed {
 			id: 0,
 			cml_type: CmlType::A,
-			defrost_schedule: schedule_type,
-			defrost_time: 0,
+			defrost_schedule: Some(schedule_type),
+			defrost_time: Some(0),
 			lifespan: 0,
 			performance: 0,
 		}
 	}
 
-	fn seed_from_lifespan(lifespan: u32, schedule_type: DefrostScheduleType) -> Seed {
-		let mut seed = default_seed(schedule_type);
+	fn seed_from_lifespan(id: CmlId, lifespan: u32, schedule_type: DefrostScheduleType) -> Seed {
+		let mut seed = default_genesis_seed(schedule_type);
+		seed.id = id;
 		seed.lifespan = lifespan;
 		seed
 	}

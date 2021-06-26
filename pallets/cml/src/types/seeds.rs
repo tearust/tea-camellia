@@ -11,8 +11,8 @@ use sp_std::prelude::*;
 pub struct Seed {
 	pub id: CmlId, //seq id starting from 0, this is also the camellia id.
 	pub cml_type: CmlType,
-	pub defrost_schedule: DefrostScheduleType,
-	pub defrost_time: BlockNumber,
+	pub defrost_schedule: Option<DefrostScheduleType>,
+	pub defrost_time: Option<BlockNumber>,
 	pub lifespan: BlockNumber,
 	pub performance: Performance,
 }
@@ -31,10 +31,23 @@ impl Seed {
 		Seed {
 			id,
 			cml_type,
-			defrost_schedule,
-			defrost_time,
+			defrost_schedule: Some(defrost_schedule),
+			defrost_time: Some(defrost_time),
 			lifespan,
 			performance,
+		}
+	}
+}
+
+impl Default for Seed {
+	fn default() -> Self {
+		Seed {
+			id: 0,
+			cml_type: CmlType::C,
+			defrost_schedule: None,
+			defrost_time: None,
+			lifespan: 0,
+			performance: 0,
 		}
 	}
 }

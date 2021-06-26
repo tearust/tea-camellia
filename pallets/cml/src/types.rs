@@ -1,131 +1,92 @@
-// use super::*;
-use codec::{Decode, Encode};
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-
-pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
-use sp_runtime::traits::AtLeast32BitUnsigned;
-use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
-pub use vouchers::{GenesisVouchers, VoucherConfig};
 
+mod cml;
+mod miner;
 pub mod param;
-pub mod seeds;
-pub mod vouchers;
+mod seeds;
+mod staking;
+mod vouchers;
 
-pub type CmlId = u64;
+pub use cml::{CmlError, CmlId, CmlType, CML};
+pub use miner::{MachineId, MinerItem, MinerStatus};
+pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
+pub use staking::{StakingCategory, StakingItem};
+pub use vouchers::{GenesisVouchers, Voucher, VoucherConfig};
 
-pub type MachineId = [u8; 32];
+pub trait SeedProperties<BlockNumber> {
+	fn id(&self) -> CmlId;
 
-#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum CmlType {
-	A,
-	B,
-	C,
-}
+	fn is_seed(&self) -> bool;
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
-pub struct Voucher {
-	pub amount: u32,
-	pub cml_type: CmlType,
-}
+	fn is_frozen_seed(&self) -> bool;
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
-pub enum CmlStatus {
-	Seed,
-	SeedStaking,
-	Tree,
-}
+	fn is_fresh_seed(&self) -> bool;
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
-pub enum MinerStatus {
-	Active,
-	Offline,
-	// ...
-}
+	fn can_be_defrost(&self, height: &BlockNumber) -> Result<bool, CmlError>;
 
-#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
-pub enum CmlGroup {
-	Nitro,
-	Tpm,
-}
+	fn defrost(&mut self, height: &BlockNumber) -> Result<(), CmlError>;
 
-#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
-pub enum StakingCategory {
-	Tea,
-	Cml,
-}
+	fn get_sprout_at(&self) -> Option<&BlockNumber>;
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingItem<AccountId, Balance> {
-	pub owner: AccountId,
-	pub category: StakingCategory,
-	pub amount: Option<Balance>,
-	pub cml: Option<CmlId>,
-}
+	fn get_rotten_duration(&self) -> BlockNumber;
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct MinerItem {
-	pub id: MachineId,
-	pub ip: Vec<u8>,
-	pub status: MinerStatus,
-}
+	fn convert_to_tree(&mut self, height: &BlockNumber) -> Result<(), CmlError>;
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct CML<AccountId, BlockNumber, Balance>
-where
-	AccountId: Clone,
-	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
-{
-	pub intrinsic: Seed,
-	pub group: CmlGroup,
-	pub status: CmlStatus,
-	pub mining_rate: u8, // 8 - 12, default 10
-	pub staking_slot: Vec<StakingItem<AccountId, Balance>>,
-	pub planted_at: BlockNumber,
-	pub machine_id: Option<MachineId>,
-}
+	/// rotten happens when a `FreshSeed` not planted after a certain period.
+	fn has_rotten(&self, height: &BlockNumber) -> Result<bool, CmlError>;
 
-impl<AccountId, BlockNumber, Balance> CML<AccountId, BlockNumber, Balance>
-where
-	AccountId: Clone,
-	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
-{
-	pub(crate) fn new(intrinsic: Seed) -> Self {
-		CML {
-			intrinsic,
-			group: CmlGroup::Nitro, // todo init from intrinsic
-			status: CmlStatus::Seed,
-			mining_rate: 10,
-			staking_slot: vec![],
-			planted_at: BlockNumber::default(),
-			machine_id: None,
-		}
+	fn seed_valid(&self, height: &BlockNumber) -> Result<bool, CmlError> {
+		Ok(self.can_be_defrost(height)? || !self.has_rotten(height)?)
 	}
 
-	pub fn id(&self) -> CmlId {
-		self.intrinsic.id
-	}
+	fn is_from_genesis(&self) -> bool;
+}
 
-	pub fn should_dead(&self, height: BlockNumber) -> bool {
-		self.status == CmlStatus::Tree
-			&& height > self.planted_at.clone() + self.intrinsic.lifespan.into()
-	}
+pub trait TreeProperties<AccountId, BlockNumber, Balance> {
+	fn get_plant_at(&self) -> Option<&BlockNumber>;
 
-	pub fn should_defrost(&self, height: BlockNumber) -> bool {
-		height > self.intrinsic.defrost_time.into()
-	}
+	fn tree_valid(&self, height: &BlockNumber) -> Result<bool, CmlError>;
 
-	pub fn owner(&self) -> Option<AccountId> {
-		self.staking_slot.get(0).map(|slot| slot.owner.clone())
-	}
+	fn should_dead(&self, height: &BlockNumber) -> Result<bool, CmlError>;
 
-	pub fn seed_valid(&self, height: BlockNumber) -> bool {
-		self.status == CmlStatus::Seed && self.should_defrost(height)
-	}
+	fn owner(&self) -> Option<&AccountId>;
+}
 
-	pub fn tree_valid(&self, height: BlockNumber) -> bool {
-		self.status == CmlStatus::Tree && !self.should_dead(height)
-	}
+pub trait StakingProperties<AccountId, Balance> {
+	fn is_staking(&self) -> bool;
+
+	fn staking_slots(&self) -> &Vec<StakingItem<AccountId, Balance>>;
+
+	fn staking_slots_mut(&mut self) -> &mut Vec<StakingItem<AccountId, Balance>>;
+
+	fn stake<StakeTo, BlockNumber>(
+		&mut self,
+		stake_to: &mut StakeTo,
+		amount: Option<Balance>,
+		cml: Option<CmlId>,
+	) -> Result<StakingItem<AccountId, Balance>, CmlError>
+	where
+		StakeTo: StakingProperties<AccountId, Balance> + SeedProperties<BlockNumber>;
+
+	fn unstake<StakeTo, BlockNumber>(&mut self, stake_to: &mut StakeTo) -> Result<(), CmlError>
+	where
+		StakeTo: StakingProperties<AccountId, Balance> + SeedProperties<BlockNumber>;
+}
+
+pub trait MiningProperties<AccountId, Balance> {
+	fn is_mining(&self) -> bool;
+
+	fn machine_id(&self) -> Option<&MachineId>;
+
+	fn get_performance(&self) -> param::Performance;
+
+	fn swap_first_slot(&mut self, staking_item: StakingItem<AccountId, Balance>);
+
+	fn start_mining(
+		&mut self,
+		machine_id: MachineId,
+		staking_item: StakingItem<AccountId, Balance>,
+	) -> Result<(), CmlError>;
+
+	fn stop_mining(&mut self) -> Result<(), CmlError>;
 }

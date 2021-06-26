@@ -58,22 +58,25 @@ impl system::Config for Test {
 
 pub const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
 pub const STAKING_PERIOD_LENGTH: u32 = 100;
+pub const SEED_ROTTEN_DURATION: u32 = 7 * 24 * 60 * 10;
 
 parameter_types! {
 	pub const MinRaPassedThreshold: u32 = 3;
 	pub const StakingPrice: Balance = 1000;
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
+	pub const SeedRottenDuration: u32 = SEED_ROTTEN_DURATION;
 }
 
 impl pallet_cml::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
-	type TimoutHeight = SeedsTimeoutHeight;
+	type VoucherTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
+	type SeedRottenDuration = SeedRottenDuration;
 }
 
 impl pallet_utils::Config for Test {

@@ -1,8 +1,15 @@
-use crate::{CmlType, DefrostScheduleType, Voucher};
+use crate::{CmlType, DefrostScheduleType};
 use codec::{Decode, Encode};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
+
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+pub struct Voucher {
+	pub amount: u32,
+	pub cml_type: CmlType,
+}
 
 #[derive(Encode, Decode, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

@@ -1,5 +1,5 @@
 use crate::param::{BLOCKS_IN_A_DAY, BLOCKS_IN_A_MONTH};
-use crate::seeds::DefrostScheduleType;
+use crate::DefrostScheduleType;
 use node_primitives::BlockNumber;
 use rand::{thread_rng, Rng};
 

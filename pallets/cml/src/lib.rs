@@ -45,7 +45,9 @@ pub mod cml {
 
 		/// The latest block height to draw seeds use voucher, after this block height the left
 		/// seeds shall be destroyed.
-		type TimoutHeight: Get<Self::BlockNumber>;
+		type VoucherTimoutHeight: Get<Self::BlockNumber>;
+
+		type SeedRottenDuration: Get<Self::BlockNumber>;
 
 		type StakingPeriodLength: Get<Self::BlockNumber>;
 
@@ -68,12 +70,17 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn cml_store)]
-	pub type CmlStore<T: Config> =
-		StorageMap<_, Twox64Concat, CmlId, CML<T::AccountId, T::BlockNumber, BalanceOf<T>>>;
+	pub type CmlStore<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		CmlId,
+		CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedRottenDuration>,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_cml_store)]
-	pub type UserCmlStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<CmlId>>;
+	pub type UserCmlStore<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlId, ()>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn investor_user_store)]
@@ -117,7 +124,7 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			use crate::functions::convert_seeds_to_cmls;
+			use crate::functions::convert_genesis_seeds_to_cmls;
 
 			self.genesis_vouchers
 				.vouchers
@@ -138,18 +145,24 @@ pub mod cml {
 					}
 				});
 
-			let (a_cml_list, investor_a_draw_box, team_a_draw_box) =
-				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
-					&self.genesis_seeds.a_seeds,
-				);
-			let (b_cml_list, investor_b_draw_box, team_b_draw_box) =
-				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
-					&self.genesis_seeds.b_seeds,
-				);
-			let (c_cml_list, investor_c_draw_box, team_c_draw_box) =
-				convert_seeds_to_cmls::<T::AccountId, T::BlockNumber, BalanceOf<T>>(
-					&self.genesis_seeds.c_seeds,
-				);
+			let (a_cml_list, investor_a_draw_box, team_a_draw_box) = convert_genesis_seeds_to_cmls::<
+				T::AccountId,
+				T::BlockNumber,
+				BalanceOf<T>,
+				T::SeedRottenDuration,
+			>(&self.genesis_seeds.a_seeds);
+			let (b_cml_list, investor_b_draw_box, team_b_draw_box) = convert_genesis_seeds_to_cmls::<
+				T::AccountId,
+				T::BlockNumber,
+				BalanceOf<T>,
+				T::SeedRottenDuration,
+			>(&self.genesis_seeds.b_seeds);
+			let (c_cml_list, investor_c_draw_box, team_c_draw_box) = convert_genesis_seeds_to_cmls::<
+				T::AccountId,
+				T::BlockNumber,
+				BalanceOf<T>,
+				T::SeedRottenDuration,
+			>(&self.genesis_seeds.c_seeds);
 			LuckyDrawBox::<T>::insert(
 				CmlType::A,
 				DefrostScheduleType::Investor,
@@ -200,14 +213,34 @@ pub mod cml {
 		DrawBoxNotInitialized,
 		NotEnoughDrawSeeds,
 		SeedsNotOutdatedYet,
+		VouchersHasOutdated,
 		NoNeedToCleanOutdatedSeeds,
 
 		NotFoundCML,
 		CMLNotLive,
 		CMLOwnerInvalid,
-		ShouldStakingLiveSeed,
+		SeedIsRotten,
+		ShouldStakingLiveTree,
 
+		InsufficientFreeBalance,
 		MinerAlreadyExist,
+		NotFoundMiner,
+
+		// from cml
+		SproutAtIsNone,
+		PlantAtIsNone,
+		DefrostTimeIsNone,
+		DefrostFailed,
+		CmlStatusConvertFailed,
+		NotValidFreshSeed,
+		SlotShouldBeEmpty,
+		CmlOwnerIsNone,
+		ConfusedStakingType,
+		CmlIsNotStaking,
+		UnstakingSlotOwnerMismatch,
+		InvalidStatusToMine,
+		AlreadyHasMachineId,
+		CmlIsNotMining,
 	}
 
 	#[pallet::hooks]
@@ -230,7 +263,7 @@ pub mod cml {
 
 			let current_block = frame_system::Pallet::<T>::block_number();
 			ensure!(
-				current_block > T::TimoutHeight::get(),
+				Self::is_voucher_outdated(current_block),
 				Error::<T>::SeedsNotOutdatedYet
 			);
 			ensure!(
@@ -241,7 +274,7 @@ pub mod cml {
 				Error::<T>::NoNeedToCleanOutdatedSeeds,
 			);
 
-			Self::try_clean_outdated_seeds(current_block);
+			Self::try_clean_outdated_vouchers(current_block);
 			Ok(())
 		}
 
@@ -254,6 +287,11 @@ pub mod cml {
 			#[pallet::compact] amount: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
+
+			ensure!(
+				!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
+				Error::<T>::VouchersHasOutdated
+			);
 
 			let sender_voucher = match schedule_type {
 				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::get(&sender, cml_type),
@@ -298,18 +336,26 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 
+			ensure!(
+				!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
+				Error::<T>::VouchersHasOutdated
+			);
+
 			let (a_coupon, b_coupon, c_coupon) = Self::take_vouchers(&sender, schedule_type);
 			ensure!(
 				a_coupon + b_coupon + c_coupon > 0,
 				Error::<T>::WithoutVoucher
 			);
 
-			let mut seed_ids =
-				Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type)?;
+			let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type)?;
 			let seeds_count = seed_ids.len() as u64;
-			UserCmlStore::<T>::mutate(&sender, |ids| match ids {
-				Some(ids) => ids.append(&mut seed_ids),
-				None => *ids = Some(seed_ids),
+			seed_ids.iter().for_each(|id| {
+				CmlStore::<T>::mutate(id, |cml| {
+					if let Some(cml) = cml {
+						cml.set_owner(&sender);
+					}
+				});
+				UserCmlStore::<T>::insert(&sender, id, ());
 			});
 
 			Self::deposit_event(Event::DrawCmls(sender, seeds_count));
@@ -317,42 +363,116 @@ pub mod cml {
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn active_cml_for_nitro(
+		pub fn active_cml(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
+			let sender = ensure_signed(sender)?;
+			Self::check_belongs(&cml_id, &sender)?;
+
+			let current_block_number = frame_system::Pallet::<T>::block_number();
+			CmlStore::<T>::mutate(cml_id, |cml| match cml {
+				Some(cml) => {
+					cml.seed_valid(&current_block_number)?;
+
+					Self::seed_to_tree(cml, &current_block_number)?;
+					Ok(())
+				}
+				None => Err(Error::<T>::NotFoundCML),
+			})?;
+
+			Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
+			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn start_mining(
 			sender: OriginFor<T>,
 			cml_id: CmlId,
 			machine_id: MachineId,
 			miner_ip: Vec<u8>,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-
-			ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 			Self::check_belongs(&cml_id, &sender)?;
+			ensure!(
+				!<MinerItemStore<T>>::contains_key(&machine_id),
+				Error::<T>::MinerAlreadyExist
+			);
+			Self::check_balance_staking(&sender)?;
 
-			Self::init_miner_item(machine_id, miner_ip)?;
-
-			let current_block_number = frame_system::Pallet::<T>::block_number();
 			let staking_item = Self::create_balance_staking(&sender)?;
-			Self::update_cml_to_active(
-				&cml_id,
-				machine_id.clone(),
-				staking_item,
-				current_block_number,
-			)?;
+			Self::init_miner_item(machine_id, miner_ip);
+			let current_block_number = frame_system::Pallet::<T>::block_number();
+			CmlStore::<T>::mutate(cml_id, |cml| match cml {
+				Some(cml) => {
+					cml.seed_valid(&current_block_number)?;
 
-			Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
+					Self::seed_to_tree(cml, &current_block_number)?;
+					cml.start_mining(machine_id, staking_item)?;
+					Ok(())
+				}
+				None => Err(Error::<T>::NotFoundCML),
+			})?;
 			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn stop_mining(
+			sender: OriginFor<T>,
+			cml_id: CmlId,
+			machine_id: MachineId,
+		) -> DispatchResult {
+			let sender = ensure_signed(sender)?;
+			Self::check_belongs(&cml_id, &sender)?;
+			ensure!(
+				MinerItemStore::<T>::contains_key(machine_id),
+				Error::<T>::NotFoundMiner
+			);
+
+			CmlStore::<T>::mutate(cml_id, |cml| match cml {
+				Some(cml) => {
+					cml.stop_mining()?;
+					Ok(())
+				}
+				None => Err(Error::<T>::NotFoundCML),
+			})?;
+			MinerItemStore::<T>::remove(machine_id);
+
+			Ok(())
+		}
+	}
+
+	impl<T: Config> From<CmlError> for Error<T> {
+		fn from(cml_error: CmlError) -> Self {
+			match cml_error {
+				CmlError::SproutAtIsNone => Error::<T>::SproutAtIsNone,
+				CmlError::PlantAtIsNone => Error::<T>::PlantAtIsNone,
+				CmlError::DefrostTimeIsNone => Error::<T>::DefrostTimeIsNone,
+				CmlError::DefrostFailed => Error::<T>::DefrostFailed,
+				CmlError::CmlStatusConvertFailed => Error::<T>::CmlStatusConvertFailed,
+				CmlError::NotValidFreshSeed => Error::<T>::NotValidFreshSeed,
+				CmlError::SlotShouldBeEmpty => Error::<T>::SlotShouldBeEmpty,
+				CmlError::CmlOwnerIsNone => Error::<T>::CmlOwnerIsNone,
+				CmlError::ConfusedStakingType => Error::<T>::ConfusedStakingType,
+				CmlError::CmlIsNotStaking => Error::<T>::CmlIsNotStaking,
+				CmlError::UnstakingSlotOwnerMismatch => Error::<T>::UnstakingSlotOwnerMismatch,
+				CmlError::InvalidStatusToMine => Error::<T>::InvalidStatusToMine,
+				CmlError::AlreadyHasMachineId => Error::<T>::AlreadyHasMachineId,
+				CmlError::CmlIsNotMining => Error::<T>::CmlIsNotMining,
+			}
 		}
 	}
 }
 
 pub trait CmlOperation {
-	type AccountId: Clone;
-	type Balance;
+	type AccountId: PartialEq + Clone;
+	type Balance: Clone;
 	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
+	type RottenDuration: Get<Self::BlockNumber>;
 
 	fn get_cml_by_id(
 		cml_id: &CmlId,
-	) -> Result<CML<Self::AccountId, Self::BlockNumber, Self::Balance>, DispatchError>;
+	) -> Result<
+		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::RottenDuration>,
+		DispatchError,
+	>;
 
 	fn check_belongs(cml_id: &CmlId, who: &Self::AccountId) -> Result<(), DispatchError>;
 

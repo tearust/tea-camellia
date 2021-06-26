@@ -1,5 +1,4 @@
 use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
-use crate::seeds::DefrostScheduleType;
 use crate::{
 	mock::*, types::*, CmlStore, Config, Error, Event as CmlEvent, InvestorVoucherStore, LastCmlId,
 	LuckyDrawBox, MinerItemStore, TeamVoucherStore, UserCmlStore,
@@ -14,12 +13,12 @@ fn clean_outdated_seeds_works() {
 		LuckyDrawBox::<Test>::insert(CmlType::A, DefrostScheduleType::Investor, vec![11]);
 		LuckyDrawBox::<Test>::insert(CmlType::B, DefrostScheduleType::Team, vec![21]);
 		LuckyDrawBox::<Test>::insert(CmlType::C, DefrostScheduleType::Investor, vec![31]);
-		CmlStore::<Test>::insert(11, CML::new(new_seed(11)));
-		CmlStore::<Test>::insert(12, CML::new(new_seed(12)));
-		CmlStore::<Test>::insert(21, CML::new(new_seed(21)));
-		CmlStore::<Test>::insert(22, CML::new(new_seed(22)));
-		CmlStore::<Test>::insert(31, CML::new(new_seed(31)));
-		CmlStore::<Test>::insert(32, CML::new(new_seed(32)));
+		CmlStore::<Test>::insert(11, CML::from_genesis_seed(new_genesis_seed(11)));
+		CmlStore::<Test>::insert(12, CML::from_genesis_seed(new_genesis_seed(12)));
+		CmlStore::<Test>::insert(21, CML::from_genesis_seed(new_genesis_seed(21)));
+		CmlStore::<Test>::insert(22, CML::from_genesis_seed(new_genesis_seed(22)));
+		CmlStore::<Test>::insert(31, CML::from_genesis_seed(new_genesis_seed(31)));
+		CmlStore::<Test>::insert(32, CML::from_genesis_seed(new_genesis_seed(32)));
 
 		assert_ok!(Cml::clean_outdated_seeds(Origin::root()));
 
@@ -165,6 +164,25 @@ fn transfer_voucher_to_not_exist_account_works() {
 }
 
 #[test]
+fn transfer_voucher_when_timeout_should_fail() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
+
+		InvestorVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
+		assert_noop!(
+			Cml::transfer_voucher(
+				Origin::signed(1),
+				2,
+				CmlType::A,
+				DefrostScheduleType::Investor,
+				3
+			),
+			Error::<Test>::VouchersHasOutdated
+		);
+	})
+}
+
+#[test]
 fn transfer_voucher_with_insufficient_amount_should_fail() {
 	new_test_ext().execute_with(|| {
 		TeamVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(10, CmlType::A));
@@ -239,7 +257,12 @@ fn draw_cmls_from_voucher_works() {
 			DefrostScheduleType::Team
 		));
 
-		assert_eq!(UserCmlStore::<Test>::get(&1).unwrap().len(), 3 + 4 + 5);
+		assert_eq!(
+			UserCmlStore::<Test>::iter()
+				.filter(|(k1, _, _)| *k1 == 1)
+				.count(),
+			3 + 4 + 5
+		);
 		System::assert_last_event(Event::pallet_cml(CmlEvent::DrawCmls(1, 3 + 4 + 5)));
 	})
 }
@@ -280,7 +303,12 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 			Origin::signed(1),
 			DefrostScheduleType::Investor
 		));
-		assert_eq!(UserCmlStore::<Test>::get(&1).unwrap().len(), 3 + 4 + 5);
+		assert_eq!(
+			UserCmlStore::<Test>::iter()
+				.filter(|(k1, _, _)| *k1 == 1)
+				.count(),
+			3 + 4 + 5
+		);
 
 		assert_ok!(Cml::transfer_voucher(
 			Origin::signed(2),
@@ -309,8 +337,25 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 			DefrostScheduleType::Investor
 		));
 		assert_eq!(
-			UserCmlStore::<Test>::get(&1).unwrap().len(),
+			UserCmlStore::<Test>::iter()
+				.filter(|(k1, _, _)| *k1 == 1)
+				.count(),
 			3 + 4 + 5 + 1 + 2 + 3
+		);
+	})
+}
+
+#[test]
+fn draw_cmls_from_voucher_should_fail_if_timeout() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
+		assert_noop!(
+			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Team),
+			Error::<Test>::VouchersHasOutdated
+		);
+		assert_noop!(
+			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Investor),
+			Error::<Test>::VouchersHasOutdated
 		);
 	})
 }
@@ -366,26 +411,27 @@ fn active_cml_for_nitro_works() {
 		let current_height = frame_system::Pallet::<Test>::block_number();
 
 		let cml_id: CmlId = 4;
-		let cml = CML::new(new_seed(cml_id));
-		assert!(cml.status == CmlStatus::Seed && !cml.should_defrost(current_height));
-		UserCmlStore::<Test>::insert(1, vec![cml_id]);
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		assert!(cml.is_seed() && cml.can_be_defrost(&current_height).unwrap());
+		cml.defrost(&current_height).unwrap();
+		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
 		let miner_ip = b"miner_ip".to_vec();
-		assert_ok!(Cml::active_cml_for_nitro(
+		assert_ok!(Cml::active_cml(Origin::signed(1), cml_id));
+		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml_id,
 			machine_id,
 			miner_ip.clone()
 		));
 
-		let cml_list = UserCmlStore::<Test>::get(1).unwrap();
-		let cml = CmlStore::<Test>::get(cml_list[0]).unwrap();
-		assert_eq!(cml.status, CmlStatus::Tree);
-		assert_eq!(cml.staking_slot.len(), 1);
+		let cml = CmlStore::<Test>::get(cml_id).unwrap();
+		assert!(!cml.is_seed());
+		assert_eq!(cml.staking_slots().len(), 1);
 
-		let staking_item = cml.staking_slot.get(0).unwrap();
+		let staking_item = cml.staking_slots().get(0).unwrap();
 		assert_eq!(staking_item.owner, 1);
 		// todo let me pass later
 		// assert_eq!(staking_item.amount, amount as u32);
@@ -393,7 +439,7 @@ fn active_cml_for_nitro_works() {
 
 		let miner_item = MinerItemStore::<Test>::get(&machine_id).unwrap();
 		assert_eq!(miner_item.id, machine_id);
-		assert_eq!(miner_item.id, cml.machine_id.unwrap());
+		assert_eq!(&miner_item.id, cml.machine_id().unwrap());
 		assert_eq!(miner_item.status, MinerStatus::Active);
 		assert_eq!(miner_item.ip, miner_ip);
 
@@ -406,7 +452,7 @@ fn active_cml_for_nitro_works() {
 fn active_not_exist_cml_for_nitro_should_fail() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			Cml::active_cml_for_nitro(Origin::signed(1), 1, [1u8; 32], b"miner_ip".to_vec()),
+			Cml::active_cml(Origin::signed(1), 1),
 			Error::<Test>::NotFoundCML
 		);
 	})
@@ -417,12 +463,11 @@ fn active_not_drawn_cml_should_fail() {
 	new_test_ext().execute_with(|| {
 		// initial a cml not belongs to anyone, to simulate the not drawn situation
 		let cml_id: CmlId = 4;
-		let cml = CML::new(new_seed(cml_id));
-		assert!(!cml.should_defrost(frame_system::Pallet::<Test>::block_number()));
+		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_noop!(
-			Cml::active_cml_for_nitro(Origin::signed(1), cml_id, [1u8; 32], b"miner_ip".to_vec()),
+			Cml::active_cml(Origin::signed(1), cml_id),
 			Error::<Test>::CMLOwnerInvalid
 		);
 	})
@@ -432,32 +477,80 @@ fn active_not_drawn_cml_should_fail() {
 fn active_cml_not_belongs_to_me_should_fail() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;
-		let cml = CML::new(new_seed(cml_id));
-		UserCmlStore::<Test>::insert(1, vec![cml_id]); // cml belongs to 1
+		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		UserCmlStore::<Test>::insert(1, cml_id, ()); // cml belongs to 1
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_noop!(
-			Cml::active_cml_for_nitro(Origin::signed(2), cml_id, [1u8; 32], b"miner_ip".to_vec()),
+			Cml::active_cml(Origin::signed(2), cml_id),
 			Error::<Test>::CMLOwnerInvalid
 		);
 	})
 }
 
 #[test]
-fn active_two_cmls_with_same_machine_id_should_fail() {
+fn start_mining_with_frozen_seed_works() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		assert!(cml.is_seed());
+		assert!(cml.can_be_defrost(&0).unwrap());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		let miner_ip = b"miner_ip".to_vec();
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			machine_id,
+			miner_ip.clone()
+		));
+	})
+}
+
+#[test]
+fn start_mining_not_belongs_to_me_should_fail() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		UserCmlStore::<Test>::insert(1, cml_id, ()); // cml belongs to 1
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::start_mining(Origin::signed(2), cml_id, [1u8; 32], b"miner_ip".to_vec()),
+			Error::<Test>::CMLOwnerInvalid
+		);
+	})
+}
+
+#[test]
+fn start_mining_with_same_machine_id_should_fail() {
 	new_test_ext().execute_with(|| {
 		let amount = 100 * 1000; // Unit * StakingPrice
 		<Test as Config>::Currency::make_free_balance_be(&1, amount);
 
 		let cml1_id: CmlId = 4;
+		let mut cml1 = CML::from_genesis_seed(new_genesis_seed(cml1_id));
+		cml1.defrost(&0).unwrap();
+		cml1.convert_to_tree(&0).unwrap();
+
 		let cml2_id: CmlId = 5;
-		UserCmlStore::<Test>::insert(1, vec![cml1_id, cml2_id]);
-		CmlStore::<Test>::insert(cml1_id, CML::new(new_seed(cml1_id)));
-		CmlStore::<Test>::insert(cml2_id, CML::new(new_seed(cml2_id)));
+		let mut cml2 = CML::from_genesis_seed(new_genesis_seed(cml2_id));
+		cml2.defrost(&0).unwrap();
+		cml2.convert_to_tree(&0).unwrap();
+
+		UserCmlStore::<Test>::insert(1, cml1_id, ());
+		UserCmlStore::<Test>::insert(1, cml2_id, ());
+		CmlStore::<Test>::insert(cml1_id, cml1);
+		CmlStore::<Test>::insert(cml2_id, cml2);
 
 		let machine_id: MachineId = [1u8; 32];
 		let miner_ip = b"miner_ip".to_vec();
-		assert_ok!(Cml::active_cml_for_nitro(
+		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml1_id,
 			machine_id,
@@ -465,25 +558,28 @@ fn active_two_cmls_with_same_machine_id_should_fail() {
 		));
 
 		assert_noop!(
-			Cml::active_cml_for_nitro(Origin::signed(1), cml2_id, machine_id, miner_ip.clone()),
+			Cml::start_mining(Origin::signed(1), cml2_id, machine_id, miner_ip.clone()),
 			Error::<Test>::MinerAlreadyExist
 		);
 	})
 }
 
 #[test]
-fn active_cml_for_nitro_with_multiple_times_should_fail() {
+fn start_mining_with_multiple_times_should_fail() {
 	new_test_ext().execute_with(|| {
 		let amount = 100 * 1000; // Unit * StakingPrice
 		<Test as Config>::Currency::make_free_balance_be(&1, amount);
 
 		let cml_id: CmlId = 4;
-		UserCmlStore::<Test>::insert(1, vec![cml_id]);
-		CmlStore::<Test>::insert(cml_id, CML::new(new_seed(cml_id)));
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		cml.defrost(&0).unwrap();
+		cml.convert_to_tree(&0).unwrap();
+		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
 		let miner_ip = b"miner_ip".to_vec();
-		assert_ok!(Cml::active_cml_for_nitro(
+		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml_id,
 			machine_id,
@@ -491,25 +587,60 @@ fn active_cml_for_nitro_with_multiple_times_should_fail() {
 		));
 
 		assert_noop!(
-			Cml::active_cml_for_nitro(Origin::signed(1), cml_id, machine_id, miner_ip.clone()),
+			Cml::start_mining(Origin::signed(1), cml_id, machine_id, miner_ip.clone()),
 			Error::<Test>::MinerAlreadyExist
 		);
 	})
 }
 
 #[test]
-fn active_cml_for_nitro_with_insufficient_free_balance() {
+fn start_mining_with_insufficient_free_balance_should_fail() {
 	new_test_ext().execute_with(|| {
 		// default account `1` free balance is 0
 		let cml_id: CmlId = 4;
-		UserCmlStore::<Test>::insert(1, vec![cml_id]);
-		CmlStore::<Test>::insert(cml_id, CML::new(new_seed(cml_id)));
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, CML::from_genesis_seed(new_genesis_seed(cml_id)));
 
-		// todo error should match
+		// todo implement me later
 		// assert_noop!(
-		// 	Cml::active_cml_for_nitro(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
-		// 	BalanceError::<Test>::InsufficientBalance
+		// 	Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
+		// 	Error::<Test>::InsufficientFreeBalance
 		// );
+	})
+}
+
+#[test]
+fn stop_mining_works() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec()
+		));
+
+		assert!(MinerItemStore::<Test>::contains_key(machine_id));
+		let cml = CmlStore::<Test>::get(cml_id).unwrap();
+		assert!(cml.is_mining());
+		assert!(cml.machine_id().is_some());
+		assert_eq!(cml.staking_slots().len(), 1);
+
+		assert_ok!(Cml::stop_mining(Origin::signed(1), cml_id, machine_id,));
+
+		assert!(!MinerItemStore::<Test>::contains_key(machine_id));
+		let cml = CmlStore::<Test>::get(cml_id).unwrap();
+		assert!(!cml.is_mining());
+		assert!(cml.machine_id().is_none());
+		assert_eq!(cml.staking_slots().len(), 0);
 	})
 }
 
@@ -566,7 +697,7 @@ fn genesis_build_related_logic_works() {
 				let cml = cml.unwrap();
 				assert_eq!(cml.id(), i);
 
-				if cml.seed_valid(0) {
+				if cml.seed_valid(&0).unwrap() {
 					live_seeds_count += 1;
 				}
 			}
@@ -583,12 +714,12 @@ fn new_voucher(amount: u32, cml_type: CmlType) -> Voucher {
 	Voucher { amount, cml_type }
 }
 
-fn new_seed(id: CmlId) -> Seed {
+fn new_genesis_seed(id: CmlId) -> Seed {
 	Seed {
 		id,
 		cml_type: CmlType::A,
-		defrost_schedule: DefrostScheduleType::Team,
-		defrost_time: 0,
+		defrost_schedule: Some(DefrostScheduleType::Team),
+		defrost_time: Some(0),
 		lifespan: 0,
 		performance: 0,
 	}
