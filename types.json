@@ -47,13 +47,10 @@
 
   "CmlId": "u64",
   "CmlStatus": {
-    "_enum": ["Seed", "SeedStaking", "Tree"]
+    "_enum": ["FrozenSeed", "FreshSeed(BlockNumber)", "Tree", "Staking(CmlId, StakingIndex)"]
   },
   "MinerStatus": {
     "_enum": ["Active", "Offline"]
-  },
-  "CmlGroup": {
-    "_enum": ["Nitro", "Tpm"]
   },
   "StakingCategory": {
     "_enum": ["Tea", "Cml"]
@@ -66,30 +63,32 @@
     "cml": "Option<CmlId>"
   },
 
-  "MachineId": "u64",
+  "MachineId": "[u8; 32]",
   "MinerItem": {
     "id": "MachineId",
     "ip": "Cid",
     "status": "MinerStatus"
   },
 
+  "performance": "u32",
   "Seed": {
     "id": "CmlId",
     "cml_type": "CmlType",
-    "defrost_schedule": "DefrostScheduleType",
-    "generate_defrost_time": "BlockNumber",
+    "defrost_schedule": "Option<DefrostScheduleType>",
+    "generate_defrost_time": "Option<BlockNumber>",
     "lifespan": "BlockNumber",
-    "performance": "u32"
+    "performance": "performance"
   },
 
   "CML": {
     "intrinsic": "Seed",
-    "group": "CmlGroup",
     "status": "CmlStatus",
-    "mining_rate": "u8",
+    "owner": "Option<AccountId>",
+    
     "staking_slot": "Vec<StakingItem>",
-    "planted_at": "BlockNumber",
-    "machine_id": "Option<MachineId>"
+    "planted_at": "Option<BlockNumber>",
+    "machine_id": "Option<MachineId>",
+    "RottenDuration": "PhantomData<RottenDuration>"
   },
   
   "AuctionId": "u64",
