@@ -257,16 +257,11 @@ impl pallet_grandpa::Config for Runtime {
 	type KeyOwnerProof =
 		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		GrandpaId,
-	)>>::IdentificationTuple;
+	type KeyOwnerIdentification =
+		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
 
-	type HandleEquivocation = pallet_grandpa::EquivocationHandler<
-		Self::KeyOwnerIdentification,
-		Offences,
-		ReportLongevity,
-	>;
+	type HandleEquivocation =
+		pallet_grandpa::EquivocationHandler<Self::KeyOwnerIdentification, Offences, ReportLongevity>;
 
 	type WeightInfo = (); // not setting because polkadot do not set either, add weight info if needed later
 }
@@ -784,7 +779,7 @@ parameter_types! {
 	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 	/// Staking period length is (1 * 24 * 60 * 10) about 1 day
 	pub const StakingPeriodLength: u32 = 1 * 24 * 60 * 10;
-	/// Seed rotten duration is (7 * 24 * 60 * 10) about 1 week
+	/// Seed fresh duration is (7 * 24 * 60 * 10) about 1 week
 	pub const SeedFreshDuration: u32 = 7 * 24 * 60 * 10;
 }
 impl pallet_cml::Config for Runtime {

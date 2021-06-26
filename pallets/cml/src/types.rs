@@ -31,15 +31,15 @@ pub trait SeedProperties<BlockNumber> {
 
 	fn get_sprout_at(&self) -> Option<&BlockNumber>;
 
-	fn get_rotten_duration(&self) -> BlockNumber;
+	fn get_fresh_duration(&self) -> BlockNumber;
 
 	fn convert_to_tree(&mut self, height: &BlockNumber) -> Result<(), CmlError>;
 
-	/// rotten happens when a `FreshSeed` not planted after a certain period.
-	fn has_rotten(&self, height: &BlockNumber) -> Result<bool, CmlError>;
+	/// expire happens when a `FreshSeed` not planted after a certain period.
+	fn has_expired(&self, height: &BlockNumber) -> Result<bool, CmlError>;
 
 	fn seed_valid(&self, height: &BlockNumber) -> Result<bool, CmlError> {
-		Ok(self.can_be_defrost(height)? || !self.has_rotten(height)?)
+		Ok(self.can_be_defrost(height)? || !self.has_expired(height)?)
 	}
 
 	fn is_from_genesis(&self) -> bool;

@@ -68,7 +68,7 @@ parameter_types! {
 	pub const StakingPrice: Balance = STAKING_PRICE;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
-	pub const SeedRottenDuration: u32 = 7 * 30 * 24 * 60 * 10;
+	pub const SeedFreshDuration: u32 = 7 * 30 * 24 * 60 * 10;
 }
 
 impl pallet_cml::Config for Test {
@@ -77,7 +77,7 @@ impl pallet_cml::Config for Test {
 	type StakingPrice = StakingPrice;
 	type StakingPeriodLength = StakingPeriodLength;
 	type VoucherTimoutHeight = SeedsTimeoutHeight;
-	type SeedRottenDuration = SeedRottenDuration;
+	type SeedFreshDuration = SeedFreshDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;

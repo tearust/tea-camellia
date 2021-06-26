@@ -4,12 +4,12 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 	type AccountId = T::AccountId;
 	type Balance = BalanceOf<T>;
 	type BlockNumber = T::BlockNumber;
-	type RottenDuration = T::SeedRottenDuration;
+	type FreshDuration = T::SeedFreshDuration;
 
 	fn get_cml_by_id(
 		cml_id: &CmlId,
 	) -> Result<
-		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::RottenDuration>,
+		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
 		DispatchError,
 	> {
 		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
@@ -67,7 +67,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn seed_to_tree(
-		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedRottenDuration>,
+		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 		height: &T::BlockNumber,
 	) -> Result<(), Error<T>> {
 		if cml.is_frozen_seed() {
@@ -106,7 +106,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn add_cml(
 		who: &T::AccountId,
-		cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedRottenDuration>,
+		cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 	) {
 		let cml_id = cml.id();
 		CmlStore::<T>::insert(cml_id, cml);
@@ -256,10 +256,10 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
-pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber, Balance, RottenDuration>(
+pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber, Balance, FreshDuration>(
 	seeds: &Vec<Seed>,
 ) -> (
-	Vec<CML<AccountId, BlockNumber, Balance, RottenDuration>>,
+	Vec<CML<AccountId, BlockNumber, Balance, FreshDuration>>,
 	Vec<CmlId>,
 	Vec<CmlId>,
 )
@@ -267,7 +267,7 @@ where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	let mut cml_list = Vec::new();
 	let mut investor_draw_box = Vec::new();

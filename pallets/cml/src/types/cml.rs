@@ -98,12 +98,12 @@ pub enum CmlError {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct CML<AccountId, BlockNumber, Balance, RottenDuration>
+pub struct CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	intrinsic: Seed,
 	status: CmlStatus<BlockNumber>,
@@ -112,16 +112,16 @@ where
 	planted_at: Option<BlockNumber>,
 	staking_slot: Vec<StakingItem<AccountId, Balance>>,
 	machine_id: Option<MachineId>,
-	rotten_duration: PhantomData<RottenDuration>,
+	fresh_duration: PhantomData<FreshDuration>,
 }
 
-impl<AccountId, BlockNumber, Balance, RottenDuration>
-	CML<AccountId, BlockNumber, Balance, RottenDuration>
+impl<AccountId, BlockNumber, Balance, FreshDuration>
+	CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	pub(crate) fn from_genesis_seed(intrinsic: Seed) -> Self {
 		CML {
@@ -131,7 +131,7 @@ where
 			planted_at: None,
 			staking_slot: vec![],
 			machine_id: None,
-			rotten_duration: PhantomData,
+			fresh_duration: PhantomData,
 		}
 	}
 
@@ -144,7 +144,7 @@ where
 			planted_at: None,
 			staking_slot: vec![],
 			machine_id: None,
-			rotten_duration: PhantomData,
+			fresh_duration: PhantomData,
 		}
 	}
 
@@ -157,13 +157,13 @@ where
 	}
 }
 
-impl<AccountId, BlockNumber, Balance, RottenDuration> SeedProperties<BlockNumber>
-	for CML<AccountId, BlockNumber, Balance, RottenDuration>
+impl<AccountId, BlockNumber, Balance, FreshDuration> SeedProperties<BlockNumber>
+	for CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	fn id(&self) -> CmlId {
 		self.intrinsic.id
@@ -209,8 +209,8 @@ where
 		}
 	}
 
-	fn get_rotten_duration(&self) -> BlockNumber {
-		RottenDuration::get()
+	fn get_fresh_duration(&self) -> BlockNumber {
+		FreshDuration::get()
 	}
 
 	fn convert_to_tree(&mut self, height: &BlockNumber) -> Result<(), CmlError> {
@@ -222,13 +222,13 @@ where
 		Ok(())
 	}
 
-	fn has_rotten(&self, height: &BlockNumber) -> Result<bool, CmlError> {
+	fn has_expired(&self, height: &BlockNumber) -> Result<bool, CmlError> {
 		Ok(self.is_fresh_seed()
 			&& *height
 				>= self
 					.get_sprout_at()
 					.ok_or(CmlError::SproutAtIsNone)?
-					.clone() + self.get_rotten_duration())
+					.clone() + self.get_fresh_duration())
 	}
 
 	fn is_from_genesis(&self) -> bool {
@@ -236,14 +236,13 @@ where
 	}
 }
 
-impl<AccountId, BlockNumber, Balance, RottenDuration>
-	TreeProperties<AccountId, BlockNumber, Balance>
-	for CML<AccountId, BlockNumber, Balance, RottenDuration>
+impl<AccountId, BlockNumber, Balance, FreshDuration> TreeProperties<AccountId, BlockNumber, Balance>
+	for CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	fn get_plant_at(&self) -> Option<&BlockNumber> {
 		self.planted_at.as_ref()
@@ -268,14 +267,14 @@ where
 	}
 }
 
-impl<AccountId, BlockNumber, Balance, RottenDuration>
+impl<AccountId, BlockNumber, Balance, FreshDuration>
 	StakingProperties<AccountId, BlockNumber, Balance>
-	for CML<AccountId, BlockNumber, Balance, RottenDuration>
+	for CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	fn is_staking(&self) -> bool {
 		match self.status {
@@ -379,13 +378,13 @@ where
 	}
 }
 
-impl<AccountId, BlockNumber, Balance, RottenDuration> MiningProperties<AccountId, Balance>
-	for CML<AccountId, BlockNumber, Balance, RottenDuration>
+impl<AccountId, BlockNumber, Balance, FreshDuration> MiningProperties<AccountId, Balance>
+	for CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	fn is_mining(&self) -> bool {
 		self.machine_id.is_some()
@@ -437,13 +436,13 @@ where
 	}
 }
 
-impl<AccountId, BlockNumber, Balance, RottenDuration> UtilsProperties<BlockNumber>
-	for CML<AccountId, BlockNumber, Balance, RottenDuration>
+impl<AccountId, BlockNumber, Balance, FreshDuration> UtilsProperties<BlockNumber>
+	for CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	fn status(&self) -> &CmlStatus<BlockNumber> {
 		&self.status
@@ -459,13 +458,13 @@ where
 	}
 }
 
-impl<AccountId, BlockNumber, Balance, RottenDuration> Default
-	for CML<AccountId, BlockNumber, Balance, RottenDuration>
+impl<AccountId, BlockNumber, Balance, FreshDuration> Default
+	for CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	RottenDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber>,
 {
 	fn default() -> Self {
 		CML {
@@ -475,7 +474,7 @@ where
 			planted_at: None,
 			staking_slot: vec![],
 			machine_id: None,
-			rotten_duration: PhantomData,
+			fresh_duration: PhantomData,
 		}
 	}
 }
