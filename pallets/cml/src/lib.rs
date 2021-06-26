@@ -58,6 +58,8 @@ pub mod cml {
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 		>;
+
+		type StakingEconomics: StakingEconomics<AccountId = Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -106,6 +108,15 @@ pub mod cml {
 		Vec<CmlId>,
 		ValueQuery,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn active_staking_snapshot)]
+	pub type ActiveStakingSnapshot<T: Config> =
+		StorageMap<_, Twox64Concat, CmlId, Vec<StakingSnapshotItem<T::AccountId>>, ValueQuery>;
+
+	#[pallet::storage]
+	pub type AccountRewards<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, node_primitives::Balance>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -254,9 +265,12 @@ pub mod cml {
 		fn on_finalize(n: BlockNumberFor<T>) {
 			if Self::is_staking_period_start(n) {
 				// initialize staking related
+				Self::collect_staking_info();
 			} else if Self::is_staking_period_end(n) {
 				Self::try_kill_cml(n);
 				// calculate staking rewards
+				Self::calculate_staking();
+				Self::clear_staking_info();
 			}
 		}
 	}
@@ -612,4 +626,25 @@ pub trait CmlOperation {
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
 	) -> Result<(), DispatchError>;
+}
+
+pub trait StakingEconomics {
+	type AccountId: PartialEq + Clone;
+
+	fn increase_issuance(total_point: ServiceTaskPoint) -> node_primitives::Balance;
+
+	fn total_staking_rewards_of_miner(
+		miner_point: ServiceTaskPoint,
+		total_point: ServiceTaskPoint,
+	) -> node_primitives::Balance;
+
+	fn miner_staking_point(
+		snapshots: &Vec<StakingSnapshotItem<Self::AccountId>>,
+	) -> MinerStakingPoint;
+
+	fn single_staking_reward(
+		miner_total_rewards: node_primitives::Balance,
+		total_staking_point: MinerStakingPoint,
+		snapshot_item: &StakingSnapshotItem<Self::AccountId>,
+	) -> node_primitives::Balance;
 }

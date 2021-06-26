@@ -80,6 +80,7 @@ impl pallet_cml::Config for Test {
 	type SeedRottenDuration = SeedRottenDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
+	type StakingEconomics = Cml;
 }
 
 impl pallet_utils::Config for Test {
