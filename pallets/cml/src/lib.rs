@@ -47,7 +47,7 @@ pub mod cml {
 		/// seeds shall be destroyed.
 		type VoucherTimoutHeight: Get<Self::BlockNumber>;
 
-		type SeedRottenDuration: Get<Self::BlockNumber>;
+		type SeedFreshDuration: Get<Self::BlockNumber>;
 
 		type StakingPeriodLength: Get<Self::BlockNumber>;
 
@@ -76,7 +76,7 @@ pub mod cml {
 		_,
 		Twox64Concat,
 		CmlId,
-		CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedRottenDuration>,
+		CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 	>;
 
 	#[pallet::storage]
@@ -160,19 +160,19 @@ pub mod cml {
 				T::AccountId,
 				T::BlockNumber,
 				BalanceOf<T>,
-				T::SeedRottenDuration,
+				T::SeedFreshDuration,
 			>(&self.genesis_seeds.a_seeds);
 			let (b_cml_list, investor_b_draw_box, team_b_draw_box) = convert_genesis_seeds_to_cmls::<
 				T::AccountId,
 				T::BlockNumber,
 				BalanceOf<T>,
-				T::SeedRottenDuration,
+				T::SeedFreshDuration,
 			>(&self.genesis_seeds.b_seeds);
 			let (c_cml_list, investor_c_draw_box, team_c_draw_box) = convert_genesis_seeds_to_cmls::<
 				T::AccountId,
 				T::BlockNumber,
 				BalanceOf<T>,
-				T::SeedRottenDuration,
+				T::SeedFreshDuration,
 			>(&self.genesis_seeds.c_seeds);
 			LuckyDrawBox::<T>::insert(
 				CmlType::A,
@@ -507,7 +507,7 @@ pub mod cml {
 									T::AccountId,
 									T::BlockNumber,
 									BalanceOf<T>,
-									T::SeedRottenDuration,
+									T::SeedFreshDuration,
 								>>(&who, Some(T::StakingPrice::get()), None)
 								.ok()
 						}
@@ -571,7 +571,7 @@ pub mod cml {
 								T::AccountId,
 								T::BlockNumber,
 								BalanceOf<T>,
-								T::SeedRottenDuration,
+								T::SeedFreshDuration,
 							>>(Some(staking_index), None)
 						}
 					};
@@ -610,12 +610,12 @@ pub trait CmlOperation {
 	type AccountId: PartialEq + Clone;
 	type Balance: Clone;
 	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
-	type RottenDuration: Get<Self::BlockNumber>;
+	type FreshDuration: Get<Self::BlockNumber>;
 
 	fn get_cml_by_id(
 		cml_id: &CmlId,
 	) -> Result<
-		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::RottenDuration>,
+		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
 		DispatchError,
 	>;
 
