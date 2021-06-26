@@ -220,10 +220,11 @@ pub mod cml {
 		CMLNotLive,
 		CMLOwnerInvalid,
 		SeedIsRotten,
-		ShouldStakingLiveSeed,
+		ShouldStakingLiveTree,
 
 		InsufficientFreeBalance,
 		MinerAlreadyExist,
+		NotFoundMiner,
 
 		// from cml
 		SproutAtIsNone,
@@ -369,7 +370,9 @@ pub mod cml {
 			let current_block_number = frame_system::Pallet::<T>::block_number();
 			CmlStore::<T>::mutate(cml_id, |cml| match cml {
 				Some(cml) => {
-					cml.convert_to_tree(&current_block_number)?;
+					cml.seed_valid(&current_block_number)?;
+
+					Self::seed_to_tree(cml, &current_block_number)?;
 					Ok(())
 				}
 				None => Err(Error::<T>::NotFoundCML),
@@ -392,15 +395,16 @@ pub mod cml {
 				!<MinerItemStore<T>>::contains_key(&machine_id),
 				Error::<T>::MinerAlreadyExist
 			);
-			ensure!(
-				T::CurrencyOperations::free_balance(&sender) > T::StakingPrice::get(),
-				Error::<T>::InsufficientFreeBalance,
-			);
+			Self::check_balance_staking(&sender)?;
 
 			let staking_item = Self::create_balance_staking(&sender)?;
 			Self::init_miner_item(machine_id, miner_ip);
+			let current_block_number = frame_system::Pallet::<T>::block_number();
 			CmlStore::<T>::mutate(cml_id, |cml| match cml {
 				Some(cml) => {
+					cml.seed_valid(&current_block_number)?;
+
+					Self::seed_to_tree(cml, &current_block_number)?;
 					cml.start_mining(machine_id, staking_item)?;
 					Ok(())
 				}
@@ -410,9 +414,17 @@ pub mod cml {
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn stop_mining(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
+		pub fn stop_mining(
+			sender: OriginFor<T>,
+			cml_id: CmlId,
+			machine_id: MachineId,
+		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 			Self::check_belongs(&cml_id, &sender)?;
+			ensure!(
+				MinerItemStore::<T>::contains_key(machine_id),
+				Error::<T>::NotFoundMiner
+			);
 
 			CmlStore::<T>::mutate(cml_id, |cml| match cml {
 				Some(cml) => {
@@ -421,6 +433,8 @@ pub mod cml {
 				}
 				None => Err(Error::<T>::NotFoundCML),
 			})?;
+			MinerItemStore::<T>::remove(machine_id);
+
 			Ok(())
 		}
 	}

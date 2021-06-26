@@ -9,12 +9,22 @@ impl<T: cml::Config> cml::Pallet<T> {
 		height % T::StakingPeriodLength::get() == 0u32.into()
 	}
 
+	pub(crate) fn check_balance_staking(_who: &T::AccountId) -> DispatchResult {
+		// todo implement me later
+		// ensure!(
+		// 	T::CurrencyOperations::free_balance(&sender) > T::StakingPrice::get(),
+		// 	Error::<T>::InsufficientFreeBalance,
+		// );
+		Ok(())
+	}
+
 	pub(crate) fn create_balance_staking(
 		who: &T::AccountId,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
 		let staking_price: BalanceOf<T> = T::StakingPrice::get();
 
-		T::CurrencyOperations::reserve(who, staking_price)?;
+		// todo implement me later
+		// T::CurrencyOperations::reserve(who, staking_price)?;
 		Ok(StakingItem {
 			owner: who.clone(),
 			category: StakingCategory::Tea,
@@ -23,11 +33,31 @@ impl<T: cml::Config> cml::Pallet<T> {
 		})
 	}
 
+	pub(crate) fn check_seed_staking(
+		who: &T::AccountId,
+		cml_id: CmlId,
+		current_height: &T::BlockNumber,
+	) -> DispatchResult {
+		Self::check_belongs(&cml_id, who)?;
+		let cml = CmlStore::<T>::get(cml_id);
+		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
+		let cml = cml.unwrap();
+		ensure!(
+			cml.seed_valid(current_height)
+				.map_err(|e| Error::<T>::from(e))?
+				|| cml
+					.tree_valid(current_height)
+					.map_err(|e| Error::<T>::from(e))?,
+			Error::<T>::ShouldStakingLiveTree
+		);
+		Ok(())
+	}
+
 	#[allow(dead_code)]
 	pub(crate) fn create_seed_staking(
 		who: &T::AccountId,
 		cml_id: CmlId,
-		current_height: T::BlockNumber,
+		current_height: &T::BlockNumber,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
 		Self::check_belongs(&cml_id, who)?;
 
@@ -35,7 +65,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 			Some(cml) => {
 				ensure!(
 					cml.seed_valid(&current_height)?,
-					Error::<T>::ShouldStakingLiveSeed
+					Error::<T>::ShouldStakingLiveTree
 				);
 				cml.convert_to_tree(&current_height)?;
 				Ok(())

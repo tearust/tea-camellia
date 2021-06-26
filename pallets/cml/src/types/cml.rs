@@ -105,7 +105,7 @@ where
 	Balance: Clone,
 	RottenDuration: Get<BlockNumber>,
 {
-	pub intrinsic: Seed,
+	intrinsic: Seed,
 	status: CmlStatus<BlockNumber>,
 	owner: Option<AccountId>,
 	/// The time a tree created
@@ -407,6 +407,27 @@ where
 		self.machine_id = None;
 		self.staking_slot.clear();
 		Ok(())
+	}
+}
+
+impl<AccountId, BlockNumber, Balance, RottenDuration> Default
+	for CML<AccountId, BlockNumber, Balance, RottenDuration>
+where
+	AccountId: PartialEq + Clone,
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	Balance: Clone,
+	RottenDuration: Get<BlockNumber>,
+{
+	fn default() -> Self {
+		CML {
+			intrinsic: Seed::default(),
+			status: CmlStatus::FrozenSeed,
+			owner: None,
+			planted_at: None,
+			staking_slot: vec![],
+			machine_id: None,
+			rotten_duration: PhantomData,
+		}
 	}
 }
 

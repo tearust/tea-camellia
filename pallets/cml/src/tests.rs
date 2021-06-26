@@ -453,7 +453,7 @@ fn active_not_exist_cml_for_nitro_should_fail() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
 			Cml::active_cml(Origin::signed(1), 1),
-			Error::<Test>::CMLOwnerInvalid
+			Error::<Test>::NotFoundCML
 		);
 	})
 }
@@ -485,6 +485,30 @@ fn active_cml_not_belongs_to_me_should_fail() {
 			Cml::active_cml(Origin::signed(2), cml_id),
 			Error::<Test>::CMLOwnerInvalid
 		);
+	})
+}
+
+#[test]
+fn start_mining_with_frozen_seed_works() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		assert!(cml.is_seed());
+		assert!(cml.can_be_defrost(&0).unwrap());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		let miner_ip = b"miner_ip".to_vec();
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			machine_id,
+			miner_ip.clone()
+		));
 	})
 }
 
@@ -577,10 +601,46 @@ fn start_mining_with_insufficient_free_balance_should_fail() {
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, CML::from_genesis_seed(new_genesis_seed(cml_id)));
 
-		assert_noop!(
-			Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
-			Error::<Test>::InsufficientFreeBalance
-		);
+		// todo implement me later
+		// assert_noop!(
+		// 	Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
+		// 	Error::<Test>::InsufficientFreeBalance
+		// );
+	})
+}
+
+#[test]
+fn stop_mining_works() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec()
+		));
+
+		assert!(MinerItemStore::<Test>::contains_key(machine_id));
+		let cml = CmlStore::<Test>::get(cml_id).unwrap();
+		assert!(cml.is_mining());
+		assert!(cml.machine_id().is_some());
+		assert_eq!(cml.staking_slots().len(), 1);
+
+		assert_ok!(Cml::stop_mining(Origin::signed(1), cml_id, machine_id,));
+
+		assert!(!MinerItemStore::<Test>::contains_key(machine_id));
+		let cml = CmlStore::<Test>::get(cml_id).unwrap();
+		assert!(!cml.is_mining());
+		assert!(cml.machine_id().is_none());
+		assert_eq!(cml.staking_slots().len(), 0);
 	})
 }
 

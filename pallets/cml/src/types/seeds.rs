@@ -39,6 +39,19 @@ impl Seed {
 	}
 }
 
+impl Default for Seed {
+	fn default() -> Self {
+		Seed {
+			id: 0,
+			cml_type: CmlType::C,
+			defrost_schedule: None,
+			defrost_time: None,
+			lifespan: 0,
+			performance: 0,
+		}
+	}
+}
+
 #[derive(Encode, Decode, Clone, Debug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct GenesisSeeds {

@@ -16,7 +16,8 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Ok(CmlStore::<T>::get(cml_id).unwrap())
 	}
 
-	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> Result<(), DispatchError> {
+	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> DispatchResult {
+		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 		ensure!(
 			UserCmlStore::<T>::contains_key(who, cml_id),
 			Error::<T>::CMLOwnerInvalid
@@ -63,6 +64,21 @@ impl<T: cml::Config> cml::Pallet<T> {
 		LastCmlId::<T>::mutate(|id| *id += 1);
 
 		cid
+	}
+
+	pub fn seed_to_tree(
+		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedRottenDuration>,
+		height: &T::BlockNumber,
+	) -> Result<(), Error<T>> {
+		if cml.is_frozen_seed() {
+			cml.defrost(height)?;
+		}
+
+		if cml.is_fresh_seed() {
+			cml.convert_to_tree(height)?;
+		}
+
+		Ok(())
 	}
 
 	pub fn set_voucher(
