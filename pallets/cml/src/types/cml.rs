@@ -1,7 +1,7 @@
 use crate::param::{Performance, GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::{
 	MachineId, MiningProperties, Seed, SeedProperties, StakingCategory, StakingIndex, StakingItem,
-	StakingProperties, TreeProperties, UtilsProperties,
+	StakingProperties, StakingWeight, TreeProperties, UtilsProperties,
 };
 use codec::{Decode, Encode};
 use frame_support::sp_runtime::traits::AtLeast32BitUnsigned;
@@ -281,6 +281,14 @@ where
 		match self.status {
 			CmlStatus::Staking(_, _) => true,
 			_ => false,
+		}
+	}
+
+	fn staking_weight(&self) -> StakingWeight {
+		match self.intrinsic.cml_type {
+			CmlType::A => 3,
+			CmlType::B => 2,
+			CmlType::C => 1,
 		}
 	}
 

@@ -10,7 +10,10 @@ mod vouchers;
 pub use cml::{CmlError, CmlId, CmlStatus, CmlType, CML};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
-pub use staking::{StakingCategory, StakingIndex, StakingItem};
+pub use staking::{
+	MinerStakingPoint, ServiceTaskPoint, StakingCategory, StakingIndex, StakingItem,
+	StakingSnapshotItem, StakingWeight,
+};
 pub use vouchers::{GenesisVouchers, Voucher, VoucherConfig};
 
 pub trait SeedProperties<BlockNumber> {
@@ -57,6 +60,8 @@ where
 	BlockNumber: Default + sp_runtime::traits::AtLeast32BitUnsigned + Clone,
 {
 	fn is_staking(&self) -> bool;
+
+	fn staking_weight(&self) -> StakingWeight;
 
 	fn staking_slots(&self) -> &Vec<StakingItem<AccountId, Balance>>;
 

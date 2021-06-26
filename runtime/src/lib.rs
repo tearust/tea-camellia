@@ -796,6 +796,7 @@ impl pallet_cml::Config for Runtime {
 	type SeedRottenDuration = SeedRottenDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
+	type StakingEconomics = Cml;
 }
 
 parameter_types! {
