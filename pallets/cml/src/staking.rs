@@ -19,9 +19,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn collect_staking_info() {
-		CmlStore::<T>::iter()
-			.filter(|(_, cml)| cml.is_mining())
-			.for_each(|(_, cml)| {
+		MinerItemStore::<T>::iter().for_each(|(_, miner_item)| {
+			if let Some(cml) = CmlStore::<T>::get(miner_item.cml_id) {
 				let mut snapshot_items = Vec::new();
 				let mut current_index = 0;
 				for slot in cml.staking_slots() {
@@ -45,7 +44,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 				}
 
 				ActiveStakingSnapshot::<T>::insert(cml.id(), snapshot_items);
-			});
+			}
+		});
 	}
 
 	pub(crate) fn clear_staking_info() {
@@ -188,6 +188,11 @@ impl<T: cml::Config> StakingEconomics for cml::Pallet<T> {
 #[cfg(test)]
 mod tests {
 	use crate::mock::*;
+	use crate::tests::new_genesis_seed;
+	use crate::{
+		AccountRewards, ActiveStakingSnapshot, CmlStore, CmlType, MinerItem, MinerItemStore,
+		MinerStatus, StakingCategory, StakingItem, StakingProperties, StakingSnapshotItem, CML,
+	};
 
 	#[test]
 	fn staking_period_related_works() {
@@ -204,6 +209,157 @@ mod tests {
 			assert!(Cml::is_staking_period_start(
 				STAKING_PERIOD_LENGTH as u64 + 1
 			));
+		})
+	}
+
+	#[test]
+	fn collect_staking_info_works() {
+		new_test_ext().execute_with(|| {
+			let cml_id1 = 1;
+			let cml_id2 = 2;
+			let cml_id3 = 3;
+			let cml_id4 = 4;
+			let cml_id5 = 5;
+
+			let mut cml1 = CML::from_genesis_seed(new_genesis_seed(cml_id1));
+			cml1.staking_slots_mut().push(StakingItem {
+				owner: 1,
+				category: StakingCategory::Tea,
+				amount: Some(1),
+				cml: None,
+			});
+			cml1.staking_slots_mut().push(StakingItem {
+				owner: 3,
+				category: StakingCategory::Cml,
+				amount: None,
+				cml: Some(cml_id3),
+			});
+			cml1.staking_slots_mut().push(StakingItem {
+				owner: 5,
+				category: StakingCategory::Cml,
+				amount: None,
+				cml: Some(cml_id5),
+			});
+			CmlStore::<Test>::insert(cml_id1, cml1);
+
+			let mut cml2 = CML::from_genesis_seed(new_genesis_seed(cml_id2));
+			cml2.staking_slots_mut().push(StakingItem {
+				owner: 2,
+				category: StakingCategory::Tea,
+				amount: Some(1),
+				cml: None,
+			});
+			cml2.staking_slots_mut().push(StakingItem {
+				owner: 4,
+				category: StakingCategory::Cml,
+				amount: None,
+				cml: Some(cml_id4),
+			});
+			CmlStore::<Test>::insert(cml_id2, cml2);
+
+			CmlStore::<Test>::insert(cml_id3, CML::from_genesis_seed(new_genesis_seed(cml_id3)));
+
+			let mut seed4 = new_genesis_seed(cml_id4);
+			seed4.cml_type = CmlType::B; // let cml4 be CmlType B
+			CmlStore::<Test>::insert(cml_id4, CML::from_genesis_seed(seed4));
+
+			CmlStore::<Test>::insert(cml_id5, CML::from_genesis_seed(new_genesis_seed(cml_id5)));
+
+			MinerItemStore::<Test>::insert(
+				[1; 32],
+				MinerItem {
+					cml_id: cml_id1,
+					id: [1; 32],
+					ip: vec![],
+					status: MinerStatus::Active,
+				},
+			);
+			MinerItemStore::<Test>::insert(
+				[2; 32],
+				MinerItem {
+					cml_id: cml_id2,
+					id: [2; 32],
+					ip: vec![],
+					status: MinerStatus::Active,
+				},
+			);
+
+			Cml::collect_staking_info();
+
+			assert_eq!(ActiveStakingSnapshot::<Test>::iter().count(), 2);
+			let snapshot1 = ActiveStakingSnapshot::<Test>::get(cml_id1);
+			assert_eq!(snapshot1.len(), 3);
+			assert_eq!(snapshot1[0].owner, 1);
+			assert_eq!(snapshot1[0].weight, 1);
+			assert_eq!(snapshot1[0].staking_at, 0);
+			assert_eq!(snapshot1[1].owner, 3);
+			assert_eq!(snapshot1[1].weight, 3);
+			assert_eq!(snapshot1[1].staking_at, 1);
+			assert_eq!(snapshot1[2].owner, 5);
+			assert_eq!(snapshot1[2].weight, 3);
+			assert_eq!(snapshot1[2].staking_at, 4);
+
+			let snapshot2 = ActiveStakingSnapshot::<Test>::get(cml_id2);
+			assert_eq!(snapshot2.len(), 2);
+			assert_eq!(snapshot2[0].owner, 2);
+			assert_eq!(snapshot2[0].weight, 1);
+			assert_eq!(snapshot2[0].staking_at, 0);
+			assert_eq!(snapshot2[1].owner, 4);
+			assert_eq!(snapshot2[1].weight, 2);
+			assert_eq!(snapshot2[1].staking_at, 1);
+		})
+	}
+
+	#[test]
+	fn calculate_staking_works() {
+		new_test_ext().execute_with(|| {
+			let cml_id1 = 1;
+			ActiveStakingSnapshot::<Test>::insert(
+				cml_id1,
+				vec![
+					StakingSnapshotItem {
+						owner: 1,
+						weight: 1,
+						staking_at: 0,
+					},
+					StakingSnapshotItem {
+						owner: 2,
+						weight: 2,
+						staking_at: 1,
+					},
+				],
+			);
+
+			let cml_id2 = 2;
+			ActiveStakingSnapshot::<Test>::insert(
+				cml_id2,
+				vec![
+					StakingSnapshotItem {
+						owner: 3,
+						weight: 1,
+						staking_at: 0,
+					},
+					StakingSnapshotItem {
+						owner: 4,
+						weight: 3,
+						staking_at: 1,
+					},
+					StakingSnapshotItem {
+						owner: 5,
+						weight: 1,
+						staking_at: 4,
+					},
+				],
+			);
+
+			Cml::calculate_staking();
+
+			const CENTS: node_primitives::Balance = 10_000_000_000;
+			const DOLLARS: node_primitives::Balance = 100 * CENTS;
+			assert_eq!(AccountRewards::<Test>::iter().count(), 5);
+			for user_id in 1..=5 {
+				assert_eq!(AccountRewards::<Test>::get(user_id).unwrap(), 1 * DOLLARS);
+			}
 		})
 	}
 }

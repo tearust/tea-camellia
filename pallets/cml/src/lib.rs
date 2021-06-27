@@ -137,8 +137,7 @@ pub mod cml {
 		fn build(&self) {
 			use crate::functions::convert_genesis_seeds_to_cmls;
 
-			self
-				.genesis_vouchers
+			self.genesis_vouchers
 				.vouchers
 				.iter()
 				.for_each(|voucher_config| {
@@ -419,7 +418,7 @@ pub mod cml {
 			Self::check_balance_staking(&sender)?;
 
 			let staking_item = Self::create_balance_staking(&sender)?;
-			Self::init_miner_item(machine_id, miner_ip);
+			Self::init_miner_item(cml_id, machine_id, miner_ip);
 			let current_block_number = frame_system::Pallet::<T>::block_number();
 			CmlStore::<T>::mutate(cml_id, |cml| match cml {
 				Some(cml) => {
@@ -488,25 +487,28 @@ pub mod cml {
 			let staking_index: Option<StakingIndex> = CmlStore::<T>::mutate(staking_to, |cml| {
 				if let Some(staking_to) = cml {
 					return match staking_cml {
-						Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| -> Option<StakingIndex> {
-							match cml {
-								Some(cml) => {
-									if cml.is_seed() {
-										Self::seed_to_tree(cml, &current_block_number).unwrap();
+						Some(cml_id) => {
+							CmlStore::<T>::mutate(cml_id, |cml| -> Option<StakingIndex> {
+								match cml {
+									Some(cml) => {
+										if cml.is_seed() {
+											Self::seed_to_tree(cml, &current_block_number).unwrap();
+										}
+										staking_to.stake(&who, None, Some(cml)).ok()
 									}
-									staking_to.stake(&who, None, Some(cml)).ok()
+									None => None,
 								}
-								None => None,
-							}
-						}),
+							})
+						}
 						None => {
 							T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
 							staking_to
-								.stake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
-									&who,
-									Some(T::StakingPrice::get()),
-									None,
-								)
+								.stake::<CML<
+									T::AccountId,
+									T::BlockNumber,
+									BalanceOf<T>,
+									T::SeedFreshDuration,
+								>>(&who, Some(T::StakingPrice::get()), None)
 								.ok()
 						}
 					};
@@ -565,11 +567,12 @@ pub mod cml {
 						}),
 						None => {
 							T::CurrencyOperations::unreserve(&who, T::StakingPrice::get()).unwrap();
-							staking_to
-								.unstake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
-									Some(staking_index),
-									None,
-								)
+							staking_to.unstake::<CML<
+								T::AccountId,
+								T::BlockNumber,
+								BalanceOf<T>,
+								T::SeedFreshDuration,
+							>>(Some(staking_index), None)
 						}
 					};
 				}

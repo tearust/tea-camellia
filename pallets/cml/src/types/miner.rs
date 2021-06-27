@@ -1,3 +1,4 @@
+use crate::CmlId;
 use codec::{Decode, Encode};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
@@ -13,6 +14,7 @@ pub enum MinerStatus {
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct MinerItem {
+	pub cml_id: CmlId,
 	pub id: MachineId,
 	pub ip: Vec<u8>,
 	pub status: MinerStatus,
