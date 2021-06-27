@@ -43,7 +43,8 @@ pub struct DefrostSchedule {
 ///
 pub const INVESTOR_S_DEFROST_SCHEDULE: DefrostSchedule = DefrostSchedule {
 	cliff: 0,
-	cliff_percentage: 10,
+	// cliff_percentage: 10,
+	cliff_percentage: 80, //this is for faster testing only. will revert back to 10 for real testing
 	interval: BLOCKS_IN_A_MONTH, // average how many blocks in a month
 	percentage: 5,
 };
