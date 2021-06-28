@@ -1,0 +1,20 @@
+[package]
+name = "cml-runtime-api"
+version = "0.1.0"
+authors = ["Yan Mingzhi <realraindust@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sp-api = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+sp-std = { version = "3.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+
+[features]
+default = ["std"]
+std = [
+    'sp-api/std',
+    'sp-std/std',
+    'node-primitives/std',
+]

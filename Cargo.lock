@@ -702,6 +702,7 @@ name = "camellia-runtime"
 version = "0.0.1"
 dependencies = [
  "chainbridge",
+ "cml-runtime-api",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
@@ -962,6 +963,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "cml-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "node-primitives",
+ "sp-api",
+ "sp-std",
 ]
 
 [[package]]
