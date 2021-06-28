@@ -421,7 +421,6 @@ pub mod cml {
 			Self::check_balance_staking(&sender)?;
 
 			let staking_item = Self::create_balance_staking(&sender)?;
-			Self::init_miner_item(cml_id, machine_id, miner_ip);
 			let current_block_number = frame_system::Pallet::<T>::block_number();
 			CmlStore::<T>::mutate(cml_id, |cml| match cml {
 				Some(cml) => {
@@ -435,6 +434,7 @@ pub mod cml {
 				}
 				None => Err(Error::<T>::NotFoundCML),
 			})?;
+			Self::init_miner_item(cml_id, machine_id, miner_ip);
 			Ok(())
 		}
 

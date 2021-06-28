@@ -105,7 +105,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 
 		assert_noop!(
 			Cml::start_mining(Origin::signed(1), cml1_id, machine_id_2, miner_ip_2.clone()),
-			Error::<Test>::MinerAlreadyExist
+			Error::<Test>::AlreadyHasMachineId
 		);
 	})
 }
