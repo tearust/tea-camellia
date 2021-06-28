@@ -99,6 +99,13 @@ impl<T: utils::Config> CurrencyOperations for utils::Pallet<T> {
 			Self::reserved_balance(slashed) >= total_repatriate,
 			Error::<T>::InsufficientRepatriateBalance
 		);
+		// prevent repatriate to accounts not exist
+		for account in beneficiary_list {
+			ensure!(
+				Self::free_balance(account) != BalanceOf::<T>::zero(),
+				Error::<T>::AccountNotExist
+			);
+		}
 
 		for i in 0..beneficiary_list.len() {
 			Self::repatriate_reserved(
@@ -430,16 +437,15 @@ mod tests {
 			// not exist account at the first
 			assert_noop!(
 				Utils::repatriate_reserved_batch(&1, &vec![3, 2], &vec![3, 4]),
-				BalanceError::<Test>::DeadAccount,
+				Error::<Test>::AccountNotExist,
 			);
 			assert_eq!(Utils::reserved_balance(&1), 9);
 
 			// not exist account at the second
-			// todo assert should pass
-			// assert_noop!(
-			//     Utils::repatriate_reserved_batch(&1, &vec![2, 3], &vec![3, 4]),
-			//     BalanceError::<Test>::DeadAccount,
-			// );
+			assert_noop!(
+				Utils::repatriate_reserved_batch(&1, &vec![2, 3], &vec![3, 4]),
+				Error::<Test>::AccountNotExist,
+			);
 			assert_eq!(Utils::reserved_balance(&1), 9);
 		})
 	}

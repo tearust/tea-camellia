@@ -28,6 +28,9 @@ use sp_io::hashing::blake2_256;
 use sp_std::prelude::*;
 use types::*;
 
+type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 #[frame_support::pallet]
 pub mod utils {
 	use super::*;
@@ -67,6 +70,7 @@ pub mod utils {
 		MismatchedRepatriateBatchList,
 		/// Generally this error should never happen, otherwise should check logic error.
 		UnexpectedBalanceResult,
+		AccountNotExist,
 	}
 
 	#[pallet::hooks]
