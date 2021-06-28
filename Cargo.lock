@@ -966,10 +966,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "cml-rpc"
+version = "0.1.0"
+dependencies = [
+ "cml-runtime-api",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
 name = "cml-runtime-api"
 version = "0.1.0"
 dependencies = [
  "node-primitives",
+ "parity-scale-codec",
  "sp-api",
  "sp-std",
 ]
@@ -7879,6 +7896,8 @@ name = "tea-camellia"
 version = "0.0.1"
 dependencies = [
  "camellia-runtime",
+ "cml-rpc",
+ "cml-runtime-api",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "hex-literal",

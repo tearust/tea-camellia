@@ -1044,7 +1044,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl cml_runtime_api::CmlApi<Block> for Runtime {
+	impl cml_runtime_api::CmlApi<Block, AccountId> for Runtime {
 		fn get_user_cml_list(who: &AccountId) -> Vec<u64> {
 			Cml::get_user_cml_list(who)
 		}

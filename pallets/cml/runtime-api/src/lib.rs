@@ -2,11 +2,14 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::unnecessary_mut_passed)]
 
-use node_primitives::AccountId;
+use codec::Codec;
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
-	pub trait CmlApi {
+	pub trait CmlApi<AccountId>
+	where
+		AccountId: Codec,
+	{
 		fn get_user_cml_list(who: &AccountId) -> Vec<u64>;
 
 		/// return type: the first field is ID of the cml, the second field is slot index within
