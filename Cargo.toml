@@ -4,7 +4,9 @@ panic = 'unwind'
 [workspace]
 members = [
 	'node',
-	'pallets/*',
 	'runtime',
+	'pallets/*',
 	'simulators/*',
+	'pallets/cml/runtime-api',
+	'pallets/cml/rpc',
 ]

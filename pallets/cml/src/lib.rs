@@ -10,6 +10,7 @@ mod tests;
 mod functions;
 pub mod generator;
 mod impl_stored_map;
+mod rpc;
 mod staking;
 mod types;
 pub use types::*;

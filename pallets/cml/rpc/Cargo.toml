@@ -1,0 +1,32 @@
+[package]
+name = "cml-rpc"
+version = "0.1.0"
+authors = ["Yan Mingzhi <realraindust@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+codec = {default-features = false, package = "parity-scale-codec", version = "2.0.0" }
+jsonrpc-core = "15.1.0"
+jsonrpc-core-client = "15.1.0"
+jsonrpc-derive = "15.1.0"
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+sp-api = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+sp-blockchain = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+sp-rpc = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+
+cml-runtime-api = {default-features = false, path = '../runtime-api'}
+
+
+[features]
+default = ["std"]
+std = [
+    'serde',
+    'codec/std',
+    'sp-api/std',
+    "sp-runtime/std",
+    "cml-runtime-api/std"
+]

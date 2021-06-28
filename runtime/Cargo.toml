@@ -75,10 +75,12 @@ chainbridge = {default-features = false, version = '0.0.2', git = 'https://githu
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
-pallet-cml = {default-features = false, path = '../pallets/cml'}
 pallet-auction = {default-features = false, path = '../pallets/auction'}
 pallet-bridge = {default-features = false, path = '../pallets/bridge'}
 pallet-utils = {default-features = false, path = '../pallets/utils'}
+
+pallet-cml = {default-features = false, path = '../pallets/cml'}
+cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
 
 [features]
 default = ['std']
@@ -168,5 +170,6 @@ std = [
   	'pallet-auction/std',
 	'pallet-bridge/std',
 	'pallet-utils/std',
+	'cml-runtime-api/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test
