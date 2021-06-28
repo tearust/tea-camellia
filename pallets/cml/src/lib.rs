@@ -24,7 +24,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_utils::{CommonUtils, CurrencyOperations};
 use sp_runtime::traits::AtLeast32BitUnsigned;
-use sp_std::prelude::*;
+use sp_std::{convert::TryInto, prelude::*};
 
 pub use cml::*;
 
@@ -243,6 +243,8 @@ pub mod cml {
 		StakingIndexIsNone,
 		InvalidStakingIndex,
 		InvalidStakingOwner,
+		NotFoundRewardAccount,
+		RewardAmountConvertFailed,
 
 		// from cml
 		SproutAtIsNone,
@@ -580,6 +582,28 @@ pub mod cml {
 				Ok(())
 			})
 			.map_err(|e| Error::<T>::from(e))?;
+
+			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn withdraw_staking_reward(sender: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+			ensure!(
+				AccountRewards::<T>::contains_key(&who),
+				Error::<T>::NotFoundRewardAccount
+			);
+
+			AccountRewards::<T>::mutate(&who, |balance| -> DispatchResult {
+				if let Some(balance) = balance {
+					let deposit_amount = (*balance)
+						.try_into()
+						.map_err(|_| Error::<T>::RewardAmountConvertFailed)?;
+					T::CurrencyOperations::deposit_creating(&who, deposit_amount);
+					*balance = 0;
+				}
+				Ok(())
+			})?;
 
 			Ok(())
 		}
