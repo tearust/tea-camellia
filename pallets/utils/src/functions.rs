@@ -113,6 +113,11 @@ impl<T: utils::Config> CurrencyOperations for utils::Pallet<T> {
 		}
 		Ok(())
 	}
+
+	fn deposit_creating(who: &Self::AccountId, value: Self::Balance) {
+		let imbalance = T::Currency::deposit_creating(who, value);
+		T::Reward::on_unbalanced(imbalance);
+	}
 }
 
 #[cfg(test)]
@@ -436,6 +441,22 @@ mod tests {
 			//     BalanceError::<Test>::DeadAccount,
 			// );
 			assert_eq!(Utils::reserved_balance(&1), 9);
+		})
+	}
+
+	#[test]
+	fn deposit_creating_works() {
+		new_test_ext().execute_with(|| {
+			Utils::deposit_creating(&1, 10);
+			Utils::deposit_creating(&2, 10);
+
+			assert!(System::account_exists(&1));
+			assert!(System::account_exists(&2));
+
+			assert_eq!(Utils::free_balance(&1), 10);
+			assert_eq!(Utils::free_balance(&2), 10);
+
+			assert_eq!(Utils::total_issuance(), 20);
 		})
 	}
 }
