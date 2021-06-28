@@ -1,3 +1,5 @@
+use sp_runtime::traits::CheckedSub;
+
 use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
@@ -9,12 +11,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 		height % T::StakingPeriodLength::get() == 0u32.into()
 	}
 
-	pub(crate) fn check_balance_staking(_who: &T::AccountId) -> DispatchResult {
-		// todo implement me later
-		// ensure!(
-		// 	T::CurrencyOperations::free_balance(&sender) > T::StakingPrice::get(),
-		// 	Error::<T>::InsufficientFreeBalance,
-		// );
+	pub(crate) fn check_balance_staking(who: &T::AccountId) -> DispatchResult {
+		ensure!(
+			T::CurrencyOperations::free_balance(who) > T::StakingPrice::get(),
+			Error::<T>::InsufficientFreeBalance,
+		);
 		Ok(())
 	}
 
@@ -92,13 +93,40 @@ impl<T: cml::Config> cml::Pallet<T> {
 		1
 	}
 
+	pub(crate) fn create_genesis_miner_balance_staking(
+		who: &T::AccountId,
+		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+	) -> Result<
+		(
+			StakingItem<T::AccountId, BalanceOf<T>>,
+			Option<BalanceOf<T>>,
+		),
+		DispatchError,
+	> {
+		ensure!(cml.is_from_genesis(), Error::<T>::CmlIsNotFromGenesis);
+
+		let free_balance = T::CurrencyOperations::free_balance(who);
+		if free_balance >= T::StakingPrice::get() {
+			Ok((
+				Self::create_balance_staking(who, T::StakingPrice::get())?,
+				None,
+			))
+		} else {
+			let credit_amount = T::StakingPrice::get()
+				.checked_sub(&free_balance)
+				.ok_or(Error::<T>::InvalidCreditAmount)?;
+			Ok((
+				Self::create_balance_staking(who, free_balance)?,
+				Some(credit_amount),
+			))
+		}
+	}
+
 	pub(crate) fn create_balance_staking(
 		who: &T::AccountId,
+		staking_price: BalanceOf<T>,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
-		let staking_price: BalanceOf<T> = T::StakingPrice::get();
-
-		// todo implement me later
-		// T::CurrencyOperations::reserve(who, staking_price)?;
+		T::CurrencyOperations::reserve(who, staking_price)?;
 		Ok(StakingItem {
 			owner: who.clone(),
 			category: StakingCategory::Tea,
@@ -272,6 +300,7 @@ mod tests {
 					id: [1; 32],
 					ip: vec![],
 					status: MinerStatus::Active,
+					credit_amount: None,
 				},
 			);
 			MinerItemStore::<Test>::insert(
@@ -281,6 +310,7 @@ mod tests {
 					id: [2; 32],
 					ip: vec![],
 					status: MinerStatus::Active,
+					credit_amount: None,
 				},
 			);
 
