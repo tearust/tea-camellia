@@ -1,5 +1,8 @@
 use crate::tests::new_genesis_seed;
-use crate::{mock::*, types::*, CmlStore, Config, Error, MinerItemStore, UserCmlStore};
+use crate::{
+	mock::*, types::*, CmlStore, Config, Error, GenesisMinerCreditStore, MinerItemStore,
+	UserCmlStore,
+};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 
 #[test]
@@ -45,8 +48,7 @@ fn start_mining_works_with_insufficient_balance() {
 			b"miner_ip".to_vec()
 		));
 
-		let miner_item = MinerItemStore::<Test>::get(&machine_id).unwrap();
-		assert_eq!(miner_item.credit_amount, Some(1));
+		assert_eq!(GenesisMinerCreditStore::<Test>::get(&1), 1);
 	})
 }
 

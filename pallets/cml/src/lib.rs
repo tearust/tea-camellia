@@ -96,8 +96,13 @@ pub mod cml {
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Voucher>;
 
 	#[pallet::storage]
-	pub type MinerItemStore<T: Config> =
-		StorageMap<_, Twox64Concat, MachineId, MinerItem<BalanceOf<T>>>;
+	#[pallet::getter(fn miner_item_store)]
+	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, MachineId, MinerItem>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn miner_credit_store)]
+	pub type GenesisMinerCreditStore<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn lucky_draw_box)]
@@ -446,7 +451,10 @@ pub mod cml {
 
 					cml.start_mining(machine_id, staking_item)
 						.map_err(|e| Error::<T>::from(e))?;
-					Self::init_miner_item(cml_id, machine_id, miner_ip, credit);
+					if let Some(credit) = credit {
+						GenesisMinerCreditStore::<T>::insert(sender, credit);
+					}
+					Self::init_miner_item(cml_id, machine_id, miner_ip);
 				}
 				Ok(())
 			})?;

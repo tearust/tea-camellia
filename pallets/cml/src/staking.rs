@@ -71,6 +71,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 					miner_staking_point,
 					item,
 				);
+
 				AccountRewards::<T>::mutate(&item.owner, |balance| match balance {
 					Some(balance) => {
 						*balance = balance.saturating_add(reward);
@@ -300,7 +301,6 @@ mod tests {
 					id: [1; 32],
 					ip: vec![],
 					status: MinerStatus::Active,
-					credit_amount: None,
 				},
 			);
 			MinerItemStore::<Test>::insert(
@@ -310,7 +310,6 @@ mod tests {
 					id: [2; 32],
 					ip: vec![],
 					status: MinerStatus::Active,
-					credit_amount: None,
 				},
 			);
 
