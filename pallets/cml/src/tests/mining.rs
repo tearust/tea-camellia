@@ -103,7 +103,6 @@ fn start_mining_with_same_machine_id_should_fail() {
 }
 
 #[test]
-#[ignore]
 fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 	new_test_ext().execute_with(|| {
 		let amount = 100 * 1000; // Unit * StakingPrice
