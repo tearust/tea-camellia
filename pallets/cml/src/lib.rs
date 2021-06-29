@@ -365,32 +365,38 @@ pub mod cml {
 			schedule_type: DefrostScheduleType,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-
-			ensure!(
-				!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
-				Error::<T>::VouchersHasOutdated
-			);
-
 			let (a_coupon, b_coupon, c_coupon) = Self::take_vouchers(&sender, schedule_type);
-			ensure!(
-				a_coupon + b_coupon + c_coupon > 0,
-				Error::<T>::WithoutVoucher
-			);
-			Self::check_luck_draw(a_coupon, b_coupon, c_coupon, schedule_type)?;
 
-			let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type);
-			let seeds_count = seed_ids.len() as u64;
-			seed_ids.iter().for_each(|id| {
-				CmlStore::<T>::mutate(id, |cml| {
-					if let Some(cml) = cml {
-						cml.set_owner(&sender);
-					}
-				});
-				UserCmlStore::<T>::insert(&sender, id, ());
-			});
+			extrinsic_procedure(
+				&sender,
+				|_| {
+					ensure!(
+						!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
+						Error::<T>::VouchersHasOutdated
+					);
+					ensure!(
+						a_coupon + b_coupon + c_coupon > 0,
+						Error::<T>::WithoutVoucher
+					);
+					Self::check_luck_draw(a_coupon, b_coupon, c_coupon, schedule_type)?;
+					Ok(())
+				},
+				|sender| {
+					let seed_ids =
+						Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type);
+					let seeds_count = seed_ids.len() as u64;
+					seed_ids.iter().for_each(|id| {
+						CmlStore::<T>::mutate(id, |cml| {
+							if let Some(cml) = cml {
+								cml.set_owner(&sender);
+							}
+						});
+						UserCmlStore::<T>::insert(&sender, id, ());
+					});
 
-			Self::deposit_event(Event::DrawCmls(sender, seeds_count));
-			Ok(())
+					Self::deposit_event(Event::DrawCmls(sender.clone(), seeds_count));
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
@@ -695,4 +701,18 @@ pub trait StakingEconomics<Balance> {
 		total_staking_point: MinerStakingPoint,
 		snapshot_item: &StakingSnapshotItem<Self::AccountId>,
 	) -> Balance;
+}
+
+pub fn extrinsic_procedure<AccountId, CheckFn, SetFn>(
+	who: &AccountId,
+	ck_fn: CheckFn,
+	set_fn: SetFn,
+) -> DispatchResult
+where
+	CheckFn: Fn(&AccountId) -> DispatchResult,
+	SetFn: Fn(&AccountId),
+{
+	ck_fn(who)?;
+	set_fn(who);
+	Ok(())
 }
