@@ -778,14 +778,32 @@ impl pallet_tea::Config for Runtime {
 	type CommonUtils = Utils;
 }
 
+#[cfg(not(feature = "fast"))]
+/// Timeout height is (1 * 30 * 24 * 60 * 10 * 6secs) about 1 month
+const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
+#[cfg(feature = "fast")]
+/// Timeout height is (1 * 60 * 10 * 6secs) about 1 hour
+const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 60 * 10;
+
+#[cfg(not(feature = "fast"))]
+/// Staking period length is (1 * 24 * 60 * 10) about 1 day
+const STAKING_PERIOD_LENGTH: u32 = 1 * 24 * 60 * 10;
+#[cfg(feature = "fast")]
+/// Staking period length is (10 * 10) about 10 minuts
+const STAKING_PERIOD_LENGTH: u32 = 10 * 10;
+
+#[cfg(not(feature = "fast"))]
+/// Seed fresh duration is (7 * 24 * 60 * 10) about 1 week
+const SEED_FRESH_DURATION: u32 = 7 * 24 * 60 * 10;
+#[cfg(feature = "fast")]
+/// Seed fresh duration is (30 * 10) about 30 minuts
+const SEED_FRESH_DURATION: u32 = 30 * 10;
+
 parameter_types! {
 	pub const StakingPrice: Balance = 1000 * DOLLARS;
-	/// Timeout height is (1 * 30 * 24 * 60 * 10 * 6secs) about 1 month
-	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
-	/// Staking period length is (1 * 24 * 60 * 10) about 1 day
-	pub const StakingPeriodLength: u32 = 1 * 24 * 60 * 10;
-	/// Seed fresh duration is (7 * 24 * 60 * 10) about 1 week
-	pub const SeedFreshDuration: u32 = 7 * 24 * 60 * 10;
+	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
+	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
+	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
 }
 impl pallet_cml::Config for Runtime {
 	type Event = Event;

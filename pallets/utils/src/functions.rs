@@ -99,6 +99,13 @@ impl<T: utils::Config> CurrencyOperations for utils::Pallet<T> {
 			Self::reserved_balance(slashed) >= total_repatriate,
 			Error::<T>::InsufficientRepatriateBalance
 		);
+		// prevent repatriate to accounts not exist
+		for account in beneficiary_list {
+			ensure!(
+				Self::free_balance(account) != BalanceOf::<T>::zero(),
+				Error::<T>::AccountNotExist
+			);
+		}
 
 		for i in 0..beneficiary_list.len() {
 			Self::repatriate_reserved(
@@ -112,6 +119,11 @@ impl<T: utils::Config> CurrencyOperations for utils::Pallet<T> {
 			)?;
 		}
 		Ok(())
+	}
+
+	fn deposit_creating(who: &Self::AccountId, value: Self::Balance) {
+		let imbalance = T::Currency::deposit_creating(who, value);
+		T::Reward::on_unbalanced(imbalance);
 	}
 }
 
@@ -425,17 +437,32 @@ mod tests {
 			// not exist account at the first
 			assert_noop!(
 				Utils::repatriate_reserved_batch(&1, &vec![3, 2], &vec![3, 4]),
-				BalanceError::<Test>::DeadAccount,
+				Error::<Test>::AccountNotExist,
 			);
 			assert_eq!(Utils::reserved_balance(&1), 9);
 
 			// not exist account at the second
-			// todo assert should pass
-			// assert_noop!(
-			//     Utils::repatriate_reserved_batch(&1, &vec![2, 3], &vec![3, 4]),
-			//     BalanceError::<Test>::DeadAccount,
-			// );
+			assert_noop!(
+				Utils::repatriate_reserved_batch(&1, &vec![2, 3], &vec![3, 4]),
+				Error::<Test>::AccountNotExist,
+			);
 			assert_eq!(Utils::reserved_balance(&1), 9);
+		})
+	}
+
+	#[test]
+	fn deposit_creating_works() {
+		new_test_ext().execute_with(|| {
+			Utils::deposit_creating(&1, 10);
+			Utils::deposit_creating(&2, 10);
+
+			assert!(System::account_exists(&1));
+			assert!(System::account_exists(&2));
+
+			assert_eq!(Utils::free_balance(&1), 10);
+			assert_eq!(Utils::free_balance(&2), 10);
+
+			assert_eq!(Utils::total_issuance(), 20);
 		})
 	}
 }

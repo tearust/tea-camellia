@@ -98,4 +98,9 @@ pub trait CurrencyOperations {
 		beneficiary_list: &Vec<Self::AccountId>,
 		value_list: &Vec<Self::Balance>,
 	) -> DispatchResult;
+
+	/// Adds up to `value` to the free balance of `who`. If `who` doesn't exist, it is created.
+	///
+	/// Infallible.
+	fn deposit_creating(who: &Self::AccountId, value: Self::Balance);
 }

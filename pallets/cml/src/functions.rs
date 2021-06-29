@@ -39,7 +39,8 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			match cml {
 				Some(cml) => {
 					if cml.is_mining() {
-						let staking_item = Self::create_balance_staking(target_account)?;
+						let staking_item =
+							Self::create_balance_staking(target_account, T::StakingPrice::get())?;
 						cml.swap_first_slot(staking_item);
 
 						// TODO balance
@@ -246,12 +247,18 @@ impl<T: cml::Config> cml::Pallet<T> {
 		div_mod.as_u32()
 	}
 
-	pub(crate) fn init_miner_item(cml_id: CmlId, machine_id: MachineId, miner_ip: Vec<u8>) {
+	pub(crate) fn init_miner_item(
+		cml_id: CmlId,
+		machine_id: MachineId,
+		miner_ip: Vec<u8>,
+		credit_amount: Option<BalanceOf<T>>,
+	) {
 		let miner_item = MinerItem {
 			cml_id,
 			id: machine_id.clone(),
 			ip: miner_ip,
 			status: MinerStatus::Active,
+			credit_amount,
 		};
 		MinerItemStore::<T>::insert(&machine_id, miner_item);
 	}

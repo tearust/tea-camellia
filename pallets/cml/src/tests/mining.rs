@@ -27,6 +27,30 @@ fn start_mining_with_frozen_seed_works() {
 }
 
 #[test]
+fn start_mining_works_with_insufficient_balance() {
+	new_test_ext().execute_with(|| {
+		let amount = STAKING_PRICE - 1;
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec()
+		));
+
+		let miner_item = MinerItemStore::<Test>::get(&machine_id).unwrap();
+		assert_eq!(miner_item.credit_amount, Some(1));
+	})
+}
+
+#[test]
 fn start_mining_not_belongs_to_me_should_fail() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;
@@ -106,7 +130,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 
 		assert_noop!(
 			Cml::start_mining(Origin::signed(1), cml1_id, machine_id_2, miner_ip_2.clone()),
-			Error::<Test>::MinerAlreadyExist
+			Error::<Test>::AlreadyHasMachineId
 		);
 	})
 }

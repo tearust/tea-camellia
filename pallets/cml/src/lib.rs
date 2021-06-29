@@ -24,7 +24,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_utils::{CommonUtils, CurrencyOperations};
 use sp_runtime::traits::AtLeast32BitUnsigned;
-use sp_std::prelude::*;
+use sp_std::{convert::TryInto, prelude::*};
 
 pub use cml::*;
 
@@ -96,7 +96,8 @@ pub mod cml {
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Voucher>;
 
 	#[pallet::storage]
-	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, MachineId, MinerItem>;
+	pub type MinerItemStore<T: Config> =
+		StorageMap<_, Twox64Concat, MachineId, MinerItem<BalanceOf<T>>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn lucky_draw_box)]
@@ -239,10 +240,14 @@ pub mod cml {
 		InsufficientReservedBalance,
 		MinerAlreadyExist,
 		NotFoundMiner,
+		CmlIsNotFromGenesis,
+		InvalidCreditAmount,
 
 		StakingIndexIsNone,
 		InvalidStakingIndex,
 		InvalidStakingOwner,
+		NotFoundRewardAccount,
+		RewardAmountConvertFailed,
 
 		// from cml
 		SproutAtIsNone,
@@ -416,22 +421,34 @@ pub mod cml {
 				!<MinerItemStore<T>>::contains_key(&machine_id),
 				Error::<T>::MinerAlreadyExist
 			);
-			Self::check_balance_staking(&sender)?;
 
-			let staking_item = Self::create_balance_staking(&sender)?;
-			Self::init_miner_item(cml_id, machine_id, miner_ip);
 			let current_block_number = frame_system::Pallet::<T>::block_number();
-			CmlStore::<T>::mutate(cml_id, |cml| match cml {
-				Some(cml) => {
+			CmlStore::<T>::mutate(cml_id, |cml| -> DispatchResult {
+				if let Some(cml) = cml {
+					ensure!(cml.machine_id().is_none(), Error::<T>::AlreadyHasMachineId);
+					ensure!(
+						cml.staking_slots().is_empty(),
+						Error::<T>::SlotShouldBeEmpty
+					);
+
+					let (staking_item, credit) = if cml.is_from_genesis() {
+						Self::create_genesis_miner_balance_staking(&sender, cml)?
+					} else {
+						(
+							Self::create_balance_staking(&sender, T::StakingPrice::get())?,
+							None,
+						)
+					};
+
 					if cml.is_seed() {
-						cml.seed_valid(&current_block_number)?;
 						Self::seed_to_tree(cml, &current_block_number)?;
 					}
 
-					cml.start_mining(machine_id, staking_item)?;
-					Ok(())
+					cml.start_mining(machine_id, staking_item)
+						.map_err(|e| Error::<T>::from(e))?;
+					Self::init_miner_item(cml_id, machine_id, miner_ip, credit);
 				}
-				None => Err(Error::<T>::NotFoundCML),
+				Ok(())
 			})?;
 			Ok(())
 		}
@@ -580,6 +597,28 @@ pub mod cml {
 				Ok(())
 			})
 			.map_err(|e| Error::<T>::from(e))?;
+
+			Ok(())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn withdraw_staking_reward(sender: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+			ensure!(
+				AccountRewards::<T>::contains_key(&who),
+				Error::<T>::NotFoundRewardAccount
+			);
+
+			AccountRewards::<T>::mutate(&who, |balance| -> DispatchResult {
+				if let Some(balance) = balance {
+					let deposit_amount = (*balance)
+						.try_into()
+						.map_err(|_| Error::<T>::RewardAmountConvertFailed)?;
+					T::CurrencyOperations::deposit_creating(&who, deposit_amount);
+					*balance = 0;
+				}
+				Ok(())
+			})?;
 
 			Ok(())
 		}

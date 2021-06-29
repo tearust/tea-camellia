@@ -1,6 +1,7 @@
 use crate::tests::new_genesis_seed;
-use crate::{mock::*, types::*, CmlStore, Config, UserCmlStore};
+use crate::{mock::*, types::*, AccountRewards, CmlStore, Config, UserCmlStore};
 use frame_support::{assert_ok, traits::Currency};
+use pallet_utils::CurrencyOperations;
 
 #[test]
 fn start_staking_with_balance_works() {
@@ -125,5 +126,23 @@ fn stop_staking_with_cml_works() {
 
 		assert_ok!(Cml::stop_staking(Origin::signed(2), cml1_id, 1));
 		assert!(!CmlStore::<Test>::get(cml2_id).unwrap().is_staking());
+	})
+}
+
+#[test]
+fn withdraw_staking_reward_works() {
+	new_test_ext().execute_with(|| {
+		let amount = 100;
+		AccountRewards::<Test>::insert(1, amount);
+
+		assert_eq!(Utils::free_balance(&1), 0);
+		assert!(AccountRewards::<Test>::contains_key(&1));
+		assert_eq!(AccountRewards::<Test>::get(&1).unwrap(), amount);
+
+		assert_ok!(Cml::withdraw_staking_reward(Origin::signed(1)));
+
+		assert_eq!(Utils::free_balance(&1), 100);
+		assert!(AccountRewards::<Test>::contains_key(&1));
+		assert_eq!(AccountRewards::<Test>::get(&1).unwrap(), 0);
 	})
 }

@@ -13,9 +13,13 @@ pub enum MinerStatus {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct MinerItem {
+pub struct MinerItem<Balance>
+where
+	Balance: Clone,
+{
 	pub cml_id: CmlId,
 	pub id: MachineId,
 	pub ip: Vec<u8>,
 	pub status: MinerStatus,
+	pub credit_amount: Option<Balance>,
 }
