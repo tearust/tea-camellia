@@ -56,7 +56,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 		let snapshots: Vec<(CmlId, Vec<StakingSnapshotItem<T::AccountId>>)> =
 			ActiveStakingSnapshot::<T>::iter().collect();
-
 		for (cml_id, snapshot_items) in snapshots {
 			let miner_task_point = Self::get_miner_task_point(cml_id);
 			let miner_staking_point = T::StakingEconomics::miner_staking_point(&snapshot_items);
@@ -77,15 +76,15 @@ impl<T: cml::Config> cml::Pallet<T> {
 				if GenesisMinerCreditStore::<T>::contains_key(&owner) {
 					let credit = GenesisMinerCreditStore::<T>::get(&owner);
 					if credit > reward {
-						reward = BalanceOf::<T>::zero();
 						GenesisMinerCreditStore::<T>::insert(&owner, credit.saturating_sub(reward));
+						reward = BalanceOf::<T>::zero();
 					} else {
-						reward = reward.saturating_sub(credit);
 						GenesisMinerCreditStore::<T>::remove(&owner);
+						reward = reward.saturating_sub(credit);
 					}
 				}
 				if reward.is_zero() {
-					return;
+					continue;
 				}
 
 				AccountRewards::<T>::mutate(&item.owner, |balance| match balance {
