@@ -18,3 +18,14 @@ pub fn new_genesis_seed(id: CmlId) -> Seed {
 		performance: 0,
 	}
 }
+
+pub fn new_genesis_frozen_seed(id: CmlId) -> Seed {
+	Seed {
+		id,
+		cml_type: CmlType::A,
+		defrost_schedule: Some(DefrostScheduleType::Team),
+		defrost_time: Some(10000),
+		lifespan: 0,
+		performance: 0,
+	}
+}

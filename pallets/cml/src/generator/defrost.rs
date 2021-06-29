@@ -30,16 +30,16 @@ pub fn make_generate_defrost_time_fn(
 						* (prob as f32 - (u8::MAX as f32 * 0.1)) // the rest probably of nighty percent
 						/ (u8::MAX as f32 - u8::MAX as f32 * 0.1); // the base of the nighty percent
 
-					(defrost_time_point[rand_defrost_time_index as usize] as i32
-						+ random_offset as i32) as u32
+					(defrost_time_point[rand_defrost_time_index as usize] as i32 + random_offset as i32)
+						as u32
 				}
 			}
 			DefrostScheduleType::Team => {
 				let prob: u8 = rng.gen();
 				let rand_defrost_time_index = 20 /*months*/ as f32 * prob as f32 / u8::MAX as f32/*probably between zero to one*/;
 				team_cliff
-					+ (defrost_time_point[rand_defrost_time_index as usize] as i32
-						+ random_offset as i32) as u32
+					+ (defrost_time_point[rand_defrost_time_index as usize] as i32 + random_offset as i32)
+						as u32
 			}
 		}
 	}
@@ -50,7 +50,6 @@ mod tests {
 	use super::*;
 
 	#[test]
-	#[ignore]
 	fn check_seeds_defrost_time_distribution() {
 		println!("Team defrost ...");
 		let closure_defrost_time = make_generate_defrost_time_fn(DefrostScheduleType::Team);
