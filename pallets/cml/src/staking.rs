@@ -1,5 +1,3 @@
-use sp_runtime::traits::CheckedSub;
-
 use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
@@ -66,18 +64,33 @@ impl<T: cml::Config> cml::Pallet<T> {
 			);
 
 			snapshot_items.iter().for_each(|item| {
-				let reward = T::StakingEconomics::single_staking_reward(
+				let mut reward = T::StakingEconomics::single_staking_reward(
 					miner_total_reward,
 					miner_staking_point,
 					item,
 				);
+
+				let owner = item.owner.clone();
+				if GenesisMinerCreditStore::<T>::contains_key(&owner) {
+					let credit = GenesisMinerCreditStore::<T>::get(&owner);
+					if credit > reward {
+						reward = BalanceOf::<T>::zero();
+						GenesisMinerCreditStore::<T>::insert(&owner, credit.saturating_sub(reward));
+					} else {
+						reward = reward.saturating_sub(credit);
+						GenesisMinerCreditStore::<T>::remove(&owner);
+					}
+				}
+				if reward.is_zero() {
+					return;
+				}
 
 				AccountRewards::<T>::mutate(&item.owner, |balance| match balance {
 					Some(balance) => {
 						*balance = balance.saturating_add(reward);
 					}
 					None => {
-						*balance = Some(reward);
+						*balance = Some(reward.into());
 					}
 				})
 			})
@@ -179,20 +192,17 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
-impl<T: cml::Config> StakingEconomics for cml::Pallet<T> {
+impl<T: cml::Config> StakingEconomics<BalanceOf<T>> for cml::Pallet<T> {
 	type AccountId = T::AccountId;
 
-	fn increase_issuance(_total_point: u64) -> node_primitives::Balance {
+	fn increase_issuance(_total_point: u64) -> BalanceOf<T> {
 		// todo implement me later
-		1
+		BalanceOf::<T>::zero()
 	}
 
-	fn total_staking_rewards_of_miner(
-		_miner_point: u64,
-		_total_point: u64,
-	) -> node_primitives::Balance {
+	fn total_staking_rewards_of_miner(_miner_point: u64, _total_point: u64) -> BalanceOf<T> {
 		// todo implement me later
-		1
+		BalanceOf::<T>::zero()
 	}
 
 	fn miner_staking_point(
@@ -203,14 +213,14 @@ impl<T: cml::Config> StakingEconomics for cml::Pallet<T> {
 	}
 
 	fn single_staking_reward(
-		_miner_total_rewards: node_primitives::Balance,
+		_miner_total_rewards: BalanceOf<T>,
 		_total_staking_point: MinerStakingPoint,
 		_snapshot_item: &StakingSnapshotItem<Self::AccountId>,
-	) -> node_primitives::Balance {
+	) -> BalanceOf<T> {
 		// todo implement me later
 		const CENTS: node_primitives::Balance = 10_000_000_000;
 		const DOLLARS: node_primitives::Balance = 100 * CENTS;
-		1 * DOLLARS
+		(1 * DOLLARS).try_into().unwrap_or(BalanceOf::<T>::zero())
 	}
 }
 

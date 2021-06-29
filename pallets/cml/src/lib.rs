@@ -23,7 +23,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_utils::{CommonUtils, CurrencyOperations};
-use sp_runtime::traits::AtLeast32BitUnsigned;
+use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedSub, Saturating, Zero};
 use sp_std::{convert::TryInto, prelude::*};
 
 pub use cml::*;
@@ -60,7 +60,7 @@ pub mod cml {
 			Balance = BalanceOf<Self>,
 		>;
 
-		type StakingEconomics: StakingEconomics<AccountId = Self::AccountId>;
+		type StakingEconomics: StakingEconomics<BalanceOf<Self>, AccountId = Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -122,8 +122,7 @@ pub mod cml {
 		StorageMap<_, Twox64Concat, CmlId, Vec<StakingSnapshotItem<T::AccountId>>, ValueQuery>;
 
 	#[pallet::storage]
-	pub type AccountRewards<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, node_primitives::Balance>;
+	pub type AccountRewards<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -623,7 +622,7 @@ pub mod cml {
 						.try_into()
 						.map_err(|_| Error::<T>::RewardAmountConvertFailed)?;
 					T::CurrencyOperations::deposit_creating(&who, deposit_amount);
-					*balance = 0;
+					*balance = BalanceOf::<T>::zero();
 				}
 				Ok(())
 			})?;
@@ -676,23 +675,23 @@ pub trait CmlOperation {
 	) -> Result<(), DispatchError>;
 }
 
-pub trait StakingEconomics {
+pub trait StakingEconomics<Balance> {
 	type AccountId: PartialEq + Clone;
 
-	fn increase_issuance(total_point: ServiceTaskPoint) -> node_primitives::Balance;
+	fn increase_issuance(total_point: ServiceTaskPoint) -> Balance;
 
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		total_point: ServiceTaskPoint,
-	) -> node_primitives::Balance;
+	) -> Balance;
 
 	fn miner_staking_point(
 		snapshots: &Vec<StakingSnapshotItem<Self::AccountId>>,
 	) -> MinerStakingPoint;
 
 	fn single_staking_reward(
-		miner_total_rewards: node_primitives::Balance,
+		miner_total_rewards: Balance,
 		total_staking_point: MinerStakingPoint,
 		snapshot_item: &StakingSnapshotItem<Self::AccountId>,
-	) -> node_primitives::Balance;
+	) -> Balance;
 }
