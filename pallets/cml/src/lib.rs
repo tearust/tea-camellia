@@ -376,8 +376,9 @@ pub mod cml {
 				a_coupon + b_coupon + c_coupon > 0,
 				Error::<T>::WithoutVoucher
 			);
+			Self::check_luck_draw(a_coupon, b_coupon, c_coupon, schedule_type)?;
 
-			let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type)?;
+			let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type);
 			let seeds_count = seed_ids.len() as u64;
 			seed_ids.iter().for_each(|id| {
 				CmlStore::<T>::mutate(id, |cml| {
