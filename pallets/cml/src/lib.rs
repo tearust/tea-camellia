@@ -289,23 +289,29 @@ pub mod cml {
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(1_000)]
 		pub fn clean_outdated_seeds(sender: OriginFor<T>) -> DispatchResult {
-			let _root = ensure_root(sender)?;
-
+			let root = ensure_root(sender)?;
 			let current_block = frame_system::Pallet::<T>::block_number();
-			ensure!(
-				Self::is_voucher_outdated(current_block),
-				Error::<T>::SeedsNotOutdatedYet
-			);
-			ensure!(
-				!Self::lucky_draw_box_all_empty(vec![
-					DefrostScheduleType::Investor,
-					DefrostScheduleType::Team
-				]),
-				Error::<T>::NoNeedToCleanOutdatedSeeds,
-			);
 
-			Self::try_clean_outdated_vouchers(current_block);
-			Ok(())
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						Self::is_voucher_outdated(current_block),
+						Error::<T>::SeedsNotOutdatedYet
+					);
+					ensure!(
+						!Self::lucky_draw_box_all_empty(vec![
+							DefrostScheduleType::Investor,
+							DefrostScheduleType::Team
+						]),
+						Error::<T>::NoNeedToCleanOutdatedSeeds,
+					);
+					Ok(())
+				},
+				|_| {
+					Self::try_clean_outdated_vouchers(current_block);
+				},
+			)
 		}
 
 		#[pallet::weight(1_000)]
@@ -317,46 +323,62 @@ pub mod cml {
 			#[pallet::compact] amount: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-
-			ensure!(
-				!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
-				Error::<T>::VouchersHasOutdated
-			);
-
 			let sender_voucher = match schedule_type {
 				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::get(&sender, cml_type),
 				DefrostScheduleType::Team => TeamVoucherStore::<T>::get(&sender, cml_type),
 			};
-			ensure!(sender_voucher.is_some(), Error::<T>::NotEnoughVoucher);
-			let sender_voucher = sender_voucher.unwrap();
-			ensure!(
-				sender_voucher.amount >= amount,
-				Error::<T>::NotEnoughVoucher
-			);
-
-			let from_amount = sender_voucher
-				.amount
-				.checked_sub(amount)
-				.ok_or(Error::<T>::InvalidVoucherAmount)?;
-
 			let target_voucher = match schedule_type {
 				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::get(&target, cml_type),
 				DefrostScheduleType::Team => TeamVoucherStore::<T>::get(&target, cml_type),
 			};
-			match target_voucher {
-				Some(target_voucher) => {
-					let to_amount = target_voucher
+
+			extrinsic_procedure(
+				&sender,
+				|_| {
+					ensure!(
+						!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
+						Error::<T>::VouchersHasOutdated
+					);
+					ensure!(sender_voucher.is_some(), Error::<T>::NotEnoughVoucher);
+					let sender_voucher = sender_voucher.as_ref().unwrap();
+					ensure!(
+						sender_voucher.amount >= amount,
+						Error::<T>::NotEnoughVoucher
+					);
+					sender_voucher
 						.amount
-						.checked_add(amount)
+						.checked_sub(amount)
 						.ok_or(Error::<T>::InvalidVoucherAmount)?;
-					Self::set_voucher(&target, cml_type, schedule_type, to_amount);
-				}
-				None => Self::set_voucher(&target, cml_type, schedule_type, amount),
-			}
+					if let Some(target_voucher) = target_voucher.as_ref() {
+						target_voucher
+							.amount
+							.checked_add(amount)
+							.ok_or(Error::<T>::InvalidVoucherAmount)?;
+					}
 
-			Self::set_voucher(&sender, cml_type, schedule_type, from_amount);
+					Ok(())
+				},
+				|_| {
+					if sender_voucher.is_none() {
+						return;
+					}
+					let from_amount = sender_voucher
+						.as_ref()
+						.unwrap()
+						.amount
+						.saturating_sub(amount);
 
-			Ok(())
+					match target_voucher.as_ref() {
+						Some(target_voucher) => {
+							let to_amount = target_voucher.amount.saturating_add(amount);
+							Self::set_voucher(&target, cml_type, schedule_type, to_amount);
+						}
+						None => Self::set_voucher(&target, cml_type, schedule_type, amount),
+					}
+
+					Self::set_voucher(&sender, cml_type, schedule_type, from_amount);
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
