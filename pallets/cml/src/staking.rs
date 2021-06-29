@@ -1,5 +1,3 @@
-use sp_runtime::traits::CheckedSub;
-
 use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
@@ -56,7 +54,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub(crate) fn calculate_staking() {
 		let total_task_point = Self::service_task_point_total();
 
-		ActiveStakingSnapshot::<T>::iter().for_each(|(cml_id, snapshot_items)| {
+		let snapshots: Vec<(CmlId, Vec<StakingSnapshotItem<T::AccountId>>)> =
+			ActiveStakingSnapshot::<T>::iter().collect();
+		for (cml_id, snapshot_items) in snapshots {
 			let miner_task_point = Self::get_miner_task_point(cml_id);
 			let miner_staking_point = T::StakingEconomics::miner_staking_point(&snapshot_items);
 
@@ -65,22 +65,38 @@ impl<T: cml::Config> cml::Pallet<T> {
 				total_task_point,
 			);
 
-			snapshot_items.iter().for_each(|item| {
-				let reward = T::StakingEconomics::single_staking_reward(
+			for item in snapshot_items.iter() {
+				let mut reward = T::StakingEconomics::single_staking_reward(
 					miner_total_reward,
 					miner_staking_point,
 					item,
 				);
+
+				let owner = item.owner.clone();
+				if GenesisMinerCreditStore::<T>::contains_key(&owner) {
+					let credit = GenesisMinerCreditStore::<T>::get(&owner);
+					if credit > reward {
+						GenesisMinerCreditStore::<T>::insert(&owner, credit.saturating_sub(reward));
+						reward = BalanceOf::<T>::zero();
+					} else {
+						GenesisMinerCreditStore::<T>::remove(&owner);
+						reward = reward.saturating_sub(credit);
+					}
+				}
+				if reward.is_zero() {
+					continue;
+				}
+
 				AccountRewards::<T>::mutate(&item.owner, |balance| match balance {
 					Some(balance) => {
 						*balance = balance.saturating_add(reward);
 					}
 					None => {
-						*balance = Some(reward);
+						*balance = Some(reward.into());
 					}
 				})
-			})
-		});
+			}
+		}
 	}
 
 	pub(crate) fn service_task_point_total() -> ServiceTaskPoint {
@@ -178,20 +194,17 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
-impl<T: cml::Config> StakingEconomics for cml::Pallet<T> {
+impl<T: cml::Config> StakingEconomics<BalanceOf<T>> for cml::Pallet<T> {
 	type AccountId = T::AccountId;
 
-	fn increase_issuance(_total_point: u64) -> node_primitives::Balance {
+	fn increase_issuance(_total_point: u64) -> BalanceOf<T> {
 		// todo implement me later
-		1
+		BalanceOf::<T>::zero()
 	}
 
-	fn total_staking_rewards_of_miner(
-		_miner_point: u64,
-		_total_point: u64,
-	) -> node_primitives::Balance {
+	fn total_staking_rewards_of_miner(_miner_point: u64, _total_point: u64) -> BalanceOf<T> {
 		// todo implement me later
-		1
+		BalanceOf::<T>::zero()
 	}
 
 	fn miner_staking_point(
@@ -202,14 +215,14 @@ impl<T: cml::Config> StakingEconomics for cml::Pallet<T> {
 	}
 
 	fn single_staking_reward(
-		_miner_total_rewards: node_primitives::Balance,
+		_miner_total_rewards: BalanceOf<T>,
 		_total_staking_point: MinerStakingPoint,
 		_snapshot_item: &StakingSnapshotItem<Self::AccountId>,
-	) -> node_primitives::Balance {
+	) -> BalanceOf<T> {
 		// todo implement me later
 		const CENTS: node_primitives::Balance = 10_000_000_000;
 		const DOLLARS: node_primitives::Balance = 100 * CENTS;
-		1 * DOLLARS
+		(1 * DOLLARS).try_into().unwrap_or(BalanceOf::<T>::zero())
 	}
 }
 
@@ -218,9 +231,13 @@ mod tests {
 	use crate::mock::*;
 	use crate::tests::new_genesis_seed;
 	use crate::{
-		AccountRewards, ActiveStakingSnapshot, CmlStore, CmlType, MinerItem, MinerItemStore,
-		MinerStatus, StakingCategory, StakingItem, StakingProperties, StakingSnapshotItem, CML,
+		AccountRewards, ActiveStakingSnapshot, CmlStore, CmlType, GenesisMinerCreditStore,
+		MinerItem, MinerItemStore, MinerStatus, StakingCategory, StakingItem, StakingProperties,
+		StakingSnapshotItem, CML,
 	};
+
+	const CENTS: node_primitives::Balance = 10_000_000_000;
+	const DOLLARS: node_primitives::Balance = 100 * CENTS;
 
 	#[test]
 	fn staking_period_related_works() {
@@ -300,7 +317,6 @@ mod tests {
 					id: [1; 32],
 					ip: vec![],
 					status: MinerStatus::Active,
-					credit_amount: None,
 				},
 			);
 			MinerItemStore::<Test>::insert(
@@ -310,7 +326,6 @@ mod tests {
 					id: [2; 32],
 					ip: vec![],
 					status: MinerStatus::Active,
-					credit_amount: None,
 				},
 			);
 
@@ -384,12 +399,65 @@ mod tests {
 
 			Cml::calculate_staking();
 
-			const CENTS: node_primitives::Balance = 10_000_000_000;
-			const DOLLARS: node_primitives::Balance = 100 * CENTS;
 			assert_eq!(AccountRewards::<Test>::iter().count(), 5);
 			for user_id in 1..=5 {
 				assert_eq!(AccountRewards::<Test>::get(user_id).unwrap(), 1 * DOLLARS);
 			}
+		})
+	}
+
+	#[test]
+	fn calculate_staking_works_when_there_are_genesis_miner_credits() {
+		new_test_ext().execute_with(|| {
+			let cml_id1 = 1;
+			ActiveStakingSnapshot::<Test>::insert(
+				cml_id1,
+				vec![
+					StakingSnapshotItem {
+						owner: 1,
+						weight: 1,
+						staking_at: 0,
+					},
+					StakingSnapshotItem {
+						owner: 1,
+						weight: 2,
+						staking_at: 1,
+					},
+				],
+			);
+
+			let cml_id2 = 2;
+			ActiveStakingSnapshot::<Test>::insert(
+				cml_id2,
+				vec![
+					StakingSnapshotItem {
+						owner: 2,
+						weight: 1,
+						staking_at: 0,
+					},
+					StakingSnapshotItem {
+						owner: 3,
+						weight: 3,
+						staking_at: 1,
+					},
+				],
+			);
+
+			let credit_amount = DOLLARS * 2;
+			GenesisMinerCreditStore::<Test>::insert(1, credit_amount);
+			GenesisMinerCreditStore::<Test>::insert(2, credit_amount);
+
+			Cml::calculate_staking();
+
+			assert!(!GenesisMinerCreditStore::<Test>::contains_key(1));
+			assert_eq!(AccountRewards::<Test>::get(&1), None);
+
+			assert!(GenesisMinerCreditStore::<Test>::contains_key(2));
+			assert_eq!(GenesisMinerCreditStore::<Test>::get(2), DOLLARS);
+			assert!(AccountRewards::<Test>::get(&2).is_none());
+
+			assert!(AccountRewards::<Test>::get(&3).is_some());
+			assert_eq!(AccountRewards::<Test>::get(&3).unwrap(), DOLLARS);
 		})
 	}
 }

@@ -197,40 +197,59 @@ impl<T: cml::Config> cml::Pallet<T> {
 		return true;
 	}
 
+	pub(crate) fn check_luck_draw(
+		a_coupon: u32,
+		b_coupon: u32,
+		c_coupon: u32,
+		schedule_type: DefrostScheduleType,
+	) -> DispatchResult {
+		ensure!(
+			LuckyDrawBox::<T>::contains_key(CmlType::A, schedule_type)
+				&& LuckyDrawBox::<T>::get(CmlType::A, schedule_type).len() >= a_coupon as usize,
+			Error::<T>::NotEnoughDrawSeeds
+		);
+		ensure!(
+			LuckyDrawBox::<T>::contains_key(CmlType::B, schedule_type)
+				&& LuckyDrawBox::<T>::get(CmlType::B, schedule_type).len() >= b_coupon as usize,
+			Error::<T>::NotEnoughDrawSeeds
+		);
+		ensure!(
+			LuckyDrawBox::<T>::contains_key(CmlType::C, schedule_type)
+				&& LuckyDrawBox::<T>::get(CmlType::C, schedule_type).len() >= c_coupon as usize,
+			Error::<T>::NotEnoughDrawSeeds
+		);
+
+		Ok(())
+	}
+
 	pub(crate) fn lucky_draw(
 		who: &T::AccountId,
 		a_coupon: u32,
 		b_coupon: u32,
 		c_coupon: u32,
 		schedule_type: DefrostScheduleType,
-	) -> Result<Vec<CmlId>, DispatchError> {
+	) -> Vec<CmlId> {
 		let mut seed_ids = Vec::new();
-		let mut draw_handler = |draw_box: &mut Vec<u64>,
-		                        cml_type: CmlType,
-		                        coupon_len: u32|
-		 -> Result<(), DispatchError> {
+		let mut draw_handler = |draw_box: &mut Vec<u64>, cml_type: CmlType, coupon_len: u32| {
 			for i in 0..coupon_len {
-				ensure!(!draw_box.is_empty(), Error::<T>::NotEnoughDrawSeeds);
-
 				let rand_index =
 					Self::get_draw_seed_random_index(who, cml_type, i, draw_box.len() as u32);
 				let seed_id = draw_box.swap_remove(rand_index as usize);
 				seed_ids.push(seed_id);
 			}
-			Ok(())
 		};
 
 		LuckyDrawBox::<T>::mutate(CmlType::A, schedule_type, |a_box| {
-			draw_handler(a_box, CmlType::A, a_coupon)
-		})?;
+			draw_handler(a_box, CmlType::A, a_coupon);
+		});
 		LuckyDrawBox::<T>::mutate(CmlType::B, schedule_type, |b_box| {
-			draw_handler(b_box, CmlType::B, b_coupon)
-		})?;
+			draw_handler(b_box, CmlType::B, b_coupon);
+		});
 		LuckyDrawBox::<T>::mutate(CmlType::C, schedule_type, |c_box| {
-			draw_handler(c_box, CmlType::C, c_coupon)
-		})?;
+			draw_handler(c_box, CmlType::C, c_coupon);
+		});
 
-		Ok(seed_ids)
+		seed_ids
 	}
 
 	fn get_draw_seed_random_index(
@@ -247,18 +266,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 		div_mod.as_u32()
 	}
 
-	pub(crate) fn init_miner_item(
-		cml_id: CmlId,
-		machine_id: MachineId,
-		miner_ip: Vec<u8>,
-		credit_amount: Option<BalanceOf<T>>,
-	) {
+	pub(crate) fn init_miner_item(cml_id: CmlId, machine_id: MachineId, miner_ip: Vec<u8>) {
 		let miner_item = MinerItem {
 			cml_id,
 			id: machine_id.clone(),
 			ip: miner_ip,
 			status: MinerStatus::Active,
-			credit_amount,
 		};
 		MinerItemStore::<T>::insert(&machine_id, miner_item);
 	}
@@ -339,6 +352,13 @@ mod tests {
 			let a_coupon = 2u32;
 			let b_coupon = 3u32;
 			let c_coupon = 4u32;
+			assert!(Cml::check_luck_draw(
+				a_coupon,
+				b_coupon,
+				c_coupon,
+				DefrostScheduleType::Investor
+			)
+			.is_ok());
 			let res = Cml::lucky_draw(
 				&1,
 				a_coupon,
@@ -346,7 +366,6 @@ mod tests {
 				c_coupon,
 				DefrostScheduleType::Investor,
 			);
-			assert!(res.is_ok());
 
 			assert_eq!(
 				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).len() as u32,
@@ -360,11 +379,8 @@ mod tests {
 				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Investor).len() as u32,
 				10 - c_coupon
 			);
-			assert_eq!(
-				res.clone().unwrap().len() as u32,
-				a_coupon + b_coupon + c_coupon
-			);
-			println!("seeds are: {:?}", res.unwrap());
+			assert_eq!(res.len() as u32, a_coupon + b_coupon + c_coupon);
+			println!("seeds are: {:?}", res);
 		});
 
 		// team lucky draw works
@@ -393,8 +409,11 @@ mod tests {
 			let a_coupon = 2u32;
 			let b_coupon = 3u32;
 			let c_coupon = 4u32;
+			assert!(
+				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team)
+					.is_ok()
+			);
 			let res = Cml::lucky_draw(&1, a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team);
-			assert!(res.is_ok());
 
 			assert_eq!(
 				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Team).len() as u32,
@@ -408,12 +427,54 @@ mod tests {
 				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Team).len() as u32,
 				10 - c_coupon
 			);
-			assert_eq!(
-				res.clone().unwrap().len() as u32,
-				a_coupon + b_coupon + c_coupon
-			);
-			println!("seeds are: {:?}", res.unwrap());
+			assert_eq!(res.len() as u32, a_coupon + b_coupon + c_coupon);
+			println!("seeds are: {:?}", res);
 		});
+	}
+
+	#[test]
+	fn draw_to_the_last_works() {
+		new_test_ext().execute_with(|| {
+			LuckyDrawBox::<Test>::insert(
+				CmlType::A,
+				DefrostScheduleType::Team,
+				(1..=10).collect::<Vec<u64>>(),
+			);
+			LuckyDrawBox::<Test>::insert(
+				CmlType::B,
+				DefrostScheduleType::Team,
+				(11..=20).collect::<Vec<u64>>(),
+			);
+			LuckyDrawBox::<Test>::insert(
+				CmlType::C,
+				DefrostScheduleType::Team,
+				(21..=30).collect::<Vec<u64>>(),
+			);
+
+			frame_system::Pallet::<Test>::set_block_number(100);
+			let a_coupon = 10u32;
+			let b_coupon = 10u32;
+			let c_coupon = 10u32;
+			assert!(
+				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team)
+					.is_ok()
+			);
+			let res = Cml::lucky_draw(&1, a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team);
+
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Team).len() as u32,
+				0
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Team).len() as u32,
+				0
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Team).len() as u32,
+				0
+			);
+			assert_eq!(res.len() as u32, a_coupon + b_coupon + c_coupon);
+		})
 	}
 
 	#[test]

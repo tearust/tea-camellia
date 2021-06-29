@@ -147,7 +147,6 @@ mod tests {
 					id: machine_id1,
 					ip: vec![],
 					status: MinerStatus::Active,
-					credit_amount: None,
 				},
 			);
 			MinerItemStore::<Test>::insert(
@@ -157,7 +156,6 @@ mod tests {
 					id: machine_id2,
 					ip: vec![],
 					status: MinerStatus::Active,
-					credit_amount: None,
 				},
 			);
 

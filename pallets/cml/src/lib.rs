@@ -23,7 +23,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_utils::{CommonUtils, CurrencyOperations};
-use sp_runtime::traits::AtLeast32BitUnsigned;
+use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedSub, Saturating, Zero};
 use sp_std::{convert::TryInto, prelude::*};
 
 pub use cml::*;
@@ -60,7 +60,7 @@ pub mod cml {
 			Balance = BalanceOf<Self>,
 		>;
 
-		type StakingEconomics: StakingEconomics<AccountId = Self::AccountId>;
+		type StakingEconomics: StakingEconomics<BalanceOf<Self>, AccountId = Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -96,8 +96,13 @@ pub mod cml {
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Voucher>;
 
 	#[pallet::storage]
-	pub type MinerItemStore<T: Config> =
-		StorageMap<_, Twox64Concat, MachineId, MinerItem<BalanceOf<T>>>;
+	#[pallet::getter(fn miner_item_store)]
+	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, MachineId, MinerItem>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn miner_credit_store)]
+	pub type GenesisMinerCreditStore<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn lucky_draw_box)]
@@ -117,8 +122,7 @@ pub mod cml {
 		StorageMap<_, Twox64Concat, CmlId, Vec<StakingSnapshotItem<T::AccountId>>, ValueQuery>;
 
 	#[pallet::storage]
-	pub type AccountRewards<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, node_primitives::Balance>;
+	pub type AccountRewards<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -285,23 +289,29 @@ pub mod cml {
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(1_000)]
 		pub fn clean_outdated_seeds(sender: OriginFor<T>) -> DispatchResult {
-			let _root = ensure_root(sender)?;
-
+			let root = ensure_root(sender)?;
 			let current_block = frame_system::Pallet::<T>::block_number();
-			ensure!(
-				Self::is_voucher_outdated(current_block),
-				Error::<T>::SeedsNotOutdatedYet
-			);
-			ensure!(
-				!Self::lucky_draw_box_all_empty(vec![
-					DefrostScheduleType::Investor,
-					DefrostScheduleType::Team
-				]),
-				Error::<T>::NoNeedToCleanOutdatedSeeds,
-			);
 
-			Self::try_clean_outdated_vouchers(current_block);
-			Ok(())
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						Self::is_voucher_outdated(current_block),
+						Error::<T>::SeedsNotOutdatedYet
+					);
+					ensure!(
+						!Self::lucky_draw_box_all_empty(vec![
+							DefrostScheduleType::Investor,
+							DefrostScheduleType::Team
+						]),
+						Error::<T>::NoNeedToCleanOutdatedSeeds,
+					);
+					Ok(())
+				},
+				|_| {
+					Self::try_clean_outdated_vouchers(current_block);
+				},
+			)
 		}
 
 		#[pallet::weight(1_000)]
@@ -313,46 +323,62 @@ pub mod cml {
 			#[pallet::compact] amount: u32,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-
-			ensure!(
-				!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
-				Error::<T>::VouchersHasOutdated
-			);
-
 			let sender_voucher = match schedule_type {
 				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::get(&sender, cml_type),
 				DefrostScheduleType::Team => TeamVoucherStore::<T>::get(&sender, cml_type),
 			};
-			ensure!(sender_voucher.is_some(), Error::<T>::NotEnoughVoucher);
-			let sender_voucher = sender_voucher.unwrap();
-			ensure!(
-				sender_voucher.amount >= amount,
-				Error::<T>::NotEnoughVoucher
-			);
-
-			let from_amount = sender_voucher
-				.amount
-				.checked_sub(amount)
-				.ok_or(Error::<T>::InvalidVoucherAmount)?;
-
 			let target_voucher = match schedule_type {
 				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::get(&target, cml_type),
 				DefrostScheduleType::Team => TeamVoucherStore::<T>::get(&target, cml_type),
 			};
-			match target_voucher {
-				Some(target_voucher) => {
-					let to_amount = target_voucher
+
+			extrinsic_procedure(
+				&sender,
+				|_| {
+					ensure!(
+						!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
+						Error::<T>::VouchersHasOutdated
+					);
+					ensure!(sender_voucher.is_some(), Error::<T>::NotEnoughVoucher);
+					let sender_voucher = sender_voucher.as_ref().unwrap();
+					ensure!(
+						sender_voucher.amount >= amount,
+						Error::<T>::NotEnoughVoucher
+					);
+					sender_voucher
 						.amount
-						.checked_add(amount)
+						.checked_sub(amount)
 						.ok_or(Error::<T>::InvalidVoucherAmount)?;
-					Self::set_voucher(&target, cml_type, schedule_type, to_amount);
-				}
-				None => Self::set_voucher(&target, cml_type, schedule_type, amount),
-			}
+					if let Some(target_voucher) = target_voucher.as_ref() {
+						target_voucher
+							.amount
+							.checked_add(amount)
+							.ok_or(Error::<T>::InvalidVoucherAmount)?;
+					}
 
-			Self::set_voucher(&sender, cml_type, schedule_type, from_amount);
+					Ok(())
+				},
+				|_| {
+					if sender_voucher.is_none() {
+						return;
+					}
+					let from_amount = sender_voucher
+						.as_ref()
+						.unwrap()
+						.amount
+						.saturating_sub(amount);
 
-			Ok(())
+					match target_voucher.as_ref() {
+						Some(target_voucher) => {
+							let to_amount = target_voucher.amount.saturating_add(amount);
+							Self::set_voucher(&target, cml_type, schedule_type, to_amount);
+						}
+						None => Self::set_voucher(&target, cml_type, schedule_type, amount),
+					}
+
+					Self::set_voucher(&sender, cml_type, schedule_type, from_amount);
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
@@ -361,31 +387,38 @@ pub mod cml {
 			schedule_type: DefrostScheduleType,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-
-			ensure!(
-				!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
-				Error::<T>::VouchersHasOutdated
-			);
-
 			let (a_coupon, b_coupon, c_coupon) = Self::take_vouchers(&sender, schedule_type);
-			ensure!(
-				a_coupon + b_coupon + c_coupon > 0,
-				Error::<T>::WithoutVoucher
-			);
 
-			let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type)?;
-			let seeds_count = seed_ids.len() as u64;
-			seed_ids.iter().for_each(|id| {
-				CmlStore::<T>::mutate(id, |cml| {
-					if let Some(cml) = cml {
-						cml.set_owner(&sender);
-					}
-				});
-				UserCmlStore::<T>::insert(&sender, id, ());
-			});
+			extrinsic_procedure(
+				&sender,
+				|_| {
+					ensure!(
+						!Self::is_voucher_outdated(frame_system::Pallet::<T>::block_number()),
+						Error::<T>::VouchersHasOutdated
+					);
+					ensure!(
+						a_coupon + b_coupon + c_coupon > 0,
+						Error::<T>::WithoutVoucher
+					);
+					Self::check_luck_draw(a_coupon, b_coupon, c_coupon, schedule_type)?;
+					Ok(())
+				},
+				|sender| {
+					let seed_ids =
+						Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type);
+					let seeds_count = seed_ids.len() as u64;
+					seed_ids.iter().for_each(|id| {
+						CmlStore::<T>::mutate(id, |cml| {
+							if let Some(cml) = cml {
+								cml.set_owner(&sender);
+							}
+						});
+						UserCmlStore::<T>::insert(&sender, id, ());
+					});
 
-			Self::deposit_event(Event::DrawCmls(sender, seeds_count));
-			Ok(())
+					Self::deposit_event(Event::DrawCmls(sender.clone(), seeds_count));
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
@@ -446,7 +479,10 @@ pub mod cml {
 
 					cml.start_mining(machine_id, staking_item)
 						.map_err(|e| Error::<T>::from(e))?;
-					Self::init_miner_item(cml_id, machine_id, miner_ip, credit);
+					if let Some(credit) = credit {
+						GenesisMinerCreditStore::<T>::insert(sender, credit);
+					}
+					Self::init_miner_item(cml_id, machine_id, miner_ip);
 				}
 				Ok(())
 			})?;
@@ -615,7 +651,7 @@ pub mod cml {
 						.try_into()
 						.map_err(|_| Error::<T>::RewardAmountConvertFailed)?;
 					T::CurrencyOperations::deposit_creating(&who, deposit_amount);
-					*balance = 0;
+					*balance = BalanceOf::<T>::zero();
 				}
 				Ok(())
 			})?;
@@ -668,23 +704,37 @@ pub trait CmlOperation {
 	) -> Result<(), DispatchError>;
 }
 
-pub trait StakingEconomics {
+pub trait StakingEconomics<Balance> {
 	type AccountId: PartialEq + Clone;
 
-	fn increase_issuance(total_point: ServiceTaskPoint) -> node_primitives::Balance;
+	fn increase_issuance(total_point: ServiceTaskPoint) -> Balance;
 
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		total_point: ServiceTaskPoint,
-	) -> node_primitives::Balance;
+	) -> Balance;
 
 	fn miner_staking_point(
 		snapshots: &Vec<StakingSnapshotItem<Self::AccountId>>,
 	) -> MinerStakingPoint;
 
 	fn single_staking_reward(
-		miner_total_rewards: node_primitives::Balance,
+		miner_total_rewards: Balance,
 		total_staking_point: MinerStakingPoint,
 		snapshot_item: &StakingSnapshotItem<Self::AccountId>,
-	) -> node_primitives::Balance;
+	) -> Balance;
+}
+
+pub fn extrinsic_procedure<AccountId, CheckFn, SetFn>(
+	who: &AccountId,
+	ck_fn: CheckFn,
+	set_fn: SetFn,
+) -> DispatchResult
+where
+	CheckFn: Fn(&AccountId) -> DispatchResult,
+	SetFn: Fn(&AccountId),
+{
+	ck_fn(who)?;
+	set_fn(who);
+	Ok(())
 }
