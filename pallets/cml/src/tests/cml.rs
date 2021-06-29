@@ -33,8 +33,7 @@ fn active_cml_for_nitro_works() {
 
 		let staking_item = cml.staking_slots().get(0).unwrap();
 		assert_eq!(staking_item.owner, 1);
-		// todo let me pass later
-		// assert_eq!(staking_item.amount, amount as u32);
+		assert_eq!(staking_item.amount.unwrap(), 1000 as u128);
 		assert_eq!(staking_item.cml, None);
 
 		let miner_item = MinerItemStore::<Test>::get(&machine_id).unwrap();
