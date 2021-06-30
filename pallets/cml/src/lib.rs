@@ -464,13 +464,10 @@ pub mod cml {
 						Error::<T>::SlotShouldBeEmpty
 					);
 
-					let (staking_item, credit) = if cml.is_from_genesis() {
+					let staking_item = if cml.is_from_genesis() {
 						Self::create_genesis_miner_balance_staking(&sender, cml)?
 					} else {
-						(
-							Self::create_balance_staking(&sender, T::StakingPrice::get())?,
-							None,
-						)
+						Self::create_balance_staking(&sender, T::StakingPrice::get())?
 					};
 
 					if cml.is_seed() {
@@ -479,9 +476,6 @@ pub mod cml {
 
 					cml.start_mining(machine_id, staking_item)
 						.map_err(|e| Error::<T>::from(e))?;
-					if let Some(credit) = credit {
-						GenesisMinerCreditStore::<T>::insert(sender, credit);
-					}
 					Self::init_miner_item(cml_id, machine_id, miner_ip);
 				}
 				Ok(())

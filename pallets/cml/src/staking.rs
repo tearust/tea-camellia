@@ -112,41 +112,33 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub(crate) fn create_genesis_miner_balance_staking(
 		who: &T::AccountId,
 		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
-	) -> Result<
-		(
-			StakingItem<T::AccountId, BalanceOf<T>>,
-			Option<BalanceOf<T>>,
-		),
-		DispatchError,
-	> {
+	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
 		ensure!(cml.is_from_genesis(), Error::<T>::CmlIsNotFromGenesis);
 
 		let free_balance = T::CurrencyOperations::free_balance(who);
-		if free_balance >= T::StakingPrice::get() {
-			Ok((
-				Self::create_balance_staking(who, T::StakingPrice::get())?,
-				None,
-			))
-		} else {
+		let actual_staking = if free_balance < T::StakingPrice::get() {
 			let credit_amount = T::StakingPrice::get()
 				.checked_sub(&free_balance)
 				.ok_or(Error::<T>::InvalidCreditAmount)?;
-			Ok((
-				Self::create_balance_staking(who, free_balance)?,
-				Some(credit_amount),
-			))
-		}
+			GenesisMinerCreditStore::<T>::insert(who, credit_amount);
+
+			free_balance
+		} else {
+			T::StakingPrice::get()
+		};
+
+		Ok(Self::create_balance_staking(who, actual_staking)?)
 	}
 
 	pub(crate) fn create_balance_staking(
 		who: &T::AccountId,
-		staking_price: BalanceOf<T>,
+		actual_staking: BalanceOf<T>,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
-		T::CurrencyOperations::reserve(who, staking_price)?;
+		T::CurrencyOperations::reserve(who, actual_staking)?;
 		Ok(StakingItem {
 			owner: who.clone(),
 			category: StakingCategory::Tea,
-			amount: Some(staking_price),
+			amount: Some(T::StakingPrice::get()),
 			cml: None,
 		})
 	}
