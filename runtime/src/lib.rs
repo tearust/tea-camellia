@@ -847,7 +847,7 @@ impl pallet_bridge::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AuctionDealWindowBLock: BlockNumber = 500;
+	pub const AuctionDealWindowBLock: BlockNumber = 100;
 	pub const BidDeposit: Balance = 100 * DOLLARS;
 	pub const MinPriceForBid: Balance = 1 * DOLLARS;
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
