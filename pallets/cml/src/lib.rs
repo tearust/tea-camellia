@@ -238,7 +238,10 @@ pub mod cml {
 		CMLNotLive,
 		CMLOwnerInvalid,
 		SeedIsExpired,
+		SeedNotValid,
 		ShouldStakingLiveTree,
+		CmlIsAlreadyStaking,
+		CmlIsMining,
 
 		InsufficientFreeBalance,
 		InsufficientReservedBalance,
@@ -424,21 +427,25 @@ pub mod cml {
 		#[pallet::weight(10_000)]
 		pub fn active_cml(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-			Self::check_belongs(&cml_id, &sender)?;
-
 			let current_block_number = frame_system::Pallet::<T>::block_number();
-			CmlStore::<T>::mutate(cml_id, |cml| match cml {
-				Some(cml) => {
-					cml.seed_valid(&current_block_number)?;
 
-					Self::seed_to_tree(cml, &current_block_number)?;
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					Self::check_belongs(&cml_id, sender)?;
+					Self::check_seed_validity(cml_id, &current_block_number)?;
 					Ok(())
-				}
-				None => Err(Error::<T>::NotFoundCML),
-			})?;
+				},
+				|sender| {
+					CmlStore::<T>::mutate(cml_id, |cml| {
+						if let Some(cml) = cml {
+							Self::seed_to_tree(cml, &current_block_number);
+						}
+					});
 
-			Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
-			Ok(())
+					Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
@@ -449,13 +456,14 @@ pub mod cml {
 			miner_ip: Vec<u8>,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
+			let current_block_number = frame_system::Pallet::<T>::block_number();
 			Self::check_belongs(&cml_id, &sender)?;
+			Self::check_if_is_seed_validity(cml_id, &current_block_number)?;
 			ensure!(
 				!<MinerItemStore<T>>::contains_key(&machine_id),
 				Error::<T>::MinerAlreadyExist
 			);
 
-			let current_block_number = frame_system::Pallet::<T>::block_number();
 			CmlStore::<T>::mutate(cml_id, |cml| -> DispatchResult {
 				if let Some(cml) = cml {
 					ensure!(cml.machine_id().is_none(), Error::<T>::AlreadyHasMachineId);
@@ -471,7 +479,7 @@ pub mod cml {
 					};
 
 					if cml.is_seed() {
-						Self::seed_to_tree(cml, &current_block_number)?;
+						Self::seed_to_tree(cml, &current_block_number);
 					}
 
 					cml.start_mining(machine_id, staking_item)
@@ -527,7 +535,8 @@ pub mod cml {
 			match staking_cml {
 				Some(cml_id) => {
 					Self::check_belongs(&cml_id, &who)?;
-					Self::check_seed_staking(cml_id, &current_block_number)?;
+					Self::check_if_is_seed_validity(cml_id, &current_block_number)?;
+					Self::check_cml_staking(cml_id, &current_block_number)?;
 				}
 				None => Self::check_balance_staking(&who)?,
 			}
@@ -540,7 +549,7 @@ pub mod cml {
 								match cml {
 									Some(cml) => {
 										if cml.is_seed() {
-											Self::seed_to_tree(cml, &current_block_number).unwrap();
+											Self::seed_to_tree(cml, &current_block_number);
 										}
 										staking_to.stake(&who, None, Some(cml)).ok()
 									}

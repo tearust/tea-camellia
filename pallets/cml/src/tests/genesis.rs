@@ -56,7 +56,7 @@ fn genesis_build_related_logic_works() {
 				let cml = cml.unwrap();
 				assert_eq!(cml.id(), i);
 
-				if cml.seed_valid(&0).unwrap() {
+				if cml.seed_valid(&0) {
 					live_seeds_count += 1;
 				}
 			}

@@ -67,19 +67,41 @@ impl<T: cml::Config> cml::Pallet<T> {
 		cid
 	}
 
+	pub fn check_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
+		let cml = CmlStore::<T>::get(cml_id);
+		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
+		ensure!(
+			cml.as_ref().unwrap().seed_valid(height),
+			Error::<T>::SeedNotValid
+		);
+
+		Ok(())
+	}
+
+	pub fn check_if_is_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
+		let cml = CmlStore::<T>::get(cml_id);
+		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
+		if cml.as_ref().unwrap().is_seed() {
+			ensure!(
+				cml.as_ref().unwrap().seed_valid(height),
+				Error::<T>::SeedNotValid
+			);
+		}
+
+		Ok(())
+	}
+
 	pub fn seed_to_tree(
 		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 		height: &T::BlockNumber,
-	) -> Result<(), Error<T>> {
+	) {
 		if cml.is_frozen_seed() {
 			cml.defrost(height);
 		}
 
 		if cml.is_fresh_seed() {
-			cml.convert_to_tree(height)?;
+			cml.convert_to_tree(height);
 		}
-
-		Ok(())
 	}
 
 	pub fn set_voucher(
@@ -652,7 +674,7 @@ mod tests {
 				));
 				cml.defrost(&0);
 				cml.set_owner(&user_id);
-				cml.convert_to_tree(&plant_time).unwrap();
+				cml.convert_to_tree(&plant_time);
 
 				CmlStore::<Test>::insert(cml.id(), cml);
 				UserCmlStore::<Test>::insert(user_id, i as CmlId, ());

@@ -76,12 +76,12 @@ fn start_mining_with_same_machine_id_should_fail() {
 		let cml1_id: CmlId = 4;
 		let mut cml1 = CML::from_genesis_seed(new_genesis_seed(cml1_id));
 		cml1.defrost(&0);
-		cml1.convert_to_tree(&0).unwrap();
+		cml1.convert_to_tree(&0);
 
 		let cml2_id: CmlId = 5;
 		let mut cml2 = CML::from_genesis_seed(new_genesis_seed(cml2_id));
 		cml2.defrost(&0);
-		cml2.convert_to_tree(&0).unwrap();
+		cml2.convert_to_tree(&0);
 
 		UserCmlStore::<Test>::insert(1, cml1_id, ());
 		UserCmlStore::<Test>::insert(1, cml2_id, ());
@@ -113,7 +113,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 		let cml1_id: CmlId = 4;
 		let mut cml1 = CML::from_genesis_seed(new_genesis_seed(cml1_id));
 		cml1.defrost(&0);
-		cml1.convert_to_tree(&0).unwrap();
+		cml1.convert_to_tree(&0);
 
 		UserCmlStore::<Test>::insert(1, cml1_id, ());
 		CmlStore::<Test>::insert(cml1_id, cml1);
@@ -146,7 +146,7 @@ fn start_mining_with_multiple_times_should_fail() {
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		cml.defrost(&0);
-		cml.convert_to_tree(&0).unwrap();
+		cml.convert_to_tree(&0);
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];

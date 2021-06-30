@@ -206,22 +206,26 @@ where
 		FreshDuration::get()
 	}
 
-	fn convert_to_tree(&mut self, height: &BlockNumber) -> Result<(), CmlError> {
-		if !self.is_fresh_seed() || !self.seed_valid(height)? {
-			return Err(CmlError::NotValidFreshSeed);
-		}
-		self.convert(CmlStatus::Tree);
-		self.planted_at = Some(height.clone());
-		Ok(())
+	fn can_convert_to_tree(&self, height: &BlockNumber) -> bool {
+		self.is_fresh_seed() && self.seed_valid(height)
 	}
 
-	fn has_expired(&self, height: &BlockNumber) -> Result<bool, CmlError> {
-		Ok(self.is_fresh_seed()
-			&& *height
-				>= self
-					.get_sprout_at()
-					.ok_or(CmlError::SproutAtIsNone)?
-					.clone() + self.get_fresh_duration())
+	fn convert_to_tree(&mut self, height: &BlockNumber) {
+		if !self.can_convert_to_tree(height) {
+			return;
+		}
+
+		self.convert(CmlStatus::Tree);
+		self.planted_at = Some(height.clone());
+	}
+
+	fn has_expired(&self, height: &BlockNumber) -> bool {
+		if self.get_sprout_at().is_none() {
+			return false;
+		}
+
+		self.is_fresh_seed()
+			&& *height >= self.get_sprout_at().unwrap().clone() + self.get_fresh_duration()
 	}
 
 	fn is_from_genesis(&self) -> bool {
@@ -481,7 +485,7 @@ mod tests {
 
 	mod seed_properties_tests {
 		use super::new_genesis_seed;
-		use crate::{CmlError, SeedProperties, CML};
+		use crate::{CmlError, CmlStatus, SeedProperties, StakingProperties, TreeProperties, CML};
 		use frame_support::traits::ConstU32;
 
 		#[test]
@@ -516,6 +520,7 @@ mod tests {
 			assert!(cml.is_frozen_seed());
 			cml.defrost(&DEFROST_AT);
 			assert!(cml.is_fresh_seed());
+			assert_eq!(cml.get_sprout_at(), Some(&DEFROST_AT));
 		}
 
 		#[test]
@@ -528,6 +533,7 @@ mod tests {
 			assert!(cml.is_frozen_seed());
 			cml.defrost(&u32::MAX);
 			assert!(cml.is_frozen_seed());
+			assert_eq!(cml.get_sprout_at(), None);
 		}
 
 		#[test]
@@ -540,6 +546,7 @@ mod tests {
 			assert!(!cml.can_be_defrost(&(DEFROST_AT - 1)));
 			cml.defrost(&(DEFROST_AT - 1));
 			assert!(cml.is_frozen_seed());
+			assert_eq!(cml.get_sprout_at(), None);
 		}
 
 		#[test]
@@ -547,6 +554,94 @@ mod tests {
 			let cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
 			assert_eq!(cml.intrinsic.defrost_time, Some(0));
 			assert!(cml.can_be_defrost(&0));
+		}
+
+		#[test]
+		fn seed_expire_works() {
+			let mut cml =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
+			let sprout_at = 100;
+			let fresh_duration = cml.get_fresh_duration();
+			cml.defrost(&sprout_at);
+
+			assert!(cml.is_fresh_seed());
+			assert!(!cml.has_expired(&sprout_at));
+			assert!(!cml.has_expired(&(sprout_at + fresh_duration - 1)));
+			assert!(cml.has_expired(&(sprout_at + fresh_duration)));
+		}
+
+		#[test]
+		fn cml_that_not_fresh_seed_will_never_expire() {
+			let mut cml =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
+
+			assert!(!cml.is_fresh_seed()); // frozen seed is not fresh seed
+			assert!(!cml.has_expired(&u32::MAX));
+
+			cml.defrost(&0);
+			cml.convert_to_tree(&0);
+
+			assert!(!cml.is_fresh_seed()); // tree is not fresh seed
+			assert!(!cml.has_expired(&u32::MAX));
+
+			cml.stake::<CML<u32, u32, u128, ConstU32<10>>>(&1, Some(1), None)
+				.unwrap();
+
+			assert!(!cml.is_fresh_seed()); // staking tree is not fresh seed
+			assert!(!cml.has_expired(&u32::MAX));
+		}
+
+		#[test]
+		fn convert_to_tree_works() {
+			let mut cml =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
+
+			let defrost_at = 100;
+			cml.defrost(&defrost_at);
+
+			assert!(cml.can_convert_to_tree(&(defrost_at + 1)));
+			cml.convert_to_tree(&(defrost_at + 1));
+			assert_eq!(cml.status, CmlStatus::Tree);
+			assert_eq!(cml.get_plant_at(), Some(&(defrost_at + 1)));
+		}
+
+		#[test]
+		fn convert_to_tree_failed_if_frozen() {
+			let mut cml =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
+			assert!(cml.is_frozen_seed());
+
+			assert!(!cml.can_convert_to_tree(&0));
+			cml.convert_to_tree(&0);
+			assert!(cml.is_frozen_seed());
+		}
+
+		#[test]
+		fn convert_to_tree_failed_if_seed_has_expired() {
+			let mut cml =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
+			cml.defrost(&0);
+
+			let fresh_duration = cml.get_fresh_duration();
+			assert!(!cml.can_convert_to_tree(&fresh_duration));
+			cml.convert_to_tree(&fresh_duration);
+			assert!(cml.is_fresh_seed());
+		}
+
+		#[test]
+		fn convert_to_tree_failed_if_it_is_tree_already() {
+			let mut cml =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
+
+			cml.defrost(&0);
+			cml.convert_to_tree(&0);
+
+			assert_eq!(cml.status, CmlStatus::Tree);
+			assert_eq!(cml.get_plant_at(), Some(&0));
+
+			assert!(!cml.can_convert_to_tree(&1));
+			cml.convert_to_tree(&1);
+			assert_ne!(cml.get_plant_at(), Some(&1));
 		}
 	}
 
@@ -566,7 +661,7 @@ mod tests {
 			cml.defrost(&0);
 			assert!(!cml.should_dead(&lifespan)?); // fresh seed cannot dead
 
-			cml.convert_to_tree(&0)?;
+			cml.convert_to_tree(&0);
 			assert_eq!(cml.get_plant_at(), Some(&0));
 
 			assert!(!cml.should_dead(&(lifespan - 1))?);

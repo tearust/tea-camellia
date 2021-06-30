@@ -143,21 +143,22 @@ impl<T: cml::Config> cml::Pallet<T> {
 		})
 	}
 
-	pub(crate) fn check_seed_staking(
+	pub(crate) fn check_cml_staking(
 		cml_id: CmlId,
 		current_height: &T::BlockNumber,
 	) -> DispatchResult {
 		let cml = CmlStore::<T>::get(cml_id);
 		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
 		let cml = cml.unwrap();
-		ensure!(
-			cml.seed_valid(current_height)
-				.map_err(|e| Error::<T>::from(e))?
-				|| cml
-					.tree_valid(current_height)
+		if !cml.is_seed() {
+			ensure!(
+				cml.tree_valid(current_height)
 					.map_err(|e| Error::<T>::from(e))?,
-			Error::<T>::ShouldStakingLiveTree
-		);
+				Error::<T>::ShouldStakingLiveTree
+			);
+		}
+		ensure!(!cml.is_staking(), Error::<T>::CmlIsAlreadyStaking);
+		ensure!(!cml.is_mining(), Error::<T>::CmlIsMining);
 		Ok(())
 	}
 
@@ -170,7 +171,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		CmlStore::<T>::mutate(cml_id, |cml| match cml {
 			Some(cml) => {
 				if cml.is_seed() {
-					Self::seed_to_tree(cml, current_height)?;
+					Self::seed_to_tree(cml, current_height);
 				}
 				Ok(())
 			}
