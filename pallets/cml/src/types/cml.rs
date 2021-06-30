@@ -245,18 +245,20 @@ where
 		self.planted_at.as_ref()
 	}
 
-	fn tree_valid(&self, height: &BlockNumber) -> Result<bool, CmlError> {
-		Ok(!self.is_seed() && !self.should_dead(height)?)
+	fn tree_valid(&self, height: &BlockNumber) -> bool {
+		!self.is_seed() && !self.should_dead(height)
 	}
 
-	fn should_dead(&self, height: &BlockNumber) -> Result<bool, CmlError> {
-		Ok(!self.is_seed()
-			&& *height
-				>= self
-					.planted_at
-					.as_ref()
-					.ok_or(CmlError::PlantAtIsNone)?
-					.clone() + self.intrinsic.lifespan.into())
+	fn should_dead(&self, height: &BlockNumber) -> bool {
+		if self.is_seed() {
+			return false;
+		}
+		// planted at is none should never happen
+		if self.planted_at.is_none() {
+			return true;
+		}
+
+		*height >= self.planted_at.as_ref().unwrap().clone() + self.intrinsic.lifespan.into()
 	}
 
 	fn owner(&self) -> Option<&AccountId> {
@@ -485,11 +487,11 @@ mod tests {
 
 	mod seed_properties_tests {
 		use super::new_genesis_seed;
-		use crate::{CmlError, CmlStatus, SeedProperties, StakingProperties, TreeProperties, CML};
+		use crate::{CmlStatus, SeedProperties, StakingProperties, TreeProperties, CML};
 		use frame_support::traits::ConstU32;
 
 		#[test]
-		fn genesis_seed_works() -> Result<(), CmlError> {
+		fn genesis_seed_works() {
 			let id = 10;
 			const DEFROST_AT: u32 = 100;
 			let mut seed = new_genesis_seed(id);
@@ -503,8 +505,6 @@ mod tests {
 			assert!(cml.is_frozen_seed());
 			assert!(!cml.is_fresh_seed());
 			assert!(cml.can_be_defrost(&DEFROST_AT));
-
-			Ok(())
 		}
 
 		#[test]
@@ -647,27 +647,59 @@ mod tests {
 
 	mod tree_properties_tests {
 		use super::seed_from_lifespan;
-		use crate::{CmlError, SeedProperties, TreeProperties, CML};
+		use crate::{CmlStatus, SeedProperties, TreeProperties, CML};
 		use frame_support::traits::ConstU32;
 
 		#[test]
-		fn should_dead_works() -> Result<(), CmlError> {
+		fn should_dead_works() {
 			let lifespan = 10;
 			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
 				seed_from_lifespan(1, lifespan),
 			);
-			assert!(!cml.should_dead(&lifespan)?); // frozen seed cannot dead
+			assert!(cml.is_seed());
+			assert!(!cml.should_dead(&lifespan)); // frozen seed cannot dead
 
 			cml.defrost(&0);
-			assert!(!cml.should_dead(&lifespan)?); // fresh seed cannot dead
+			assert!(!cml.should_dead(&lifespan)); // fresh seed cannot dead
 
 			cml.convert_to_tree(&0);
 			assert_eq!(cml.get_plant_at(), Some(&0));
 
-			assert!(!cml.should_dead(&(lifespan - 1))?);
-			assert!(cml.should_dead(&lifespan)?);
+			assert!(!cml.should_dead(&(lifespan - 1)));
+			assert!(cml.should_dead(&lifespan));
+		}
 
-			Ok(())
+		#[test]
+		fn tree_will_always_dead_if_plant_at_is_none() {
+			let lifespan = 10;
+			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
+				seed_from_lifespan(1, lifespan),
+			);
+			assert!(cml.planted_at.is_none());
+
+			cml.status = CmlStatus::Tree;
+			assert!(cml.should_dead(&0));
+			assert!(cml.should_dead(&lifespan));
+
+			cml.status = CmlStatus::Staking(2, 1);
+			assert!(cml.should_dead(&0));
+			assert!(cml.should_dead(&lifespan));
+		}
+
+		#[test]
+		fn seed_should_never_dead() {
+			let lifespan = 10;
+			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
+				seed_from_lifespan(1, lifespan),
+			);
+
+			assert!(!cml.should_dead(&lifespan)); // frozen seed never dead
+			assert!(!cml.should_dead(&u32::MAX)); // frozen seed never dead
+
+			cml.defrost(&0);
+
+			assert!(!cml.should_dead(&lifespan)); // fresh seed never dead
+			assert!(!cml.should_dead(&u32::MAX)); // fresh seed never dead
 		}
 	}
 

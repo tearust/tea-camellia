@@ -164,7 +164,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub(crate) fn try_kill_cml(block_number: T::BlockNumber) -> Vec<CmlId> {
 		let dead_cmls: Vec<CmlId> = CmlStore::<T>::iter()
 			// todo change should_dead error handling method if needed later
-			.filter(|(_, cml)| cml.should_dead(&block_number).unwrap())
+			.filter(|(_, cml)| cml.should_dead(&block_number))
 			.map(|(id, cml)| match cml.owner() {
 				Some(owner) => {
 					UserCmlStore::<T>::remove(owner, id);
@@ -681,7 +681,7 @@ mod tests {
 			}
 
 			CmlStore::<Test>::iter().for_each(|(_, cml)| {
-				assert!(cml.should_dead(&(STOP_HEIGHT * 2)).unwrap());
+				assert!(cml.should_dead(&(STOP_HEIGHT * 2)));
 			});
 
 			for i in START_HEIGHT..=(STOP_HEIGHT * 2) {

@@ -218,7 +218,7 @@ pub mod auction {
 			let current_height = frame_system::Pallet::<T>::block_number();
 			// check cml status
 			ensure!(
-				cml_item.is_seed() || cml_item.tree_valid(&current_height).unwrap_or(false),
+				cml_item.is_seed() || cml_item.tree_valid(&current_height),
 				Error::<T>::NotAllowToAuction
 			);
 

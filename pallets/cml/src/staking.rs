@@ -152,8 +152,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		let cml = cml.unwrap();
 		if !cml.is_seed() {
 			ensure!(
-				cml.tree_valid(current_height)
-					.map_err(|e| Error::<T>::from(e))?,
+				cml.tree_valid(current_height),
 				Error::<T>::ShouldStakingLiveTree
 			);
 		}
