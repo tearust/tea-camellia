@@ -72,7 +72,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		height: &T::BlockNumber,
 	) -> Result<(), Error<T>> {
 		if cml.is_frozen_seed() {
-			cml.defrost(height)?;
+			cml.defrost(height);
 		}
 
 		if cml.is_fresh_seed() {
@@ -650,7 +650,7 @@ mod tests {
 					lifespan,
 					DefrostScheduleType::Team,
 				));
-				cml.defrost(&0).unwrap();
+				cml.defrost(&0);
 				cml.set_owner(&user_id);
 				cml.convert_to_tree(&plant_time).unwrap();
 

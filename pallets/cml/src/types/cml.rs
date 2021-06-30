@@ -148,10 +148,6 @@ where
 		}
 	}
 
-	pub fn can_convert(&self, to_status: &CmlStatus<BlockNumber>) -> bool {
-		self.status.valid_conversion(to_status)
-	}
-
 	pub fn set_owner(&mut self, account: &AccountId) {
 		self.owner = Some(account.clone());
 	}
@@ -184,22 +180,19 @@ where
 		}
 	}
 
-	fn can_be_defrost(&self, height: &BlockNumber) -> Result<bool, CmlError> {
-		Ok(self.is_frozen_seed()
-			&& *height
-				>= self
-					.intrinsic
-					.defrost_time
-					.ok_or(CmlError::DefrostTimeIsNone)?
-					.into())
-	}
-
-	fn defrost(&mut self, height: &BlockNumber) -> Result<(), CmlError> {
-		if !self.can_be_defrost(height)? {
-			return Err(CmlError::DefrostFailed);
+	fn can_be_defrost(&self, height: &BlockNumber) -> bool {
+		if self.intrinsic.defrost_time.is_none() {
+			return false;
 		}
 
-		self.try_to_convert(CmlStatus::FreshSeed(height.clone()))
+		self.is_frozen_seed() && *height >= self.intrinsic.defrost_time.unwrap().into()
+	}
+
+	fn defrost(&mut self, height: &BlockNumber) {
+		if !self.can_be_defrost(height) {
+			return;
+		}
+		self.convert(CmlStatus::FreshSeed(height.clone()))
 	}
 
 	fn get_sprout_at(&self) -> Option<&BlockNumber> {
@@ -217,7 +210,7 @@ where
 		if !self.is_fresh_seed() || !self.seed_valid(height)? {
 			return Err(CmlError::NotValidFreshSeed);
 		}
-		self.try_to_convert(CmlStatus::Tree)?;
+		self.convert(CmlStatus::Tree);
 		self.planted_at = Some(height.clone());
 		Ok(())
 	}
@@ -327,7 +320,7 @@ where
 			cml: cml.as_ref().map(|cml| cml.id()),
 		};
 		if let Some(cml) = cml {
-			cml.try_to_convert(CmlStatus::Staking(self.id(), staking_index))?;
+			cml.convert(CmlStatus::Staking(self.id(), staking_index));
 		}
 		self.staking_slots_mut().push(staking_item.clone());
 
@@ -368,7 +361,7 @@ where
 					{
 						return Err(CmlError::UnstakingSlotOwnerMismatch);
 					}
-					cml.try_to_convert(CmlStatus::Tree)?;
+					cml.convert(CmlStatus::Tree);
 				}
 				_ => {} // should never happen
 			}
@@ -448,13 +441,16 @@ where
 		&self.status
 	}
 
-	fn try_to_convert(&mut self, to_status: CmlStatus<BlockNumber>) -> Result<(), CmlError> {
+	fn can_convert(&self, to_status: &CmlStatus<BlockNumber>) -> bool {
+		self.status.valid_conversion(to_status)
+	}
+
+	fn convert(&mut self, to_status: CmlStatus<BlockNumber>) {
 		if !self.can_convert(&to_status) {
-			return Err(CmlError::CmlStatusConvertFailed);
+			return;
 		}
 
 		self.status = to_status;
-		Ok(())
 	}
 }
 
@@ -502,33 +498,55 @@ mod tests {
 			assert!(cml.is_seed());
 			assert!(cml.is_frozen_seed());
 			assert!(!cml.is_fresh_seed());
-			assert!(cml.can_be_defrost(&DEFROST_AT)?);
+			assert!(cml.can_be_defrost(&DEFROST_AT));
 
 			Ok(())
 		}
 
 		#[test]
-		fn defrost_seed_works() -> Result<(), CmlError> {
+		fn defrost_seed_works() {
 			const DEFROST_AT: u32 = 100;
 			let mut seed = new_genesis_seed(10);
 			seed.defrost_time = Some(DEFROST_AT);
 			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
 
-			assert!(!cml.can_be_defrost(&0)?);
-			assert!(cml.can_be_defrost(&DEFROST_AT)?);
+			assert!(!cml.can_be_defrost(&0));
+			assert!(cml.can_be_defrost(&DEFROST_AT));
 
 			assert!(cml.is_frozen_seed());
-			cml.defrost(&DEFROST_AT)?;
+			cml.defrost(&DEFROST_AT);
 			assert!(cml.is_fresh_seed());
-			Ok(())
 		}
 
 		#[test]
-		fn genesis_seed_defrost_at_initial() -> Result<(), CmlError> {
+		fn defrost_failed_when_defrost_time_is_none() {
+			let mut seed = new_genesis_seed(10);
+			seed.defrost_time = None;
+			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
+
+			assert!(!cml.can_be_defrost(&u32::MAX));
+			assert!(cml.is_frozen_seed());
+			cml.defrost(&u32::MAX);
+			assert!(cml.is_frozen_seed());
+		}
+
+		#[test]
+		fn defrost_failed_before_defrost_time() {
+			const DEFROST_AT: u32 = 100;
+			let mut seed = new_genesis_seed(10);
+			seed.defrost_time = Some(DEFROST_AT);
+			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
+
+			assert!(!cml.can_be_defrost(&(DEFROST_AT - 1)));
+			cml.defrost(&(DEFROST_AT - 1));
+			assert!(cml.is_frozen_seed());
+		}
+
+		#[test]
+		fn genesis_seed_defrost_at_initial() {
 			let cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
 			assert_eq!(cml.intrinsic.defrost_time, Some(0));
-			assert!(cml.can_be_defrost(&0)?);
-			Ok(())
+			assert!(cml.can_be_defrost(&0));
 		}
 	}
 
@@ -545,7 +563,7 @@ mod tests {
 			);
 			assert!(!cml.should_dead(&lifespan)?); // frozen seed cannot dead
 
-			cml.defrost(&0)?;
+			cml.defrost(&0);
 			assert!(!cml.should_dead(&lifespan)?); // fresh seed cannot dead
 
 			cml.convert_to_tree(&0)?;

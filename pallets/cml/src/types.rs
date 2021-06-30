@@ -25,9 +25,9 @@ pub trait SeedProperties<BlockNumber> {
 
 	fn is_fresh_seed(&self) -> bool;
 
-	fn can_be_defrost(&self, height: &BlockNumber) -> Result<bool, CmlError>;
+	fn can_be_defrost(&self, height: &BlockNumber) -> bool;
 
-	fn defrost(&mut self, height: &BlockNumber) -> Result<(), CmlError>;
+	fn defrost(&mut self, height: &BlockNumber);
 
 	fn get_sprout_at(&self) -> Option<&BlockNumber>;
 
@@ -39,7 +39,7 @@ pub trait SeedProperties<BlockNumber> {
 	fn has_expired(&self, height: &BlockNumber) -> Result<bool, CmlError>;
 
 	fn seed_valid(&self, height: &BlockNumber) -> Result<bool, CmlError> {
-		Ok(self.can_be_defrost(height)? || !self.has_expired(height)?)
+		Ok(self.can_be_defrost(height) || !self.has_expired(height)?)
 	}
 
 	fn is_from_genesis(&self) -> bool;
@@ -114,5 +114,7 @@ where
 {
 	fn status(&self) -> &CmlStatus<BlockNumber>;
 
-	fn try_to_convert(&mut self, to_status: CmlStatus<BlockNumber>) -> Result<(), CmlError>;
+	fn can_convert(&self, to_status: &CmlStatus<BlockNumber>) -> bool;
+
+	fn convert(&mut self, to_status: CmlStatus<BlockNumber>);
 }
