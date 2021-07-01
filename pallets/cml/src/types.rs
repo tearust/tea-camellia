@@ -69,15 +69,27 @@ where
 
 	fn staking_slots_mut(&mut self) -> &mut Vec<StakingItem<AccountId, Balance>>;
 
+	/// can stake would check state of the stake to cml, not the staking cml
+	fn can_be_stake(
+		&self,
+		current_height: &BlockNumber,
+		amount: &Option<Balance>,
+		cml: &Option<CmlId>,
+	) -> bool;
+
+	fn can_stake_to(&self, current_height: &BlockNumber) -> bool;
+
 	fn stake<StakeEntity>(
 		&mut self,
 		account: &AccountId,
+		current_height: &BlockNumber,
 		amount: Option<Balance>,
 		cml: Option<&mut StakeEntity>,
-	) -> Result<StakingIndex, CmlError>
+	) -> Option<StakingIndex>
 	where
 		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
 			+ SeedProperties<BlockNumber>
+			+ TreeProperties<AccountId, BlockNumber, Balance>
 			+ UtilsProperties<BlockNumber>;
 
 	fn unstake<StakeEntity>(

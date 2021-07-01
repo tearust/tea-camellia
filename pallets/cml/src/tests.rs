@@ -29,3 +29,9 @@ pub fn new_genesis_frozen_seed(id: CmlId) -> Seed {
 		performance: 0,
 	}
 }
+
+pub fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
+	let mut seed = new_genesis_seed(id);
+	seed.lifespan = lifespan;
+	seed
+}

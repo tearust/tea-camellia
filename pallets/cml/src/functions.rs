@@ -297,6 +297,32 @@ impl<T: cml::Config> cml::Pallet<T> {
 		};
 		MinerItemStore::<T>::insert(&machine_id, miner_item);
 	}
+
+	pub(crate) fn stake(
+		who: &T::AccountId,
+		staking_to: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+		staking_cml: &Option<CmlId>,
+		current_height: &T::BlockNumber,
+	) -> Option<StakingIndex> {
+		match staking_cml {
+			Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| -> Option<StakingIndex> {
+				match cml {
+					Some(cml) => staking_to.stake(&who, &current_height, None, Some(cml)),
+					None => None,
+				}
+			}),
+			None => {
+				T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
+				staking_to
+					.stake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
+						&who,
+						current_height,
+						Some(T::StakingPrice::get()),
+						None,
+					)
+			}
+		}
+	}
 }
 
 pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber, Balance, FreshDuration>(

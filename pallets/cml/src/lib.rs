@@ -242,6 +242,7 @@ pub mod cml {
 		ShouldStakingLiveTree,
 		CmlIsAlreadyStaking,
 		CmlIsMining,
+		StakingInvalid,
 
 		InsufficientFreeBalance,
 		InsufficientReservedBalance,
@@ -251,6 +252,8 @@ pub mod cml {
 		InvalidCreditAmount,
 
 		StakingIndexIsNone,
+		InvalidStaker,
+		InvalidStakee,
 		InvalidStakingIndex,
 		InvalidStakingOwner,
 		NotFoundRewardAccount,
@@ -523,59 +526,62 @@ pub mod cml {
 			staking_cml: Option<CmlId>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			ensure!(
-				CmlStore::<T>::contains_key(staking_to),
-				Error::<T>::NotFoundCML
-			);
-			ensure!(
-				CmlStore::<T>::get(staking_to).unwrap().is_mining(),
-				Error::<T>::CmlIsNotMining,
-			);
 			let current_block_number = frame_system::Pallet::<T>::block_number();
-			match staking_cml {
-				Some(cml_id) => {
-					Self::check_belongs(&cml_id, &who)?;
-					Self::check_if_is_seed_validity(cml_id, &current_block_number)?;
-					Self::check_cml_staking(cml_id, &current_block_number)?;
-				}
-				None => Self::check_balance_staking(&who)?,
-			}
 
-			let staking_index: Option<StakingIndex> = CmlStore::<T>::mutate(staking_to, |cml| {
-				if let Some(staking_to) = cml {
-					return match staking_cml {
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						CmlStore::<T>::contains_key(staking_to),
+						Error::<T>::NotFoundCML
+					);
+
+					let cml = CmlStore::<T>::get(staking_to).unwrap();
+					ensure!(cml.is_mining(), Error::<T>::CmlIsNotMining,);
+
+					let amount = match staking_cml {
 						Some(cml_id) => {
-							CmlStore::<T>::mutate(cml_id, |cml| -> Option<StakingIndex> {
-								match cml {
-									Some(cml) => {
-										if cml.is_seed() {
-											Self::seed_to_tree(cml, &current_block_number);
-										}
-										staking_to.stake(&who, None, Some(cml)).ok()
-									}
-									None => None,
-								}
-							})
+							Self::check_belongs(&cml_id, &who)?;
+							let cml = CmlStore::<T>::get(cml_id);
+							ensure!(cml.is_some(), Error::<T>::NotFoundCML);
+							ensure!(
+								cml.unwrap().can_stake_to(&current_block_number),
+								Error::<T>::InvalidStaker
+							);
+							None
 						}
 						None => {
-							T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
-							staking_to
-								.stake::<CML<
-									T::AccountId,
-									T::BlockNumber,
-									BalanceOf<T>,
-									T::SeedFreshDuration,
-								>>(&who, Some(T::StakingPrice::get()), None)
-								.ok()
+							Self::check_balance_staking(&who)?;
+							Some(T::StakingPrice::get())
 						}
 					};
-				}
-				None
-			});
-			ensure!(staking_index.is_some(), Error::<T>::StakingIndexIsNone); // should never happen
+					ensure!(
+						cml.can_be_stake(&current_block_number, &amount, &staking_cml),
+						Error::<T>::InvalidStakee
+					);
+					Ok(())
+				},
+				|who| {
+					let staking_index: Option<StakingIndex> =
+						CmlStore::<T>::mutate(staking_to, |cml| {
+							if let Some(staking_to) = cml {
+								return Self::stake(
+									who,
+									staking_to,
+									&staking_cml,
+									&current_block_number,
+								);
+							}
+							None
+						});
 
-			Self::deposit_event(Event::Staked(who, staking_to, staking_index.unwrap()));
-			Ok(())
+					Self::deposit_event(Event::Staked(
+						who.clone(),
+						staking_to,
+						staking_index.unwrap_or(u64::MAX),
+					));
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]

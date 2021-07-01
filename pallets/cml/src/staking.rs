@@ -143,24 +143,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		})
 	}
 
-	pub(crate) fn check_cml_staking(
-		cml_id: CmlId,
-		current_height: &T::BlockNumber,
-	) -> DispatchResult {
-		let cml = CmlStore::<T>::get(cml_id);
-		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
-		let cml = cml.unwrap();
-		if !cml.is_seed() {
-			ensure!(
-				cml.tree_valid(current_height),
-				Error::<T>::ShouldStakingLiveTree
-			);
-		}
-		ensure!(!cml.is_staking(), Error::<T>::CmlIsAlreadyStaking);
-		ensure!(!cml.is_mining(), Error::<T>::CmlIsMining);
-		Ok(())
-	}
-
 	#[allow(dead_code)]
 	pub(crate) fn create_seed_staking(
 		who: &T::AccountId,

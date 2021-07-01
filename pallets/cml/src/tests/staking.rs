@@ -1,4 +1,4 @@
-use crate::tests::new_genesis_seed;
+use crate::tests::{new_genesis_seed, seed_from_lifespan};
 use crate::{mock::*, types::*, AccountRewards, CmlStore, Config, UserCmlStore};
 use frame_support::{assert_ok, traits::Currency};
 use pallet_utils::CurrencyOperations;
@@ -12,7 +12,7 @@ fn start_staking_with_balance_works() {
 
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
-		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_ok!(Cml::start_mining(
@@ -34,7 +34,7 @@ fn start_staking_with_cml_works() {
 
 		let cml1_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml1_id, ());
-		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml1_id));
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100));
 		cml.defrost(&0);
 		cml.convert_to_tree(&0);
 		CmlStore::<Test>::insert(cml1_id, cml);
@@ -68,7 +68,7 @@ fn stop_staking_with_balance_works() {
 
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
-		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_ok!(Cml::start_mining(
@@ -102,7 +102,7 @@ fn stop_staking_with_cml_works() {
 
 		let cml1_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml1_id, ());
-		let mut cml1 = CML::from_genesis_seed(new_genesis_seed(cml1_id));
+		let mut cml1 = CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100));
 		cml1.defrost(&0);
 		cml1.convert_to_tree(&0);
 		CmlStore::<Test>::insert(cml1_id, cml1);

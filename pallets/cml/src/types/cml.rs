@@ -298,19 +298,62 @@ where
 		self.staking_slot.as_mut()
 	}
 
+	fn can_be_stake(
+		&self,
+		current_height: &BlockNumber,
+		amount: &Option<Balance>,
+		cml: &Option<CmlId>,
+	) -> bool {
+		if (amount.is_some() && cml.is_some()) || (amount.is_none() && cml.is_none()) {
+			return false;
+		}
+		if !self.is_mining() {
+			return false;
+		}
+		if self.should_dead(current_height) {
+			return false;
+		}
+
+		true
+	}
+
+	fn can_stake_to(&self, current_height: &BlockNumber) -> bool {
+		if self.is_seed() && !self.seed_valid(current_height) {
+			return false;
+		}
+
+		if !self.is_seed() && !self.tree_valid(current_height) {
+			return false;
+		}
+
+		if self.is_staking() || self.is_mining() {
+			return false;
+		}
+
+		true
+	}
+
 	fn stake<StakeEntity>(
 		&mut self,
 		account: &AccountId,
+		current_height: &BlockNumber,
 		amount: Option<Balance>,
 		cml: Option<&mut StakeEntity>,
-	) -> Result<StakingIndex, CmlError>
+	) -> Option<StakingIndex>
 	where
 		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
 			+ SeedProperties<BlockNumber>
+			+ TreeProperties<AccountId, BlockNumber, Balance>
 			+ UtilsProperties<BlockNumber>,
 	{
-		if (amount.is_some() && cml.is_some()) || (amount.is_none() && cml.is_none()) {
-			return Err(CmlError::ConfusedStakingType);
+		let cml_id = cml.as_ref().map(|cml| cml.id());
+		if !self.can_be_stake(current_height, &amount, &cml_id) {
+			return None;
+		}
+		if let Some(ref cml) = cml {
+			if !cml.can_stake_to(current_height) {
+				return None;
+			}
 		}
 
 		let staking_index = self.staking_slots().len() as StakingIndex;
@@ -323,14 +366,20 @@ where
 				StakingCategory::Cml
 			},
 			amount,
-			cml: cml.as_ref().map(|cml| cml.id()),
+			cml: cml_id,
 		};
 		if let Some(cml) = cml {
+			if cml.is_frozen_seed() {
+				cml.defrost(current_height);
+			}
+			if cml.is_fresh_seed() {
+				cml.convert_to_tree(current_height);
+			}
 			cml.convert(CmlStatus::Staking(self.id(), staking_index));
 		}
 		self.staking_slots_mut().push(staking_item.clone());
 
-		Ok(staking_index)
+		Some(staking_index)
 	}
 
 	fn unstake<StakeEntity>(
@@ -483,11 +532,12 @@ where
 
 #[cfg(test)]
 mod tests {
-	use crate::{CmlId, CmlType, DefrostScheduleType, Seed};
-
 	mod seed_properties_tests {
-		use super::new_genesis_seed;
-		use crate::{CmlStatus, SeedProperties, StakingProperties, TreeProperties, CML};
+		use crate::tests::{new_genesis_seed, seed_from_lifespan};
+		use crate::{
+			CmlStatus, MiningProperties, SeedProperties, StakingCategory, StakingItem,
+			StakingProperties, TreeProperties, CML,
+		};
 		use frame_support::traits::ConstU32;
 
 		#[test]
@@ -573,7 +623,7 @@ mod tests {
 		#[test]
 		fn cml_that_not_fresh_seed_will_never_expire() {
 			let mut cml =
-				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(1, 100));
 
 			assert!(!cml.is_fresh_seed()); // frozen seed is not fresh seed
 			assert!(!cml.has_expired(&u32::MAX));
@@ -584,8 +634,24 @@ mod tests {
 			assert!(!cml.is_fresh_seed()); // tree is not fresh seed
 			assert!(!cml.has_expired(&u32::MAX));
 
-			cml.stake::<CML<u32, u32, u128, ConstU32<10>>>(&1, Some(1), None)
+			let mut miner_cml =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(2, 100));
+			miner_cml.defrost(&0);
+			miner_cml.convert_to_tree(&0);
+			miner_cml
+				.start_mining(
+					[1u8; 32],
+					StakingItem {
+						owner: 1,
+						category: StakingCategory::Cml,
+						amount: Some(1),
+						cml: None,
+					},
+				)
 				.unwrap();
+			let index =
+				miner_cml.stake::<CML<u32, u32, u128, ConstU32<10>>>(&1, &0, None, Some(&mut cml));
+			assert_eq!(index, Some(1));
 
 			assert!(!cml.is_fresh_seed()); // staking tree is not fresh seed
 			assert!(!cml.has_expired(&u32::MAX));
@@ -646,7 +712,7 @@ mod tests {
 	}
 
 	mod tree_properties_tests {
-		use super::seed_from_lifespan;
+		use crate::tests::seed_from_lifespan;
 		use crate::{CmlStatus, SeedProperties, TreeProperties, CML};
 		use frame_support::traits::ConstU32;
 
@@ -703,20 +769,125 @@ mod tests {
 		}
 	}
 
-	pub fn new_genesis_seed(id: CmlId) -> Seed {
-		Seed {
-			id,
-			cml_type: CmlType::A,
-			defrost_schedule: Some(DefrostScheduleType::Team),
-			defrost_time: Some(0),
-			lifespan: 0,
-			performance: 0,
-		}
-	}
+	mod staking_properties_tests {
+		use crate::tests::seed_from_lifespan;
+		use crate::{
+			CmlStatus, MiningProperties, SeedProperties, StakingCategory, StakingItem,
+			StakingProperties, CML,
+		};
+		use frame_support::traits::ConstU32;
 
-	fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
-		let mut seed = new_genesis_seed(id);
-		seed.lifespan = lifespan;
-		seed
+		#[test]
+		fn stake_with_balance_works() {
+			let mut miner =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(2, 100));
+			miner.defrost(&0);
+			miner.convert_to_tree(&0);
+			miner
+				.start_mining(
+					[1u8; 32],
+					StakingItem {
+						owner: 1,
+						category: StakingCategory::Cml,
+						amount: Some(1),
+						cml: None,
+					},
+				)
+				.unwrap();
+			assert!(miner.can_be_stake(&0, &Some(1), &None));
+
+			let index = miner.stake::<CML<u32, u32, u128, ConstU32<10>>>(&1, &0, Some(1), None);
+			assert_eq!(index, Some(1));
+		}
+
+		#[test]
+		fn stake_with_cml_works() {
+			let mut staker =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(1, 100));
+			staker.defrost(&0);
+			staker.convert_to_tree(&0);
+			assert_eq!(staker.status, CmlStatus::Tree);
+			assert!(staker.can_stake_to(&0));
+
+			let mut miner =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(2, 100));
+			miner.defrost(&0);
+			miner.convert_to_tree(&0);
+			miner
+				.start_mining(
+					[1u8; 32],
+					StakingItem {
+						owner: 1,
+						category: StakingCategory::Cml,
+						amount: Some(1),
+						cml: None,
+					},
+				)
+				.unwrap();
+			assert!(miner.can_be_stake(&0, &None, &Some(staker.id())));
+
+			let index =
+				miner.stake::<CML<u32, u32, u128, ConstU32<10>>>(&1, &0, None, Some(&mut staker));
+			assert_eq!(index, Some(1));
+		}
+
+		#[test]
+		fn stake_with_frozen_seed_works() {
+			let mut staker =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(1, 100));
+			assert!(staker.is_frozen_seed());
+			assert!(staker.can_stake_to(&0));
+
+			let mut miner =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(2, 100));
+			miner.defrost(&0);
+			miner.convert_to_tree(&0);
+			miner
+				.start_mining(
+					[1u8; 32],
+					StakingItem {
+						owner: 1,
+						category: StakingCategory::Cml,
+						amount: Some(1),
+						cml: None,
+					},
+				)
+				.unwrap();
+			assert!(miner.can_be_stake(&0, &None, &Some(staker.id())));
+
+			let index =
+				miner.stake::<CML<u32, u32, u128, ConstU32<10>>>(&1, &0, None, Some(&mut staker));
+			assert_eq!(index, Some(1));
+		}
+
+		#[test]
+		fn stake_with_fresh_seed_works() {
+			let mut staker =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(1, 100));
+			staker.defrost(&0);
+			assert!(staker.is_fresh_seed());
+			assert!(staker.can_stake_to(&0));
+
+			let mut miner =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(2, 100));
+			miner.defrost(&0);
+			miner.convert_to_tree(&0);
+			miner
+				.start_mining(
+					[1u8; 32],
+					StakingItem {
+						owner: 1,
+						category: StakingCategory::Cml,
+						amount: Some(1),
+						cml: None,
+					},
+				)
+				.unwrap();
+			assert!(miner.can_be_stake(&0, &None, &Some(staker.id())));
+
+			let index =
+				miner.stake::<CML<u32, u32, u128, ConstU32<10>>>(&1, &0, None, Some(&mut staker));
+			assert_eq!(index, Some(1));
+		}
 	}
 }
