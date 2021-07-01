@@ -846,8 +846,12 @@ impl pallet_bridge::Config for Runtime {
 	type NativeTokenId = NativeTokenId;
 }
 
+#[cfg(feature = "fast")]
+const AUCTION_WINDOW_BLOCK: BlockNumber = 100;
+#[cfg(not(feature = "fast"))]
+const AUCTION_WINDOW_BLOCK: BlockNumber = 1000;
 parameter_types! {
-	pub const AuctionDealWindowBLock: BlockNumber = 500;
+	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_WINDOW_BLOCK;
 	pub const BidDeposit: Balance = 100 * DOLLARS;
 	pub const MinPriceForBid: Balance = 1 * DOLLARS;
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
