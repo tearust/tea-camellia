@@ -536,9 +536,6 @@ pub mod cml {
 						Error::<T>::NotFoundCML
 					);
 
-					let cml = CmlStore::<T>::get(staking_to).unwrap();
-					ensure!(cml.is_mining(), Error::<T>::CmlIsNotMining,);
-
 					let amount = match staking_cml {
 						Some(cml_id) => {
 							Self::check_belongs(&cml_id, &who)?;
@@ -555,6 +552,8 @@ pub mod cml {
 							Some(T::StakingPrice::get())
 						}
 					};
+
+					let cml = CmlStore::<T>::get(staking_to).unwrap();
 					ensure!(
 						cml.can_be_stake(&current_block_number, &amount, &staking_cml),
 						Error::<T>::InvalidStakee
