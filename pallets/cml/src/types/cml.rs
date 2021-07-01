@@ -382,24 +382,69 @@ where
 		Some(staking_index)
 	}
 
-	fn unstake<StakeEntity>(
-		&mut self,
-		index: Option<StakingIndex>,
-		cml: Option<&mut StakeEntity>,
-	) -> Result<(), CmlError>
+	fn can_unstake<StakeEntity>(
+		&self,
+		index: &Option<StakingIndex>,
+		cml: &Option<&StakeEntity>,
+	) -> bool
 	where
 		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
 			+ TreeProperties<AccountId, BlockNumber, Balance>
 			+ UtilsProperties<BlockNumber>,
 	{
-		if !self.is_mining() {
-			return Err(CmlError::CmlIsNotMining);
-		}
 		if (index.is_some() && cml.is_some()) || (index.is_none() && cml.is_none()) {
-			return Err(CmlError::ConfusedStakingType);
+			return false;
 		}
-		if cml.is_some() && !cml.as_ref().unwrap().is_staking() {
-			return Err(CmlError::CmlIsNotStaking);
+
+		if !self.is_mining() {
+			return false;
+		}
+
+		if let Some(cml) = cml {
+			match cml.status() {
+				CmlStatus::Staking(stakee_id, index) => {
+					// not stake to me
+					if *stakee_id != self.id() {
+						return false;
+					}
+
+					if self.staking_slots().len() <= *index as usize {
+						return false;
+					}
+
+					if cml.owner().is_none() {
+						return false;
+					}
+
+					if !self.staking_slots()[*index as usize]
+						.owner
+						.eq(cml.owner().unwrap())
+					{
+						return false;
+					}
+				}
+				_ => return false,
+			}
+		}
+
+		if let Some(index) = index {
+			if self.staking_slots().len() <= *index as usize {
+				return false;
+			}
+		}
+
+		true
+	}
+
+	fn unstake<StakeEntity>(&mut self, index: Option<StakingIndex>, cml: Option<&mut StakeEntity>)
+	where
+		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
+			+ TreeProperties<AccountId, BlockNumber, Balance>
+			+ UtilsProperties<BlockNumber>,
+	{
+		// todo improve the map of cml if possible later
+		if !self.can_unstake(&index, &cml.as_ref().map(|c| &**c)) {
+			return;
 		}
 
 		if let Some(index) = index {
@@ -409,20 +454,12 @@ where
 		if let Some(cml) = cml {
 			match cml.status() {
 				CmlStatus::Staking(_, staking_index) => {
-					let staking_item = self.staking_slots_mut().remove(*staking_index as usize);
-					if !staking_item
-						.owner
-						.eq(cml.owner().ok_or(CmlError::CmlOwnerIsNone)?)
-					{
-						return Err(CmlError::UnstakingSlotOwnerMismatch);
-					}
+					let _staking_item = self.staking_slots_mut().remove(*staking_index as usize);
 					cml.convert(CmlStatus::Tree);
 				}
 				_ => {} // should never happen
 			}
 		}
-
-		Ok(())
 	}
 }
 

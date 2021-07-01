@@ -323,6 +323,30 @@ impl<T: cml::Config> cml::Pallet<T> {
 			}
 		}
 	}
+
+	pub(crate) fn unstake(
+		who: &T::AccountId,
+		staking_to: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+		staking_index: StakingIndex,
+	) {
+		if let Some(staking_item) = staking_to.staking_slots().get(staking_index as usize) {
+			match staking_item.cml {
+				Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| {
+					if let Some(cml) = cml {
+						staking_to.unstake(None, Some(cml));
+					}
+				}),
+				None => {
+					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get()).unwrap();
+					staking_to
+						.unstake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
+							Some(staking_index),
+							None,
+						)
+				}
+			};
+		}
+	}
 }
 
 pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber, Balance, FreshDuration>(

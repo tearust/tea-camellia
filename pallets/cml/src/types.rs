@@ -92,13 +92,18 @@ where
 			+ TreeProperties<AccountId, BlockNumber, Balance>
 			+ UtilsProperties<BlockNumber>;
 
-	fn unstake<StakeEntity>(
-		&mut self,
-		index: Option<StakingIndex>,
-		cml: Option<&mut StakeEntity>,
-	) -> Result<(), CmlError>
+	fn can_unstake<StakeEntity>(
+		&self,
+		index: &Option<StakingIndex>,
+		cml: &Option<&StakeEntity>,
+	) -> bool
 	where
-		BlockNumber: Default + sp_runtime::traits::AtLeast32BitUnsigned + Clone,
+		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
+			+ TreeProperties<AccountId, BlockNumber, Balance>
+			+ UtilsProperties<BlockNumber>;
+
+	fn unstake<StakeEntity>(&mut self, index: Option<StakingIndex>, cml: Option<&mut StakeEntity>)
+	where
 		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
 			+ TreeProperties<AccountId, BlockNumber, Balance>
 			+ UtilsProperties<BlockNumber>;

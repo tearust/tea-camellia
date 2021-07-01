@@ -256,6 +256,7 @@ pub mod cml {
 		InvalidStakee,
 		InvalidStakingIndex,
 		InvalidStakingOwner,
+		InvalidUnstaking,
 		NotFoundRewardAccount,
 		RewardAmountConvertFailed,
 
@@ -590,59 +591,52 @@ pub mod cml {
 			staking_index: StakingIndex,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			ensure!(
-				CmlStore::<T>::contains_key(staking_to),
-				Error::<T>::NotFoundCML
-			);
-			let cml = CmlStore::<T>::get(staking_to).unwrap();
-			ensure!(
-				cml.staking_slots().len() > staking_index as usize,
-				Error::<T>::InvalidStakingIndex,
-			);
-			let staking_item: &StakingItem<T::AccountId, BalanceOf<T>> = cml
-				.staking_slots()
-				.get(staking_index as usize)
-				.ok_or(Error::<T>::InvalidStakingIndex)?;
-			ensure!(staking_item.owner == who, Error::<T>::InvalidStakingOwner);
-			if let Some(cml_id) = staking_item.cml {
-				Self::check_belongs(&cml_id, &who)?;
-			} else {
-				ensure!(
-					T::CurrencyOperations::reserved_balance(&who) >= T::StakingPrice::get(),
-					Error::<T>::InsufficientReservedBalance
-				);
-			}
 
-			CmlStore::<T>::mutate(staking_to, |cml| {
-				if let Some(staking_to) = cml {
-					let staking_item: &StakingItem<T::AccountId, BalanceOf<T>> = staking_to
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						CmlStore::<T>::contains_key(staking_to),
+						Error::<T>::NotFoundCML
+					);
+					let cml = CmlStore::<T>::get(staking_to).unwrap();
+					ensure!(
+						cml.staking_slots().len() > staking_index as usize,
+						Error::<T>::InvalidStakingIndex,
+					);
+					let staking_item: &StakingItem<T::AccountId, BalanceOf<T>> = cml
 						.staking_slots()
 						.get(staking_index as usize)
-						.unwrap();
+						.ok_or(Error::<T>::InvalidStakingIndex)?;
+					ensure!(staking_item.owner == *who, Error::<T>::InvalidStakingOwner);
+					if let Some(cml_id) = staking_item.cml {
+						Self::check_belongs(&cml_id, who)?;
+					} else {
+						ensure!(
+							T::CurrencyOperations::reserved_balance(who) >= T::StakingPrice::get(),
+							Error::<T>::InsufficientReservedBalance
+						);
+					}
 
-					return match staking_item.cml {
-						Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| {
-							if let Some(cml) = cml {
-								staking_to.unstake(None, Some(cml))?;
-							}
-							Ok(())
-						}),
-						None => {
-							T::CurrencyOperations::unreserve(&who, T::StakingPrice::get()).unwrap();
-							staking_to.unstake::<CML<
-								T::AccountId,
-								T::BlockNumber,
-								BalanceOf<T>,
-								T::SeedFreshDuration,
-							>>(Some(staking_index), None)
-						}
+					let (index, staking_cml) = match staking_item.cml {
+						Some(cml_id) => (None, CmlStore::<T>::get(cml_id)),
+						None => (Some(staking_index), None),
 					};
-				}
-				Ok(())
-			})
-			.map_err(|e| Error::<T>::from(e))?;
+					ensure!(
+						cml.can_unstake(&index, &staking_cml.as_ref()),
+						Error::<T>::InvalidUnstaking
+					);
 
-			Ok(())
+					Ok(())
+				},
+				|who| {
+					CmlStore::<T>::mutate(staking_to, |cml| {
+						if let Some(staking_to) = cml {
+							Self::unstake(who, staking_to, staking_index);
+						}
+					});
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
