@@ -217,9 +217,6 @@ fn start_mining_should_fail_if_cml_is_not_valid() {
 #[test]
 fn stop_mining_works() {
 	new_test_ext().execute_with(|| {
-		let amount = 100 * 1000; // Unit * StakingPrice
-		<Test as Config>::Currency::make_free_balance_be(&1, amount);
-
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
@@ -246,5 +243,73 @@ fn stop_mining_works() {
 		assert!(!cml.is_mining());
 		assert!(cml.machine_id().is_none());
 		assert_eq!(cml.staking_slots().len(), 0);
+	})
+}
+
+#[test]
+fn stop_mining_should_fail_if_cml_not_belongs_to_user() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(user1, cml_id, ());
+		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(user1),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec()
+		));
+
+		assert_noop!(
+			Cml::stop_mining(Origin::signed(user2), cml_id, machine_id),
+			Error::<Test>::CMLOwnerInvalid
+		);
+	})
+}
+
+#[test]
+fn stop_mining_should_fail_if_cml_not_exist() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Cml::stop_mining(Origin::signed(1), 11, [1u8; 32]),
+			Error::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn stop_mining_should_fail_if_cml_not_mining() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::stop_mining(Origin::signed(1), cml_id, [1u8; 32]),
+			Error::<Test>::InvalidMiner
+		);
+	})
+}
+
+#[test]
+fn stop_mining_should_fail_if_machine_id_not_exist_in_miner_item_store() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+		let machine_id = [1u8; 32];
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		cml.start_mining(machine_id, StakingItem::default(), &0);
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::stop_mining(Origin::signed(1), cml_id, machine_id),
+			Error::<Test>::NotFoundMiner
+		);
 	})
 }

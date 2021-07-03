@@ -517,14 +517,13 @@ where
 		self.staking_slot = vec![staking_item];
 	}
 
-	fn stop_mining(&mut self) -> Result<(), CmlError> {
+	fn stop_mining(&mut self) {
 		if !self.is_mining() {
-			return Err(CmlError::CmlIsNotMining);
+			return;
 		}
 
 		self.machine_id = None;
 		self.staking_slot.clear();
-		Ok(())
 	}
 }
 
@@ -1315,6 +1314,28 @@ mod tests {
 			assert!(!miner.can_start_mining(&0));
 			miner.start_mining([1u8; 32], StakingItem::default(), &0);
 			assert!(!miner.is_mining());
+		}
+
+		#[test]
+		fn stop_mining_works() {
+			let mut miner = default_miner(11, 100);
+			assert!(miner.is_mining());
+			assert_eq!(miner.staking_slots().len(), 1);
+
+			miner.stop_mining();
+			assert!(!miner.is_mining());
+			assert!(miner.staking_slots().is_empty());
+		}
+
+		#[test]
+		fn stop_mining_ignore_if_is_not_ming() {
+			let mut miner =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(11, 100));
+			miner.staking_slot.push(StakingItem::default());
+
+			assert!(!miner.is_mining());
+			miner.stop_mining();
+			assert!(!miner.staking_slots().is_empty());
 		}
 	}
 

@@ -127,7 +127,7 @@ pub trait MiningProperties<AccountId, BlockNumber, Balance> {
 		current_height: &BlockNumber,
 	);
 
-	fn stop_mining(&mut self) -> Result<(), CmlError>;
+	fn stop_mining(&mut self);
 }
 
 pub trait UtilsProperties<BlockNumber>

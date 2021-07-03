@@ -522,22 +522,28 @@ pub mod cml {
 			machine_id: MachineId,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-			Self::check_belongs(&cml_id, &sender)?;
-			ensure!(
-				MinerItemStore::<T>::contains_key(machine_id),
-				Error::<T>::NotFoundMiner
-			);
 
-			CmlStore::<T>::mutate(cml_id, |cml| match cml {
-				Some(cml) => {
-					cml.stop_mining()?;
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					Self::check_belongs(&cml_id, &sender)?;
+					let cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
+					ensure!(cml.is_mining(), Error::<T>::InvalidMiner);
+					ensure!(
+						MinerItemStore::<T>::contains_key(machine_id),
+						Error::<T>::NotFoundMiner
+					);
 					Ok(())
-				}
-				None => Err(Error::<T>::NotFoundCML),
-			})?;
-			MinerItemStore::<T>::remove(machine_id);
-
-			Ok(())
+				},
+				|_sender| {
+					CmlStore::<T>::mutate(cml_id, |cml| {
+						if let Some(cml) = cml {
+							cml.stop_mining();
+						}
+					});
+					MinerItemStore::<T>::remove(machine_id);
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
