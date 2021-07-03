@@ -151,6 +151,16 @@ where
 	pub fn set_owner(&mut self, account: &AccountId) {
 		self.owner = Some(account.clone());
 	}
+
+	pub(crate) fn seed_or_tree_valid(&self, current_height: &BlockNumber) -> bool {
+		if self.is_seed() && !self.seed_valid(current_height) {
+			return false;
+		}
+		if !self.is_seed() && !self.tree_valid(current_height) {
+			return false;
+		}
+		true
+	}
 }
 
 impl<AccountId, BlockNumber, Balance, FreshDuration> SeedProperties<BlockNumber>
@@ -318,11 +328,7 @@ where
 	}
 
 	fn can_stake_to(&self, current_height: &BlockNumber) -> bool {
-		if self.is_seed() && !self.seed_valid(current_height) {
-			return false;
-		}
-
-		if !self.is_seed() && !self.tree_valid(current_height) {
+		if !self.seed_or_tree_valid(current_height) {
 			return false;
 		}
 
@@ -369,12 +375,7 @@ where
 			cml: cml_id,
 		};
 		if let Some(cml) = cml {
-			if cml.is_frozen_seed() {
-				cml.defrost(current_height);
-			}
-			if cml.is_fresh_seed() {
-				cml.convert_to_tree(current_height);
-			}
+			cml.try_convert_to_tree(current_height);
 			cml.convert(CmlStatus::Staking(self.id(), staking_index));
 		}
 		self.staking_slots_mut().push(staking_item.clone());
@@ -463,7 +464,8 @@ where
 	}
 }
 
-impl<AccountId, BlockNumber, Balance, FreshDuration> MiningProperties<AccountId, Balance>
+impl<AccountId, BlockNumber, Balance, FreshDuration>
+	MiningProperties<AccountId, BlockNumber, Balance>
 	for CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
@@ -488,26 +490,31 @@ where
 		self.staking_slot.insert(0, staking_item);
 	}
 
+	fn can_start_mining(&self, current_height: &BlockNumber) -> bool {
+		if !self.seed_or_tree_valid(current_height) {
+			return false;
+		}
+		if self.is_mining() {
+			return false;
+		}
+		if !self.staking_slot.is_empty() {
+			return false;
+		}
+		true
+	}
+
 	fn start_mining(
 		&mut self,
 		machine_id: MachineId,
 		staking_item: StakingItem<AccountId, Balance>,
-	) -> Result<(), CmlError> {
-		if self.status != CmlStatus::Tree {
-			return Err(CmlError::InvalidStatusToMine);
+		current_height: &BlockNumber,
+	) {
+		if self.can_start_mining(current_height) {
+			return;
 		}
-
-		if self.machine_id.is_some() {
-			return Err(CmlError::AlreadyHasMachineId);
-		}
+		self.try_convert_to_tree(current_height);
 		self.machine_id = Some(machine_id);
-
-		if !self.staking_slot.is_empty() {
-			return Err(CmlError::SlotShouldBeEmpty);
-		}
 		self.staking_slot = vec![staking_item];
-
-		Ok(())
 	}
 
 	fn stop_mining(&mut self) -> Result<(), CmlError> {
@@ -543,6 +550,15 @@ where
 		}
 
 		self.status = to_status;
+	}
+
+	fn try_convert_to_tree(&mut self, current_height: &BlockNumber) {
+		if self.is_frozen_seed() {
+			self.defrost(current_height);
+		}
+		if self.is_fresh_seed() {
+			self.convert_to_tree(current_height);
+		}
 	}
 }
 

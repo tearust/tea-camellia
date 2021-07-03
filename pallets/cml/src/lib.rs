@@ -250,6 +250,7 @@ pub mod cml {
 		NotFoundMiner,
 		CmlIsNotFromGenesis,
 		InvalidCreditAmount,
+		InvalidMiner,
 
 		StakingIndexIsNone,
 		InvalidStaker,
@@ -443,7 +444,7 @@ pub mod cml {
 				|sender| {
 					CmlStore::<T>::mutate(cml_id, |cml| {
 						if let Some(cml) = cml {
-							Self::seed_to_tree(cml, &current_block_number);
+							cml.try_convert_to_tree(&current_block_number);
 						}
 					});
 
@@ -461,38 +462,58 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 			let current_block_number = frame_system::Pallet::<T>::block_number();
-			Self::check_belongs(&cml_id, &sender)?;
-			Self::check_if_is_seed_validity(cml_id, &current_block_number)?;
-			ensure!(
-				!<MinerItemStore<T>>::contains_key(&machine_id),
-				Error::<T>::MinerAlreadyExist
-			);
 
-			CmlStore::<T>::mutate(cml_id, |cml| -> DispatchResult {
-				if let Some(cml) = cml {
-					ensure!(cml.machine_id().is_none(), Error::<T>::AlreadyHasMachineId);
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					Self::check_belongs(&cml_id, &sender)?;
+					Self::check_if_is_seed_validity(cml_id, &current_block_number)?;
 					ensure!(
-						cml.staking_slots().is_empty(),
-						Error::<T>::SlotShouldBeEmpty
+						!<MinerItemStore<T>>::contains_key(&machine_id),
+						Error::<T>::MinerAlreadyExist
 					);
 
-					let staking_item = if cml.is_from_genesis() {
-						Self::create_genesis_miner_balance_staking(&sender, cml)?
-					} else {
-						Self::create_balance_staking(&sender, T::StakingPrice::get())?
-					};
+					let cml = CmlStore::<T>::get(cml_id).ok_or(Error::<T>::CMLOwnerInvalid)?;
+					ensure!(
+						cml.can_start_mining(&current_block_number),
+						Error::<T>::InvalidMiner
+					);
+					Self::check_miner_first_staking(&sender, &cml)?;
 
-					if cml.is_seed() {
-						Self::seed_to_tree(cml, &current_block_number);
-					}
+					Ok(())
+				},
+				|sender| {
+					let ip = miner_ip.clone();
+					CmlStore::<T>::mutate(cml_id, |cml| {
+						if let Some(cml) = cml {
+							let staking_item = if cml.is_from_genesis() {
+								Self::create_genesis_miner_balance_staking(&sender)
+							} else {
+								Self::create_balance_staking(&sender, T::StakingPrice::get())
+							};
+							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+							if staking_item.is_err() {
+								return;
+							}
 
-					cml.start_mining(machine_id, staking_item)
-						.map_err(|e| Error::<T>::from(e))?;
-					Self::init_miner_item(cml_id, machine_id, miner_ip);
-				}
-				Ok(())
-			})?;
-			Ok(())
+							cml.start_mining(
+								machine_id,
+								staking_item.unwrap(),
+								&current_block_number,
+							);
+							MinerItemStore::<T>::insert(
+								&machine_id,
+								MinerItem {
+									cml_id,
+									ip,
+									id: machine_id.clone(),
+									status: MinerStatus::Active,
+								},
+							);
+						}
+					});
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]

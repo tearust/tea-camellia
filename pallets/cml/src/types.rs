@@ -109,7 +109,7 @@ where
 			+ UtilsProperties<BlockNumber>;
 }
 
-pub trait MiningProperties<AccountId, Balance> {
+pub trait MiningProperties<AccountId, BlockNumber, Balance> {
 	fn is_mining(&self) -> bool;
 
 	fn machine_id(&self) -> Option<&MachineId>;
@@ -118,11 +118,14 @@ pub trait MiningProperties<AccountId, Balance> {
 
 	fn swap_first_slot(&mut self, staking_item: StakingItem<AccountId, Balance>);
 
+	fn can_start_mining(&self, current_height: &BlockNumber) -> bool;
+
 	fn start_mining(
 		&mut self,
 		machine_id: MachineId,
 		staking_item: StakingItem<AccountId, Balance>,
-	) -> Result<(), CmlError>;
+		current_height: &BlockNumber,
+	);
 
 	fn stop_mining(&mut self) -> Result<(), CmlError>;
 }
@@ -136,4 +139,6 @@ where
 	fn can_convert(&self, to_status: &CmlStatus<BlockNumber>) -> bool;
 
 	fn convert(&mut self, to_status: CmlStatus<BlockNumber>);
+
+	fn try_convert_to_tree(&mut self, current_height: &BlockNumber);
 }

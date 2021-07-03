@@ -11,7 +11,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn check_balance_staking(who: &T::AccountId) -> DispatchResult {
 		ensure!(
-			T::CurrencyOperations::free_balance(who) > T::StakingPrice::get(),
+			T::CurrencyOperations::free_balance(who) >= T::StakingPrice::get(),
 			Error::<T>::InsufficientFreeBalance,
 		);
 		Ok(())
@@ -109,25 +109,34 @@ impl<T: cml::Config> cml::Pallet<T> {
 		1
 	}
 
+	pub(crate) fn check_miner_first_staking(
+		who: &T::AccountId,
+		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+	) -> DispatchResult {
+		if !cml.is_from_genesis() {
+			Self::check_balance_staking(who)?;
+		}
+		Ok(())
+	}
+
 	pub(crate) fn create_genesis_miner_balance_staking(
 		who: &T::AccountId,
-		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
-		ensure!(cml.is_from_genesis(), Error::<T>::CmlIsNotFromGenesis);
-
 		let free_balance = T::CurrencyOperations::free_balance(who);
-		let actual_staking = if free_balance < T::StakingPrice::get() {
+		let (actual_staking, credit_amount) = if free_balance < T::StakingPrice::get() {
 			let credit_amount = T::StakingPrice::get()
 				.checked_sub(&free_balance)
 				.ok_or(Error::<T>::InvalidCreditAmount)?;
-			GenesisMinerCreditStore::<T>::insert(who, credit_amount);
-
-			free_balance
+			(free_balance, Some(credit_amount))
 		} else {
-			T::StakingPrice::get()
+			(T::StakingPrice::get(), None)
 		};
 
-		Ok(Self::create_balance_staking(who, actual_staking)?)
+		let result = Self::create_balance_staking(who, actual_staking)?;
+		if let Some(credit_amount) = credit_amount {
+			GenesisMinerCreditStore::<T>::insert(who, credit_amount);
+		}
+		Ok(result)
 	}
 
 	pub(crate) fn create_balance_staking(
@@ -140,30 +149,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 			category: StakingCategory::Tea,
 			amount: Some(T::StakingPrice::get()),
 			cml: None,
-		})
-	}
-
-	#[allow(dead_code)]
-	pub(crate) fn create_seed_staking(
-		who: &T::AccountId,
-		cml_id: CmlId,
-		current_height: &T::BlockNumber,
-	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
-		CmlStore::<T>::mutate(cml_id, |cml| match cml {
-			Some(cml) => {
-				if cml.is_seed() {
-					Self::seed_to_tree(cml, current_height);
-				}
-				Ok(())
-			}
-			None => Err(Error::<T>::NotFoundCML),
-		})?;
-
-		Ok(StakingItem {
-			owner: who.clone(),
-			category: StakingCategory::Cml,
-			amount: None,
-			cml: Some(cml_id),
 		})
 	}
 }

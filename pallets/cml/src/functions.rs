@@ -39,6 +39,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			match cml {
 				Some(cml) => {
 					if cml.is_mining() {
+						// todo check balance before create_balance_staking
 						let staking_item =
 							Self::create_balance_staking(target_account, T::StakingPrice::get())?;
 						cml.swap_first_slot(staking_item);
@@ -89,19 +90,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 
 		Ok(())
-	}
-
-	pub fn seed_to_tree(
-		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
-		height: &T::BlockNumber,
-	) {
-		if cml.is_frozen_seed() {
-			cml.defrost(height);
-		}
-
-		if cml.is_fresh_seed() {
-			cml.convert_to_tree(height);
-		}
 	}
 
 	pub fn set_voucher(
@@ -286,16 +274,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		let rand_value = T::CommonUtils::generate_random(who.clone(), &salt);
 		let (_, div_mod) = rand_value.div_mod(sp_core::U256::from(box_len));
 		div_mod.as_u32()
-	}
-
-	pub(crate) fn init_miner_item(cml_id: CmlId, machine_id: MachineId, miner_ip: Vec<u8>) {
-		let miner_item = MinerItem {
-			cml_id,
-			id: machine_id.clone(),
-			ip: miner_ip,
-			status: MinerStatus::Active,
-		};
-		MinerItemStore::<T>::insert(&machine_id, miner_item);
 	}
 
 	pub(crate) fn stake(
