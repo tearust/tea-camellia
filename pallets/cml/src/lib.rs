@@ -467,7 +467,6 @@ pub mod cml {
 				&sender,
 				|sender| {
 					Self::check_belongs(&cml_id, &sender)?;
-					Self::check_if_is_seed_validity(cml_id, &current_block_number)?;
 					ensure!(
 						!<MinerItemStore<T>>::contains_key(&machine_id),
 						Error::<T>::MinerAlreadyExist

@@ -509,7 +509,7 @@ where
 		staking_item: StakingItem<AccountId, Balance>,
 		current_height: &BlockNumber,
 	) {
-		if self.can_start_mining(current_height) {
+		if !self.can_start_mining(current_height) {
 			return;
 		}
 		self.try_convert_to_tree(current_height);
@@ -1193,14 +1193,26 @@ mod tests {
 		}
 	}
 
-	fn default_miner(id: CmlId, lifespan: u32) -> CML<u32, u32, u128, ConstU32<10>> {
-		let mut miner = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(
-			id, lifespan,
-		));
-		miner.defrost(&0);
-		miner.convert_to_tree(&0);
-		miner
-			.start_mining(
+	mod mining_properties_test {
+		use crate::tests::seed_from_lifespan;
+		use crate::types::cml::tests::default_miner;
+		use crate::{
+			MiningProperties, SeedProperties, StakingCategory, StakingItem, StakingProperties,
+			TreeProperties, CML,
+		};
+		use frame_support::traits::ConstU32;
+
+		#[test]
+		fn start_mining_works() {
+			let cml_id = 3;
+			let mut miner = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
+				seed_from_lifespan(cml_id, 100),
+			);
+			miner.defrost(&0);
+			miner.convert_to_tree(&0);
+
+			assert!(miner.can_start_mining(&0));
+			miner.start_mining(
 				[1u8; 32],
 				StakingItem {
 					owner: 1,
@@ -1208,8 +1220,120 @@ mod tests {
 					amount: Some(1),
 					cml: None,
 				},
-			)
-			.unwrap();
+				&0,
+			);
+
+			assert!(miner.is_mining());
+			assert_eq!(miner.staking_slots().len(), 1);
+		}
+
+		#[test]
+		fn start_mining_works_with_frozon_seed() {
+			let cml_id = 3;
+			let mut miner = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
+				seed_from_lifespan(cml_id, 100),
+			);
+
+			assert!(miner.is_frozen_seed());
+			assert!(miner.can_start_mining(&0));
+			miner.start_mining(
+				[1u8; 32],
+				StakingItem {
+					owner: 1,
+					category: StakingCategory::Cml,
+					amount: Some(1),
+					cml: None,
+				},
+				&0,
+			);
+
+			assert!(miner.is_mining());
+			assert_eq!(miner.staking_slots().len(), 1);
+		}
+
+		#[test]
+		fn start_mining_works_with_fresh_seed() {
+			let cml_id = 3;
+			let mut miner = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
+				seed_from_lifespan(cml_id, 100),
+			);
+			miner.defrost(&0);
+
+			assert!(miner.is_fresh_seed());
+			assert!(miner.can_start_mining(&0));
+			miner.start_mining(
+				[1u8; 32],
+				StakingItem {
+					owner: 1,
+					category: StakingCategory::Cml,
+					amount: Some(1),
+					cml: None,
+				},
+				&0,
+			);
+
+			assert!(miner.is_mining());
+			assert_eq!(miner.staking_slots().len(), 1);
+		}
+
+		#[test]
+		fn start_mining_should_fail_if_cml_is_invalid() {
+			let lifespan = 100;
+			let mut miner = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
+				seed_from_lifespan(11, lifespan),
+			);
+			miner.defrost(&0);
+
+			let fresh_duration = miner.get_fresh_duration();
+			assert!(!miner.seed_valid(&fresh_duration));
+			assert!(!miner.can_start_mining(&fresh_duration));
+			miner.start_mining([1u8; 32], StakingItem::default(), &fresh_duration);
+			assert!(!miner.is_mining());
+
+			miner.convert_to_tree(&0);
+			assert!(!miner.tree_valid(&lifespan));
+			assert!(!miner.can_start_mining(&lifespan));
+			miner.start_mining([1u8; 32], StakingItem::default(), &lifespan);
+			assert!(!miner.is_mining());
+		}
+
+		#[test]
+		fn start_mining_should_fail_if_cml_is_mining_already() {
+			let mut miner = default_miner(11, 100);
+
+			assert!(!miner.can_start_mining(&0));
+			miner.start_mining([1u8; 32], StakingItem::default(), &0);
+			assert_ne!(miner.staking_slots()[0].owner, 0); // owner of staking item not reset to 0
+		}
+
+		#[test]
+		fn start_mining_should_fail_if_staking_slot_not_empty() {
+			let mut miner =
+				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(11, 100));
+			miner.staking_slot.push(StakingItem::default());
+
+			assert!(!miner.can_start_mining(&0));
+			miner.start_mining([1u8; 32], StakingItem::default(), &0);
+			assert!(!miner.is_mining());
+		}
+	}
+
+	fn default_miner(id: CmlId, lifespan: u32) -> CML<u32, u32, u128, ConstU32<10>> {
+		let mut miner = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(
+			id, lifespan,
+		));
+		miner.defrost(&0);
+		miner.convert_to_tree(&0);
+		miner.start_mining(
+			[1u8; 32],
+			StakingItem {
+				owner: 1,
+				category: StakingCategory::Cml,
+				amount: Some(1),
+				cml: None,
+			},
+			&0,
+		);
 
 		miner
 	}

@@ -62,13 +62,14 @@ impl system::Config for Test {
 pub const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
 pub const STAKING_PERIOD_LENGTH: u32 = 100;
 pub const STAKING_PRICE: Balance = 1000;
+pub const SEED_FRESH_DURATION: u32 = 7 * 30 * 24 * 60 * 10;
 
 parameter_types! {
 	pub const MinRaPassedThreshold: u32 = 3;
 	pub const StakingPrice: Balance = STAKING_PRICE;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
-	pub const SeedFreshDuration: u32 = 7 * 30 * 24 * 60 * 10;
+	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
 }
 
 impl pallet_cml::Config for Test {

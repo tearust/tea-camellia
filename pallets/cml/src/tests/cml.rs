@@ -1,4 +1,4 @@
-use crate::tests::{new_genesis_frozen_seed, new_genesis_seed};
+use crate::tests::{new_genesis_frozen_seed, new_genesis_seed, seed_from_lifespan};
 use crate::{mock::*, types::*, CmlStore, Config, Error, MinerItemStore, UserCmlStore};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 
@@ -11,9 +11,10 @@ fn active_cml_for_nitro_works() {
 		let current_height = frame_system::Pallet::<Test>::block_number();
 
 		let cml_id: CmlId = 4;
-		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		assert!(cml.is_seed() && cml.can_be_defrost(&current_height));
 		cml.defrost(&current_height);
+		cml.convert_to_tree(&current_height);
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
@@ -93,7 +94,7 @@ fn active_cml_to_already_started_mining_machine_should_fail() {
 		let current_height = frame_system::Pallet::<Test>::block_number();
 
 		let cml_id: CmlId = 4;
-		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		assert!(cml.is_seed() && cml.can_be_defrost(&current_height));
 		cml.defrost(&current_height);
 		UserCmlStore::<Test>::insert(1, cml_id, ());

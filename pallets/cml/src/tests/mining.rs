@@ -1,4 +1,5 @@
-use crate::tests::new_genesis_seed;
+use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
+use crate::tests::{new_genesis_seed, seed_from_lifespan};
 use crate::{
 	mock::*, types::*, CmlStore, Config, Error, GenesisMinerCreditStore, MinerItemStore,
 	UserCmlStore,
@@ -74,12 +75,12 @@ fn start_mining_with_same_machine_id_should_fail() {
 		<Test as Config>::Currency::make_free_balance_be(&1, amount);
 
 		let cml1_id: CmlId = 4;
-		let mut cml1 = CML::from_genesis_seed(new_genesis_seed(cml1_id));
+		let mut cml1 = CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100));
 		cml1.defrost(&0);
 		cml1.convert_to_tree(&0);
 
 		let cml2_id: CmlId = 5;
-		let mut cml2 = CML::from_genesis_seed(new_genesis_seed(cml2_id));
+		let mut cml2 = CML::from_genesis_seed(seed_from_lifespan(cml2_id, 100));
 		cml2.defrost(&0);
 		cml2.convert_to_tree(&0);
 
@@ -111,7 +112,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 		<Test as Config>::Currency::make_free_balance_be(&1, amount);
 
 		let cml1_id: CmlId = 4;
-		let mut cml1 = CML::from_genesis_seed(new_genesis_seed(cml1_id));
+		let mut cml1 = CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100));
 		cml1.defrost(&0);
 		cml1.convert_to_tree(&0);
 
@@ -131,7 +132,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 
 		assert_noop!(
 			Cml::start_mining(Origin::signed(1), cml1_id, machine_id_2, miner_ip_2.clone()),
-			Error::<Test>::AlreadyHasMachineId
+			Error::<Test>::InvalidMiner
 		);
 	})
 }
@@ -144,7 +145,7 @@ fn start_mining_with_multiple_times_should_fail() {
 
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
-		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
 		cml.convert_to_tree(&0);
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -169,15 +170,47 @@ fn start_mining_with_multiple_times_should_fail() {
 fn start_mining_with_insufficient_free_balance_should_fail() {
 	new_test_ext().execute_with(|| {
 		// default account `1` free balance is 0
+		let cml_id: CmlId = GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		CmlStore::<Test>::insert(
+			cml_id,
+			CML::from_dao_seed(
+				Seed {
+					id: cml_id,
+					cml_type: CmlType::B,
+					defrost_schedule: None,
+					defrost_time: None,
+					lifespan: 100,
+					performance: 10,
+				},
+				0,
+			),
+		);
+
+		assert_noop!(
+			Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
+			Error::<Test>::InsufficientFreeBalance
+		);
+	})
+}
+
+#[test]
+fn start_mining_should_fail_if_cml_is_not_valid() {
+	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
-		CmlStore::<Test>::insert(cml_id, CML::from_genesis_seed(new_genesis_seed(cml_id)));
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.defrost(&0);
+		cml.convert_to_tree(&0);
+		assert!(!cml.can_start_mining(&100));
+		CmlStore::<Test>::insert(cml_id, cml);
 
-		// todo implement me later
-		// assert_noop!(
-		// 	Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
-		// 	Error::<Test>::InsufficientFreeBalance
-		// );
+		frame_system::Pallet::<Test>::set_block_number(100);
+		// for all kinds of mining invalid situation please see unit tests in `types/cml.rs`
+		assert_noop!(
+			Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
+			Error::<Test>::InvalidMiner
+		);
 	})
 }
 

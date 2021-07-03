@@ -79,19 +79,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Ok(())
 	}
 
-	pub fn check_if_is_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
-		let cml = CmlStore::<T>::get(cml_id);
-		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
-		if cml.as_ref().unwrap().is_seed() {
-			ensure!(
-				cml.as_ref().unwrap().seed_valid(height),
-				Error::<T>::SeedNotValid
-			);
-		}
-
-		Ok(())
-	}
-
 	pub fn set_voucher(
 		who: &T::AccountId,
 		cml_type: CmlType,
