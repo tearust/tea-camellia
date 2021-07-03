@@ -19,31 +19,27 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn collect_staking_info() {
 		MinerItemStore::<T>::iter().for_each(|(_, miner_item)| {
-			if let Some(cml) = CmlStore::<T>::get(miner_item.cml_id) {
-				let mut snapshot_items = Vec::new();
-				let mut current_index = 0;
-				for slot in cml.staking_slots() {
-					let weight = match slot.cml {
-						Some(cml_id) => {
-							if let Some(cml) = CmlStore::<T>::get(cml_id) {
-								cml.staking_weight()
-							} else {
-								1
-							}
-						}
-						None => 1,
-					};
-					snapshot_items.push(StakingSnapshotItem {
-						owner: slot.owner.clone(),
-						staking_at: current_index,
-						weight,
-					});
+			let cml = CmlStore::<T>::get(miner_item.cml_id);
+			let mut snapshot_items = Vec::new();
+			let mut current_index = 0;
+			for slot in cml.staking_slots() {
+				let weight = match slot.cml {
+					Some(cml_id) => {
+						let cml = CmlStore::<T>::get(cml_id);
+						cml.staking_weight()
+					}
+					None => 1,
+				};
+				snapshot_items.push(StakingSnapshotItem {
+					owner: slot.owner.clone(),
+					staking_at: current_index,
+					weight,
+				});
 
-					current_index += weight;
-				}
-
-				ActiveStakingSnapshot::<T>::insert(cml.id(), snapshot_items);
+				current_index += weight;
 			}
+
+			ActiveStakingSnapshot::<T>::insert(cml.id(), snapshot_items);
 		});
 	}
 

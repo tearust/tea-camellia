@@ -77,6 +77,7 @@ pub mod cml {
 		Twox64Concat,
 		CmlId,
 		CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+		ValueQuery,
 	>;
 
 	#[pallet::storage]
@@ -401,9 +402,7 @@ pub mod cml {
 					let seeds_count = seed_ids.len() as u64;
 					seed_ids.iter().for_each(|id| {
 						CmlStore::<T>::mutate(id, |cml| {
-							if let Some(cml) = cml {
-								cml.set_owner(&sender);
-							}
+							cml.set_owner(&sender);
 						});
 						UserCmlStore::<T>::insert(&sender, id, ());
 					});
@@ -427,9 +426,7 @@ pub mod cml {
 				},
 				|sender| {
 					CmlStore::<T>::mutate(cml_id, |cml| {
-						if let Some(cml) = cml {
-							cml.try_convert_to_tree(&current_block_number);
-						}
+						cml.try_convert_to_tree(&current_block_number);
 					});
 
 					Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
@@ -456,7 +453,7 @@ pub mod cml {
 						Error::<T>::MinerAlreadyExist
 					);
 
-					let cml = CmlStore::<T>::get(cml_id).ok_or(Error::<T>::CMLOwnerInvalid)?;
+					let cml = CmlStore::<T>::get(cml_id);
 					ensure!(
 						cml.can_start_mining(&current_block_number),
 						Error::<T>::InvalidMiner
@@ -468,32 +465,26 @@ pub mod cml {
 				|sender| {
 					let ip = miner_ip.clone();
 					CmlStore::<T>::mutate(cml_id, |cml| {
-						if let Some(cml) = cml {
-							let staking_item = if cml.is_from_genesis() {
-								Self::create_genesis_miner_balance_staking(&sender)
-							} else {
-								Self::create_balance_staking(&sender, T::StakingPrice::get())
-							};
-							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-							if staking_item.is_err() {
-								return;
-							}
-
-							cml.start_mining(
-								machine_id,
-								staking_item.unwrap(),
-								&current_block_number,
-							);
-							MinerItemStore::<T>::insert(
-								&machine_id,
-								MinerItem {
-									cml_id,
-									ip,
-									id: machine_id.clone(),
-									status: MinerStatus::Active,
-								},
-							);
+						let staking_item = if cml.is_from_genesis() {
+							Self::create_genesis_miner_balance_staking(&sender)
+						} else {
+							Self::create_balance_staking(&sender, T::StakingPrice::get())
+						};
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						if staking_item.is_err() {
+							return;
 						}
+
+						cml.start_mining(machine_id, staking_item.unwrap(), &current_block_number);
+						MinerItemStore::<T>::insert(
+							&machine_id,
+							MinerItem {
+								cml_id,
+								ip,
+								id: machine_id.clone(),
+								status: MinerStatus::Active,
+							},
+						);
 					});
 				},
 			)
@@ -511,7 +502,7 @@ pub mod cml {
 				&sender,
 				|sender| {
 					Self::check_belongs(&cml_id, &sender)?;
-					let cml = CmlStore::<T>::get(&cml_id).ok_or(Error::<T>::NotFoundCML)?;
+					let cml = CmlStore::<T>::get(&cml_id);
 					ensure!(cml.is_mining(), Error::<T>::InvalidMiner);
 					ensure!(
 						MinerItemStore::<T>::contains_key(machine_id),
@@ -521,9 +512,7 @@ pub mod cml {
 				},
 				|_sender| {
 					CmlStore::<T>::mutate(cml_id, |cml| {
-						if let Some(cml) = cml {
-							cml.stop_mining();
-						}
+						cml.stop_mining();
 					});
 					MinerItemStore::<T>::remove(machine_id);
 				},
@@ -551,9 +540,8 @@ pub mod cml {
 						Some(cml_id) => {
 							Self::check_belongs(&cml_id, &who)?;
 							let cml = CmlStore::<T>::get(cml_id);
-							ensure!(cml.is_some(), Error::<T>::NotFoundCML);
 							ensure!(
-								cml.unwrap().can_stake_to(&current_block_number),
+								cml.can_stake_to(&current_block_number),
 								Error::<T>::InvalidStaker
 							);
 							None
@@ -564,7 +552,7 @@ pub mod cml {
 						}
 					};
 
-					let cml = CmlStore::<T>::get(staking_to).unwrap();
+					let cml = CmlStore::<T>::get(staking_to);
 					ensure!(
 						cml.can_be_stake(&current_block_number, &amount, &staking_cml),
 						Error::<T>::InvalidStakee
@@ -574,15 +562,7 @@ pub mod cml {
 				|who| {
 					let staking_index: Option<StakingIndex> =
 						CmlStore::<T>::mutate(staking_to, |cml| {
-							if let Some(staking_to) = cml {
-								return Self::stake(
-									who,
-									staking_to,
-									&staking_cml,
-									&current_block_number,
-								);
-							}
-							None
+							Self::stake(who, cml, &staking_cml, &current_block_number)
 						});
 
 					Self::deposit_event(Event::Staked(
@@ -609,7 +589,7 @@ pub mod cml {
 						CmlStore::<T>::contains_key(staking_to),
 						Error::<T>::NotFoundCML
 					);
-					let cml = CmlStore::<T>::get(staking_to).unwrap();
+					let cml = CmlStore::<T>::get(staking_to);
 					ensure!(
 						cml.staking_slots().len() > staking_index as usize,
 						Error::<T>::InvalidStakingIndex,
@@ -629,7 +609,7 @@ pub mod cml {
 					}
 
 					let (index, staking_cml) = match staking_item.cml {
-						Some(cml_id) => (None, CmlStore::<T>::get(cml_id)),
+						Some(cml_id) => (None, Some(CmlStore::<T>::get(cml_id))),
 						None => (Some(staking_index), None),
 					};
 					ensure!(
@@ -641,9 +621,7 @@ pub mod cml {
 				},
 				|who| {
 					CmlStore::<T>::mutate(staking_to, |cml| {
-						if let Some(staking_to) = cml {
-							Self::unstake(who, staking_to, staking_index);
-						}
+						Self::unstake(who, cml, staking_index);
 					});
 				},
 			)

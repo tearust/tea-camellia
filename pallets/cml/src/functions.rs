@@ -13,7 +13,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		DispatchError,
 	> {
 		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
-		Ok(CmlStore::<T>::get(cml_id).unwrap())
+		Ok(CmlStore::<T>::get(cml_id))
 	}
 
 	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> DispatchResult {
@@ -29,27 +29,19 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
-	) -> Result<(), DispatchError> {
-		ensure!(
-			UserCmlStore::<T>::contains_key(from_account, cml_id),
-			Error::<T>::CMLOwnerInvalid
-		);
+	) -> DispatchResult {
+		Self::check_belongs(cml_id, from_account)?;
 
 		CmlStore::<T>::mutate(&cml_id, |cml| -> DispatchResult {
-			match cml {
-				Some(cml) => {
-					if cml.is_mining() {
-						// todo check balance before create_balance_staking
-						let staking_item =
-							Self::create_balance_staking(target_account, T::StakingPrice::get())?;
-						cml.swap_first_slot(staking_item);
+			if cml.is_mining() {
+				// todo check balance before create_balance_staking
+				let staking_item =
+					Self::create_balance_staking(target_account, T::StakingPrice::get())?;
+				cml.swap_first_slot(staking_item);
 
-						// TODO balance
-					}
-					Ok(())
-				}
-				None => Err(Error::<T>::NotFoundCML.into()),
+				// TODO balance
 			}
+			Ok(())
 		})?;
 
 		// remove from from UserCmlStore
@@ -70,11 +62,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn check_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
 		let cml = CmlStore::<T>::get(cml_id);
-		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
-		ensure!(
-			cml.as_ref().unwrap().seed_valid(height),
-			Error::<T>::SeedNotValid
-		);
+		ensure!(cml.seed_valid(height), Error::<T>::SeedNotValid);
 
 		Ok(())
 	}
@@ -271,10 +259,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	) -> Option<StakingIndex> {
 		match staking_cml {
 			Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| -> Option<StakingIndex> {
-				match cml {
-					Some(cml) => staking_to.stake(&who, &current_height, None, Some(cml)),
-					None => None,
-				}
+				staking_to.stake(&who, &current_height, None, Some(cml))
 			}),
 			None => {
 				T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
@@ -297,9 +282,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		if let Some(staking_item) = staking_to.staking_slots().get(staking_index as usize) {
 			match staking_item.cml {
 				Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| {
-					if let Some(cml) = cml {
-						staking_to.unstake(None, Some(cml));
-					}
+					staking_to.unstake(None, Some(cml));
 				}),
 				None => {
 					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get()).unwrap();

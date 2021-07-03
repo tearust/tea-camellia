@@ -230,16 +230,16 @@ fn stop_staking_with_cml_works() {
 			b"miner_ip".to_vec()
 		));
 
-		assert!(!CmlStore::<Test>::get(cml2_id).unwrap().is_staking());
+		assert!(!CmlStore::<Test>::get(cml2_id).is_staking());
 		assert_ok!(Cml::start_staking(
 			Origin::signed(2),
 			cml1_id,
 			Some(cml2_id)
 		));
-		assert!(CmlStore::<Test>::get(cml2_id).unwrap().is_staking());
+		assert!(CmlStore::<Test>::get(cml2_id).is_staking());
 
 		assert_ok!(Cml::stop_staking(Origin::signed(2), cml1_id, 1));
-		assert!(!CmlStore::<Test>::get(cml2_id).unwrap().is_staking());
+		assert!(!CmlStore::<Test>::get(cml2_id).is_staking());
 	})
 }
 

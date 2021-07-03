@@ -28,7 +28,7 @@ fn active_cml_for_nitro_works() {
 			miner_ip.clone()
 		));
 
-		let cml = CmlStore::<Test>::get(cml_id).unwrap();
+		let cml = CmlStore::<Test>::get(cml_id);
 		assert!(!cml.is_seed());
 		assert_eq!(cml.staking_slots().len(), 1);
 

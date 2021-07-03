@@ -231,7 +231,7 @@ fn stop_mining_works() {
 		));
 
 		assert!(MinerItemStore::<Test>::contains_key(machine_id));
-		let cml = CmlStore::<Test>::get(cml_id).unwrap();
+		let cml = CmlStore::<Test>::get(cml_id);
 		assert!(cml.is_mining());
 		assert!(cml.machine_id().is_some());
 		assert_eq!(cml.staking_slots().len(), 1);
@@ -239,7 +239,7 @@ fn stop_mining_works() {
 		assert_ok!(Cml::stop_mining(Origin::signed(1), cml_id, machine_id,));
 
 		assert!(!MinerItemStore::<Test>::contains_key(machine_id));
-		let cml = CmlStore::<Test>::get(cml_id).unwrap();
+		let cml = CmlStore::<Test>::get(cml_id);
 		assert!(!cml.is_mining());
 		assert!(cml.machine_id().is_none());
 		assert_eq!(cml.staking_slots().len(), 0);
