@@ -79,24 +79,6 @@ where
 	}
 }
 
-#[derive(Debug)]
-pub enum CmlError {
-	SproutAtIsNone,
-	PlantAtIsNone,
-	DefrostTimeIsNone,
-	DefrostFailed,
-	CmlStatusConvertFailed,
-	NotValidFreshSeed,
-	SlotShouldBeEmpty,
-	CmlOwnerIsNone,
-	ConfusedStakingType,
-	CmlIsNotStaking,
-	UnstakingSlotOwnerMismatch,
-	InvalidStatusToMine,
-	AlreadyHasMachineId,
-	CmlIsNotMining,
-}
-
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct CML<AccountId, BlockNumber, Balance, FreshDuration>
 where

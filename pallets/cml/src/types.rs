@@ -7,7 +7,7 @@ mod seeds;
 mod staking;
 mod vouchers;
 
-pub use cml::{CmlError, CmlId, CmlStatus, CmlType, CML};
+pub use cml::{CmlId, CmlStatus, CmlType, CML};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
 pub use staking::{

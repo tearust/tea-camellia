@@ -261,22 +261,6 @@ pub mod cml {
 		InvalidUnstaking,
 		NotFoundRewardAccount,
 		RewardAmountConvertFailed,
-
-		// from cml
-		SproutAtIsNone,
-		PlantAtIsNone,
-		DefrostTimeIsNone,
-		DefrostFailed,
-		CmlStatusConvertFailed,
-		NotValidFreshSeed,
-		SlotShouldBeEmpty,
-		CmlOwnerIsNone,
-		ConfusedStakingType,
-		CmlIsNotStaking,
-		UnstakingSlotOwnerMismatch,
-		InvalidStatusToMine,
-		AlreadyHasMachineId,
-		CmlIsNotMining,
 	}
 
 	#[pallet::hooks]
@@ -685,27 +669,6 @@ pub mod cml {
 					AccountRewards::<T>::remove(who);
 				},
 			)
-		}
-	}
-
-	impl<T: Config> From<CmlError> for Error<T> {
-		fn from(cml_error: CmlError) -> Self {
-			match cml_error {
-				CmlError::SproutAtIsNone => Error::<T>::SproutAtIsNone,
-				CmlError::PlantAtIsNone => Error::<T>::PlantAtIsNone,
-				CmlError::DefrostTimeIsNone => Error::<T>::DefrostTimeIsNone,
-				CmlError::DefrostFailed => Error::<T>::DefrostFailed,
-				CmlError::CmlStatusConvertFailed => Error::<T>::CmlStatusConvertFailed,
-				CmlError::NotValidFreshSeed => Error::<T>::NotValidFreshSeed,
-				CmlError::SlotShouldBeEmpty => Error::<T>::SlotShouldBeEmpty,
-				CmlError::CmlOwnerIsNone => Error::<T>::CmlOwnerIsNone,
-				CmlError::ConfusedStakingType => Error::<T>::ConfusedStakingType,
-				CmlError::CmlIsNotStaking => Error::<T>::CmlIsNotStaking,
-				CmlError::UnstakingSlotOwnerMismatch => Error::<T>::UnstakingSlotOwnerMismatch,
-				CmlError::InvalidStatusToMine => Error::<T>::InvalidStatusToMine,
-				CmlError::AlreadyHasMachineId => Error::<T>::AlreadyHasMachineId,
-				CmlError::CmlIsNotMining => Error::<T>::CmlIsNotMining,
-			}
 		}
 	}
 }
