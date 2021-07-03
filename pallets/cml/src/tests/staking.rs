@@ -251,12 +251,22 @@ fn withdraw_staking_reward_works() {
 
 		assert_eq!(Utils::free_balance(&1), 0);
 		assert!(AccountRewards::<Test>::contains_key(&1));
-		assert_eq!(AccountRewards::<Test>::get(&1).unwrap(), amount);
+		assert_eq!(AccountRewards::<Test>::get(&1), amount);
 
 		assert_ok!(Cml::withdraw_staking_reward(Origin::signed(1)));
 
 		assert_eq!(Utils::free_balance(&1), 100);
-		assert!(AccountRewards::<Test>::contains_key(&1));
-		assert_eq!(AccountRewards::<Test>::get(&1).unwrap(), 0);
+		assert!(!AccountRewards::<Test>::contains_key(&1));
+	})
+}
+
+#[test]
+fn withdraw_staking_reward_should_fail_if_user_not_have_reward() {
+	new_test_ext().execute_with(|| {
+		assert!(!AccountRewards::<Test>::contains_key(&1));
+		assert_noop!(
+			Cml::withdraw_staking_reward(Origin::signed(1)),
+			Error::<Test>::NotFoundRewardAccount
+		);
 	})
 }

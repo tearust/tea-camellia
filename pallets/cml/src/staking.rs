@@ -87,14 +87,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 					continue;
 				}
 
-				AccountRewards::<T>::mutate(&item.owner, |balance| match balance {
-					Some(balance) => {
+				if AccountRewards::<T>::contains_key(&item.owner) {
+					AccountRewards::<T>::mutate(&item.owner, |balance| {
 						*balance = balance.saturating_add(reward);
-					}
-					None => {
-						*balance = Some(reward.into());
-					}
-				})
+					});
+				} else {
+					AccountRewards::<T>::insert(&item.owner, reward);
+				}
 			}
 		}
 	}
@@ -360,7 +359,7 @@ mod tests {
 
 			assert_eq!(AccountRewards::<Test>::iter().count(), 5);
 			for user_id in 1..=5 {
-				assert_eq!(AccountRewards::<Test>::get(user_id).unwrap(), 1 * DOLLARS);
+				assert_eq!(AccountRewards::<Test>::get(user_id), 1 * DOLLARS);
 			}
 		})
 	}
@@ -409,14 +408,14 @@ mod tests {
 			Cml::calculate_staking();
 
 			assert!(!GenesisMinerCreditStore::<Test>::contains_key(1));
-			assert_eq!(AccountRewards::<Test>::get(&1), None);
+			assert!(!AccountRewards::<Test>::contains_key(&1));
 
 			assert!(GenesisMinerCreditStore::<Test>::contains_key(2));
 			assert_eq!(GenesisMinerCreditStore::<Test>::get(2), DOLLARS);
-			assert!(AccountRewards::<Test>::get(&2).is_none());
+			assert!(!AccountRewards::<Test>::contains_key(&2));
 
-			assert!(AccountRewards::<Test>::get(&3).is_some());
-			assert_eq!(AccountRewards::<Test>::get(&3).unwrap(), DOLLARS);
+			assert!(AccountRewards::<Test>::contains_key(&3));
+			assert_eq!(AccountRewards::<Test>::get(&3), DOLLARS);
 		})
 	}
 }

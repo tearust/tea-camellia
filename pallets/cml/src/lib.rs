@@ -122,7 +122,8 @@ pub mod cml {
 		StorageMap<_, Twox64Concat, CmlId, Vec<StakingSnapshotItem<T::AccountId>>, ValueQuery>;
 
 	#[pallet::storage]
-	pub type AccountRewards<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>>;
+	pub type AccountRewards<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -668,23 +669,22 @@ pub mod cml {
 		#[pallet::weight(10_000)]
 		pub fn withdraw_staking_reward(sender: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			ensure!(
-				AccountRewards::<T>::contains_key(&who),
-				Error::<T>::NotFoundRewardAccount
-			);
 
-			AccountRewards::<T>::mutate(&who, |balance| -> DispatchResult {
-				if let Some(balance) = balance {
-					let deposit_amount = (*balance)
-						.try_into()
-						.map_err(|_| Error::<T>::RewardAmountConvertFailed)?;
-					T::CurrencyOperations::deposit_creating(&who, deposit_amount);
-					*balance = BalanceOf::<T>::zero();
-				}
-				Ok(())
-			})?;
-
-			Ok(())
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						AccountRewards::<T>::contains_key(who),
+						Error::<T>::NotFoundRewardAccount
+					);
+					Ok(())
+				},
+				|who| {
+					let balance = AccountRewards::<T>::get(who);
+					T::CurrencyOperations::deposit_creating(&who, balance);
+					AccountRewards::<T>::remove(who);
+				},
+			)
 		}
 	}
 
