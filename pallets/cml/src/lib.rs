@@ -21,7 +21,7 @@ use frame_support::{
 	traits::{Currency, Get},
 };
 use frame_system::pallet_prelude::*;
-use pallet_utils::{CommonUtils, CurrencyOperations};
+use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
 use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedSub, Saturating, Zero};
 use sp_std::{convert::TryInto, prelude::*};
 
@@ -684,18 +684,4 @@ pub trait StakingEconomics<Balance> {
 		total_staking_point: MinerStakingPoint,
 		snapshot_item: &StakingSnapshotItem<Self::AccountId>,
 	) -> Balance;
-}
-
-pub fn extrinsic_procedure<AccountId, CheckFn, SetFn>(
-	who: &AccountId,
-	ck_fn: CheckFn,
-	set_fn: SetFn,
-) -> DispatchResult
-where
-	CheckFn: Fn(&AccountId) -> DispatchResult,
-	SetFn: Fn(&AccountId),
-{
-	ck_fn(who)?;
-	set_fn(who);
-	Ok(())
 }
