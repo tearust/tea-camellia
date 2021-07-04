@@ -170,6 +170,35 @@ fn start_staking_should_fail_if_staking_cml_is_invalid() {
 }
 
 #[test]
+fn start_staking_should_fail_if_the_stakee_slots_over_than_the_max_length() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+
+		let cml_id: CmlId = 0;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		for i in 0..STAKING_SLOTS_MAX_LENGTH {
+			<Test as Config>::Currency::make_free_balance_be(&i, amount);
+			assert_ok!(Cml::start_staking(Origin::signed(i), cml_id, None));
+		}
+
+		<Test as Config>::Currency::make_free_balance_be(&STAKING_SLOTS_MAX_LENGTH, amount);
+		assert_noop!(
+			Cml::start_staking(Origin::signed(STAKING_SLOTS_MAX_LENGTH), cml_id, None),
+			Error::<Test>::StakingSlotsOverTheMaxLength
+		);
+	})
+}
+
+#[test]
 fn stop_staking_with_balance_works() {
 	new_test_ext().execute_with(|| {
 		let amount = 100 * 1000; // Unit * StakingPrice

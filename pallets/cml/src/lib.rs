@@ -60,6 +60,8 @@ pub mod cml {
 		>;
 
 		type StakingEconomics: StakingEconomics<BalanceOf<Self>, AccountId = Self::AccountId>;
+
+		type StakingSlotsMaxLength: Get<StakingIndex>;
 	}
 
 	#[pallet::pallet]
@@ -253,6 +255,7 @@ pub mod cml {
 		InvalidStakingOwner,
 		InvalidUnstaking,
 		NotFoundRewardAccount,
+		StakingSlotsOverTheMaxLength,
 	}
 
 	#[pallet::hooks]
@@ -546,6 +549,10 @@ pub mod cml {
 					};
 
 					let cml = CmlStore::<T>::get(staking_to);
+					ensure!(
+						cml.staking_slots().len() <= T::StakingSlotsMaxLength::get() as usize,
+						Error::<T>::StakingSlotsOverTheMaxLength
+					);
 					ensure!(
 						cml.can_be_stake(&current_block_number, &amount, &staking_cml),
 						Error::<T>::InvalidStakee
