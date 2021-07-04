@@ -21,6 +21,7 @@ mod weights;
 
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify};
 use frame_system::pallet_prelude::*;
+use pallet_utils::{extrinsic_procedure, CommonUtils};
 use sp_core::{ed25519, U256};
 use sp_std::prelude::*;
 use types::*;
@@ -29,7 +30,6 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod tea {
 	use super::*;
-	use pallet_utils::traits::CommonUtils;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -160,20 +160,27 @@ pub mod tea {
 		pub fn add_new_node(origin: OriginFor<T>, tea_id: TeaPubKey) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			ensure!(
-				!Nodes::<T>::contains_key(&tea_id),
-				Error::<T>::NodeAlreadyExist
-			);
-			let current_block_number = frame_system::Pallet::<T>::block_number();
+			extrinsic_procedure(
+				&sender,
+				|_sender| {
+					ensure!(
+						!Nodes::<T>::contains_key(&tea_id),
+						Error::<T>::NodeAlreadyExist
+					);
+					Ok(())
+				},
+				|sender| {
+					let current_block_number = frame_system::Pallet::<T>::block_number();
 
-			let mut new_node = Node::default();
-			new_node.tea_id = tea_id.clone();
-			new_node.create_time = current_block_number;
-			new_node.update_time = current_block_number;
-			Nodes::<T>::insert(tea_id, new_node.clone());
+					let mut new_node = Node::default();
+					new_node.tea_id = tea_id.clone();
+					new_node.create_time = current_block_number;
+					new_node.update_time = current_block_number;
+					Nodes::<T>::insert(tea_id, new_node.clone());
 
-			Self::deposit_event(Event::NewNodeJoined(sender, new_node));
-			Ok(())
+					Self::deposit_event(Event::NewNodeJoined(sender.clone(), new_node));
+				},
+			)
 		}
 
 		#[pallet::weight(T::WeightInfo::update_node_profile())]
@@ -187,36 +194,42 @@ pub mod tea {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
-			ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
+			extrinsic_procedure(
+				&sender,
+				|_sender| {
+					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
+					Ok(())
+				},
+				|sender| {
+					let old_node = Self::pop_existing_node(&tea_id);
+					let seed = T::CommonUtils::generate_random(sender.clone(), &tea_id.to_vec());
 
-			let old_node = Self::pop_existing_node(&tea_id);
-			let seed = T::CommonUtils::generate_random(sender.clone(), &tea_id.to_vec());
+					let current_block_number = frame_system::Pallet::<T>::block_number();
+					let urls_count = urls.len();
+					let ra_nodes = Self::select_ra_nodes(&tea_id, seed);
+					let status = Self::get_initial_node_status(&tea_id);
+					let node = Node {
+						tea_id,
+						ephemeral_id,
+						profile_cid: profile_cid.clone(),
+						urls: urls.clone(),
+						ra_nodes,
+						status,
+						peer_id: peer_id.clone(),
+						create_time: old_node.create_time,
+						update_time: current_block_number,
+					};
+					Nodes::<T>::insert(&tea_id, &node);
+					EphemeralIds::<T>::insert(ephemeral_id, &tea_id);
+					PeerIds::<T>::insert(&peer_id, &tea_id);
+					if urls_count > 0 {
+						BootNodes::<T>::insert(&tea_id, ());
+					}
 
-			let current_block_number = frame_system::Pallet::<T>::block_number();
-			let urls_count = urls.len();
-			let ra_nodes = Self::select_ra_nodes(&tea_id, seed);
-			let status = Self::get_initial_node_status(&tea_id);
-			let node = Node {
-				tea_id,
-				ephemeral_id,
-				profile_cid,
-				urls,
-				ra_nodes,
-				status,
-				peer_id: peer_id.clone(),
-				create_time: old_node.create_time,
-				update_time: current_block_number,
-			};
-			Nodes::<T>::insert(&tea_id, &node);
-			EphemeralIds::<T>::insert(ephemeral_id, &tea_id);
-			PeerIds::<T>::insert(&peer_id, &tea_id);
-			if urls_count > 0 {
-				BootNodes::<T>::insert(&tea_id, ());
-			}
-
-			Self::deposit_event(Event::UpdateNodeProfile(sender, node));
-			Ok(())
+					Self::deposit_event(Event::UpdateNodeProfile(sender.clone(), node));
+				},
+			)
 		}
 
 		#[pallet::weight(T::WeightInfo::remote_attestation())]
@@ -229,35 +242,44 @@ pub mod tea {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
-			ensure!(
-				Nodes::<T>::contains_key(&target_tea_id),
-				Error::<T>::ApplyNodeNotExist
-			);
-			let target_node = Nodes::<T>::get(&target_tea_id).unwrap();
-			ensure!(
-				target_node.status != NodeStatus::Active,
-				Error::<T>::NodeAlreadyActive
-			);
+			extrinsic_procedure(
+				&sender,
+				|_sender| {
+					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					ensure!(
+						Nodes::<T>::contains_key(&target_tea_id),
+						Error::<T>::ApplyNodeNotExist
+					);
+					let target_node = Nodes::<T>::get(&target_tea_id).unwrap();
+					ensure!(
+						target_node.status != NodeStatus::Active,
+						Error::<T>::NodeAlreadyActive
+					);
 
-			let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
-			ensure!(index.is_some(), Error::<T>::NotInRaNodes);
+					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
+					ensure!(index.is_some(), Error::<T>::NotInRaNodes);
 
-			let my_node = Nodes::<T>::get(&tea_id).unwrap();
-			let content = crate::utils::encode_ra_request_content(&tea_id, &target_tea_id, is_pass);
-			Self::verify_ed25519_signature(&my_node.ephemeral_id, &content, &signature)?;
-
-			let target_status = Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
-			Self::deposit_event(Event::CommitRaResult(
-				sender,
-				RaResult {
-					tea_id,
-					target_tea_id,
-					is_pass,
-					target_status,
+					let my_node = Nodes::<T>::get(&tea_id).unwrap();
+					let content =
+						crate::utils::encode_ra_request_content(&tea_id, &target_tea_id, is_pass);
+					Self::verify_ed25519_signature(&my_node.ephemeral_id, &content, &signature)?;
+					Ok(())
 				},
-			));
-			Ok(())
+				|sender| {
+					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
+					let target_status =
+						Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
+					Self::deposit_event(Event::CommitRaResult(
+						sender.clone(),
+						RaResult {
+							tea_id,
+							target_tea_id,
+							is_pass,
+							target_status,
+						},
+					));
+				},
+			)
 		}
 
 		#[pallet::weight(T::WeightInfo::update_runtime_activity())]
@@ -270,19 +292,28 @@ pub mod tea {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
-			Self::verify_ed25519_signature(&ephemeral_id, &tea_id, &signature)?;
+			extrinsic_procedure(
+				&sender,
+				|_sender| {
+					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					Self::verify_ed25519_signature(&ephemeral_id, &tea_id, &signature)?;
+					Ok(())
+				},
+				|sender| {
+					let runtime_activity = RuntimeActivity {
+						tea_id,
+						cid: cid.clone(),
+						ephemeral_id,
+						update_height: frame_system::Pallet::<T>::block_number(),
+					};
+					RuntimeActivities::<T>::insert(&tea_id, &runtime_activity);
 
-			let runtime_activity = RuntimeActivity {
-				tea_id,
-				cid,
-				ephemeral_id,
-				update_height: frame_system::Pallet::<T>::block_number(),
-			};
-			RuntimeActivities::<T>::insert(&tea_id, &runtime_activity);
-
-			Self::deposit_event(Event::UpdateRuntimeActivity(sender, runtime_activity));
-			Ok(())
+					Self::deposit_event(Event::UpdateRuntimeActivity(
+						sender.clone(),
+						runtime_activity,
+					));
+				},
+			)
 		}
 	}
 }
