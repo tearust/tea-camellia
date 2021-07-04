@@ -282,6 +282,22 @@ where
 		}
 	}
 
+	fn staking_index(&self) -> Option<(CmlId, StakingIndex)> {
+		match self.status {
+			CmlStatus::Staking(id, index) => Some((id, index)),
+			_ => None,
+		}
+	}
+
+	fn shift_staking_index(&mut self, index: StakingIndex) {
+		match self.status {
+			CmlStatus::Staking(id, _) => {
+				self.status = CmlStatus::Staking(id, index);
+			}
+			_ => {}
+		}
+	}
+
 	fn staking_slots(&self) -> &Vec<StakingItem<AccountId, Balance>> {
 		self.staking_slot.as_ref()
 	}
@@ -419,7 +435,11 @@ where
 		true
 	}
 
-	fn unstake<StakeEntity>(&mut self, index: Option<StakingIndex>, cml: Option<&mut StakeEntity>)
+	fn unstake<StakeEntity>(
+		&mut self,
+		index: Option<StakingIndex>,
+		cml: Option<&mut StakeEntity>,
+	) -> Option<StakingIndex>
 	where
 		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
 			+ TreeProperties<AccountId, BlockNumber, Balance>
@@ -427,22 +447,25 @@ where
 	{
 		// todo improve the map of cml if possible later
 		if !self.can_unstake(&index, &cml.as_ref().map(|c| &**c)) {
-			return;
+			return None;
 		}
 
 		if let Some(index) = index {
 			let _ = self.staking_slots_mut().remove(index as usize);
+			return Some(index);
 		}
 
 		if let Some(cml) = cml {
-			match cml.status() {
+			match cml.status().clone() {
 				CmlStatus::Staking(_, staking_index) => {
-					let _staking_item = self.staking_slots_mut().remove(*staking_index as usize);
+					let _staking_item = self.staking_slots_mut().remove(staking_index as usize);
 					cml.convert(CmlStatus::Tree);
+					return Some(staking_index);
 				}
 				_ => {} // should never happen
 			}
 		}
+		None
 	}
 }
 

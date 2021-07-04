@@ -71,6 +71,10 @@ where
 
 	fn staking_weight(&self) -> StakingWeight;
 
+	fn staking_index(&self) -> Option<(CmlId, StakingIndex)>;
+
+	fn shift_staking_index(&mut self, index: StakingIndex);
+
 	fn staking_slots(&self) -> &Vec<StakingItem<AccountId, Balance>>;
 
 	fn staking_slots_mut(&mut self) -> &mut Vec<StakingItem<AccountId, Balance>>;
@@ -108,7 +112,11 @@ where
 			+ TreeProperties<AccountId, BlockNumber, Balance>
 			+ UtilsProperties<BlockNumber>;
 
-	fn unstake<StakeEntity>(&mut self, index: Option<StakingIndex>, cml: Option<&mut StakeEntity>)
+	fn unstake<StakeEntity>(
+		&mut self,
+		index: Option<StakingIndex>,
+		cml: Option<&mut StakeEntity>,
+	) -> Option<StakingIndex>
 	where
 		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
 			+ TreeProperties<AccountId, BlockNumber, Balance>

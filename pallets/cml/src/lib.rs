@@ -229,50 +229,40 @@ pub mod cml {
 		NotEnoughVoucher,
 		InvalidVoucherAmount,
 
-		DrawBoxNotInitialized,
 		NotEnoughDrawSeeds,
 		SeedsNotOutdatedYet,
 		VouchersHasOutdated,
 		NoNeedToCleanOutdatedSeeds,
 
 		NotFoundCML,
-		CMLNotLive,
 		CMLOwnerInvalid,
 		CmlIsNotSeed,
-		SeedIsExpired,
 		SeedNotValid,
-		ShouldStakingLiveTree,
-		CmlIsAlreadyStaking,
-		CmlIsMining,
-		StakingInvalid,
 
 		InsufficientFreeBalance,
 		InsufficientReservedBalance,
 		MinerAlreadyExist,
 		NotFoundMiner,
-		CmlIsNotFromGenesis,
 		InvalidCreditAmount,
 		InvalidMiner,
 		InvalidMinerIp,
 
-		StakingIndexIsNone,
 		InvalidStaker,
 		InvalidStakee,
 		InvalidStakingIndex,
 		InvalidStakingOwner,
 		InvalidUnstaking,
 		NotFoundRewardAccount,
-		RewardAmountConvertFailed,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
 			if Self::is_staking_period_start(n) {
+				Self::try_kill_cml(n);
 				// initialize staking related
 				Self::collect_staking_info();
 			} else if Self::is_staking_period_end(n) {
-				Self::try_kill_cml(n);
 				// calculate staking rewards
 				Self::calculate_staking();
 				Self::clear_staking_info();
