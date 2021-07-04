@@ -62,6 +62,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn check_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
 		let cml = CmlStore::<T>::get(cml_id);
+		ensure!(cml.is_seed(), Error::<T>::CmlIsNotSeed);
 		ensure!(cml.seed_valid(height), Error::<T>::SeedNotValid);
 
 		Ok(())
@@ -294,6 +295,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 				}
 			};
 		}
+	}
+
+	pub(crate) fn check_miner_ip_validity(miner_ip: &Vec<u8>) -> DispatchResult {
+		ensure!(!miner_ip.is_empty(), Error::<T>::InvalidMinerIp);
+		Ok(())
 	}
 }
 

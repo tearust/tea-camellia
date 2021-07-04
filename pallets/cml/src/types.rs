@@ -41,7 +41,13 @@ pub trait SeedProperties<BlockNumber> {
 	fn has_expired(&self, height: &BlockNumber) -> bool;
 
 	fn seed_valid(&self, height: &BlockNumber) -> bool {
-		self.can_be_defrost(height) || !self.has_expired(height)
+		if self.is_frozen_seed() && !self.can_be_defrost(height) {
+			return false;
+		}
+		if self.is_fresh_seed() && self.has_expired(height) {
+			return false;
+		}
+		true
 	}
 
 	fn is_from_genesis(&self) -> bool;

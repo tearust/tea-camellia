@@ -660,6 +660,26 @@ mod tests {
 		}
 
 		#[test]
+		fn seed_valid_works() {
+			const DEFROST_AT: u32 = 100;
+			const LIFESPAN: u32 = 100;
+			let mut seed = seed_from_lifespan(10, LIFESPAN);
+			seed.defrost_time = Some(DEFROST_AT);
+			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
+
+			assert!(!cml.can_be_defrost(&(DEFROST_AT - 1)));
+			assert!(!cml.seed_valid(&(DEFROST_AT - 1)));
+
+			cml.defrost(&DEFROST_AT);
+			assert!(cml.is_fresh_seed());
+			assert!(!cml.has_expired(&DEFROST_AT));
+			assert!(cml.seed_valid(&DEFROST_AT));
+
+			assert!(cml.has_expired(&(DEFROST_AT + LIFESPAN)));
+			assert!(!cml.seed_valid(&(DEFROST_AT + LIFESPAN)));
+		}
+
+		#[test]
 		fn cml_that_not_fresh_seed_will_never_expire() {
 			let mut cml =
 				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(1, 100));

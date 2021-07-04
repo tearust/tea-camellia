@@ -238,6 +238,7 @@ pub mod cml {
 		NotFoundCML,
 		CMLNotLive,
 		CMLOwnerInvalid,
+		CmlIsNotSeed,
 		SeedIsExpired,
 		SeedNotValid,
 		ShouldStakingLiveTree,
@@ -252,6 +253,7 @@ pub mod cml {
 		CmlIsNotFromGenesis,
 		InvalidCreditAmount,
 		InvalidMiner,
+		InvalidMinerIp,
 
 		StakingIndexIsNone,
 		InvalidStaker,
@@ -452,6 +454,7 @@ pub mod cml {
 						!<MinerItemStore<T>>::contains_key(&machine_id),
 						Error::<T>::MinerAlreadyExist
 					);
+					Self::check_miner_ip_validity(&miner_ip)?;
 
 					let cml = CmlStore::<T>::get(cml_id);
 					ensure!(
