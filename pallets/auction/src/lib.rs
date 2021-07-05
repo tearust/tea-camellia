@@ -16,30 +16,23 @@ use frame_system::{ensure_signed, pallet_prelude::*};
 use log::{info, warn};
 use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Saturating},
-	DispatchResult, SaturatedConversion,
-};
+use sp_runtime::{traits::Saturating, DispatchResult, SaturatedConversion};
 use sp_std::{cmp::Ordering, prelude::*};
 
 #[cfg(test)]
 mod mock;
-
 #[cfg(test)]
 mod tests;
 
 mod functions;
 mod types;
 mod weights;
-pub use types::*;
-
-// pub use weights::WeightInfo;
 
 pub use auction::*;
+pub use types::*;
+// pub use weights::WeightInfo;
 
-// pub const AUCTION_ID: LockIdentifier = *b"_auction";
-
-pub type BalanceOf<T> =
+type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
@@ -62,16 +55,6 @@ pub mod auction {
 			Balance = BalanceOf<Self>,
 			BlockNumber = Self::BlockNumber,
 		>;
-
-		/// The auction ID type.
-		type AuctionId: Parameter
-			+ Member
-			+ AtLeast32BitUnsigned
-			+ Default
-			+ Copy
-			+ MaybeSerializeDeserialize
-			+ Bounded
-			+ codec::FullCodec;
 
 		// type WeightInfo: WeightInfo;
 
@@ -110,9 +93,9 @@ pub mod auction {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub fn deposit_event)]
 	pub enum Event<T: Config> {
-		BidAuction(T::AuctionId, T::AccountId, BalanceOf<T>),
-		NewAuctionToStore(T::AuctionId, T::AccountId),
-		AuctionSuccess(T::AuctionId, T::AccountId, BalanceOf<T>),
+		BidAuction(AuctionId, T::AccountId, BalanceOf<T>),
+		NewAuctionToStore(AuctionId, T::AccountId),
+		AuctionSuccess(AuctionId, T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::storage]
@@ -120,24 +103,19 @@ pub mod auction {
 	pub type AuctionStore<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
-		T::AuctionId,
-		AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		AuctionId,
+		AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		ValueQuery,
 	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_auction_store)]
 	pub type UserAuctionStore<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, Vec<T::AuctionId>, ValueQuery>;
+		StorageMap<_, Twox64Concat, T::AccountId, Vec<AuctionId>, ValueQuery>;
 
-	#[pallet::type_value]
-	pub fn DefaultAuctionId<T: Config>() -> T::AuctionId {
-		<T::AuctionId>::saturated_from(1_u32)
-	}
 	#[pallet::storage]
 	#[pallet::getter(fn auctions_index)]
-	pub type LastAuctionId<T: Config> =
-		StorageValue<_, T::AuctionId, ValueQuery, DefaultAuctionId<T>>;
+	pub type LastAuctionId<T: Config> = StorageValue<_, AuctionId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn bid_store)]
@@ -146,24 +124,23 @@ pub mod auction {
 		Twox64Concat,
 		T::AccountId,
 		Twox64Concat,
-		T::AuctionId,
-		BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		AuctionId,
+		BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		ValueQuery,
 	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn auction_bid_store)]
-	pub type AuctionBidStore<T: Config> =
-		StorageMap<_, Twox64Concat, T::AuctionId, Vec<T::AccountId>>;
+	pub type AuctionBidStore<T: Config> = StorageMap<_, Twox64Concat, AuctionId, Vec<T::AccountId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_bid_store)]
-	pub type UserBidStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<T::AuctionId>>;
+	pub type UserBidStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<AuctionId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn endblock_auction_store)]
 	pub type EndBlockAuctionStore<T: Config> =
-		StorageMap<_, Twox64Concat, T::BlockNumber, Vec<T::AuctionId>>;
+		StorageMap<_, Twox64Concat, T::BlockNumber, Vec<AuctionId>>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
@@ -231,7 +208,7 @@ pub mod auction {
 		#[pallet::weight(10_000)]
 		pub fn bid_for_auction(
 			origin: OriginFor<T>,
-			auction_id: T::AuctionId,
+			auction_id: AuctionId,
 			price: BalanceOf<T>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -257,7 +234,7 @@ pub mod auction {
 		}
 
 		#[pallet::weight(100_000)]
-		pub fn remove_from_store(origin: OriginFor<T>, auction_id: T::AuctionId) -> DispatchResult {
+		pub fn remove_from_store(origin: OriginFor<T>, auction_id: AuctionId) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
 			extrinsic_procedure(
@@ -308,7 +285,7 @@ pub mod auction {
 		#[pallet::weight(100_000)]
 		pub fn remove_bid_for_auction(
 			origin: OriginFor<T>,
-			auction_id: T::AuctionId,
+			auction_id: AuctionId,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 

@@ -1,12 +1,16 @@
 use super::*;
 
 impl<T: auction::Config> auction::Pallet<T> {
-	pub fn get_next_auction_id() -> T::AuctionId {
-		let cid = LastAuctionId::<T>::get();
-		let _id = cid.clone();
-		LastAuctionId::<T>::mutate(|_id| *_id += One::one());
+	pub fn get_next_auction_id() -> AuctionId {
+		LastAuctionId::<T>::mutate(|id| {
+			if *id < u64::MAX {
+				*id += 1;
+			} else {
+				*id = 0;
+			}
 
-		cid
+			*id
+		})
 	}
 
 	pub(super) fn new_auction_item(
@@ -14,7 +18,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		cml_owner: T::AccountId,
 		starting_price: BalanceOf<T>,
 		buy_now_price: Option<BalanceOf<T>>,
-	) -> AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber> {
+	) -> AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber> {
 		let current_block = frame_system::Pallet::<T>::block_number();
 
 		let period: u64 = 1_000_000;
@@ -37,7 +41,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub(super) fn update_bid_price_for_auction_item(
-		auction_id: &T::AuctionId,
+		auction_id: &AuctionId,
 		bid_user: &T::AccountId,
 	) {
 		AuctionStore::<T>::mutate(&auction_id, |item| {
@@ -46,11 +50,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub(super) fn new_bid_item(
-		auction_id: T::AuctionId,
+		auction_id: AuctionId,
 		who: T::AccountId,
 		price: BalanceOf<T>,
 		deposit: Option<BalanceOf<T>>,
-	) -> BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber> {
+	) -> BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber> {
 		let current_block = frame_system::Pallet::<T>::block_number();
 
 		BidItem {
@@ -75,7 +79,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub fn add_auction_to_storage(
-		auction_item: AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		auction_item: AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		who: &T::AccountId,
 	) {
 		if UserAuctionStore::<T>::contains_key(who) {
@@ -92,7 +96,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		AuctionStore::<T>::insert(auction_item.id, auction_item);
 	}
 
-	fn insert_into_end_block_store(window_height: T::BlockNumber, auction_id: T::AuctionId) {
+	fn insert_into_end_block_store(window_height: T::BlockNumber, auction_id: AuctionId) {
 		EndBlockAuctionStore::<T>::mutate(window_height, |maybe_list| {
 			if let Some(ref mut list) = maybe_list {
 				list.push(auction_id);
@@ -103,7 +107,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub(super) fn get_min_bid_price(
-		auction_item: &AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		who: &T::AccountId,
 	) -> Result<BalanceOf<T>, Error<T>> {
 		let min_price = match BidStore::<T>::contains_key(who, auction_item.id) {
@@ -131,7 +135,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(rs)
 	}
 
-	pub fn delete_auction(auction_id: &T::AuctionId) {
+	pub fn delete_auction(auction_id: &AuctionId) {
 		// remove from AuctionStore
 		let auction_item = AuctionStore::<T>::take(&auction_id);
 		let who = auction_item.cml_owner;
@@ -172,7 +176,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		}
 	}
 
-	pub fn check_delete_bid(who: &T::AccountId, auction_id: &T::AuctionId) -> DispatchResult {
+	pub fn check_delete_bid(who: &T::AccountId, auction_id: &AuctionId) -> DispatchResult {
 		ensure!(
 			BidStore::<T>::contains_key(who, auction_id),
 			Error::<T>::NotFoundBid
@@ -189,7 +193,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(())
 	}
 
-	pub fn delete_bid(who: &T::AccountId, auction_id: &T::AuctionId) {
+	pub fn delete_bid(who: &T::AccountId, auction_id: &AuctionId) {
 		// remove from BidStore
 		let bid_item = BidStore::<T>::take(&who, &auction_id);
 		// return lock balance
@@ -220,7 +224,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	fn bid_total_price(
-		bid_item: &BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		bid_item: &BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 	) -> BalanceOf<T> {
 		let mut total = bid_item.price;
 		if let Some(deposit) = bid_item.deposit {
@@ -230,7 +234,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub fn complete_auction(
-		auction_item: &AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		target: &T::AccountId,
 	) {
 		if !BidStore::<T>::contains_key(&target, &auction_item.id) {
@@ -290,7 +294,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	fn check_each_auction_in_block_window(
-		auction_item: AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		auction_item: AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		next_window: T::BlockNumber,
 	) -> DispatchResult {
 		if let Some(ref bid_user) = auction_item.bid_user {
@@ -305,7 +309,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub(crate) fn check_bid_for_auction(
 		sender: &T::AccountId,
-		auction_id: &T::AuctionId,
+		auction_id: &AuctionId,
 		price: BalanceOf<T>,
 	) -> DispatchResult {
 		ensure!(
@@ -342,7 +346,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub(crate) fn create_new_bid(
 		sender: &T::AccountId,
-		auction_id: &T::AuctionId,
+		auction_id: &AuctionId,
 		price: BalanceOf<T>,
 	) {
 		let auction_item = AuctionStore::<T>::get(auction_id);
@@ -379,7 +383,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub(crate) fn increase_bid_price(
 		sender: &T::AccountId,
-		auction_id: &T::AuctionId,
+		auction_id: &AuctionId,
 		price: BalanceOf<T>,
 	) {
 		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
@@ -394,7 +398,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		});
 	}
 
-	pub(crate) fn try_complete_auction(sender: &T::AccountId, auction_id: &T::AuctionId) {
+	pub(crate) fn try_complete_auction(sender: &T::AccountId, auction_id: &AuctionId) {
 		let auction_item = AuctionStore::<T>::get(auction_id);
 		if let Some(buy_now_price) = auction_item.buy_now_price {
 			let bid_item = BidStore::<T>::get(&sender, &auction_id);

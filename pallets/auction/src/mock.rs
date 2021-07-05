@@ -87,7 +87,6 @@ parameter_types! {
 
 impl pallet_auction::Config for Test {
 	type Event = Event;
-	type AuctionId = u64;
 	type Currency = Balances;
 	type AuctionDealWindowBLock = AuctionDealWindowBLock;
 	type MinPriceForBid = MinPriceForBid;

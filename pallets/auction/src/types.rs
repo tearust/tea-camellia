@@ -16,10 +16,11 @@ use sp_std::cmp::{Eq, PartialEq};
 // 	NewValue(Value),
 // }
 
+pub type AuctionId = u64;
+
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct AuctionItem<AuctionId, AccountId, Balance, BlockNumber>
+pub struct AuctionItem<AccountId, Balance, BlockNumber>
 where
-	AuctionId: Default,
 	AccountId: Default,
 	Balance: Default,
 	BlockNumber: Default,
@@ -38,7 +39,7 @@ where
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct BidItem<AuctionId, AccountId, Balance, BlockNumber> {
+pub struct BidItem<AccountId, Balance, BlockNumber> {
 	pub auction_id: AuctionId,
 	pub user: AccountId,
 	pub price: Balance,
@@ -48,17 +49,15 @@ pub struct BidItem<AuctionId, AccountId, Balance, BlockNumber> {
 	pub updated_at: BlockNumber,
 }
 
-impl<AuctionId, AccountId, Balance, BlockNumber> Default
-	for BidItem<AuctionId, AccountId, Balance, BlockNumber>
+impl<AccountId, Balance, BlockNumber> Default for BidItem<AccountId, Balance, BlockNumber>
 where
-	AuctionId: Default,
 	AccountId: Default,
 	Balance: Default,
 	BlockNumber: Default,
 {
 	fn default() -> Self {
 		BidItem {
-			auction_id: AuctionId::default(),
+			auction_id: 0,
 			user: AccountId::default(),
 			price: Balance::default(),
 			deposit: None,
@@ -68,17 +67,15 @@ where
 	}
 }
 
-impl<AuctionId, AccountId, Balance, BlockNumber> Default
-	for AuctionItem<AuctionId, AccountId, Balance, BlockNumber>
+impl<AccountId, Balance, BlockNumber> Default for AuctionItem<AccountId, Balance, BlockNumber>
 where
-	AuctionId: Default,
 	AccountId: Default,
 	Balance: Default,
 	BlockNumber: Default,
 {
 	fn default() -> Self {
 		AuctionItem {
-			id: AuctionId::default(),
+			id: 0,
 			cml_id: 0,
 			cml_owner: AccountId::default(),
 			starting_price: Balance::default(),
