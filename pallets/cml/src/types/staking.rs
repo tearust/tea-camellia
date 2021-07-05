@@ -36,3 +36,18 @@ pub struct StakingSnapshotItem<AccountId> {
 	pub weight: StakingWeight,
 	pub staking_at: StakingIndex,
 }
+
+impl<AccountId, Balance> Default for StakingItem<AccountId, Balance>
+where
+	AccountId: Default,
+	Balance: Default,
+{
+	fn default() -> Self {
+		StakingItem {
+			owner: AccountId::default(),
+			category: StakingCategory::Tea,
+			amount: Some(Balance::default()),
+			cml: None,
+		}
+	}
+}

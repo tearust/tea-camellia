@@ -79,3 +79,17 @@ pub mod utils {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {}
 }
+
+pub fn extrinsic_procedure<AccountId, CheckFn, SetFn>(
+	who: &AccountId,
+	ck_fn: CheckFn,
+	set_fn: SetFn,
+) -> DispatchResult
+where
+	CheckFn: Fn(&AccountId) -> DispatchResult,
+	SetFn: Fn(&AccountId),
+{
+	ck_fn(who)?;
+	set_fn(who);
+	Ok(())
+}

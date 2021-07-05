@@ -13,7 +13,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		DispatchError,
 	> {
 		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
-		Ok(CmlStore::<T>::get(cml_id).unwrap())
+		Ok(CmlStore::<T>::get(cml_id))
 	}
 
 	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> DispatchResult {
@@ -29,26 +29,19 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
-	) -> Result<(), DispatchError> {
-		ensure!(
-			UserCmlStore::<T>::contains_key(from_account, cml_id),
-			Error::<T>::CMLOwnerInvalid
-		);
+	) -> DispatchResult {
+		Self::check_belongs(cml_id, from_account)?;
 
 		CmlStore::<T>::mutate(&cml_id, |cml| -> DispatchResult {
-			match cml {
-				Some(cml) => {
-					if cml.is_mining() {
-						let staking_item =
-							Self::create_balance_staking(target_account, T::StakingPrice::get())?;
-						cml.swap_first_slot(staking_item);
+			if cml.is_mining() {
+				// todo check balance before create_balance_staking
+				let staking_item =
+					Self::create_balance_staking(target_account, T::StakingPrice::get())?;
+				cml.swap_first_slot(staking_item);
 
-						// TODO balance
-					}
-					Ok(())
-				}
-				None => Err(Error::<T>::NotFoundCML.into()),
+				// TODO balance
 			}
+			Ok(())
 		})?;
 
 		// remove from from UserCmlStore
@@ -69,39 +62,10 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub fn check_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
 		let cml = CmlStore::<T>::get(cml_id);
-		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
-		ensure!(
-			cml.as_ref().unwrap().seed_valid(height),
-			Error::<T>::SeedNotValid
-		);
+		ensure!(cml.is_seed(), Error::<T>::CmlIsNotSeed);
+		ensure!(cml.seed_valid(height), Error::<T>::SeedNotValid);
 
 		Ok(())
-	}
-
-	pub fn check_if_is_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
-		let cml = CmlStore::<T>::get(cml_id);
-		ensure!(cml.is_some(), Error::<T>::NotFoundCML);
-		if cml.as_ref().unwrap().is_seed() {
-			ensure!(
-				cml.as_ref().unwrap().seed_valid(height),
-				Error::<T>::SeedNotValid
-			);
-		}
-
-		Ok(())
-	}
-
-	pub fn seed_to_tree(
-		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
-		height: &T::BlockNumber,
-	) {
-		if cml.is_frozen_seed() {
-			cml.defrost(height);
-		}
-
-		if cml.is_fresh_seed() {
-			cml.convert_to_tree(height);
-		}
 	}
 
 	pub fn set_voucher(
@@ -163,24 +127,42 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn try_kill_cml(block_number: T::BlockNumber) -> Vec<CmlId> {
 		let dead_cmls: Vec<CmlId> = CmlStore::<T>::iter()
-			// todo change should_dead error handling method if needed later
 			.filter(|(_, cml)| cml.should_dead(&block_number))
-			.map(|(id, cml)| match cml.owner() {
-				Some(owner) => {
-					UserCmlStore::<T>::remove(owner, id);
-					Some(id)
-				}
-				None => {
-					None // should never happen
-				}
+			.map(|(id, cml)| {
+				Self::clean_cml_related(&cml);
+				id
 			})
-			.filter(|v| v.is_some())
-			.map(|v| v.unwrap())
 			.collect();
 		dead_cmls.iter().for_each(|id| {
 			CmlStore::<T>::remove(id);
 		});
 		dead_cmls
+	}
+
+	fn clean_cml_related(
+		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+	) {
+		// clean mining related
+		if let Some(machine_id) = cml.machine_id() {
+			MinerItemStore::<T>::remove(machine_id);
+		}
+		// clean staking related
+		if let Some((cml_id, staking_index)) = cml.staking_index() {
+			if CmlStore::<T>::contains_key(cml_id) {
+				CmlStore::<T>::mutate(cml_id, |cml| {
+					let index = staking_index as usize;
+					if cml.staking_slots().len() <= index {
+						return;
+					}
+					cml.staking_slots_mut().remove(index);
+					Self::adjust_staking_cml_index(cml, staking_index);
+				});
+			}
+		}
+		// clean user cml store
+		if let Some(owner) = cml.owner() {
+			UserCmlStore::<T>::remove(owner, cml.id());
+		}
 	}
 
 	pub(crate) fn take_vouchers(
@@ -288,16 +270,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		div_mod.as_u32()
 	}
 
-	pub(crate) fn init_miner_item(cml_id: CmlId, machine_id: MachineId, miner_ip: Vec<u8>) {
-		let miner_item = MinerItem {
-			cml_id,
-			id: machine_id.clone(),
-			ip: miner_ip,
-			status: MinerStatus::Active,
-		};
-		MinerItemStore::<T>::insert(&machine_id, miner_item);
-	}
-
 	pub(crate) fn stake(
 		who: &T::AccountId,
 		staking_to: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
@@ -306,10 +278,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	) -> Option<StakingIndex> {
 		match staking_cml {
 			Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| -> Option<StakingIndex> {
-				match cml {
-					Some(cml) => staking_to.stake(&who, &current_height, None, Some(cml)),
-					None => None,
-				}
+				staking_to.stake(&who, &current_height, None, Some(cml))
 			}),
 			None => {
 				T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
@@ -330,12 +299,10 @@ impl<T: cml::Config> cml::Pallet<T> {
 		staking_index: StakingIndex,
 	) {
 		if let Some(staking_item) = staking_to.staking_slots().get(staking_index as usize) {
-			match staking_item.cml {
-				Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| {
-					if let Some(cml) = cml {
-						staking_to.unstake(None, Some(cml));
-					}
-				}),
+			let index = match staking_item.cml {
+				Some(cml_id) => {
+					CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml)))
+				}
 				None => {
 					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get()).unwrap();
 					staking_to
@@ -345,6 +312,33 @@ impl<T: cml::Config> cml::Pallet<T> {
 						)
 				}
 			};
+			if let Some(index) = index {
+				Self::adjust_staking_cml_index(staking_to, index);
+			}
+		}
+	}
+
+	pub(crate) fn check_miner_ip_validity(miner_ip: &Vec<u8>) -> DispatchResult {
+		ensure!(!miner_ip.is_empty(), Error::<T>::InvalidMinerIp);
+		Ok(())
+	}
+
+	pub(crate) fn adjust_staking_cml_index(
+		staking_to: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+		staking_index: StakingIndex,
+	) {
+		let index = staking_index as usize;
+		for i in index..staking_to.staking_slots().len() {
+			if let Some(staking_item) = staking_to.staking_slots().get(i) {
+				if let Some(cml_id) = staking_item.cml {
+					if !CmlStore::<T>::contains_key(cml_id) {
+						continue; // should never happen
+					}
+					CmlStore::<T>::mutate(cml_id, |cml| {
+						cml.shift_staking_index(i as StakingIndex);
+					});
+				}
+			}
 		}
 	}
 }
@@ -383,8 +377,10 @@ where
 mod tests {
 	use crate::{
 		mock::*, CmlId, CmlStore, CmlType, DefrostScheduleType, InvestorVoucherStore, LuckyDrawBox,
-		Seed, SeedProperties, TeamVoucherStore, TreeProperties, UserCmlStore, CML,
+		MinerItemStore, Seed, SeedProperties, StakingProperties, TeamVoucherStore, TreeProperties,
+		UserCmlStore, CML,
 	};
+	use frame_support::assert_ok;
 	use rand::{thread_rng, Rng};
 
 	#[test]
@@ -746,6 +742,135 @@ mod tests {
 
 			assert_eq!(CmlStore::<Test>::iter().count(), 0);
 			assert_eq!(UserCmlStore::<Test>::iter().count(), 0);
+		})
+	}
+
+	#[test]
+	fn try_kill_cml_works_with_mining() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let user2 = 2;
+			let cml1_id = 1;
+			let cml2_id = 2;
+			let machine1_id = [1; 32];
+			let machine2_id = [2; 32];
+
+			UserCmlStore::<Test>::insert(user1, cml1_id, ());
+			let mut cml1 =
+				CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100, DefrostScheduleType::Team));
+			cml1.set_owner(&user1);
+			CmlStore::<Test>::insert(cml1_id, cml1);
+			assert_ok!(Cml::start_mining(
+				Origin::signed(user1),
+				cml1_id,
+				machine1_id,
+				b"machine1 ip".to_vec(),
+			));
+
+			UserCmlStore::<Test>::insert(user2, cml2_id, ());
+			let mut cml2 =
+				CML::from_genesis_seed(seed_from_lifespan(cml2_id, 200, DefrostScheduleType::Team));
+			cml2.set_owner(&user2);
+			CmlStore::<Test>::insert(cml2_id, cml2);
+			assert_ok!(Cml::start_mining(
+				Origin::signed(user2),
+				cml2_id,
+				machine2_id,
+				b"machine2 ip".to_vec(),
+			));
+
+			let dead_cmls = Cml::try_kill_cml(99);
+			assert_eq!(dead_cmls.len(), 0);
+
+			let dead_cmls = Cml::try_kill_cml(100);
+			assert_eq!(dead_cmls.len(), 1);
+			assert_eq!(dead_cmls[0], cml1_id);
+			assert!(!MinerItemStore::<Test>::contains_key(&machine1_id));
+			assert!(!CmlStore::<Test>::contains_key(cml1_id));
+			assert!(!UserCmlStore::<Test>::contains_key(user1, cml1_id));
+
+			let dead_cmls = Cml::try_kill_cml(200);
+			assert_eq!(dead_cmls.len(), 1);
+			assert_eq!(dead_cmls[0], cml2_id);
+			assert!(!MinerItemStore::<Test>::contains_key(&machine2_id));
+			assert!(!CmlStore::<Test>::contains_key(cml2_id));
+			assert!(!UserCmlStore::<Test>::contains_key(user2, cml2_id));
+
+			assert_eq!(MinerItemStore::<Test>::iter().count(), 0);
+			assert_eq!(CmlStore::<Test>::iter().count(), 0);
+			assert_eq!(UserCmlStore::<Test>::iter().count(), 0);
+		})
+	}
+
+	#[test]
+	fn try_kill_cml_works_with_staking() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let user2 = 2;
+			let user3 = 3;
+			let cml1_id = 1;
+			let cml2_id = 2;
+			let cml3_id = 3;
+			let machine3_id = [3; 32];
+
+			UserCmlStore::<Test>::insert(user1, cml1_id, ());
+			let mut cml1 =
+				CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100, DefrostScheduleType::Team));
+			cml1.set_owner(&user1);
+			CmlStore::<Test>::insert(cml1_id, cml1);
+
+			UserCmlStore::<Test>::insert(user2, cml2_id, ());
+			let mut cml2 =
+				CML::from_genesis_seed(seed_from_lifespan(cml2_id, 200, DefrostScheduleType::Team));
+			cml2.set_owner(&user2);
+			CmlStore::<Test>::insert(cml2_id, cml2);
+
+			UserCmlStore::<Test>::insert(user3, cml3_id, ());
+			let mut cml3 =
+				CML::from_genesis_seed(seed_from_lifespan(cml3_id, 300, DefrostScheduleType::Team));
+			cml3.set_owner(&user3);
+			CmlStore::<Test>::insert(cml3_id, cml3);
+			assert_ok!(Cml::start_mining(
+				Origin::signed(user3),
+				cml3_id,
+				machine3_id,
+				b"machine3 ip".to_vec(),
+			));
+
+			assert_ok!(Cml::start_staking(
+				Origin::signed(user1),
+				cml3_id,
+				Some(cml1_id)
+			));
+			assert_ok!(Cml::start_staking(
+				Origin::signed(user2),
+				cml3_id,
+				Some(cml2_id)
+			));
+			let staking_slots = CmlStore::<Test>::get(cml3_id).staking_slots().clone();
+			assert_eq!(staking_slots.len(), 3);
+			assert_eq!(staking_slots[0].owner, user3);
+			assert_eq!(staking_slots[1].owner, user1);
+			assert_eq!(staking_slots[2].owner, user2);
+
+			let dead_cmls = Cml::try_kill_cml(100);
+			assert_eq!(dead_cmls.len(), 1);
+			assert_eq!(dead_cmls[0], cml1_id);
+			assert!(!CmlStore::<Test>::contains_key(cml1_id));
+			assert!(!UserCmlStore::<Test>::contains_key(user1, cml1_id));
+			let staking_slots = CmlStore::<Test>::get(cml3_id).staking_slots().clone();
+			assert_eq!(staking_slots.len(), 2);
+			assert_eq!(staking_slots[0].owner, user3);
+			assert_eq!(staking_slots[1].owner, user2);
+
+			let dead_cmls = Cml::try_kill_cml(200);
+			assert_eq!(dead_cmls.len(), 1);
+			assert_eq!(dead_cmls[0], cml2_id);
+			assert!(!CmlStore::<Test>::contains_key(cml2_id));
+			assert!(!UserCmlStore::<Test>::contains_key(user2, cml2_id));
+			let staking_slots = CmlStore::<Test>::get(cml3_id).staking_slots().clone();
+			assert_eq!(staking_slots.len(), 1);
+			assert_eq!(staking_slots[0].owner, user3);
 		})
 	}
 

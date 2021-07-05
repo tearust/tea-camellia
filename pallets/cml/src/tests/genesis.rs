@@ -51,9 +51,8 @@ fn genesis_build_related_logic_works() {
 
 			let mut live_seeds_count: usize = 0;
 			for i in 0..(GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT) {
+				assert!(CmlStore::<Test>::contains_key(i));
 				let cml = CmlStore::<Test>::get(i);
-				assert!(cml.is_some());
-				let cml = cml.unwrap();
 				assert_eq!(cml.id(), i);
 
 				if cml.seed_valid(&0) {

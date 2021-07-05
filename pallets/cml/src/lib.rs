@@ -9,7 +9,6 @@ mod tests;
 
 mod functions;
 pub mod generator;
-mod impl_stored_map;
 mod rpc;
 mod staking;
 mod types;
@@ -22,7 +21,7 @@ use frame_support::{
 	traits::{Currency, Get},
 };
 use frame_system::pallet_prelude::*;
-use pallet_utils::{CommonUtils, CurrencyOperations};
+use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
 use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedSub, Saturating, Zero};
 use sp_std::{convert::TryInto, prelude::*};
 
@@ -61,6 +60,8 @@ pub mod cml {
 		>;
 
 		type StakingEconomics: StakingEconomics<BalanceOf<Self>, AccountId = Self::AccountId>;
+
+		type StakingSlotsMaxLength: Get<StakingIndex>;
 	}
 
 	#[pallet::pallet]
@@ -78,6 +79,7 @@ pub mod cml {
 		Twox64Concat,
 		CmlId,
 		CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+		ValueQuery,
 	>;
 
 	#[pallet::storage]
@@ -122,7 +124,8 @@ pub mod cml {
 		StorageMap<_, Twox64Concat, CmlId, Vec<StakingSnapshotItem<T::AccountId>>, ValueQuery>;
 
 	#[pallet::storage]
-	pub type AccountRewards<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>>;
+	pub type AccountRewards<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -228,63 +231,41 @@ pub mod cml {
 		NotEnoughVoucher,
 		InvalidVoucherAmount,
 
-		DrawBoxNotInitialized,
 		NotEnoughDrawSeeds,
 		SeedsNotOutdatedYet,
 		VouchersHasOutdated,
 		NoNeedToCleanOutdatedSeeds,
 
 		NotFoundCML,
-		CMLNotLive,
 		CMLOwnerInvalid,
-		SeedIsExpired,
+		CmlIsNotSeed,
 		SeedNotValid,
-		ShouldStakingLiveTree,
-		CmlIsAlreadyStaking,
-		CmlIsMining,
-		StakingInvalid,
 
 		InsufficientFreeBalance,
 		InsufficientReservedBalance,
 		MinerAlreadyExist,
 		NotFoundMiner,
-		CmlIsNotFromGenesis,
 		InvalidCreditAmount,
+		InvalidMiner,
+		InvalidMinerIp,
 
-		StakingIndexIsNone,
 		InvalidStaker,
 		InvalidStakee,
 		InvalidStakingIndex,
 		InvalidStakingOwner,
 		InvalidUnstaking,
 		NotFoundRewardAccount,
-		RewardAmountConvertFailed,
-
-		// from cml
-		SproutAtIsNone,
-		PlantAtIsNone,
-		DefrostTimeIsNone,
-		DefrostFailed,
-		CmlStatusConvertFailed,
-		NotValidFreshSeed,
-		SlotShouldBeEmpty,
-		CmlOwnerIsNone,
-		ConfusedStakingType,
-		CmlIsNotStaking,
-		UnstakingSlotOwnerMismatch,
-		InvalidStatusToMine,
-		AlreadyHasMachineId,
-		CmlIsNotMining,
+		StakingSlotsOverTheMaxLength,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
 			if Self::is_staking_period_start(n) {
+				Self::try_kill_cml(n);
 				// initialize staking related
 				Self::collect_staking_info();
 			} else if Self::is_staking_period_end(n) {
-				Self::try_kill_cml(n);
 				// calculate staking rewards
 				Self::calculate_staking();
 				Self::clear_staking_info();
@@ -416,9 +397,7 @@ pub mod cml {
 					let seeds_count = seed_ids.len() as u64;
 					seed_ids.iter().for_each(|id| {
 						CmlStore::<T>::mutate(id, |cml| {
-							if let Some(cml) = cml {
-								cml.set_owner(&sender);
-							}
+							cml.set_owner(&sender);
 						});
 						UserCmlStore::<T>::insert(&sender, id, ());
 					});
@@ -442,9 +421,7 @@ pub mod cml {
 				},
 				|sender| {
 					CmlStore::<T>::mutate(cml_id, |cml| {
-						if let Some(cml) = cml {
-							Self::seed_to_tree(cml, &current_block_number);
-						}
+						cml.try_convert_to_tree(&current_block_number);
 					});
 
 					Self::deposit_event(Event::ActiveCml(sender.clone(), cml_id));
@@ -461,38 +438,52 @@ pub mod cml {
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 			let current_block_number = frame_system::Pallet::<T>::block_number();
-			Self::check_belongs(&cml_id, &sender)?;
-			Self::check_if_is_seed_validity(cml_id, &current_block_number)?;
-			ensure!(
-				!<MinerItemStore<T>>::contains_key(&machine_id),
-				Error::<T>::MinerAlreadyExist
-			);
 
-			CmlStore::<T>::mutate(cml_id, |cml| -> DispatchResult {
-				if let Some(cml) = cml {
-					ensure!(cml.machine_id().is_none(), Error::<T>::AlreadyHasMachineId);
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					Self::check_belongs(&cml_id, &sender)?;
 					ensure!(
-						cml.staking_slots().is_empty(),
-						Error::<T>::SlotShouldBeEmpty
+						!<MinerItemStore<T>>::contains_key(&machine_id),
+						Error::<T>::MinerAlreadyExist
 					);
+					Self::check_miner_ip_validity(&miner_ip)?;
 
-					let staking_item = if cml.is_from_genesis() {
-						Self::create_genesis_miner_balance_staking(&sender, cml)?
-					} else {
-						Self::create_balance_staking(&sender, T::StakingPrice::get())?
-					};
+					let cml = CmlStore::<T>::get(cml_id);
+					ensure!(
+						cml.can_start_mining(&current_block_number),
+						Error::<T>::InvalidMiner
+					);
+					Self::check_miner_first_staking(&sender, &cml)?;
 
-					if cml.is_seed() {
-						Self::seed_to_tree(cml, &current_block_number);
-					}
+					Ok(())
+				},
+				|sender| {
+					let ip = miner_ip.clone();
+					CmlStore::<T>::mutate(cml_id, |cml| {
+						let staking_item = if cml.is_from_genesis() {
+							Self::create_genesis_miner_balance_staking(&sender)
+						} else {
+							Self::create_balance_staking(&sender, T::StakingPrice::get())
+						};
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						if staking_item.is_err() {
+							return;
+						}
 
-					cml.start_mining(machine_id, staking_item)
-						.map_err(|e| Error::<T>::from(e))?;
-					Self::init_miner_item(cml_id, machine_id, miner_ip);
-				}
-				Ok(())
-			})?;
-			Ok(())
+						cml.start_mining(machine_id, staking_item.unwrap(), &current_block_number);
+						MinerItemStore::<T>::insert(
+							&machine_id,
+							MinerItem {
+								cml_id,
+								ip,
+								id: machine_id.clone(),
+								status: MinerStatus::Active,
+							},
+						);
+					});
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
@@ -502,22 +493,26 @@ pub mod cml {
 			machine_id: MachineId,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
-			Self::check_belongs(&cml_id, &sender)?;
-			ensure!(
-				MinerItemStore::<T>::contains_key(machine_id),
-				Error::<T>::NotFoundMiner
-			);
 
-			CmlStore::<T>::mutate(cml_id, |cml| match cml {
-				Some(cml) => {
-					cml.stop_mining()?;
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					Self::check_belongs(&cml_id, &sender)?;
+					let cml = CmlStore::<T>::get(&cml_id);
+					ensure!(cml.is_mining(), Error::<T>::InvalidMiner);
+					ensure!(
+						MinerItemStore::<T>::contains_key(machine_id),
+						Error::<T>::NotFoundMiner
+					);
 					Ok(())
-				}
-				None => Err(Error::<T>::NotFoundCML),
-			})?;
-			MinerItemStore::<T>::remove(machine_id);
-
-			Ok(())
+				},
+				|_sender| {
+					CmlStore::<T>::mutate(cml_id, |cml| {
+						cml.stop_mining();
+					});
+					MinerItemStore::<T>::remove(machine_id);
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
@@ -541,9 +536,8 @@ pub mod cml {
 						Some(cml_id) => {
 							Self::check_belongs(&cml_id, &who)?;
 							let cml = CmlStore::<T>::get(cml_id);
-							ensure!(cml.is_some(), Error::<T>::NotFoundCML);
 							ensure!(
-								cml.unwrap().can_stake_to(&current_block_number),
+								cml.can_stake_to(&current_block_number),
 								Error::<T>::InvalidStaker
 							);
 							None
@@ -554,7 +548,11 @@ pub mod cml {
 						}
 					};
 
-					let cml = CmlStore::<T>::get(staking_to).unwrap();
+					let cml = CmlStore::<T>::get(staking_to);
+					ensure!(
+						cml.staking_slots().len() <= T::StakingSlotsMaxLength::get() as usize,
+						Error::<T>::StakingSlotsOverTheMaxLength
+					);
 					ensure!(
 						cml.can_be_stake(&current_block_number, &amount, &staking_cml),
 						Error::<T>::InvalidStakee
@@ -564,15 +562,7 @@ pub mod cml {
 				|who| {
 					let staking_index: Option<StakingIndex> =
 						CmlStore::<T>::mutate(staking_to, |cml| {
-							if let Some(staking_to) = cml {
-								return Self::stake(
-									who,
-									staking_to,
-									&staking_cml,
-									&current_block_number,
-								);
-							}
-							None
+							Self::stake(who, cml, &staking_cml, &current_block_number)
 						});
 
 					Self::deposit_event(Event::Staked(
@@ -599,7 +589,7 @@ pub mod cml {
 						CmlStore::<T>::contains_key(staking_to),
 						Error::<T>::NotFoundCML
 					);
-					let cml = CmlStore::<T>::get(staking_to).unwrap();
+					let cml = CmlStore::<T>::get(staking_to);
 					ensure!(
 						cml.staking_slots().len() > staking_index as usize,
 						Error::<T>::InvalidStakingIndex,
@@ -619,7 +609,7 @@ pub mod cml {
 					}
 
 					let (index, staking_cml) = match staking_item.cml {
-						Some(cml_id) => (None, CmlStore::<T>::get(cml_id)),
+						Some(cml_id) => (None, Some(CmlStore::<T>::get(cml_id))),
 						None => (Some(staking_index), None),
 					};
 					ensure!(
@@ -631,9 +621,7 @@ pub mod cml {
 				},
 				|who| {
 					CmlStore::<T>::mutate(staking_to, |cml| {
-						if let Some(staking_to) = cml {
-							Self::unstake(who, staking_to, staking_index);
-						}
+						Self::unstake(who, cml, staking_index);
 					});
 				},
 			)
@@ -642,44 +630,22 @@ pub mod cml {
 		#[pallet::weight(10_000)]
 		pub fn withdraw_staking_reward(sender: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			ensure!(
-				AccountRewards::<T>::contains_key(&who),
-				Error::<T>::NotFoundRewardAccount
-			);
 
-			AccountRewards::<T>::mutate(&who, |balance| -> DispatchResult {
-				if let Some(balance) = balance {
-					let deposit_amount = (*balance)
-						.try_into()
-						.map_err(|_| Error::<T>::RewardAmountConvertFailed)?;
-					T::CurrencyOperations::deposit_creating(&who, deposit_amount);
-					*balance = BalanceOf::<T>::zero();
-				}
-				Ok(())
-			})?;
-
-			Ok(())
-		}
-	}
-
-	impl<T: Config> From<CmlError> for Error<T> {
-		fn from(cml_error: CmlError) -> Self {
-			match cml_error {
-				CmlError::SproutAtIsNone => Error::<T>::SproutAtIsNone,
-				CmlError::PlantAtIsNone => Error::<T>::PlantAtIsNone,
-				CmlError::DefrostTimeIsNone => Error::<T>::DefrostTimeIsNone,
-				CmlError::DefrostFailed => Error::<T>::DefrostFailed,
-				CmlError::CmlStatusConvertFailed => Error::<T>::CmlStatusConvertFailed,
-				CmlError::NotValidFreshSeed => Error::<T>::NotValidFreshSeed,
-				CmlError::SlotShouldBeEmpty => Error::<T>::SlotShouldBeEmpty,
-				CmlError::CmlOwnerIsNone => Error::<T>::CmlOwnerIsNone,
-				CmlError::ConfusedStakingType => Error::<T>::ConfusedStakingType,
-				CmlError::CmlIsNotStaking => Error::<T>::CmlIsNotStaking,
-				CmlError::UnstakingSlotOwnerMismatch => Error::<T>::UnstakingSlotOwnerMismatch,
-				CmlError::InvalidStatusToMine => Error::<T>::InvalidStatusToMine,
-				CmlError::AlreadyHasMachineId => Error::<T>::AlreadyHasMachineId,
-				CmlError::CmlIsNotMining => Error::<T>::CmlIsNotMining,
-			}
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						AccountRewards::<T>::contains_key(who),
+						Error::<T>::NotFoundRewardAccount
+					);
+					Ok(())
+				},
+				|who| {
+					let balance = AccountRewards::<T>::get(who);
+					T::CurrencyOperations::deposit_creating(&who, balance);
+					AccountRewards::<T>::remove(who);
+				},
+			)
 		}
 	}
 }
@@ -725,18 +691,4 @@ pub trait StakingEconomics<Balance> {
 		total_staking_point: MinerStakingPoint,
 		snapshot_item: &StakingSnapshotItem<Self::AccountId>,
 	) -> Balance;
-}
-
-pub fn extrinsic_procedure<AccountId, CheckFn, SetFn>(
-	who: &AccountId,
-	ck_fn: CheckFn,
-	set_fn: SetFn,
-) -> DispatchResult
-where
-	CheckFn: Fn(&AccountId) -> DispatchResult,
-	SetFn: Fn(&AccountId),
-{
-	ck_fn(who)?;
-	set_fn(who);
-	Ok(())
 }

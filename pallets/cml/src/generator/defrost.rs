@@ -1,4 +1,4 @@
-use crate::param::{BLOCKS_IN_A_DAY, BLOCKS_IN_A_MONTH};
+use crate::param::{BLOCKS_IN_A_DAY, BLOCKS_IN_A_MONTH, UNFROZEN_SEEDS_PERCENTAGE_INVESTOR, BLOCKS_IN_HALF_MONTH };
 use crate::DefrostScheduleType;
 use node_primitives::BlockNumber;
 use rand::{thread_rng, Rng};
@@ -15,31 +15,24 @@ pub fn make_generate_defrost_time_fn(
 			)
 		}
 		let mut rng = thread_rng();
-		let r: u8 = rng.gen();
-		let random_offset = (r as f64 / u8::MAX as f64 - 0.5) * 6 as f64 * BLOCKS_IN_A_DAY as f64;
-		let team_cliff = 2 * BLOCKS_IN_A_MONTH;
+		let r: u32 = rng.gen();
+		let random_offset: u32 = r % (6 * BLOCKS_IN_A_DAY);
 
 		match defrost_schedule {
 			DefrostScheduleType::Investor => {
-				let prob: u8 = rng.gen();
-				if prob < (u8::MAX as f32 * 0.1) as u8 {
+				let prob = r % 100; 
+				if prob < UNFROZEN_SEEDS_PERCENTAGE_INVESTOR{
 					//this seed fall into the the non-frozen 10%
 					0
 				} else {
-					let rand_defrost_time_index = 18 as f32 // total eighteen months
-						* (prob as f32 - (u8::MAX as f32 * 0.1)) // the rest probably of nighty percent
-						/ (u8::MAX as f32 - u8::MAX as f32 * 0.1); // the base of the nighty percent
-
-					(defrost_time_point[rand_defrost_time_index as usize] as i32 + random_offset as i32)
-						as u32
+					let r:u32 = rng.gen();
+					let fall_in_month: u32 = r % 18;
+					fall_in_month * BLOCKS_IN_A_MONTH + BLOCKS_IN_HALF_MONTH + random_offset - 3 * BLOCKS_IN_A_DAY	// let rand_defrost_time_index = 18 as f32 // total eighteen months
 				}
 			}
 			DefrostScheduleType::Team => {
-				let prob: u8 = rng.gen();
-				let rand_defrost_time_index = 20 /*months*/ as f32 * prob as f32 / u8::MAX as f32/*probably between zero to one*/;
-				team_cliff
-					+ (defrost_time_point[rand_defrost_time_index as usize] as i32 + random_offset as i32)
-						as u32
+				let fall_in_month:u32 = r % 20;
+				BLOCKS_IN_A_MONTH * (2 + fall_in_month) + BLOCKS_IN_HALF_MONTH + random_offset - 3 * BLOCKS_IN_A_DAY
 			}
 		}
 	}
@@ -56,10 +49,13 @@ mod tests {
 
 		let test_sample_count = 1000;
 		let mut distribute = [0u16; 36 * 30];
+		let mut month_distribute = [0u16;24];
 		for _i in 0..test_sample_count {
 			let defrost_time = closure_defrost_time();
 			let defrost_days = (defrost_time / BLOCKS_IN_A_DAY) as usize;
 			distribute[defrost_days] += 1;
+			let defrost_month = (defrost_time / BLOCKS_IN_A_MONTH) as usize;
+			month_distribute[defrost_month] += 1;
 		}
 
 		for i in 0..distribute.len() {
@@ -67,7 +63,12 @@ mod tests {
 				println!("day {} seeds {}", i, distribute[i]);
 			}
 		}
+		for i in 0..month_distribute.len() {
+			println!("month {} seeds {}", i, month_distribute[i]);
+		}
 		println!("Investor defrost ...");
+		let mut distribute = [0u16; 36 * 30];
+		let mut month_distribute = [0u16;24];
 		let closure_defrost_time = make_generate_defrost_time_fn(DefrostScheduleType::Investor);
 
 		let test_sample_count = 1000;
@@ -76,12 +77,17 @@ mod tests {
 			let defrost_time = closure_defrost_time();
 			let defrost_days = (defrost_time / BLOCKS_IN_A_DAY) as usize;
 			distribute[defrost_days] += 1;
+			let defrost_month = (defrost_time / BLOCKS_IN_A_MONTH) as usize;
+			month_distribute[defrost_month] += 1;
 		}
 
 		for i in 0..distribute.len() {
 			if distribute[i] > 0 {
 				println!("day {} seeds {}", i, distribute[i]);
 			}
+		}
+		for i in 0..month_distribute.len() {
+			println!("month {} seeds {}", i, month_distribute[i]);
 		}
 	}
 }

@@ -11,7 +11,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn check_balance_staking(who: &T::AccountId) -> DispatchResult {
 		ensure!(
-			T::CurrencyOperations::free_balance(who) > T::StakingPrice::get(),
+			T::CurrencyOperations::free_balance(who) >= T::StakingPrice::get(),
 			Error::<T>::InsufficientFreeBalance,
 		);
 		Ok(())
@@ -19,31 +19,27 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn collect_staking_info() {
 		MinerItemStore::<T>::iter().for_each(|(_, miner_item)| {
-			if let Some(cml) = CmlStore::<T>::get(miner_item.cml_id) {
-				let mut snapshot_items = Vec::new();
-				let mut current_index = 0;
-				for slot in cml.staking_slots() {
-					let weight = match slot.cml {
-						Some(cml_id) => {
-							if let Some(cml) = CmlStore::<T>::get(cml_id) {
-								cml.staking_weight()
-							} else {
-								1
-							}
-						}
-						None => 1,
-					};
-					snapshot_items.push(StakingSnapshotItem {
-						owner: slot.owner.clone(),
-						staking_at: current_index,
-						weight,
-					});
+			let cml = CmlStore::<T>::get(miner_item.cml_id);
+			let mut snapshot_items = Vec::new();
+			let mut current_index = 0;
+			for slot in cml.staking_slots() {
+				let weight = match slot.cml {
+					Some(cml_id) => {
+						let cml = CmlStore::<T>::get(cml_id);
+						cml.staking_weight()
+					}
+					None => 1,
+				};
+				snapshot_items.push(StakingSnapshotItem {
+					owner: slot.owner.clone(),
+					staking_at: current_index,
+					weight,
+				});
 
-					current_index += weight;
-				}
-
-				ActiveStakingSnapshot::<T>::insert(cml.id(), snapshot_items);
+				current_index += weight;
 			}
+
+			ActiveStakingSnapshot::<T>::insert(cml.id(), snapshot_items);
 		});
 	}
 
@@ -87,14 +83,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 					continue;
 				}
 
-				AccountRewards::<T>::mutate(&item.owner, |balance| match balance {
-					Some(balance) => {
+				if AccountRewards::<T>::contains_key(&item.owner) {
+					AccountRewards::<T>::mutate(&item.owner, |balance| {
 						*balance = balance.saturating_add(reward);
-					}
-					None => {
-						*balance = Some(reward.into());
-					}
-				})
+					});
+				} else {
+					AccountRewards::<T>::insert(&item.owner, reward);
+				}
 			}
 		}
 	}
@@ -109,25 +104,34 @@ impl<T: cml::Config> cml::Pallet<T> {
 		1
 	}
 
+	pub(crate) fn check_miner_first_staking(
+		who: &T::AccountId,
+		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+	) -> DispatchResult {
+		if !cml.is_from_genesis() {
+			Self::check_balance_staking(who)?;
+		}
+		Ok(())
+	}
+
 	pub(crate) fn create_genesis_miner_balance_staking(
 		who: &T::AccountId,
-		cml: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
-		ensure!(cml.is_from_genesis(), Error::<T>::CmlIsNotFromGenesis);
-
 		let free_balance = T::CurrencyOperations::free_balance(who);
-		let actual_staking = if free_balance < T::StakingPrice::get() {
+		let (actual_staking, credit_amount) = if free_balance < T::StakingPrice::get() {
 			let credit_amount = T::StakingPrice::get()
 				.checked_sub(&free_balance)
 				.ok_or(Error::<T>::InvalidCreditAmount)?;
-			GenesisMinerCreditStore::<T>::insert(who, credit_amount);
-
-			free_balance
+			(free_balance, Some(credit_amount))
 		} else {
-			T::StakingPrice::get()
+			(T::StakingPrice::get(), None)
 		};
 
-		Ok(Self::create_balance_staking(who, actual_staking)?)
+		let result = Self::create_balance_staking(who, actual_staking)?;
+		if let Some(credit_amount) = credit_amount {
+			GenesisMinerCreditStore::<T>::insert(who, credit_amount);
+		}
+		Ok(result)
 	}
 
 	pub(crate) fn create_balance_staking(
@@ -140,30 +144,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 			category: StakingCategory::Tea,
 			amount: Some(T::StakingPrice::get()),
 			cml: None,
-		})
-	}
-
-	#[allow(dead_code)]
-	pub(crate) fn create_seed_staking(
-		who: &T::AccountId,
-		cml_id: CmlId,
-		current_height: &T::BlockNumber,
-	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
-		CmlStore::<T>::mutate(cml_id, |cml| match cml {
-			Some(cml) => {
-				if cml.is_seed() {
-					Self::seed_to_tree(cml, current_height);
-				}
-				Ok(())
-			}
-			None => Err(Error::<T>::NotFoundCML),
-		})?;
-
-		Ok(StakingItem {
-			owner: who.clone(),
-			category: StakingCategory::Cml,
-			amount: None,
-			cml: Some(cml_id),
 		})
 	}
 }
@@ -375,7 +355,7 @@ mod tests {
 
 			assert_eq!(AccountRewards::<Test>::iter().count(), 5);
 			for user_id in 1..=5 {
-				assert_eq!(AccountRewards::<Test>::get(user_id).unwrap(), 1 * DOLLARS);
+				assert_eq!(AccountRewards::<Test>::get(user_id), 1 * DOLLARS);
 			}
 		})
 	}
@@ -424,14 +404,14 @@ mod tests {
 			Cml::calculate_staking();
 
 			assert!(!GenesisMinerCreditStore::<Test>::contains_key(1));
-			assert_eq!(AccountRewards::<Test>::get(&1), None);
+			assert!(!AccountRewards::<Test>::contains_key(&1));
 
 			assert!(GenesisMinerCreditStore::<Test>::contains_key(2));
 			assert_eq!(GenesisMinerCreditStore::<Test>::get(2), DOLLARS);
-			assert!(AccountRewards::<Test>::get(&2).is_none());
+			assert!(!AccountRewards::<Test>::contains_key(&2));
 
-			assert!(AccountRewards::<Test>::get(&3).is_some());
-			assert_eq!(AccountRewards::<Test>::get(&3).unwrap(), DOLLARS);
+			assert!(AccountRewards::<Test>::contains_key(&3));
+			assert_eq!(AccountRewards::<Test>::get(&3), DOLLARS);
 		})
 	}
 }

@@ -11,14 +11,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub fn get_user_staking_list(who: &T::AccountId) -> Vec<(u64, u64)> {
 		let mut result = Vec::new();
 		for (_, miner_item) in MinerItemStore::<T>::iter() {
-			let cml = CmlStore::<T>::get(miner_item.cml_id);
-			if cml.is_none() {
+			if !CmlStore::<T>::contains_key(miner_item.cml_id) {
 				continue;
 			}
 
-			let cml_id = cml.as_ref().unwrap().id();
+			let cml = CmlStore::<T>::get(miner_item.cml_id);
+			let cml_id = cml.id();
 			let mut staking_list: Vec<(u64, u64)> = cml
-				.unwrap()
 				.staking_slots()
 				.iter()
 				.enumerate()

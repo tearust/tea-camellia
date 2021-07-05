@@ -63,6 +63,7 @@ parameter_types! {
 	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 	pub const StakingPeriodLength: u32 = 100;
 	pub const SeedFreshDuration: u32 = 7 * 30 * 24 * 60 * 10;
+	pub const StakingSlotsMaxLength: u64 = 10000;
 }
 
 impl pallet_cml::Config for Test {
@@ -75,6 +76,7 @@ impl pallet_cml::Config for Test {
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
+	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 
 parameter_types! {

@@ -7,7 +7,7 @@ mod seeds;
 mod staking;
 mod vouchers;
 
-pub use cml::{CmlError, CmlId, CmlStatus, CmlType, CML};
+pub use cml::{CmlId, CmlStatus, CmlType, CML};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
 pub use staking::{
@@ -41,7 +41,13 @@ pub trait SeedProperties<BlockNumber> {
 	fn has_expired(&self, height: &BlockNumber) -> bool;
 
 	fn seed_valid(&self, height: &BlockNumber) -> bool {
-		self.can_be_defrost(height) || !self.has_expired(height)
+		if self.is_frozen_seed() && !self.can_be_defrost(height) {
+			return false;
+		}
+		if self.is_fresh_seed() && self.has_expired(height) {
+			return false;
+		}
+		true
 	}
 
 	fn is_from_genesis(&self) -> bool;
@@ -64,6 +70,10 @@ where
 	fn is_staking(&self) -> bool;
 
 	fn staking_weight(&self) -> StakingWeight;
+
+	fn staking_index(&self) -> Option<(CmlId, StakingIndex)>;
+
+	fn shift_staking_index(&mut self, index: StakingIndex);
 
 	fn staking_slots(&self) -> &Vec<StakingItem<AccountId, Balance>>;
 
@@ -102,14 +112,18 @@ where
 			+ TreeProperties<AccountId, BlockNumber, Balance>
 			+ UtilsProperties<BlockNumber>;
 
-	fn unstake<StakeEntity>(&mut self, index: Option<StakingIndex>, cml: Option<&mut StakeEntity>)
+	fn unstake<StakeEntity>(
+		&mut self,
+		index: Option<StakingIndex>,
+		cml: Option<&mut StakeEntity>,
+	) -> Option<StakingIndex>
 	where
 		StakeEntity: StakingProperties<AccountId, BlockNumber, Balance>
 			+ TreeProperties<AccountId, BlockNumber, Balance>
 			+ UtilsProperties<BlockNumber>;
 }
 
-pub trait MiningProperties<AccountId, Balance> {
+pub trait MiningProperties<AccountId, BlockNumber, Balance> {
 	fn is_mining(&self) -> bool;
 
 	fn machine_id(&self) -> Option<&MachineId>;
@@ -118,13 +132,16 @@ pub trait MiningProperties<AccountId, Balance> {
 
 	fn swap_first_slot(&mut self, staking_item: StakingItem<AccountId, Balance>);
 
+	fn can_start_mining(&self, current_height: &BlockNumber) -> bool;
+
 	fn start_mining(
 		&mut self,
 		machine_id: MachineId,
 		staking_item: StakingItem<AccountId, Balance>,
-	) -> Result<(), CmlError>;
+		current_height: &BlockNumber,
+	);
 
-	fn stop_mining(&mut self) -> Result<(), CmlError>;
+	fn stop_mining(&mut self);
 }
 
 pub trait UtilsProperties<BlockNumber>
@@ -136,4 +153,6 @@ where
 	fn can_convert(&self, to_status: &CmlStatus<BlockNumber>) -> bool;
 
 	fn convert(&mut self, to_status: CmlStatus<BlockNumber>);
+
+	fn try_convert_to_tree(&mut self, current_height: &BlockNumber);
 }
