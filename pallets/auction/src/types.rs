@@ -17,7 +17,13 @@ use sp_std::cmp::{Eq, PartialEq};
 // }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct AuctionItem<AuctionId, AccountId, Balance, BlockNumber> {
+pub struct AuctionItem<AuctionId, AccountId, Balance, BlockNumber>
+where
+	AuctionId: Default,
+	AccountId: Default,
+	Balance: Default,
+	BlockNumber: Default,
+{
 	pub id: AuctionId,
 	pub cml_id: CmlId,
 	pub cml_owner: AccountId,
@@ -40,4 +46,27 @@ pub struct BidItem<AuctionId, AccountId, Balance, BlockNumber> {
 
 	pub created_at: BlockNumber,
 	pub updated_at: BlockNumber,
+}
+
+impl<AuctionId, AccountId, Balance, BlockNumber> Default
+	for AuctionItem<AuctionId, AccountId, Balance, BlockNumber>
+where
+	AuctionId: Default,
+	AccountId: Default,
+	Balance: Default,
+	BlockNumber: Default,
+{
+	fn default() -> Self {
+		AuctionItem {
+			id: AuctionId::default(),
+			cml_id: 0,
+			cml_owner: AccountId::default(),
+			starting_price: Balance::default(),
+			buy_now_price: None,
+			start_at: BlockNumber::default(),
+			end_at: BlockNumber::default(),
+			status: vec![],
+			bid_user: None,
+		}
+	}
 }

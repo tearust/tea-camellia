@@ -30,7 +30,7 @@ fn put_to_store_works() {
 		assert_eq!(auction_list.len(), 1);
 		assert_eq!(auction_list.get(0).unwrap(), &auction_id);
 
-		let auction = AuctionStore::<Test>::get(auction_id).unwrap();
+		let auction = AuctionStore::<Test>::get(auction_id);
 		assert_eq!(auction.cml_owner, 1);
 	})
 }

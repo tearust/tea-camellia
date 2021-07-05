@@ -122,7 +122,7 @@ pub mod auction {
 		Twox64Concat,
 		T::AuctionId,
 		AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
-		OptionQuery,
+		ValueQuery,
 	>;
 
 	#[pallet::storage]
@@ -269,8 +269,11 @@ pub mod auction {
 			extrinsic_procedure(
 				&sender,
 				|sender| {
-					let auction_item =
-						AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+					ensure!(
+						AuctionStore::<T>::contains_key(&auction_id),
+						Error::<T>::AuctionNotExist
+					);
+					let auction_item = AuctionStore::<T>::get(&auction_id);
 					ensure!(
 						&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal,
 						Error::<T>::AuctionOwnerInvalid
@@ -318,9 +321,12 @@ pub mod auction {
 			extrinsic_procedure(
 				&sender,
 				|sender| {
-					let auction_item =
-						AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+					ensure!(
+						AuctionStore::<T>::contains_key(&auction_id),
+						Error::<T>::AuctionNotExist
+					);
 
+					let auction_item = AuctionStore::<T>::get(&auction_id);
 					if let Some(bid_user) = auction_item.bid_user {
 						ensure!(
 							&sender.cmp(&bid_user) != &Ordering::Equal,

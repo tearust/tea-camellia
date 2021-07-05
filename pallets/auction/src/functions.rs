@@ -40,10 +40,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 		auction_id: &T::AuctionId,
 		bid_user: &T::AccountId,
 	) {
-		AuctionStore::<T>::mutate(&auction_id, |maybe_item| {
-			if let Some(ref mut item) = maybe_item {
-				item.bid_user = Some(bid_user.clone());
-			}
+		AuctionStore::<T>::mutate(&auction_id, |item| {
+			item.bid_user = Some(bid_user.clone());
 		});
 	}
 
@@ -130,7 +128,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub fn delete_auction(auction_id: &T::AuctionId) {
 		// remove from AuctionStore
-		let auction_item = AuctionStore::<T>::take(&auction_id).unwrap();
+		let auction_item = AuctionStore::<T>::take(&auction_id);
 		let who = auction_item.cml_owner;
 
 		// withdraw owner lock fee
@@ -277,9 +275,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 		if let Some(auction_list) = EndblockAuctionStore::<T>::take(current_window) {
 			info!("auction_list => {:?}", auction_list);
 			for auction_id in auction_list.iter() {
-				if let Some(auction_item) = AuctionStore::<T>::get(&auction_id) {
-					Self::check_each_auction_in_block_window(auction_item, next_window)?;
-				}
+				let auction_item = AuctionStore::<T>::get(&auction_id);
+				Self::check_each_auction_in_block_window(auction_item, next_window)?;
 			}
 		}
 
@@ -311,7 +308,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 		auction_id: &T::AuctionId,
 		price: BalanceOf<T>,
 	) -> DispatchResult {
-		let auction_item = AuctionStore::<T>::get(auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+		ensure!(
+			AuctionStore::<T>::contains_key(auction_id),
+			Error::<T>::AuctionNotExist
+		);
+		let auction_item = AuctionStore::<T>::get(auction_id);
 
 		// validate balance
 		let essential_balance = Self::get_essential_bid_balance(price, &auction_item.cml_id);
@@ -344,7 +345,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		auction_id: &T::AuctionId,
 		price: BalanceOf<T>,
 	) {
-		let auction_item = AuctionStore::<T>::get(auction_id).unwrap();
+		let auction_item = AuctionStore::<T>::get(auction_id);
 
 		let essential_balance = Self::get_essential_bid_balance(price, &auction_item.cml_id);
 		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
@@ -396,7 +397,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub(crate) fn try_complete_auction(sender: &T::AccountId, auction_id: &T::AuctionId) {
-		let auction_item = AuctionStore::<T>::get(auction_id).unwrap();
+		let auction_item = AuctionStore::<T>::get(auction_id);
 		if let Some(buy_now_price) = auction_item.buy_now_price {
 			let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
 			if let Some(bid_item) = maybe_bid_item {
