@@ -1,5 +1,5 @@
 use crate::{
-	mock::*, types::*, AuctionBidStore, AuctionStore, BidStore, Config, EndblockAuctionStore,
+	mock::*, types::*, AuctionBidStore, AuctionStore, BidStore, Config, EndBlockAuctionStore,
 	Error, LastAuctionId, UserAuctionStore, UserBidStore,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
@@ -21,12 +21,12 @@ fn put_to_store_works() {
 		assert_ok!(Auction::put_to_store(Origin::signed(1), cml_id, 1000, None));
 
 		let auction_id = 1; // this is the first auction so ID is 1
-		let store_list = UserAuctionStore::<Test>::get(1).unwrap();
+		let store_list = UserAuctionStore::<Test>::get(1);
 		assert_eq!(store_list.len(), 1);
 		assert_eq!(store_list.get(0).unwrap(), &auction_id);
 
 		let (_, next_window) = Auction::get_window_block();
-		let auction_list = EndblockAuctionStore::<Test>::get(next_window).unwrap();
+		let auction_list = EndBlockAuctionStore::<Test>::get(next_window).unwrap();
 		assert_eq!(auction_list.len(), 1);
 		assert_eq!(auction_list.get(0).unwrap(), &auction_id);
 
@@ -645,7 +645,7 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 //
 // 		assert_eq!(UserAuctionStore::<Test>::get(owner_id).unwrap().len(), 1);
 // 		assert_eq!(
-// 			EndblockAuctionStore::<Test>::get(next_window)
+// 			EndBlockAuctionStore::<Test>::get(next_window)
 // 				.unwrap()
 // 				.len(),
 // 			1
@@ -658,7 +658,7 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 // 		));
 // 		assert!(UserAuctionStore::<Test>::get(owner_id).unwrap().is_empty());
 //
-// 		assert!(EndblockAuctionStore::<Test>::get(next_window)
+// 		assert!(EndBlockAuctionStore::<Test>::get(next_window)
 // 			.unwrap()
 // 			.is_empty());
 //
@@ -768,7 +768,7 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 //
 // 		assert_eq!(UserAuctionStore::<Test>::get(owner_id).unwrap().len(), 1);
 // 		assert_eq!(
-// 			EndblockAuctionStore::<Test>::get(next_window)
+// 			EndBlockAuctionStore::<Test>::get(next_window)
 // 				.unwrap()
 // 				.len(),
 // 			1
@@ -781,7 +781,7 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 // 		));
 // 		assert!(UserAuctionStore::<Test>::get(owner_id).unwrap().is_empty());
 //
-// 		assert!(EndblockAuctionStore::<Test>::get(next_window)
+// 		assert!(EndBlockAuctionStore::<Test>::get(next_window)
 // 			.unwrap()
 // 			.is_empty());
 // 		assert!(AuctionStore::<Test>::get(auction_id).is_none());
@@ -796,7 +796,7 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 // 		assert_eq!(UserAuctionStore::<Test>::get(owner_id).unwrap().len(), 1);
 //
 // 		assert_eq!(
-// 			EndblockAuctionStore::<Test>::get(next_window)
+// 			EndBlockAuctionStore::<Test>::get(next_window)
 // 				.unwrap()
 // 				.len(),
 // 			1

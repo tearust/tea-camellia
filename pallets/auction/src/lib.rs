@@ -127,14 +127,8 @@ pub mod auction {
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_auction_store)]
-	pub type UserAuctionStore<T: Config> = StorageMap<
-		_,
-		// Blake2_128Concat,
-		Twox64Concat,
-		T::AccountId,
-		Vec<T::AuctionId>,
-		OptionQuery,
-	>;
+	pub type UserAuctionStore<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, Vec<T::AuctionId>, ValueQuery>;
 
 	#[pallet::type_value]
 	pub fn DefaultAuctionId<T: Config>() -> T::AuctionId {
@@ -154,7 +148,7 @@ pub mod auction {
 		Twox64Concat,
 		T::AuctionId,
 		BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
-		OptionQuery,
+		ValueQuery,
 	>;
 
 	#[pallet::storage]
@@ -168,7 +162,7 @@ pub mod auction {
 
 	#[pallet::storage]
 	#[pallet::getter(fn endblock_auction_store)]
-	pub type EndblockAuctionStore<T: Config> =
+	pub type EndBlockAuctionStore<T: Config> =
 		StorageMap<_, Twox64Concat, T::BlockNumber, Vec<T::AuctionId>>;
 
 	#[pallet::pallet]

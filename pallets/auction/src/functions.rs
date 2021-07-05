@@ -78,41 +78,46 @@ impl<T: auction::Config> auction::Pallet<T> {
 		auction_item: AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		who: &T::AccountId,
 	) {
-		UserAuctionStore::<T>::mutate(&who, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
+		if UserAuctionStore::<T>::contains_key(who) {
+			UserAuctionStore::<T>::mutate(&who, |list| {
 				list.push(auction_item.id);
-			} else {
-				*maybe_list = Some(vec![auction_item.id]);
-			}
-		});
+			});
+		} else {
+			UserAuctionStore::<T>::insert(who.clone(), vec![auction_item.id]);
+		}
 
 		let (_, next_window) = Self::get_window_block();
-
-		EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				list.push(auction_item.id);
-			} else {
-				*maybe_list = Some(vec![auction_item.id]);
-			}
-		});
+		Self::insert_into_end_block_store(next_window, auction_item.id);
 
 		AuctionStore::<T>::insert(auction_item.id, auction_item);
+	}
+
+	fn insert_into_end_block_store(window_height: T::BlockNumber, auction_id: T::AuctionId) {
+		EndBlockAuctionStore::<T>::mutate(window_height, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				list.push(auction_id);
+			} else {
+				*maybe_list = Some(vec![auction_id]);
+			}
+		});
 	}
 
 	pub(super) fn get_min_bid_price(
 		auction_item: &AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		who: &T::AccountId,
 	) -> Result<BalanceOf<T>, Error<T>> {
-		let min_price = match BidStore::<T>::get(&who, auction_item.id) {
-			Some(bid_item) => bid_item.price,
-			None => <BalanceOf<T>>::saturated_from(0_u128),
+		let min_price = match BidStore::<T>::contains_key(who, auction_item.id) {
+			true => BidStore::<T>::get(who, auction_item.id).price,
+			false => <BalanceOf<T>>::saturated_from(0_u128),
 		};
 
 		let max_price = {
 			if let Some(bid_user) = &auction_item.bid_user {
-				let bid_item = BidStore::<T>::get(&bid_user, auction_item.id)
-					.ok_or(Error::<T>::NotFoundBid)?;
-
+				ensure!(
+					BidStore::<T>::contains_key(&bid_user, auction_item.id),
+					Error::<T>::NotFoundBid
+				);
+				let bid_item = BidStore::<T>::get(&bid_user, auction_item.id);
 				bid_item.price
 			} else {
 				auction_item.starting_price
@@ -136,24 +141,22 @@ impl<T: auction::Config> auction::Pallet<T> {
 		// <T as auction::Config>::Currency::unreserve(&who, T::AuctionDeposit::get())?;
 
 		// remove from UserAuctionStore
-		UserAuctionStore::<T>::mutate(&who, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-					list.remove(index);
-				}
+		UserAuctionStore::<T>::mutate(&who, |list| {
+			if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+				list.remove(index);
 			}
 		});
 
-		// remove from EndblockAuctionStore
+		// remove from EndBlockAuctionStore
 		let (current_window, next_window) = Self::get_window_block();
-		EndblockAuctionStore::<T>::mutate(current_window, |maybe_list| {
+		EndBlockAuctionStore::<T>::mutate(current_window, |maybe_list| {
 			if let Some(ref mut list) = maybe_list {
 				if let Some(index) = list.iter().position(|x| *x == *auction_id) {
 					list.remove(index);
 				}
 			}
 		});
-		EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
+		EndBlockAuctionStore::<T>::mutate(next_window, |maybe_list| {
 			if let Some(ref mut list) = maybe_list {
 				if let Some(index) = list.iter().position(|x| *x == *auction_id) {
 					list.remove(index);
@@ -170,7 +173,12 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub fn check_delete_bid(who: &T::AccountId, auction_id: &T::AuctionId) -> DispatchResult {
-		let bid_item = BidStore::<T>::take(&who, &auction_id).ok_or(Error::<T>::NotFoundBid)?;
+		ensure!(
+			BidStore::<T>::contains_key(who, auction_id),
+			Error::<T>::NotFoundBid
+		);
+
+		let bid_item = BidStore::<T>::take(&who, &auction_id);
 		let total = Self::bid_total_price(&bid_item);
 		ensure!(
 			T::CurrencyOperations::reserved_balance(who) >= total,
@@ -183,34 +191,32 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub fn delete_bid(who: &T::AccountId, auction_id: &T::AuctionId) {
 		// remove from BidStore
-		if let Some(bid_item) = BidStore::<T>::take(&who, &auction_id) {
-			// return lock balance
-			let total = Self::bid_total_price(&bid_item);
-			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-			let res = T::CurrencyOperations::unreserve(&who, total);
-			if res.is_err() {
-				return;
-			}
-
-			// remove from UserBidStore
-			UserBidStore::<T>::mutate(&who, |maybe_list| {
-				if let Some(ref mut list) = maybe_list {
-					if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-						list.remove(index);
-					}
-				}
-			});
-
-			// remove from AuctionBidStore
-			AuctionBidStore::<T>::mutate(&auction_id, |maybe_list| {
-				if let Some(ref mut list) = maybe_list {
-					if let Some(index) = list.iter().position(|x| &x.cmp(&who) == &Ordering::Equal)
-					{
-						list.remove(index);
-					}
-				}
-			});
+		let bid_item = BidStore::<T>::take(&who, &auction_id);
+		// return lock balance
+		let total = Self::bid_total_price(&bid_item);
+		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+		let res = T::CurrencyOperations::unreserve(&who, total);
+		if res.is_err() {
+			return;
 		}
+
+		// remove from UserBidStore
+		UserBidStore::<T>::mutate(&who, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+					list.remove(index);
+				}
+			}
+		});
+
+		// remove from AuctionBidStore
+		AuctionBidStore::<T>::mutate(&auction_id, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				if let Some(index) = list.iter().position(|x| &x.cmp(&who) == &Ordering::Equal) {
+					list.remove(index);
+				}
+			}
+		});
 	}
 
 	fn bid_total_price(
@@ -240,7 +246,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			return;
 		}
 
-		let bid_item = BidStore::<T>::get(&target, &auction_item.id).unwrap();
+		let bid_item = BidStore::<T>::get(&target, &auction_item.id);
 		// transfer price from bid_user to seller.
 		if T::CurrencyOperations::transfer(
 			&target,
@@ -272,7 +278,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			Error::<T>::NotInWindowBlock
 		);
 
-		if let Some(auction_list) = EndblockAuctionStore::<T>::take(current_window) {
+		if let Some(auction_list) = EndBlockAuctionStore::<T>::take(current_window) {
 			info!("auction_list => {:?}", auction_list);
 			for auction_id in auction_list.iter() {
 				let auction_item = AuctionStore::<T>::get(&auction_id);
@@ -291,13 +297,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			Self::complete_auction(&auction_item, &bid_user);
 		} else {
 			// put to next block
-			EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
-				if let Some(ref mut list) = maybe_list {
-					list.push(auction_item.id);
-				} else {
-					*maybe_list = Some(vec![auction_item.id]);
-				}
-			});
+			Self::insert_into_end_block_store(next_window, auction_item.id);
 		}
 
 		Ok(())
@@ -388,22 +388,18 @@ impl<T: auction::Config> auction::Pallet<T> {
 		}
 
 		let current_block = frame_system::Pallet::<T>::block_number();
-		BidStore::<T>::mutate(&sender, &auction_id, |maybe_item| {
-			if let Some(ref mut item) = maybe_item {
-				item.price = item.price.saturating_add(price);
-				item.updated_at = current_block;
-			}
+		BidStore::<T>::mutate(&sender, &auction_id, |item| {
+			item.price = item.price.saturating_add(price);
+			item.updated_at = current_block;
 		});
 	}
 
 	pub(crate) fn try_complete_auction(sender: &T::AccountId, auction_id: &T::AuctionId) {
 		let auction_item = AuctionStore::<T>::get(auction_id);
 		if let Some(buy_now_price) = auction_item.buy_now_price {
-			let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
-			if let Some(bid_item) = maybe_bid_item {
-				if bid_item.price >= buy_now_price {
-					Self::complete_auction(&auction_item, &sender);
-				}
+			let bid_item = BidStore::<T>::get(&sender, &auction_id);
+			if bid_item.price >= buy_now_price {
+				Self::complete_auction(&auction_item, &sender);
 			}
 		}
 	}

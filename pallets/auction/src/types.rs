@@ -49,6 +49,26 @@ pub struct BidItem<AuctionId, AccountId, Balance, BlockNumber> {
 }
 
 impl<AuctionId, AccountId, Balance, BlockNumber> Default
+	for BidItem<AuctionId, AccountId, Balance, BlockNumber>
+where
+	AuctionId: Default,
+	AccountId: Default,
+	Balance: Default,
+	BlockNumber: Default,
+{
+	fn default() -> Self {
+		BidItem {
+			auction_id: AuctionId::default(),
+			user: AccountId::default(),
+			price: Balance::default(),
+			deposit: None,
+			created_at: BlockNumber::default(),
+			updated_at: BlockNumber::default(),
+		}
+	}
+}
+
+impl<AuctionId, AccountId, Balance, BlockNumber> Default
 	for AuctionItem<AuctionId, AccountId, Balance, BlockNumber>
 where
 	AuctionId: Default,
