@@ -128,7 +128,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(rs)
 	}
 
-	pub fn delete_auction(auction_id: &T::AuctionId) -> DispatchResult {
+	pub fn delete_auction(auction_id: &T::AuctionId) {
 		// remove from AuctionStore
 		let auction_item = AuctionStore::<T>::take(&auction_id).unwrap();
 		let who = auction_item.cml_owner;
@@ -166,44 +166,63 @@ impl<T: auction::Config> auction::Pallet<T> {
 		// remove from AuctionBidStore
 		if let Some(bid_user_list) = AuctionBidStore::<T>::get(&auction_id) {
 			for user in bid_user_list.into_iter() {
-				Self::delete_bid(&user, &auction_id)?;
+				Self::delete_bid(&user, &auction_id);
 			}
 		}
+	}
 
+	pub fn check_delete_bid(who: &T::AccountId, auction_id: &T::AuctionId) -> DispatchResult {
+		let bid_item = BidStore::<T>::take(&who, &auction_id).ok_or(Error::<T>::NotFoundBid)?;
+		let total = Self::bid_total_price(&bid_item);
+		ensure!(
+			T::CurrencyOperations::reserved_balance(who) >= total,
+			Error::<T>::NotEnoughReserveBalance
+		);
+		// todo check user bid store
+		// todo check auction bid store
 		Ok(())
 	}
 
-	pub fn delete_bid(who: &T::AccountId, auction_id: &T::AuctionId) -> DispatchResult {
+	pub fn delete_bid(who: &T::AccountId, auction_id: &T::AuctionId) {
 		// remove from BidStore
-		let bid_item = BidStore::<T>::take(&who, &auction_id).ok_or(Error::<T>::NotFoundBid)?;
-
-		// remove from UserBidStore
-		UserBidStore::<T>::mutate(&who, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-					list.remove(index);
-				}
+		if let Some(bid_item) = BidStore::<T>::take(&who, &auction_id) {
+			// return lock balance
+			let total = Self::bid_total_price(&bid_item);
+			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+			let res = T::CurrencyOperations::unreserve(&who, total);
+			if res.is_err() {
+				return;
 			}
-		});
 
-		// remove from AuctionBidStore
-		AuctionBidStore::<T>::mutate(&auction_id, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				if let Some(index) = list.iter().position(|x| &x.cmp(&who) == &Ordering::Equal) {
-					list.remove(index);
+			// remove from UserBidStore
+			UserBidStore::<T>::mutate(&who, |maybe_list| {
+				if let Some(ref mut list) = maybe_list {
+					if let Some(index) = list.iter().position(|x| *x == *auction_id) {
+						list.remove(index);
+					}
 				}
-			}
-		});
+			});
 
-		// return lock balance
+			// remove from AuctionBidStore
+			AuctionBidStore::<T>::mutate(&auction_id, |maybe_list| {
+				if let Some(ref mut list) = maybe_list {
+					if let Some(index) = list.iter().position(|x| &x.cmp(&who) == &Ordering::Equal)
+					{
+						list.remove(index);
+					}
+				}
+			});
+		}
+	}
+
+	fn bid_total_price(
+		bid_item: &BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+	) -> BalanceOf<T> {
 		let mut total = bid_item.price;
 		if let Some(deposit) = bid_item.deposit {
 			total = total.saturating_add(deposit);
 		}
-
-		T::CurrencyOperations::unreserve(&who, total)?;
-
-		Ok(())
+		total
 	}
 
 	pub fn complete_auction(
@@ -220,7 +239,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		);
 
 		if rs.is_ok() {
-			Self::delete_auction(&auction_item.id)?;
+			Self::delete_auction(&auction_item.id);
 
 			// transfer price from bid_user to seller.
 			T::CurrencyOperations::transfer(

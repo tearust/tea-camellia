@@ -13,7 +13,7 @@ use frame_support::traits::{
 	ReservableCurrency,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use log::info;
+use log::{info, warn};
 use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::{
@@ -91,6 +91,7 @@ pub mod auction {
 	#[pallet::error]
 	pub enum Error<T> {
 		NotEnoughBalance,
+		NotEnoughReserveBalance,
 		AuctionNotExist,
 		InvalidBidPrice,
 		NoNeedBid,
@@ -333,35 +334,46 @@ pub mod auction {
 		pub fn remove_from_store(origin: OriginFor<T>, auction_id: T::AuctionId) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let auction_item =
-				AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
-			ensure!(
-				&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal,
-				Error::<T>::AuctionOwnerInvalid
-			);
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					let auction_item =
+						AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+					ensure!(
+						&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal,
+						Error::<T>::AuctionOwnerInvalid
+					);
 
-			let maybe_list = AuctionBidStore::<T>::get(&auction_id);
-			if let Some(list) = maybe_list {
-				let len = list.len();
-				let penalty = T::AuctionOwnerPenaltyForEachBid::get()
-					.saturating_mul(<BalanceOf<T>>::saturated_from(len as u128));
-				ensure!(
-					penalty < <T as auction::Config>::Currency::free_balance(&sender),
-					Error::<T>::NotEnoughBalanceForPenalty
-				);
-
-				for user in list.into_iter() {
-					T::CurrencyOperations::transfer(
-						&sender,
-						&user,
-						T::AuctionOwnerPenaltyForEachBid::get(),
-						AllowDeath,
-					)?;
-				}
-			}
-			Self::delete_auction(&auction_id)?;
-
-			Ok(())
+					let maybe_list = AuctionBidStore::<T>::get(&auction_id);
+					if let Some(list) = maybe_list {
+						let len = list.len();
+						let penalty = T::AuctionOwnerPenaltyForEachBid::get()
+							.saturating_mul(<BalanceOf<T>>::saturated_from(len as u128));
+						ensure!(
+							penalty < <T as auction::Config>::Currency::free_balance(&sender),
+							Error::<T>::NotEnoughBalanceForPenalty
+						);
+					}
+					Ok(())
+				},
+				|sender| {
+					let maybe_list = AuctionBidStore::<T>::get(&auction_id);
+					if let Some(list) = maybe_list {
+						for user in list.into_iter() {
+							if let Err(e) = T::CurrencyOperations::transfer(
+								&sender,
+								&user,
+								T::AuctionOwnerPenaltyForEachBid::get(),
+								AllowDeath,
+							) {
+								// should never happen, print here just in case
+								warn!("transfer failed: {:?}", e);
+							}
+						}
+					}
+					Self::delete_auction(&auction_id);
+				},
+			)
 		}
 
 		#[pallet::weight(100_000)]
@@ -371,19 +383,26 @@ pub mod auction {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let auction_item =
-				AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					let auction_item =
+						AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
 
-			if let Some(bid_user) = auction_item.bid_user {
-				ensure!(
-					&sender.cmp(&bid_user) != &Ordering::Equal,
-					Error::<T>::NotAllowQuitBid
-				);
-			}
+					if let Some(bid_user) = auction_item.bid_user {
+						ensure!(
+							&sender.cmp(&bid_user) != &Ordering::Equal,
+							Error::<T>::NotAllowQuitBid
+						);
+					}
+					Self::check_delete_bid(sender, &auction_id)?;
 
-			Self::delete_bid(&sender, &auction_id)?;
-
-			Ok(())
+					Ok(())
+				},
+				|sender| {
+					Self::delete_bid(&sender, &auction_id);
+				},
+			)
 		}
 	}
 }
