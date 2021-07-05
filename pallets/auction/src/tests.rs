@@ -1,111 +1,144 @@
-// use crate::{
-// 	mock::*, types::*, AuctionBidStore, AuctionStore, BidStore, Config, EndblockAuctionStore,
-// 	Error, LastAuctionId, UserAuctionStore, UserBidStore,
-// };
-// use frame_support::{assert_noop, assert_ok, traits::Currency};
-// use pallet_cml::{
-// 	CmlStatus, CmlStore, DaiStore, Error as CmlError, StakingItem, UserCmlStore, CML,
-// };
-//
-// #[test]
-// fn put_to_store_works() {
-// 	new_test_ext().execute_with(|| {
-// 		let amount = 100 * 1000; // Unit * StakingPrice
-// 		DaiStore::<Test>::insert(1, 100);
-// 		<Test as Config>::Currency::make_free_balance_be(&1, amount);
-//
-// 		Cml::convert_cml_from_dai(Origin::signed(1)).unwrap();
-// 		let cml_list = UserCmlStore::<Test>::get(1).unwrap();
-// 		let cml = CmlStore::<Test>::get(cml_list[0]).unwrap();
-//
-// 		let miner_id = b"miner_id".to_vec();
-// 		let miner_ip = b"miner_ip".to_vec();
-// 		assert_ok!(Cml::active_cml_for_nitro(
-// 			Origin::signed(1),
-// 			cml.id,
-// 			miner_id.clone(),
-// 			miner_ip.clone()
-// 		));
-//
-// 		assert_ok!(Auction::put_to_store(Origin::signed(1), cml.id, 1000, None));
-//
-// 		let auction_id = 1; // this is the first auction so ID is 1
-// 		let store_list = UserAuctionStore::<Test>::get(1).unwrap();
-// 		assert_eq!(store_list.len(), 1);
-// 		assert_eq!(store_list.get(0).unwrap(), &auction_id);
-//
-// 		let (_, next_window) = Auction::get_window_block();
-// 		let auction_list = EndblockAuctionStore::<Test>::get(next_window).unwrap();
-// 		assert_eq!(auction_list.len(), 1);
-// 		assert_eq!(auction_list.get(0).unwrap(), &auction_id);
-//
-// 		let auction = AuctionStore::<Test>::get(auction_id).unwrap();
-// 		assert_eq!(auction.cml_owner, 1);
-// 	})
-// }
-//
-// #[test]
-// fn put_not_exist_cml_to_store_should_fail() {
-// 	new_test_ext().execute_with(|| {
-// 		assert_noop!(
-// 			Auction::put_to_store(Origin::signed(1), 11, 1000, None),
-// 			CmlError::<Test>::NotFoundCML
-// 		);
-// 	})
-// }
-//
-// #[test]
-// fn put_not_my_cml_to_store_should_fail() {
-// 	new_test_ext().execute_with(|| {
-// 		let cml_id = 11;
-// 		CmlStore::<Test>::insert(cml_id, default_cml(cml_id));
-//
-// 		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
-// 		assert_noop!(rs, CmlError::<Test>::CMLOwnerInvalid);
-// 	})
-// }
-//
-// #[test]
-// fn put_inactive_cml_to_store_with_diff_cml_status() {
-// 	let create_cml = |id, status| {
-// 		let mut cml = default_cml(id);
-// 		cml.staking_slot = vec![StakingItem {
-// 			owner: 1,
-// 			category: pallet_cml::StakingCategory::Cml,
-// 			amount: Some(1000),
-// 			cml: None,
-// 		}];
-// 		cml.status = status;
-//
-// 		cml
-// 	};
-//
-// 	// fail if `CmlStatus` is Dead
-// 	new_test_ext().execute_with(|| {
-// 		let user = 1;
-// 		let cml_id = 11;
-// 		let cml = create_cml(cml_id, CmlStatus::Dead);
-//
-// 		CmlStore::<Test>::insert(cml_id, cml);
-// 		UserCmlStore::<Test>::insert(user, vec![11]);
-//
-// 		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
-// 		assert_noop!(rs, Error::<Test>::NotAllowToAuction);
-// 	});
-//
-// 	// success for other CmlStatus
-// 	new_test_ext().execute_with(|| {
-// 		let user = 1;
-// 		let cml_id = 11;
-// 		let cml = create_cml(cml_id, CmlStatus::Staking);
-//
-// 		CmlStore::<Test>::insert(cml_id, cml);
-// 		UserCmlStore::<Test>::insert(user, vec![11]);
-//
-// 		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
-// 		assert_ok!(rs);
-// 	});
-// }
+use crate::{
+	mock::*, types::*, AuctionBidStore, AuctionStore, BidStore, Config, EndblockAuctionStore,
+	Error, LastAuctionId, UserAuctionStore, UserBidStore,
+};
+use frame_support::{assert_noop, assert_ok, traits::Currency};
+use pallet_cml::{
+	CmlId, CmlStatus, CmlStore, CmlType, DefrostScheduleType, Error as CmlError, Seed,
+	SeedProperties, StakingItem, UserCmlStore, CML,
+};
+
+#[test]
+fn put_to_store_works() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.defrost(&0);
+		cml.convert_to_tree(&0);
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Auction::put_to_store(Origin::signed(1), cml_id, 1000, None));
+
+		let auction_id = 1; // this is the first auction so ID is 1
+		let store_list = UserAuctionStore::<Test>::get(1).unwrap();
+		assert_eq!(store_list.len(), 1);
+		assert_eq!(store_list.get(0).unwrap(), &auction_id);
+
+		let (_, next_window) = Auction::get_window_block();
+		let auction_list = EndblockAuctionStore::<Test>::get(next_window).unwrap();
+		assert_eq!(auction_list.len(), 1);
+		assert_eq!(auction_list.get(0).unwrap(), &auction_id);
+
+		let auction = AuctionStore::<Test>::get(auction_id).unwrap();
+		assert_eq!(auction.cml_owner, 1);
+	})
+}
+
+#[test]
+fn put_not_exist_cml_to_store_should_fail() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Auction::put_to_store(Origin::signed(1), 11, 1000, None),
+			CmlError::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn put_not_my_cml_to_store_should_fail() {
+	new_test_ext().execute_with(|| {
+		let cml_id = 11;
+		CmlStore::<Test>::insert(
+			cml_id,
+			CML::from_genesis_seed(seed_from_lifespan(cml_id, 100)),
+		);
+
+		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
+		assert_noop!(rs, CmlError::<Test>::CMLOwnerInvalid);
+	})
+}
+
+#[test]
+fn put_to_store_should_fail_if_cml_is_dead() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml_id = 11;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.defrost(&0);
+		cml.convert_to_tree(&0);
+
+		CmlStore::<Test>::insert(cml_id, cml);
+		UserCmlStore::<Test>::insert(user, cml_id, ());
+
+		frame_system::Pallet::<Test>::set_block_number(100);
+		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
+		assert_noop!(rs, Error::<Test>::NotAllowToAuction);
+	});
+}
+
+#[test]
+fn put_to_store_works_for_frozen_seed() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
+		assert_ok!(rs);
+	});
+}
+
+#[test]
+fn put_to_store_works_for_locked_frozen_seed() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut seed = seed_from_lifespan(cml_id, 100);
+		seed.defrost_time = Some(1000);
+		let mut cml = CML::from_genesis_seed(seed);
+		assert!(cml.is_frozen_seed());
+		assert!(!cml.seed_valid(&0));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
+		assert_ok!(rs);
+	});
+}
+
+#[test]
+fn put_to_store_works_for_fresh_seed() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml_id = 11;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.defrost(&0);
+		CmlStore::<Test>::insert(cml_id, cml);
+		UserCmlStore::<Test>::insert(user, cml_id, ());
+
+		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
+		assert_ok!(rs);
+	});
+}
+
+#[test]
+fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml_id = 11;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.defrost(&0);
+		let fresh_duration = cml.get_fresh_duration();
+		CmlStore::<Test>::insert(cml_id, cml);
+		UserCmlStore::<Test>::insert(user, cml_id, ());
+
+		frame_system::Pallet::<Test>::set_block_number(fresh_duration);
+		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
+		assert_noop!(rs, Error::<Test>::NotAllowToAuction);
+	});
+}
+
 //
 // #[test]
 // fn bid_for_auction_works() {
@@ -849,3 +882,20 @@
 // 		bid_user: None,
 // 	}
 // }
+
+pub fn new_genesis_seed(id: CmlId) -> Seed {
+	Seed {
+		id,
+		cml_type: CmlType::A,
+		defrost_schedule: Some(DefrostScheduleType::Team),
+		defrost_time: Some(0),
+		lifespan: 0,
+		performance: 0,
+	}
+}
+
+pub fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
+	let mut seed = new_genesis_seed(id);
+	seed.lifespan = lifespan;
+	seed
+}

@@ -105,7 +105,7 @@ where
 	Balance: Clone,
 	FreshDuration: Get<BlockNumber>,
 {
-	pub(crate) fn from_genesis_seed(intrinsic: Seed) -> Self {
+	pub fn from_genesis_seed(intrinsic: Seed) -> Self {
 		CML {
 			intrinsic,
 			status: CmlStatus::FrozenSeed,

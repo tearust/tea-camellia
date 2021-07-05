@@ -13,15 +13,14 @@ use frame_support::traits::{
 	ReservableCurrency,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use pallet_cml::{CmlId, CmlOperation, TreeProperties};
-use pallet_utils::traits::CurrencyOperations;
+use log::info;
+use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
+use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Saturating},
 	DispatchResult, SaturatedConversion,
 };
 use sp_std::{cmp::Ordering, prelude::*};
-
-use log::info;
 
 #[cfg(test)]
 mod mock;
@@ -46,7 +45,6 @@ pub type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod auction {
 	use super::*;
-	use pallet_cml::SeedProperties;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -180,10 +178,6 @@ pub mod auction {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		// fn on_initialize(now: T::BlockNumber) -> Weight {
-
-		// }
-
 		fn on_finalize(now: T::BlockNumber) {
 			let b = now % T::AuctionDealWindowBLock::get();
 
@@ -212,22 +206,34 @@ pub mod auction {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
-			T::CmlOperation::check_belongs(&cml_id, &sender)?;
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					let cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
+					T::CmlOperation::check_belongs(&cml_id, &sender)?;
 
-			let current_height = frame_system::Pallet::<T>::block_number();
-			// check cml status
-			ensure!(
-				cml_item.is_seed() || cml_item.tree_valid(&current_height),
-				Error::<T>::NotAllowToAuction
-			);
+					let current_height = frame_system::Pallet::<T>::block_number();
+					// check cml status
+					ensure!(
+						cml_item.is_frozen_seed()
+							|| (cml_item.is_fresh_seed() && !cml_item.has_expired(&current_height))
+							|| cml_item.tree_valid(&current_height),
+						Error::<T>::NotAllowToAuction
+					);
+					Ok(())
+				},
+				|sender| {
+					let auction_item = Self::new_auction_item(
+						cml_id,
+						sender.clone(),
+						starting_price,
+						buy_now_price,
+					);
+					Self::add_auction_to_storage(auction_item.clone(), &sender);
 
-			let auction_item =
-				Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
-			Self::add_auction_to_storage(auction_item.clone(), &sender);
-
-			Self::deposit_event(Event::NewAuctionToStore(auction_item.id, sender.clone()));
-			Ok(())
+					Self::deposit_event(Event::NewAuctionToStore(auction_item.id, sender.clone()));
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
