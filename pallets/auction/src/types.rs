@@ -6,15 +6,14 @@ use sp_std::prelude::*;
 use pallet_cml::CmlId;
 use sp_std::cmp::{Eq, PartialEq};
 
-// use super::auction;
-
-// #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-// pub enum Change<Value> {
-// 	/// No change.
-// 	NoChange,
-// 	/// Changed to new value.
-// 	NewValue(Value),
-// }
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub enum AuctionStatus {
+	Normal,
+	/// If auction fee is not payed for the next window, auction status will be set to suspend,
+	/// the auction seller should add sufficient free balance or else the auction will be deleted
+	/// in the next window.
+	Suspended,
+}
 
 pub type AuctionId = u64;
 
@@ -31,7 +30,7 @@ where
 	pub starting_price: Balance,
 	pub buy_now_price: Option<Balance>,
 	pub start_at: BlockNumber,
-	pub status: Vec<u8>,
+	pub status: AuctionStatus,
 	pub bid_user: Option<AccountId>,
 }
 
@@ -78,7 +77,7 @@ where
 			starting_price: Balance::default(),
 			buy_now_price: None,
 			start_at: BlockNumber::default(),
-			status: vec![],
+			status: AuctionStatus::Normal,
 			bid_user: None,
 		}
 	}

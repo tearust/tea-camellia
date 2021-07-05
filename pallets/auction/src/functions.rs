@@ -26,7 +26,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			starting_price,
 			buy_now_price,
 			start_at: frame_system::Pallet::<T>::block_number(),
-			status: b"normal".to_vec(),
+			status: AuctionStatus::Normal,
 			bid_user: None,
 		}
 	}
