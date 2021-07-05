@@ -79,8 +79,10 @@ impl pallet_cml::Config for Test {
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 
+pub const AUCTION_DEAL_WINDOW_BLOCK: BlockNumber = 50;
+
 parameter_types! {
-	pub const AuctionDealWindowBLock: BlockNumber = 50;
+	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_DEAL_WINDOW_BLOCK;
 	pub const MinPriceForBid: Balance = 1;
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1;
 }

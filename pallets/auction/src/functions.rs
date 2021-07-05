@@ -61,12 +61,13 @@ impl<T: auction::Config> auction::Pallet<T> {
 	// return current block window number and next.
 	pub fn get_window_block() -> (T::BlockNumber, T::BlockNumber) {
 		let current_block = frame_system::Pallet::<T>::block_number();
-		let current_window = current_block / T::AuctionDealWindowBLock::get();
-		let next_window = (current_window + <T::BlockNumber>::saturated_from(1_u64))
-			* T::AuctionDealWindowBLock::get();
+		let current_index = current_block / T::AuctionDealWindowBLock::get();
+		let next_index = current_index + <T::BlockNumber>::saturated_from(1_u64);
 
-		let current_window = current_window * T::AuctionDealWindowBLock::get();
-		(current_window, next_window)
+		(
+			current_index * T::AuctionDealWindowBLock::get(),
+			next_index * T::AuctionDealWindowBLock::get(),
+		)
 	}
 
 	pub fn add_auction_to_storage(
@@ -400,30 +401,46 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 }
 
-// #[cfg(test)]
-// mod tests {
-//   #![warn(unused_imports)]
+#[cfg(test)]
+mod tests {
+	use crate::{mock::*, LastAuctionId};
 
-//   use crate::{
-//     mock::*, types::*, Config,
-//   };
-//   use frame_support::{traits::Currency};
-//   // use pallet_cml::{
-//   //     CmlStatus, CmlStore, DaiStore, Error as CmlError, StakingItem, UserCmlStore, CML,
-//   // };
+	#[test]
+	fn get_next_auction_id_works() {
+		new_test_ext().execute_with(|| {
+			// default auction id started at 0
+			assert_eq!(LastAuctionId::<Test>::get(), 0);
 
-//   #[test]
-//   fn transfer_balance_from_a_to_b_should_work(){
-//     new_test_ext().execute_with(||{
-//       let a = 1;
-//       let b = 2;
+			assert_eq!(Auction::get_next_auction_id(), 1);
 
-//       <Test as Config>::Currency::make_free_balance_be(&a, 1000);
-//       <Test as Config>::Currency::make_free_balance_be(&b, 1000);
+			LastAuctionId::<Test>::set(u64::MAX - 1);
+			assert_eq!(Auction::get_next_auction_id(), u64::MAX);
 
-//       Auction::transfer_balance(&a, &b, 100).unwrap();
-//       assert_eq!(<Test as Config>::Currency::free_balance(&a), 1000-100);
-//       assert_eq!(<Test as Config>::Currency::free_balance(&b), 1000+100);
-//     });
-//   }
-// }
+			// auction id back to 0
+			assert_eq!(Auction::get_next_auction_id(), 0);
+		})
+	}
+
+	#[test]
+	fn get_window_block_works() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(frame_system::Pallet::<Test>::block_number(), 0);
+			let (current, next) = Auction::get_window_block();
+			assert_eq!(current, 0);
+			assert_eq!(next, AUCTION_DEAL_WINDOW_BLOCK as u64);
+
+			for i in 1..AUCTION_DEAL_WINDOW_BLOCK {
+				frame_system::Pallet::<Test>::set_block_number(i as u64);
+
+				let (current, next) = Auction::get_window_block();
+				assert_eq!(current, 0);
+				assert_eq!(next, AUCTION_DEAL_WINDOW_BLOCK as u64);
+			}
+
+			frame_system::Pallet::<Test>::set_block_number(AUCTION_DEAL_WINDOW_BLOCK as u64);
+			let (current, next) = Auction::get_window_block();
+			assert_eq!(current, AUCTION_DEAL_WINDOW_BLOCK as u64);
+			assert_eq!(next, (AUCTION_DEAL_WINDOW_BLOCK as u64) * 2);
+		})
+	}
+}
