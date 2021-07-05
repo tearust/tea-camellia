@@ -85,7 +85,6 @@ pub mod auction {
 		LockableInvalid,
 
 		NotAllowToAuction,
-		BalanceReserveOrUnreserveError,
 
 		NotEnoughBalanceForPenalty,
 	}

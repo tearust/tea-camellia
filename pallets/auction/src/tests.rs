@@ -1,11 +1,8 @@
-use crate::{
-	mock::*, types::*, AuctionBidStore, AuctionStore, BidStore, Config, EndBlockAuctionStore,
-	Error, LastAuctionId, UserAuctionStore, UserBidStore,
-};
-use frame_support::{assert_noop, assert_ok, traits::Currency};
+use crate::{mock::*, AuctionStore, EndBlockAuctionStore, Error, UserAuctionStore};
+use frame_support::{assert_noop, assert_ok};
 use pallet_cml::{
-	CmlId, CmlStatus, CmlStore, CmlType, DefrostScheduleType, Error as CmlError, Seed,
-	SeedProperties, StakingItem, UserCmlStore, CML,
+	CmlId, CmlStore, CmlType, DefrostScheduleType, Error as CmlError, Seed, SeedProperties,
+	UserCmlStore, CML,
 };
 
 #[test]
@@ -82,7 +79,7 @@ fn put_to_store_works_for_frozen_seed() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
-		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
@@ -97,7 +94,7 @@ fn put_to_store_works_for_locked_frozen_seed() {
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let mut seed = seed_from_lifespan(cml_id, 100);
 		seed.defrost_time = Some(1000);
-		let mut cml = CML::from_genesis_seed(seed);
+		let cml = CML::from_genesis_seed(seed);
 		assert!(cml.is_frozen_seed());
 		assert!(!cml.seed_valid(&0));
 		CmlStore::<Test>::insert(cml_id, cml);
