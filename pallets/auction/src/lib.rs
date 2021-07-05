@@ -79,9 +79,6 @@ pub mod auction {
 		type AuctionDealWindowBLock: Get<Self::BlockNumber>;
 
 		#[pallet::constant]
-		type BidDeposit: Get<BalanceOf<Self>>;
-
-		#[pallet::constant]
 		type MinPriceForBid: Get<BalanceOf<Self>>;
 
 		#[pallet::constant]

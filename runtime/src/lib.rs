@@ -854,7 +854,6 @@ const AUCTION_WINDOW_BLOCK: BlockNumber = 100;
 const AUCTION_WINDOW_BLOCK: BlockNumber = 1000;
 parameter_types! {
 	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_WINDOW_BLOCK;
-	pub const BidDeposit: Balance = 100 * DOLLARS;
 	pub const MinPriceForBid: Balance = 1 * DOLLARS;
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
 }
@@ -865,7 +864,6 @@ impl pallet_auction::Config for Runtime {
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
 	type AuctionDealWindowBLock = AuctionDealWindowBLock;
-	type BidDeposit = BidDeposit;
 	type MinPriceForBid = MinPriceForBid;
 	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
 }
