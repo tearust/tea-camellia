@@ -244,69 +244,20 @@ pub mod auction {
 			price: BalanceOf<T>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
+			Self::check_bid_for_auction(&sender, &auction_id, price)?;
 
-			// validate balance
-			let balance = <T as auction::Config>::Currency::free_balance(&sender);
-			ensure!(balance >= price, Error::<T>::NotEnoughBalance);
-
-			// check auction item
-			let auction_item =
-				AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
-			let min_price = Self::get_min_bid_price(&auction_item, &sender)?;
-
-			// if let Some(bid_user) = &auction_item.bid_user {
-			//   ensure!(&bid_user.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
-			// }
-
-			ensure!(min_price <= price, Error::<T>::InvalidBidPrice);
-			ensure!(
-				&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal,
-				Error::<T>::BidSelfBelongs
-			);
-
+			let auction_item = AuctionStore::<T>::get(auction_id).unwrap();
 			let cml_item = T::CmlOperation::get_cml_by_id(&auction_item.cml_id)?;
 			let deposit_bid_price = if !cml_item.is_seed() {
-				let total_price = price.saturating_add(T::BidDeposit::get());
-				ensure!(balance > total_price, Error::<T>::NotEnoughBalance);
 				Some(T::BidDeposit::get())
 			} else {
 				None
 			};
 
-			let current_block = frame_system::Pallet::<T>::block_number();
-			let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
-			if let Some(bid_item) = maybe_bid_item {
-				// increase price
-				let new_price = bid_item.price.saturating_add(price);
-				BidStore::<T>::mutate(&sender, &auction_id, |maybe_item| {
-					if let Some(ref mut item) = maybe_item {
-						item.price = new_price;
-						item.updated_at = current_block;
-					}
-				});
+			if BidStore::<T>::contains_key(&sender, &auction_id) {
+				Self::increase_bid_price(&sender, &auction_id, price);
 			} else {
-				// new bid
-				if let Some(deposit_price) = deposit_bid_price.clone() {
-					T::CurrencyOperations::reserve(&sender, deposit_price)?;
-				}
-				let item =
-					Self::new_bid_item(auction_item.id, sender.clone(), price, deposit_bid_price);
-				BidStore::<T>::insert(sender.clone(), auction_item.id, item);
-				AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
-					if let Some(ref mut list) = maybe_list {
-						list.push(sender.clone());
-					} else {
-						*maybe_list = Some(vec![sender.clone()]);
-					}
-				});
-
-				UserBidStore::<T>::mutate(&sender, |maybe_list| {
-					if let Some(ref mut list) = maybe_list {
-						list.push(auction_item.id);
-					} else {
-						*maybe_list = Some(vec![auction_item.id]);
-					}
-				});
+				Self::create_new_bid(&sender, price, deposit_bid_price, &auction_item);
 			}
 			Self::update_bid_price_for_auction_item(&auction_id, sender.clone());
 

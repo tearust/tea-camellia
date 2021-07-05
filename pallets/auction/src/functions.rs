@@ -301,6 +301,84 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 		Ok(())
 	}
+
+	pub(crate) fn check_bid_for_auction(
+		sender: &T::AccountId,
+		auction_id: &T::AuctionId,
+		price: BalanceOf<T>,
+	) -> DispatchResult {
+		// validate balance
+		let balance = <T as auction::Config>::Currency::free_balance(sender);
+		ensure!(balance >= price, Error::<T>::NotEnoughBalance);
+
+		// check auction item
+		let auction_item = AuctionStore::<T>::get(auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+		let min_price = Self::get_min_bid_price(&auction_item, sender)?;
+
+		// if let Some(bid_user) = &auction_item.bid_user {
+		//   ensure!(&bid_user.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
+		// }
+
+		ensure!(min_price <= price, Error::<T>::InvalidBidPrice);
+		ensure!(
+			&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal,
+			Error::<T>::BidSelfBelongs
+		);
+
+		let cml_item = T::CmlOperation::get_cml_by_id(&auction_item.cml_id)?;
+		if !cml_item.is_seed() {
+			let total_price = price.saturating_add(T::BidDeposit::get());
+			ensure!(balance > total_price, Error::<T>::NotEnoughBalance);
+		}
+
+		Ok(())
+	}
+
+	pub(crate) fn create_new_bid(
+		sender: &T::AccountId,
+		price: BalanceOf<T>,
+		deposit_bid_price: Option<BalanceOf<T>>,
+		auction_item: &AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
+	) {
+		if let Some(deposit_price) = deposit_bid_price.as_ref() {
+			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+			if T::CurrencyOperations::reserve(&sender, deposit_price.clone()).is_err() {
+				return;
+			}
+		}
+
+		let item = Self::new_bid_item(auction_item.id, sender.clone(), price, deposit_bid_price);
+		BidStore::<T>::insert(sender.clone(), auction_item.id, item);
+		AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				list.push(sender.clone());
+			} else {
+				*maybe_list = Some(vec![sender.clone()]);
+			}
+		});
+
+		UserBidStore::<T>::mutate(&sender, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				list.push(auction_item.id);
+			} else {
+				*maybe_list = Some(vec![auction_item.id]);
+			}
+		});
+	}
+
+	pub(crate) fn increase_bid_price(
+		sender: &T::AccountId,
+		auction_id: &T::AuctionId,
+		price: BalanceOf<T>,
+	) {
+		let current_block = frame_system::Pallet::<T>::block_number();
+		BidStore::<T>::mutate(&sender, &auction_id, |maybe_item| {
+			if let Some(ref mut item) = maybe_item {
+				item.price = item.price.saturating_add(price);
+				item.updated_at = current_block;
+			}
+		});
+	}
 }
 
 // #[cfg(test)]
