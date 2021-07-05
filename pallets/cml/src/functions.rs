@@ -34,12 +34,9 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 
 		CmlStore::<T>::mutate(&cml_id, |cml| -> DispatchResult {
 			if cml.is_mining() {
-				// todo check balance before create_balance_staking
 				let staking_item =
 					Self::create_balance_staking(target_account, T::StakingPrice::get())?;
 				cml.swap_first_slot(staking_item);
-
-				// TODO balance
 			}
 			Ok(())
 		})?;

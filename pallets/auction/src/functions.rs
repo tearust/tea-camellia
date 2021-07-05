@@ -38,11 +38,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub(super) fn update_bid_price_for_auction_item(
 		auction_id: &T::AuctionId,
-		bid_user: T::AccountId,
+		bid_user: &T::AccountId,
 	) {
 		AuctionStore::<T>::mutate(&auction_id, |maybe_item| {
 			if let Some(ref mut item) = maybe_item {
-				item.bid_user = Some(bid_user);
+				item.bid_user = Some(bid_user.clone());
 			}
 		});
 	}
@@ -228,35 +228,39 @@ impl<T: auction::Config> auction::Pallet<T> {
 	pub fn complete_auction(
 		auction_item: &AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		target: &T::AccountId,
-	) -> DispatchResult {
-		let bid_item =
-			BidStore::<T>::get(&target, &auction_item.id).ok_or(Error::<T>::NotFoundBid)?;
-
-		let rs = T::CmlOperation::transfer_cml_other(
+	) {
+		if !BidStore::<T>::contains_key(&target, &auction_item.id) {
+			return;
+		}
+		if T::CmlOperation::transfer_cml_other(
 			&auction_item.cml_owner,
 			&auction_item.cml_id,
 			&target,
-		);
-
-		if rs.is_ok() {
-			Self::delete_auction(&auction_item.id);
-
-			// transfer price from bid_user to seller.
-			T::CurrencyOperations::transfer(
-				&target,
-				&auction_item.cml_owner,
-				bid_item.price,
-				AllowDeath,
-			)?;
-
-			Self::deposit_event(Event::AuctionSuccess(
-				auction_item.id,
-				target.clone(),
-				bid_item.price,
-			));
+		)
+		.is_err()
+		{
+			return;
 		}
 
-		Ok(())
+		let bid_item = BidStore::<T>::get(&target, &auction_item.id).unwrap();
+		// transfer price from bid_user to seller.
+		if T::CurrencyOperations::transfer(
+			&target,
+			&auction_item.cml_owner,
+			bid_item.price,
+			AllowDeath,
+		)
+		.is_err()
+		{
+			return;
+		}
+
+		Self::delete_auction(&auction_item.id);
+		Self::deposit_event(Event::AuctionSuccess(
+			auction_item.id,
+			target.clone(),
+			bid_item.price,
+		));
 	}
 
 	// when in window block, check each auction could complet or not.
@@ -287,7 +291,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		next_window: T::BlockNumber,
 	) -> DispatchResult {
 		if let Some(ref bid_user) = auction_item.bid_user {
-			Self::complete_auction(&auction_item, &bid_user)?;
+			Self::complete_auction(&auction_item, &bid_user);
 		} else {
 			// put to next block
 			EndblockAuctionStore::<T>::mutate(next_window, |maybe_list| {
@@ -337,9 +341,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub(crate) fn create_new_bid(
 		sender: &T::AccountId,
+		auction_id: &T::AuctionId,
 		price: BalanceOf<T>,
-		auction_item: &AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
 	) {
+		let auction_item = AuctionStore::<T>::get(auction_id).unwrap();
+
 		let essential_balance = Self::get_essential_bid_balance(price, &auction_item.cml_id);
 		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 		if T::CurrencyOperations::reserve(&sender, essential_balance).is_err() {
@@ -387,6 +393,18 @@ impl<T: auction::Config> auction::Pallet<T> {
 				item.updated_at = current_block;
 			}
 		});
+	}
+
+	pub(crate) fn try_complete_auction(sender: &T::AccountId, auction_id: &T::AuctionId) {
+		let auction_item = AuctionStore::<T>::get(auction_id).unwrap();
+		if let Some(buy_now_price) = auction_item.buy_now_price {
+			let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
+			if let Some(bid_item) = maybe_bid_item {
+				if bid_item.price >= buy_now_price {
+					Self::complete_auction(&auction_item, &sender);
+				}
+			}
+		}
 	}
 }
 

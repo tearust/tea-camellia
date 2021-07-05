@@ -244,32 +244,25 @@ pub mod auction {
 			price: BalanceOf<T>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			Self::check_bid_for_auction(&sender, &auction_id, price)?;
 
-			let auction_item = AuctionStore::<T>::get(auction_id).unwrap();
-
-			if BidStore::<T>::contains_key(&sender, &auction_id) {
-				Self::increase_bid_price(&sender, &auction_id, price);
-			} else {
-				Self::create_new_bid(&sender, price, &auction_item);
-			}
-			Self::update_bid_price_for_auction_item(&auction_id, sender.clone());
-
-			// check auction success or not.
-			if let Some(buy_now_price) = auction_item.buy_now_price {
-				let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
-				if let Some(bid_item) = maybe_bid_item {
-					if bid_item.price >= buy_now_price {
-						Self::complete_auction(&auction_item, &sender)?;
-
-						return Ok(());
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					Self::check_bid_for_auction(&sender, &auction_id, price)?;
+					Ok(())
+				},
+				|sender| {
+					if BidStore::<T>::contains_key(&sender, &auction_id) {
+						Self::increase_bid_price(&sender, &auction_id, price);
+					} else {
+						Self::create_new_bid(&sender, &auction_id, price);
 					}
-				}
-			}
+					Self::update_bid_price_for_auction_item(&auction_id, &sender);
+					Self::deposit_event(Event::BidAuction(auction_id, sender.clone(), price));
 
-			Self::deposit_event(Event::BidAuction(auction_id, sender.clone(), price));
-
-			Ok(())
+					Self::try_complete_auction(&sender, &auction_id);
+				},
+			)
 		}
 
 		#[pallet::weight(100_000)]
