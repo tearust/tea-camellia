@@ -247,22 +247,13 @@ pub mod auction {
 			Self::check_bid_for_auction(&sender, &auction_id, price)?;
 
 			let auction_item = AuctionStore::<T>::get(auction_id).unwrap();
-			let cml_item = T::CmlOperation::get_cml_by_id(&auction_item.cml_id)?;
-			let deposit_bid_price = if !cml_item.is_seed() {
-				Some(T::BidDeposit::get())
-			} else {
-				None
-			};
 
 			if BidStore::<T>::contains_key(&sender, &auction_id) {
 				Self::increase_bid_price(&sender, &auction_id, price);
 			} else {
-				Self::create_new_bid(&sender, price, deposit_bid_price, &auction_item);
+				Self::create_new_bid(&sender, price, &auction_item);
 			}
 			Self::update_bid_price_for_auction_item(&auction_id, sender.clone());
-
-			// lock bid price
-			T::CurrencyOperations::reserve(&sender, price)?;
 
 			// check auction success or not.
 			if let Some(buy_now_price) = auction_item.buy_now_price {

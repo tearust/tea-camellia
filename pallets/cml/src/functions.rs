@@ -50,6 +50,20 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 
 		Ok(())
 	}
+
+	fn get_cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance> {
+		if !CmlStore::<T>::contains_key(cml_id) {
+			return None;
+		}
+
+		let cml = CmlStore::<T>::get(cml_id);
+		if cml.is_mining() {
+			if let Some(staking_item) = cml.staking_slots().get(0) {
+				return staking_item.amount.clone();
+			}
+		}
+		None
+	}
 }
 
 impl<T: cml::Config> cml::Pallet<T> {

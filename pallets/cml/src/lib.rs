@@ -670,6 +670,8 @@ pub trait CmlOperation {
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
 	) -> Result<(), DispatchError>;
+
+	fn get_cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance>;
 }
 
 pub trait StakingEconomics<Balance> {
