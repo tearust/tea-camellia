@@ -19,22 +19,13 @@ impl<T: auction::Config> auction::Pallet<T> {
 		starting_price: BalanceOf<T>,
 		buy_now_price: Option<BalanceOf<T>>,
 	) -> AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber> {
-		let current_block = frame_system::Pallet::<T>::block_number();
-
-		let period: u64 = 1_000_000;
-
-		// TODO remove end_block
-		let end_block = period.saturated_into::<T::BlockNumber>() + current_block;
-
 		AuctionItem {
 			id: Self::get_next_auction_id(),
 			cml_id,
 			cml_owner,
 			starting_price,
 			buy_now_price,
-			start_at: current_block,
-			end_at: end_block,
-
+			start_at: frame_system::Pallet::<T>::block_number(),
 			status: b"normal".to_vec(),
 			bid_user: None,
 		}

@@ -31,10 +31,7 @@ where
 	pub starting_price: Balance,
 	pub buy_now_price: Option<Balance>,
 	pub start_at: BlockNumber,
-	pub end_at: BlockNumber,
-
 	pub status: Vec<u8>,
-
 	pub bid_user: Option<AccountId>,
 }
 
@@ -81,7 +78,6 @@ where
 			starting_price: Balance::default(),
 			buy_now_price: None,
 			start_at: BlockNumber::default(),
-			end_at: BlockNumber::default(),
 			status: vec![],
 			bid_user: None,
 		}
