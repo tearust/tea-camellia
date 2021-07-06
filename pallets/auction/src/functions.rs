@@ -102,12 +102,16 @@ impl<T: auction::Config> auction::Pallet<T> {
 		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		who: &T::AccountId,
 	) -> Result<BalanceOf<T>, Error<T>> {
-		let min_price = match BidStore::<T>::contains_key(who, auction_item.id) {
+		if auction_item.bid_user.is_none() {
+			return Ok(auction_item.starting_price);
+		}
+
+		let origin_bid_price = match BidStore::<T>::contains_key(who, auction_item.id) {
 			true => BidStore::<T>::get(who, auction_item.id).price,
 			false => <BalanceOf<T>>::saturated_from(0_u128),
 		};
 
-		let max_price = {
+		let starting_price = {
 			if let Some(bid_user) = &auction_item.bid_user {
 				ensure!(
 					BidStore::<T>::contains_key(&bid_user, auction_item.id),
@@ -120,8 +124,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 			}
 		};
 
-		let rs = max_price
-			.saturating_sub(min_price)
+		let rs = starting_price
+			.saturating_sub(origin_bid_price)
 			.saturating_add(T::MinPriceForBid::get());
 
 		Ok(rs)
@@ -403,7 +407,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 #[cfg(test)]
 mod tests {
-	use crate::{mock::*, LastAuctionId};
+	use crate::{mock::*, AuctionItem, BidItem, BidStore, LastAuctionId};
 
 	#[test]
 	fn get_next_auction_id_works() {
@@ -441,6 +445,58 @@ mod tests {
 			let (current, next) = Auction::get_window_block();
 			assert_eq!(current, AUCTION_DEAL_WINDOW_BLOCK as u64);
 			assert_eq!(next, (AUCTION_DEAL_WINDOW_BLOCK as u64) * 2);
+		})
+	}
+
+	#[test]
+	fn get_min_bid_price_works() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let user2 = 2;
+			let starting_price = 100;
+			let mut auction_item = AuctionItem::default();
+			auction_item.starting_price = starting_price;
+
+			// first bid
+			assert!(!BidStore::<Test>::contains_key(user1, auction_item.id)); // user1 not bid before
+			assert!(auction_item.bid_user.is_none()); // auction not bid yet
+			assert_eq!(
+				Auction::get_min_bid_price(&auction_item, &user1).unwrap(),
+				auction_item.starting_price
+			);
+
+			let mut bid_item1 = BidItem::default();
+			bid_item1.price = auction_item.starting_price;
+			BidStore::<Test>::insert(user1, auction_item.id, bid_item1);
+			auction_item.bid_user = Some(user1);
+
+			// user2 bid after user1
+			assert!(!BidStore::<Test>::contains_key(user2, auction_item.id)); // user2 not bid before
+			assert_eq!(
+				Auction::get_min_bid_price(&auction_item, &user2).unwrap(),
+				auction_item.starting_price + MIN_PRICE_FOR_BID
+			);
+
+			let mut bid_item2 = BidItem::default();
+			bid_item2.price = auction_item.starting_price + MIN_PRICE_FOR_BID * 2; // double min price
+			BidStore::<Test>::insert(user2, auction_item.id, bid_item2);
+			auction_item.bid_user = Some(user2);
+
+			// user1 bid the second time
+			assert_eq!(
+				Auction::get_min_bid_price(&auction_item, &user1).unwrap(),
+				MIN_PRICE_FOR_BID * 3
+			);
+			BidStore::<Test>::mutate(user1, auction_item.id, |item| {
+				item.price += MIN_PRICE_FOR_BID * 3;
+			});
+			auction_item.bid_user = Some(user1);
+
+			// user2 bid the second time
+			assert_eq!(
+				Auction::get_min_bid_price(&auction_item, &user2).unwrap(),
+				MIN_PRICE_FOR_BID * 2
+			);
 		})
 	}
 }

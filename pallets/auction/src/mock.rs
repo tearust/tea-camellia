@@ -80,10 +80,11 @@ impl pallet_cml::Config for Test {
 }
 
 pub const AUCTION_DEAL_WINDOW_BLOCK: BlockNumber = 50;
+pub const MIN_PRICE_FOR_BID: Balance = 1;
 
 parameter_types! {
 	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_DEAL_WINDOW_BLOCK;
-	pub const MinPriceForBid: Balance = 1;
+	pub const MinPriceForBid: Balance = MIN_PRICE_FOR_BID;
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1;
 }
 
