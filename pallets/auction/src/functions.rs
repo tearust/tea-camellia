@@ -171,6 +171,19 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub fn check_delete_bid(who: &T::AccountId, auction_id: &AuctionId) -> DispatchResult {
 		ensure!(
+			AuctionStore::<T>::contains_key(&auction_id),
+			Error::<T>::AuctionNotExist
+		);
+
+		let auction_item = AuctionStore::<T>::get(&auction_id);
+		if let Some(bid_user) = auction_item.bid_user {
+			ensure!(
+				who.cmp(&bid_user) != Ordering::Equal,
+				Error::<T>::NotAllowQuitBid
+			);
+		}
+
+		ensure!(
 			BidStore::<T>::contains_key(who, auction_id),
 			Error::<T>::NotFoundBid
 		);
@@ -181,18 +194,15 @@ impl<T: auction::Config> auction::Pallet<T> {
 			T::CurrencyOperations::reserved_balance(who) >= total,
 			Error::<T>::NotEnoughReserveBalance
 		);
-		// todo check user bid store
-		// todo check auction bid store
 		Ok(())
 	}
 
 	pub fn delete_bid(who: &T::AccountId, auction_id: &AuctionId) {
-		// remove from BidStore
 		let bid_item = BidStore::<T>::take(&who, &auction_id);
-		// return lock balance
+
 		let total = Self::bid_total_price(&bid_item);
 		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-		let res = T::CurrencyOperations::unreserve(&who, total);
+		let res = T::CurrencyOperations::unreserve(who, total);
 		if res.is_err() {
 			return;
 		}
@@ -216,7 +226,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		});
 	}
 
-	fn bid_total_price(
+	pub(crate) fn bid_total_price(
 		bid_item: &BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 	) -> BalanceOf<T> {
 		let mut total = bid_item.price;
