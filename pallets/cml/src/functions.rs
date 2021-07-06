@@ -6,7 +6,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 	type BlockNumber = T::BlockNumber;
 	type FreshDuration = T::SeedFreshDuration;
 
-	fn get_cml_by_id(
+	fn cml_by_id(
 		cml_id: &CmlId,
 	) -> Result<
 		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
@@ -25,30 +25,65 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Ok(())
 	}
 
-	fn transfer_cml_other(
+	fn check_transfer_cml_to_other(
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
 	) -> DispatchResult {
 		Self::check_belongs(cml_id, from_account)?;
+		let cml = CmlStore::<T>::get(cml_id);
+		if cml.is_mining() {
+			ensure!(
+				T::CurrencyOperations::free_balance(target_account) >= T::StakingPrice::get(),
+				Error::<T>::InsufficientFreeBalance
+			);
+			ensure!(
+				T::CurrencyOperations::reserved_balance(from_account) >= T::StakingPrice::get(),
+				Error::<T>::InsufficientReservedBalance
+			);
+		}
+		Ok(())
+	}
 
-		CmlStore::<T>::mutate(&cml_id, |cml| -> DispatchResult {
+	fn transfer_cml_to_other(
+		from_account: &Self::AccountId,
+		cml_id: &CmlId,
+		target_account: &Self::AccountId,
+	) {
+		if Self::check_transfer_cml_to_other(from_account, cml_id, target_account).is_err() {
+			return;
+		}
+
+		let success = CmlStore::<T>::mutate(&cml_id, |cml| {
 			if cml.is_mining() {
-				let staking_item =
-					Self::create_balance_staking(target_account, T::StakingPrice::get())?;
-				cml.swap_first_slot(staking_item);
+				return if let Ok(staking_item) =
+					Self::create_balance_staking(target_account, T::StakingPrice::get())
+				{
+					if T::CurrencyOperations::unreserve(from_account, T::StakingPrice::get())
+						.is_ok()
+					{
+						cml.swap_first_slot(staking_item);
+						true
+					} else {
+						false
+					}
+				} else {
+					false
+				};
 			}
-			Ok(())
-		})?;
+			true
+		});
+		// see https://github.com/tearust/tea-camellia/issues/13
+		if !success {
+			return;
+		}
 
 		// remove from from UserCmlStore
 		UserCmlStore::<T>::remove(from_account, cml_id);
 		UserCmlStore::<T>::insert(target_account, cml_id, ());
-
-		Ok(())
 	}
 
-	fn get_cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance> {
+	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance> {
 		if !CmlStore::<T>::contains_key(cml_id) {
 			return None;
 		}

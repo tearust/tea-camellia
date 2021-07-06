@@ -656,7 +656,7 @@ pub trait CmlOperation {
 	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
 	type FreshDuration: Get<Self::BlockNumber>;
 
-	fn get_cml_by_id(
+	fn cml_by_id(
 		cml_id: &CmlId,
 	) -> Result<
 		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
@@ -665,13 +665,19 @@ pub trait CmlOperation {
 
 	fn check_belongs(cml_id: &CmlId, who: &Self::AccountId) -> Result<(), DispatchError>;
 
-	fn transfer_cml_other(
+	fn check_transfer_cml_to_other(
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
-	) -> Result<(), DispatchError>;
+	) -> DispatchResult;
 
-	fn get_cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance>;
+	fn transfer_cml_to_other(
+		from_account: &Self::AccountId,
+		cml_id: &CmlId,
+		target_account: &Self::AccountId,
+	);
+
+	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance>;
 }
 
 pub trait StakingEconomics<Balance> {

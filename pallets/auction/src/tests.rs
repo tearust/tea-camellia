@@ -33,6 +33,7 @@ fn put_to_store_works() {
 
 		let auction = AuctionStore::<Test>::get(auction_id);
 		assert_eq!(auction.cml_owner, 1);
+		assert_eq!(auction.cml_id, cml_id);
 	})
 }
 
@@ -363,14 +364,8 @@ fn bid_for_seed_with_buy_now_price_should_work() {
 			auction_id,
 			buy_now_price
 		));
-		assert_eq!(
-			AuctionStore::<Test>::get(auction_id).bid_user,
-			Some(user_id)
-		);
-		assert_eq!(
-			BidStore::<Test>::get(user_id, auction_id).price,
-			buy_now_price
-		);
+		assert_eq!(AuctionStore::<Test>::get(auction_id).bid_user, None);
+		assert!(!BidStore::<Test>::contains_key(user_id, auction_id));
 
 		assert_eq!(
 			Utils::free_balance(&user_id),
@@ -407,7 +402,7 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 			b"miner_ip".to_vec()
 		));
 		let starting_price = 100;
-		let buy_now_price = 1000;
+		let buy_now_price = 500;
 		assert_ok!(Auction::put_to_store(
 			Origin::signed(owner),
 			cml_id,
@@ -425,17 +420,20 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 			auction_id,
 			buy_now_price
 		));
+		assert_eq!(AuctionStore::<Test>::get(auction_id).bid_user, None);
+		assert!(!BidStore::<Test>::contains_key(user_id, auction_id));
 
 		assert_eq!(
 			Utils::free_balance(&user_id),
 			user_origin_balance - buy_now_price - STAKING_PRICE
 		);
-		assert_eq!(Utils::reserved_balance(&user_id), 0);
+		assert_eq!(Utils::reserved_balance(&user_id), 1000);
 
 		assert_eq!(
 			Utils::free_balance(&owner),
 			owner_origin_balance + buy_now_price
 		);
+		assert_eq!(Utils::reserved_balance(&owner), 0);
 	})
 }
 
@@ -939,12 +937,14 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 // }
 
 fn default_auction_item(id: u64, owner_id: u64, cml_id: CmlId) -> AuctionItem<u64, u128, u64> {
-	let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+	let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+	cml.set_owner(&owner_id);
 	Cml::add_cml(&owner_id, cml);
 
 	let mut auction_item = AuctionItem::default();
 	auction_item.id = id;
 	auction_item.cml_owner = owner_id;
+	auction_item.cml_id = cml_id;
 	auction_item
 }
 

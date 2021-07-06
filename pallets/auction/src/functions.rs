@@ -226,14 +226,29 @@ impl<T: auction::Config> auction::Pallet<T> {
 		total
 	}
 
+	pub fn check_complete_auction(
+		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		target: &T::AccountId,
+	) -> DispatchResult {
+		T::CmlOperation::check_transfer_cml_to_other(
+			&auction_item.cml_owner,
+			&auction_item.cml_id,
+			&target,
+		)?;
+		Ok(())
+	}
+
 	pub fn complete_auction(
 		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		target: &T::AccountId,
 	) {
-		if !BidStore::<T>::contains_key(&target, &auction_item.id) {
+		let bid_item = BidStore::<T>::get(&target, &auction_item.id);
+		let essential_balance = Self::essential_bid_balance(bid_item.price, &auction_item.cml_id);
+		if T::CurrencyOperations::unreserve(target, essential_balance).is_err() {
 			return;
 		}
-		if T::CmlOperation::transfer_cml_other(
+
+		if T::CmlOperation::check_transfer_cml_to_other(
 			&auction_item.cml_owner,
 			&auction_item.cml_id,
 			&target,
@@ -243,7 +258,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 			return;
 		}
 
-		let bid_item = BidStore::<T>::get(&target, &auction_item.id);
 		// transfer price from bid_user to seller.
 		if T::CurrencyOperations::transfer(
 			&target,
@@ -255,6 +269,12 @@ impl<T: auction::Config> auction::Pallet<T> {
 		{
 			return;
 		}
+
+		T::CmlOperation::transfer_cml_to_other(
+			&auction_item.cml_owner,
+			&auction_item.cml_id,
+			&target,
+		);
 
 		Self::delete_auction(&auction_item.id);
 		Self::deposit_event(Event::AuctionSuccess(
@@ -312,7 +332,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		let auction_item = AuctionStore::<T>::get(auction_id);
 
 		// validate balance
-		let essential_balance = Self::get_essential_bid_balance(price, &auction_item.cml_id);
+		let essential_balance = Self::essential_bid_balance(price, &auction_item.cml_id);
 		ensure!(
 			T::CurrencyOperations::free_balance(sender) >= essential_balance,
 			Error::<T>::NotEnoughBalance
@@ -329,8 +349,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(())
 	}
 
-	fn get_essential_bid_balance(price: BalanceOf<T>, cml_id: &CmlId) -> BalanceOf<T> {
-		let deposit_price = T::CmlOperation::get_cml_deposit_price(cml_id);
+	fn essential_bid_balance(price: BalanceOf<T>, cml_id: &CmlId) -> BalanceOf<T> {
+		let deposit_price = T::CmlOperation::cml_deposit_price(cml_id);
 		match deposit_price {
 			Some(p) => price.saturating_add(p),
 			None => price,
@@ -344,7 +364,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	) {
 		let auction_item = AuctionStore::<T>::get(auction_id);
 
-		let essential_balance = Self::get_essential_bid_balance(price, &auction_item.cml_id);
+		let essential_balance = Self::essential_bid_balance(price, &auction_item.cml_id);
 		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 		if T::CurrencyOperations::reserve(&sender, essential_balance).is_err() {
 			return;
@@ -354,7 +374,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			auction_item.id,
 			sender.clone(),
 			price,
-			T::CmlOperation::get_cml_deposit_price(&auction_item.cml_id),
+			T::CmlOperation::cml_deposit_price(&auction_item.cml_id),
 		);
 		BidStore::<T>::insert(sender.clone(), auction_item.id, item);
 		AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
@@ -391,13 +411,24 @@ impl<T: auction::Config> auction::Pallet<T> {
 		});
 	}
 
+	pub(crate) fn can_by_now(
+		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		price: BalanceOf<T>,
+	) -> bool {
+		if let Some(buy_now_price) = auction_item.buy_now_price {
+			if price >= buy_now_price {
+				return true;
+			}
+		}
+		false
+	}
+
 	pub(crate) fn try_complete_auction(sender: &T::AccountId, auction_id: &AuctionId) {
 		let auction_item = AuctionStore::<T>::get(auction_id);
-		if let Some(buy_now_price) = auction_item.buy_now_price {
-			let bid_item = BidStore::<T>::get(&sender, &auction_id);
-			if bid_item.price >= buy_now_price {
-				Self::complete_auction(&auction_item, &sender);
-			}
+		let bid_item = BidStore::<T>::get(&sender, &auction_id);
+
+		if Self::can_by_now(&auction_item, bid_item.price) {
+			Self::complete_auction(&auction_item, &sender);
 		}
 	}
 }

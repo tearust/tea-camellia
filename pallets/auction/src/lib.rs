@@ -177,7 +177,7 @@ pub mod auction {
 			extrinsic_procedure(
 				&sender,
 				|sender| {
-					let cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
+					let cml_item = T::CmlOperation::cml_by_id(&cml_id)?;
 					T::CmlOperation::check_belongs(&cml_id, &sender)?;
 
 					let current_height = frame_system::Pallet::<T>::block_number();
@@ -216,6 +216,14 @@ pub mod auction {
 				&sender,
 				|sender| {
 					Self::check_bid_for_auction(&sender, &auction_id, price)?;
+					let auction_item = AuctionStore::<T>::get(auction_id);
+					if Self::can_by_now(&auction_item, price) {
+						T::CmlOperation::check_transfer_cml_to_other(
+							&auction_item.cml_owner,
+							&auction_item.cml_id,
+							sender,
+						)?;
+					}
 					Ok(())
 				},
 				|sender| {
