@@ -31,10 +31,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		}
 	}
 
-	pub(super) fn update_bid_price_for_auction_item(
-		auction_id: &AuctionId,
-		bid_user: &T::AccountId,
-	) {
+	pub(super) fn update_current_winner(auction_id: &AuctionId, bid_user: &T::AccountId) {
 		AuctionStore::<T>::mutate(&auction_id, |item| {
 			item.bid_user = Some(bid_user.clone());
 		});

@@ -1,9 +1,13 @@
-use crate::{mock::*, AuctionStore, EndBlockAuctionStore, Error, UserAuctionStore};
-use frame_support::{assert_noop, assert_ok};
+use crate::{
+	mock::*, AuctionBidStore, AuctionItem, AuctionStore, BidStore, EndBlockAuctionStore, Error,
+	UserAuctionStore, UserBidStore,
+};
+use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_cml::{
-	CmlId, CmlStore, CmlType, DefrostScheduleType, Error as CmlError, Seed, SeedProperties,
+	CmlId, CmlStore, CmlType, Config, DefrostScheduleType, Error as CmlError, Seed, SeedProperties,
 	UserCmlStore, CML,
 };
+use pallet_utils::CurrencyOperations;
 
 #[test]
 fn put_to_store_works() {
@@ -136,221 +140,305 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 	});
 }
 
-//
-// #[test]
-// fn bid_for_auction_works() {
-// 	new_test_ext().execute_with(|| {
-// 		let user_id = 1;
-// 		let auction_id = 22;
-// 		<Test as Config>::Currency::make_free_balance_be(&user_id, 100 * 1000);
-// 		let mut auction_item = default_auction_item(auction_id, 2);
-// 		auction_item.starting_price = 100;
-// 		AuctionStore::<Test>::insert(auction_id, auction_item);
-// 		// UserAuctionStore::<Test>::insert(&user_id, vec![auction_id]);
-//
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user_id),
-// 			auction_id,
-// 			101
-// 		));
-//
-// 		let bid_item = BidStore::<Test>::get(user_id, auction_id).unwrap();
-// 		assert_eq!(bid_item.auction_id, auction_id);
-// 		assert_eq!(bid_item.price, 101);
-// 		assert_eq!(bid_item.user, user_id);
-//
-// 		let auction_bid_list = AuctionBidStore::<Test>::get(auction_id).unwrap();
-// 		assert_eq!(auction_bid_list.len(), 1);
-// 		assert_eq!(auction_bid_list.get(0).unwrap(), &user_id);
-//
-// 		let user_bid_list = UserBidStore::<Test>::get(user_id).unwrap();
-// 		assert_eq!(user_bid_list.len(), 1);
-// 		assert_eq!(user_bid_list.get(0).unwrap(), &auction_id);
-// 	})
-// }
-//
-// #[test]
-// fn bid_for_diff_auction_to_check_user_balance() {
-// 	// cml was not CmlLive, no need deposit.
-// 	new_test_ext().execute_with(|| {
-// 		let owner = 2;
-//
-// 		let bid_user = 10;
-// 		<Test as Config>::Currency::make_free_balance_be(&bid_user, 1000);
-//
-// 		let cml_id = 1;
-// 		let mut cml = default_cml(cml_id);
-// 		cml.status = CmlStatus::SeedFrozen;
-//
-// 		Cml::add_cml(&owner, cml);
-//
-// 		assert_ok!(Auction::put_to_store(
-// 			Origin::signed(owner),
-// 			cml_id,
-// 			100,
-// 			None
-// 		));
-//
-// 		let auction_id = {
-// 			let tmp = UserAuctionStore::<Test>::get(owner).unwrap();
-// 			tmp.get(0).unwrap().clone()
-// 		};
-//
-// 		// user bid cml with 150
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(bid_user),
-// 			auction_id,
-// 			150,
-// 		));
-//
-// 		let balance = <Test as Config>::Currency::free_balance(bid_user);
-// 		// user balance was 850
-// 		assert_eq!(balance, 850);
-// 	});
-//
-// 	// cml was CmlLive, need deposit.
-// 	new_test_ext().execute_with(|| {
-// 		let owner = 2;
-//
-// 		let bid_user = 10;
-// 		<Test as Config>::Currency::make_free_balance_be(&bid_user, 1000);
-//
-// 		let cml_id = 1;
-// 		let mut cml = default_cml(cml_id);
-// 		cml.status = CmlStatus::CmlLive;
-//
-// 		Cml::add_cml(&owner, cml);
-//
-// 		assert_ok!(Auction::put_to_store(
-// 			Origin::signed(owner),
-// 			cml_id,
-// 			100,
-// 			None
-// 		));
-//
-// 		let auction_id = {
-// 			let tmp = UserAuctionStore::<Test>::get(owner).unwrap();
-// 			tmp.get(0).unwrap().clone()
-// 		};
-//
-// 		// user bid cml with 150
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(bid_user),
-// 			auction_id,
-// 			150,
-// 		));
-//
-// 		let balance = <Test as Config>::Currency::free_balance(bid_user);
-// 		// user balance was 1000-150-100
-// 		assert_eq!(balance, 750);
-// 	});
-// }
-//
-// #[test]
-// fn two_user_bid_for_auction_works() {
-// 	new_test_ext().execute_with(|| {
-// 		let user1_id = 1;
-// 		let user2_id = 2;
-// 		let auction_id = 22;
-// 		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
-// 		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
-// 		let mut auction_item = default_auction_item(auction_id, 5);
-// 		auction_item.starting_price = 100;
-// 		AuctionStore::<Test>::insert(auction_id, auction_item);
-//
-// 		let user1_bid_price = 150;
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user1_id),
-// 			auction_id,
-// 			user1_bid_price,
-// 		));
-// 		let bid_item = BidStore::<Test>::get(user1_id, auction_id).unwrap();
-// 		assert_eq!(bid_item.user, user1_id);
-// 		assert_eq!(bid_item.price, user1_bid_price);
-//
-// 		let user2_bid_price = 200;
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user2_id),
-// 			auction_id,
-// 			user2_bid_price
-// 		));
-// 		let bid_item2 = BidStore::<Test>::get(user2_id, auction_id).unwrap();
-// 		assert_eq!(bid_item2.user, user2_id);
-// 		assert_eq!(bid_item2.price, user2_bid_price);
-//
-// 		let bid_item1 = BidStore::<Test>::get(user1_id, auction_id).unwrap();
-// 		assert_eq!(bid_item1.user, user1_id);
-// 		assert_eq!(bid_item1.price, user1_bid_price);
-// 	})
-// }
-//
-// #[test]
-// fn bid_for_auction_add_price_works() {
-// 	new_test_ext().execute_with(|| {
-// 		let user1_id = 1;
-// 		let user2_id = 2;
-// 		let auction_id = 22;
-// 		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
-// 		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
-// 		let mut auction_item = default_auction_item(auction_id, 5);
-// 		auction_item.starting_price = 100;
-// 		AuctionStore::<Test>::insert(auction_id, auction_item);
-//
-// 		let user1_bid_price = 150;
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user1_id),
-// 			auction_id,
-// 			user1_bid_price,
-// 		));
-// 		let bid_item = BidStore::<Test>::get(user1_id, auction_id).unwrap();
-// 		assert_eq!(bid_item.price, user1_bid_price);
-//
-// 		// add user2 bid for auction
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user2_id),
-// 			auction_id,
-// 			200
-// 		));
-//
-// 		let user1_add_price = 100;
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user1_id),
-// 			auction_id,
-// 			user1_add_price,
-// 		));
-// 		let bid_item = BidStore::<Test>::get(user1_id, auction_id).unwrap();
-// 		assert_eq!(bid_item.price, user1_bid_price + user1_add_price);
-// 	})
-// }
-//
-// #[test]
-// fn bid_for_auction_im_win_for_now_should_work() {
-// 	new_test_ext().execute_with(|| {
-// 		let owner_id = 1;
-// 		let auction_id = 22;
-// 		<Test as Config>::Currency::make_free_balance_be(&owner_id, 100 * 1000);
-// 		let mut auction_item = default_auction_item(auction_id, 2);
-// 		auction_item.bid_user = Some(owner_id);
-// 		AuctionStore::<Test>::insert(auction_id, auction_item);
-// 		BidStore::<Test>::insert(
-// 			owner_id,
-// 			auction_id,
-// 			BidItem {
-// 				auction_id,
-// 				user: owner_id,
-// 				price: 5,
-// 				deposit: None,
-// 				created_at: 0,
-// 				updated_at: 0,
-// 			},
-// 		);
-//
-// 		assert_ok!(
-// 			Auction::bid_for_auction(Origin::signed(owner_id), auction_id, 10),
-// 			// Error::<Test>::NoNeedBid
-// 		);
-// 	})
-// }
+#[test]
+fn bid_for_auction_works() {
+	new_test_ext().execute_with(|| {
+		let user_id = 11;
+		let auction_id = 22;
+		let user1_origin_balance = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&user_id, user1_origin_balance);
+
+		let starting_price = 100;
+		let mut auction_item = default_auction_item(auction_id, 2, 1);
+		auction_item.starting_price = starting_price;
+		Auction::add_auction_to_storage(auction_item, &2);
+
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user_id),
+			auction_id,
+			starting_price
+		));
+
+		let bid_item = BidStore::<Test>::get(user_id, auction_id);
+		assert_eq!(bid_item.auction_id, auction_id);
+		assert_eq!(bid_item.price, starting_price);
+		assert_eq!(bid_item.user, user_id);
+
+		let auction_bid_list = AuctionBidStore::<Test>::get(auction_id).unwrap();
+		assert_eq!(auction_bid_list.len(), 1);
+		assert_eq!(auction_bid_list.get(0).unwrap(), &user_id);
+
+		let user_bid_list = UserBidStore::<Test>::get(user_id).unwrap();
+		assert_eq!(user_bid_list.len(), 1);
+		assert_eq!(user_bid_list.get(0).unwrap(), &auction_id);
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user_id),
+			user1_origin_balance - starting_price
+		);
+	})
+}
+
+#[test]
+fn bid_for_diff_auction_to_check_user_balance() {
+	// cml was not CmlLive, no need deposit.
+	new_test_ext().execute_with(|| {
+		let owner = 2;
+		let bid_user = 10;
+		<Test as Config>::Currency::make_free_balance_be(&bid_user, 1000);
+
+		let cml_id = 1;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		assert!(cml.is_frozen_seed());
+		Cml::add_cml(&owner, cml);
+
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(owner),
+			cml_id,
+			100,
+			None
+		));
+
+		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
+
+		// user bid cml with 150
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(bid_user),
+			auction_id,
+			150,
+		));
+
+		let balance = <Test as Config>::Currency::free_balance(bid_user);
+		// user balance was 850
+		assert_eq!(balance, 850);
+	});
+
+	// cml was CmlLive, need deposit.
+	new_test_ext().execute_with(|| {
+		let owner = 2;
+		let bid_user = 10;
+		let user_origin_balance = 10000;
+		<Test as Config>::Currency::make_free_balance_be(&bid_user, user_origin_balance);
+
+		let cml_id = 1;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		let starting_price = 100;
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(owner),
+			cml_id,
+			starting_price,
+			None
+		));
+
+		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
+
+		let bid_price = 150;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(bid_user),
+			auction_id,
+			bid_price,
+		));
+
+		assert_eq!(
+			Utils::free_balance(&bid_user),
+			user_origin_balance - bid_price - STAKING_PRICE
+		);
+		assert_eq!(
+			Utils::reserved_balance(&bid_user),
+			bid_price + STAKING_PRICE
+		);
+	});
+}
+
+#[test]
+fn two_user_bid_for_auction_works() {
+	new_test_ext().execute_with(|| {
+		let user1_id = 1;
+		let user2_id = 2;
+		let auction_id = 22;
+		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
+		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
+		let mut auction_item = default_auction_item(auction_id, 5, 1);
+		auction_item.starting_price = 100;
+		Auction::add_auction_to_storage(auction_item, &5);
+
+		let user1_bid_price = 150;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id,
+			user1_bid_price,
+		));
+		let bid_item = BidStore::<Test>::get(user1_id, auction_id);
+		assert_eq!(bid_item.user, user1_id);
+		assert_eq!(bid_item.price, user1_bid_price);
+
+		let user2_bid_price = 200;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user2_id),
+			auction_id,
+			user2_bid_price
+		));
+		let bid_item2 = BidStore::<Test>::get(user2_id, auction_id);
+		assert_eq!(bid_item2.user, user2_id);
+		assert_eq!(bid_item2.price, user2_bid_price);
+
+		// bid_item1 stay the same
+		let bid_item1 = BidStore::<Test>::get(user1_id, auction_id);
+		assert_eq!(bid_item1.user, user1_id);
+		assert_eq!(bid_item1.price, user1_bid_price);
+
+		let bid_list = AuctionBidStore::<Test>::get(auction_id).unwrap();
+		assert_eq!(bid_list.len(), 2);
+		assert_eq!(bid_list[0], user1_id);
+		assert_eq!(bid_list[1], user2_id);
+	})
+}
+
+#[test]
+fn bid_for_auction_add_price_works() {
+	new_test_ext().execute_with(|| {
+		let user1_id = 1;
+		let user2_id = 2;
+		let auction_id = 22;
+		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
+		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
+		let mut auction_item = default_auction_item(auction_id, 5, 1);
+		auction_item.starting_price = 100;
+		Auction::add_auction_to_storage(auction_item, &5);
+
+		let user1_bid_price = 150;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id,
+			user1_bid_price,
+		));
+		let bid_item = BidStore::<Test>::get(user1_id, auction_id);
+		assert_eq!(bid_item.price, user1_bid_price);
+
+		// add user2 bid for auction
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user2_id),
+			auction_id,
+			200
+		));
+
+		let user1_add_price = 100;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id,
+			user1_add_price,
+		));
+		let bid_item = BidStore::<Test>::get(user1_id, auction_id);
+		assert_eq!(bid_item.price, user1_bid_price + user1_add_price);
+	})
+}
+
+#[test]
+fn bid_for_seed_with_buy_now_price_should_work() {
+	new_test_ext().execute_with(|| {
+		let user_id = 1;
+		let owner = 2;
+		let user_origin_balance = 100 * 1000;
+		let owner_origin_balance = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&user_id, user_origin_balance);
+		<Test as Config>::Currency::make_free_balance_be(&owner, owner_origin_balance);
+
+		let auction_id = 22;
+		let mut auction_item = default_auction_item(auction_id, owner, 1);
+		let buy_now_price = 1000;
+		auction_item.buy_now_price = Some(buy_now_price);
+		Auction::add_auction_to_storage(auction_item, &owner);
+
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user_id),
+			auction_id,
+			buy_now_price
+		));
+		assert_eq!(
+			AuctionStore::<Test>::get(auction_id).bid_user,
+			Some(user_id)
+		);
+		assert_eq!(
+			BidStore::<Test>::get(user_id, auction_id).price,
+			buy_now_price
+		);
+
+		assert_eq!(
+			Utils::free_balance(&user_id),
+			user_origin_balance - buy_now_price
+		);
+		assert_eq!(Utils::reserved_balance(&user_id), 0);
+
+		assert_eq!(
+			Utils::free_balance(&owner),
+			owner_origin_balance + buy_now_price
+		);
+	})
+}
+
+#[test]
+fn bid_for_mining_tree_with_buy_now_price_should_work() {
+	new_test_ext().execute_with(|| {
+		let user_id = 1;
+		let owner = 2;
+		let user_origin_balance = 100 * 1000;
+		let owner_origin_balance = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&user_id, user_origin_balance);
+		<Test as Config>::Currency::make_free_balance_be(&owner, owner_origin_balance);
+
+		let cml_id = 1;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		let starting_price = 100;
+		let buy_now_price = 1000;
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(owner),
+			cml_id,
+			starting_price,
+			Some(buy_now_price)
+		));
+		assert_eq!(
+			Utils::free_balance(&owner),
+			owner_origin_balance - STAKING_PRICE
+		);
+		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
+
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user_id),
+			auction_id,
+			buy_now_price
+		));
+
+		assert_eq!(
+			Utils::free_balance(&user_id),
+			user_origin_balance - buy_now_price - STAKING_PRICE
+		);
+		assert_eq!(Utils::reserved_balance(&user_id), 0);
+
+		assert_eq!(
+			Utils::free_balance(&owner),
+			owner_origin_balance + buy_now_price
+		);
+	})
+}
+
 //
 // #[test]
 // fn bid_for_auction_with_insufficient_balance_should_fail() {
@@ -849,36 +937,16 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 // 		assert_eq!(1000 + 1, <Test as Config>::Currency::free_balance(&ua));
 // 	});
 // }
-//
-// fn default_cml(cml_id: u64) -> CML<u64, u64, u64, u128> {
-// 	CML {
-// 		id: cml_id,
-// 		group: pallet_cml::CmlGroup::Tpm,
-// 		status: CmlStatus::SeedFrozen,
-// 		life_time: 0,
-// 		lock_time: 0,
-// 		mining_rate: 0,
-// 		staking_slot: vec![],
-// 		created_at: 0,
-// 		miner_id: vec![],
-// 	}
-// }
-//
-// fn default_auction_item(id: u64, owner_id: u64) -> AuctionItem<u64, u64, u64, u128, u64> {
-// 	let cml_item = default_cml(0);
-// 	Cml::add_cml(&owner_id, cml_item);
-// 	AuctionItem {
-// 		id,
-// 		cml_id: 0,
-// 		cml_owner: owner_id,
-// 		starting_price: 1,
-// 		buy_now_price: None,
-// 		start_at: 0,
-// 		end_at: 0,
-// 		status: vec![],
-// 		bid_user: None,
-// 	}
-// }
+
+fn default_auction_item(id: u64, owner_id: u64, cml_id: CmlId) -> AuctionItem<u64, u128, u64> {
+	let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+	Cml::add_cml(&owner_id, cml);
+
+	let mut auction_item = AuctionItem::default();
+	auction_item.id = id;
+	auction_item.cml_owner = owner_id;
+	auction_item
+}
 
 pub fn new_genesis_seed(id: CmlId) -> Seed {
 	Seed {

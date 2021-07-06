@@ -224,7 +224,7 @@ pub mod auction {
 					} else {
 						Self::create_new_bid(&sender, &auction_id, price);
 					}
-					Self::update_bid_price_for_auction_item(&auction_id, &sender);
+					Self::update_current_winner(&auction_id, &sender);
 					Self::deposit_event(Event::BidAuction(auction_id, sender.clone(), price));
 
 					Self::try_complete_auction(&sender, &auction_id);
