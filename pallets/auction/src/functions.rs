@@ -95,7 +95,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		});
 	}
 
-	pub(super) fn get_min_bid_price(
+	pub(super) fn min_bid_price(
 		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		who: &T::AccountId,
 	) -> Result<BalanceOf<T>, Error<T>> {
@@ -338,7 +338,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			Error::<T>::NotEnoughBalance
 		);
 
-		let min_price = Self::get_min_bid_price(&auction_item, sender)?;
+		let min_price = Self::min_bid_price(&auction_item, sender)?;
 		ensure!(min_price <= price, Error::<T>::InvalidBidPrice);
 
 		ensure!(
@@ -477,7 +477,7 @@ mod tests {
 	}
 
 	#[test]
-	fn get_min_bid_price_works() {
+	fn min_bid_price_works() {
 		new_test_ext().execute_with(|| {
 			let user1 = 1;
 			let user2 = 2;
@@ -489,7 +489,7 @@ mod tests {
 			assert!(!BidStore::<Test>::contains_key(user1, auction_item.id)); // user1 not bid before
 			assert!(auction_item.bid_user.is_none()); // auction not bid yet
 			assert_eq!(
-				Auction::get_min_bid_price(&auction_item, &user1).unwrap(),
+				Auction::min_bid_price(&auction_item, &user1).unwrap(),
 				auction_item.starting_price
 			);
 
@@ -501,7 +501,7 @@ mod tests {
 			// user2 bid after user1
 			assert!(!BidStore::<Test>::contains_key(user2, auction_item.id)); // user2 not bid before
 			assert_eq!(
-				Auction::get_min_bid_price(&auction_item, &user2).unwrap(),
+				Auction::min_bid_price(&auction_item, &user2).unwrap(),
 				auction_item.starting_price + MIN_PRICE_FOR_BID
 			);
 
@@ -512,7 +512,7 @@ mod tests {
 
 			// user1 bid the second time
 			assert_eq!(
-				Auction::get_min_bid_price(&auction_item, &user1).unwrap(),
+				Auction::min_bid_price(&auction_item, &user1).unwrap(),
 				MIN_PRICE_FOR_BID * 3
 			);
 			BidStore::<Test>::mutate(user1, auction_item.id, |item| {
@@ -522,7 +522,7 @@ mod tests {
 
 			// user2 bid the second time
 			assert_eq!(
-				Auction::get_min_bid_price(&auction_item, &user2).unwrap(),
+				Auction::min_bid_price(&auction_item, &user2).unwrap(),
 				MIN_PRICE_FOR_BID * 2
 			);
 		})

@@ -437,123 +437,159 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 	})
 }
 
-//
-// #[test]
-// fn bid_for_auction_with_insufficient_balance_should_fail() {
-// 	new_test_ext().execute_with(|| {
-// 		let auction_id = 22;
-// 		AuctionStore::<Test>::insert(auction_id, default_auction_item(auction_id, 2));
-//
-// 		assert_noop!(
-// 			Auction::bid_for_auction(Origin::signed(1), auction_id, 10),
-// 			Error::<Test>::NotEnoughBalance
-// 		);
-// 	})
-// }
-//
-// #[test]
-// fn bid_for_not_exist_auction_should_fail() {
-// 	new_test_ext().execute_with(|| {
-// 		<Test as Config>::Currency::make_free_balance_be(&1, 100 * 1000);
-//
-// 		let auction_id = 22;
-// 		assert_noop!(
-// 			Auction::bid_for_auction(Origin::signed(1), auction_id, 10),
-// 			Error::<Test>::AuctionNotExist
-// 		);
-// 	})
-// }
-//
-// #[test]
-// fn bid_for_auction_belongs_to_myself_should_fail() {
-// 	new_test_ext().execute_with(|| {
-// 		let auction_id = 22;
-// 		let owner_id = 1;
-// 		<Test as Config>::Currency::make_free_balance_be(&owner_id, 100 * 1000);
-// 		AuctionStore::<Test>::insert(auction_id, default_auction_item(auction_id, owner_id));
-//
-// 		assert_noop!(
-// 			Auction::bid_for_auction(Origin::signed(owner_id), auction_id, 10),
-// 			Error::<Test>::BidSelfBelongs
-// 		);
-// 	})
-// }
-//
-// #[test]
-// fn bid_for_auction_with_invalid_price_should_faild() {
-// 	// lower than start price
-// 	new_test_ext().execute_with(|| {
-// 		let owner_id = 1;
-// 		let auction_id = 22;
-// 		<Test as Config>::Currency::make_free_balance_be(&owner_id, 100 * 1000);
-// 		let mut auction_item = default_auction_item(auction_id, 2);
-// 		auction_item.starting_price = 100;
-// 		AuctionStore::<Test>::insert(auction_id, auction_item);
-//
-// 		assert_noop!(
-// 			Auction::bid_for_auction(Origin::signed(owner_id), auction_id, 10), // 10 is lower than starting price
-// 			Error::<Test>::InvalidBidPrice
-// 		);
-// 	});
-//
-// 	// second bid price should larger than first bid price
-// 	new_test_ext().execute_with(|| {
-// 		let user1_id = 1;
-// 		let user2_id = 2;
-// 		let auction_id = 22;
-// 		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
-// 		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
-// 		let mut auction_item = default_auction_item(auction_id, 5);
-// 		auction_item.starting_price = 100;
-// 		AuctionStore::<Test>::insert(auction_id, auction_item);
-//
-// 		let user1_bid_price = 150;
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user1_id),
-// 			auction_id,
-// 			user1_bid_price,
-// 		));
-//
-// 		let user2_bid_price = 130;
-// 		assert_noop!(
-// 			Auction::bid_for_auction(Origin::signed(user2_id), auction_id, user2_bid_price),
-// 			Error::<Test>::InvalidBidPrice
-// 		);
-// 	});
-//
-// 	// user add price should larger than the former price
-// 	new_test_ext().execute_with(|| {
-// 		let user1_id = 1;
-// 		let user2_id = 2;
-// 		let auction_id = 22;
-// 		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
-// 		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
-// 		let mut auction_item = default_auction_item(auction_id, 5);
-// 		auction_item.starting_price = 100;
-// 		AuctionStore::<Test>::insert(auction_id, auction_item);
-//
-// 		let user1_bid_price = 150;
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user1_id),
-// 			auction_id,
-// 			user1_bid_price,
-// 		));
-//
-// 		// add user2 bid for auction
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user2_id),
-// 			auction_id,
-// 			200
-// 		));
-//
-// 		let user1_add_price = 30; // user1_bid_price + user1_add_price < 200 (the second user bid price)
-// 		assert_noop!(
-// 			Auction::bid_for_auction(Origin::signed(user1_id), auction_id, user1_add_price,),
-// 			Error::<Test>::InvalidBidPrice
-// 		);
-// 	})
-// }
-//
+#[test]
+fn bid_for_auction_with_insufficient_balance_should_fail() {
+	new_test_ext().execute_with(|| {
+		let auction_id = 22;
+		AuctionStore::<Test>::insert(auction_id, default_auction_item(auction_id, 2, 1));
+
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(1), auction_id, 10),
+			Error::<Test>::NotEnoughBalance
+		);
+	})
+}
+
+#[test]
+fn bid_mining_cml_should_have_sufficient_free_balance_for_staking() {
+	new_test_ext().execute_with(|| {
+		let user_id = 1;
+		let owner = 2;
+		let starting_price = 100;
+		let user_origin_balance = starting_price + STAKING_PRICE - 1; // user first bid price is insufficient
+		let owner_origin_balance = STAKING_PRICE;
+		<Test as Config>::Currency::make_free_balance_be(&user_id, user_origin_balance);
+		<Test as Config>::Currency::make_free_balance_be(&owner, owner_origin_balance);
+
+		let cml_id = 1;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(owner),
+			cml_id,
+			starting_price,
+			None
+		));
+		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
+
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(user_id), auction_id, starting_price),
+			Error::<Test>::NotEnoughBalance
+		);
+	})
+}
+
+#[test]
+fn bid_for_not_exist_auction_should_fail() {
+	new_test_ext().execute_with(|| {
+		<Test as Config>::Currency::make_free_balance_be(&1, 100 * 1000);
+
+		let auction_id = 22;
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(1), auction_id, 10),
+			Error::<Test>::AuctionNotExist
+		);
+	})
+}
+
+#[test]
+fn bid_for_auction_belongs_to_myself_should_fail() {
+	new_test_ext().execute_with(|| {
+		let auction_id = 22;
+		let owner_id = 1;
+		<Test as Config>::Currency::make_free_balance_be(&owner_id, 100 * 1000);
+		AuctionStore::<Test>::insert(auction_id, default_auction_item(auction_id, owner_id, 1));
+
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(owner_id), auction_id, 10),
+			Error::<Test>::BidSelfBelongs
+		);
+	})
+}
+
+#[test]
+fn bid_for_auction_with_invalid_price_should_fail() {
+	// lower than start price
+	new_test_ext().execute_with(|| {
+		let owner_id = 1;
+		let auction_id = 22;
+		<Test as Config>::Currency::make_free_balance_be(&owner_id, 100 * 1000);
+		let mut auction_item = default_auction_item(auction_id, 2, 1);
+		auction_item.starting_price = 100;
+		AuctionStore::<Test>::insert(auction_id, auction_item);
+
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(owner_id), auction_id, 10), // 10 is lower than starting price
+			Error::<Test>::InvalidBidPrice
+		);
+	});
+
+	// second bid price should larger than first bid price
+	new_test_ext().execute_with(|| {
+		let user1_id = 1;
+		let user2_id = 2;
+		let auction_id = 22;
+		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
+		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
+		let mut auction_item = default_auction_item(auction_id, 5, 1);
+		auction_item.starting_price = 100;
+		AuctionStore::<Test>::insert(auction_id, auction_item);
+
+		let user1_bid_price = 150;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id,
+			user1_bid_price,
+		));
+
+		let user2_bid_price = 130;
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(user2_id), auction_id, user2_bid_price),
+			Error::<Test>::InvalidBidPrice
+		);
+	});
+
+	// user add price should larger than the former price
+	new_test_ext().execute_with(|| {
+		let user1_id = 1;
+		let user2_id = 2;
+		let auction_id = 22;
+		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
+		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
+		let mut auction_item = default_auction_item(auction_id, 5, 1);
+		auction_item.starting_price = 100;
+		AuctionStore::<Test>::insert(auction_id, auction_item);
+
+		let user1_bid_price = 150;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id,
+			user1_bid_price,
+		));
+
+		// add user2 bid for auction
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user2_id),
+			auction_id,
+			200
+		));
+
+		let user1_add_price = 30; // user1_bid_price + user1_add_price < 200 (the second user bid price)
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(user1_id), auction_id, user1_add_price),
+			Error::<Test>::InvalidBidPrice
+		);
+	})
+}
+
 // #[test]
 // fn remove_bid_for_auction_works() {
 // 	new_test_ext().execute_with(|| {

@@ -216,6 +216,7 @@ pub mod auction {
 				&sender,
 				|sender| {
 					Self::check_bid_for_auction(&sender, &auction_id, price)?;
+
 					let auction_item = AuctionStore::<T>::get(auction_id);
 					if Self::can_by_now(&auction_item, price) {
 						T::CmlOperation::check_transfer_cml_to_other(
