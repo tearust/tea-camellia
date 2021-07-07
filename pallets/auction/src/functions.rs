@@ -128,14 +128,35 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(rs)
 	}
 
+	pub fn clear_auction_pledge(sender: &T::AccountId, auction_id: &AuctionId) {
+		let pledge_amount = T::AuctionPledgeAmount::get();
+		let unreserved_amount =
+			pledge_amount - T::CurrencyOperations::unreserve(sender, pledge_amount);
+
+		if let Some(list) = AuctionBidStore::<T>::get(&auction_id) {
+			match (unreserved_amount / T::AuctionOwnerPenaltyForEachBid::get()).try_into() {
+				Ok(penalty_user_count) => {
+					list.iter().take(penalty_user_count).for_each(|acc| {
+						if let Err(e) = T::CurrencyOperations::transfer(
+							sender,
+							&acc,
+							T::AuctionOwnerPenaltyForEachBid::get(),
+							AllowDeath,
+						) {
+							// should never happen, record here just in case
+							warn!("transfer from {:?} to {:?} failed: {:?}", sender, &acc, e);
+						}
+					});
+				}
+				Err(_) => warn!("calculate auction penalty count failed"),
+			}
+		}
+	}
+
 	pub fn delete_auction(auction_id: &AuctionId) {
 		// remove from AuctionStore
 		let auction_item = AuctionStore::<T>::take(&auction_id);
 		let who = auction_item.cml_owner;
-
-		// withdraw owner lock fee
-		// Self::lock_tea(&who, T::AuctionDeposit::get());
-		// <T as auction::Config>::Currency::unreserve(&who, T::AuctionDeposit::get())?;
 
 		// remove from UserAuctionStore
 		UserAuctionStore::<T>::mutate(&who, |list| {
@@ -427,7 +448,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 #[cfg(test)]
 mod tests {
-	use crate::{mock::*, AuctionItem, BidItem, BidStore, LastAuctionId};
+	use crate::{mock::*, AuctionBidStore, AuctionItem, BidItem, BidStore, Config, LastAuctionId};
+	use frame_support::traits::{Currency, ReservableCurrency};
 
 	#[test]
 	fn get_next_auction_id_works() {
@@ -517,6 +539,117 @@ mod tests {
 				Auction::min_bid_price(&auction_item, &user2).unwrap(),
 				MIN_PRICE_FOR_BID * 2
 			);
+		})
+	}
+
+	#[test]
+	fn clear_auction_pledge_works() {
+		new_test_ext().execute_with(|| {
+			let owner = 33;
+			<Test as Config>::Currency::make_free_balance_be(&owner, AUCTION_PLEDGE_AMOUNT);
+			<Test as Config>::Currency::reserve(&owner, AUCTION_PLEDGE_AMOUNT).unwrap();
+
+			let auction_id = 11;
+			let user_count = 5;
+			let mut user_ids = Vec::new();
+			for i in 0..user_count {
+				user_ids.push(i);
+			}
+			AuctionBidStore::<Test>::insert(auction_id, user_ids);
+
+			Auction::clear_auction_pledge(&owner, &auction_id);
+
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner),
+				AUCTION_PLEDGE_AMOUNT - AUCTION_OWNER_PENALTY_FOR_EACH_BID * (user_count as u128)
+			);
+			for i in 0..user_count {
+				assert_eq!(
+					<Test as Config>::Currency::free_balance(&i),
+					AUCTION_OWNER_PENALTY_FOR_EACH_BID
+				);
+			}
+		})
+	}
+
+	#[test]
+	fn clear_auction_pledge_works_if_auction_user_count_is_large() {
+		new_test_ext().execute_with(|| {
+			let owner = 33333;
+			<Test as Config>::Currency::make_free_balance_be(&owner, AUCTION_PLEDGE_AMOUNT);
+			<Test as Config>::Currency::reserve(&owner, AUCTION_PLEDGE_AMOUNT).unwrap();
+
+			let auction_id = 11;
+			let user_count = 1000; // user count is too large to get penalty for each of them
+			let mut user_ids = Vec::new();
+			for i in 0..user_count {
+				user_ids.push(i);
+			}
+			AuctionBidStore::<Test>::insert(auction_id, user_ids);
+
+			Auction::clear_auction_pledge(&owner, &auction_id);
+
+			assert_eq!(<Test as Config>::Currency::free_balance(&owner), 0);
+			let penalty_count = (AUCTION_PLEDGE_AMOUNT / AUCTION_OWNER_PENALTY_FOR_EACH_BID) as u64;
+			for i in 0..penalty_count {
+				assert_eq!(
+					<Test as Config>::Currency::free_balance(&i),
+					AUCTION_OWNER_PENALTY_FOR_EACH_BID
+				);
+			}
+			for i in penalty_count..1000 {
+				assert_eq!(<Test as Config>::Currency::free_balance(&i), 0);
+			}
+		})
+	}
+
+	#[test]
+	fn clear_auction_pledge_works_if_owner_account_be_slashed() {
+		new_test_ext().execute_with(|| {
+			let owner = 33333;
+			let rest_amount = 50;
+			<Test as Config>::Currency::make_free_balance_be(
+				&owner,
+				AUCTION_PLEDGE_AMOUNT + rest_amount,
+			);
+			<Test as Config>::Currency::reserve(&owner, AUCTION_PLEDGE_AMOUNT).unwrap();
+
+			let auction_id = 11;
+			let user_count = 100;
+			let mut user_ids = Vec::new();
+			for i in 0..user_count {
+				user_ids.push(i);
+			}
+			AuctionBidStore::<Test>::insert(auction_id, user_ids);
+
+			let slash_amount = 30;
+			let _ = <Test as Config>::Currency::slash_reserved(&owner, slash_amount); // owner is slashed for some reason
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner),
+				rest_amount
+			);
+			assert_eq!(
+				<Test as Config>::Currency::reserved_balance(&owner),
+				AUCTION_PLEDGE_AMOUNT - slash_amount
+			);
+
+			Auction::clear_auction_pledge(&owner, &auction_id);
+
+			// penalty should not effect free balance
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner),
+				rest_amount
+			);
+
+			for i in 0..(AUCTION_PLEDGE_AMOUNT - slash_amount) {
+				assert_eq!(
+					<Test as Config>::Currency::free_balance(&(i as u64)),
+					AUCTION_OWNER_PENALTY_FOR_EACH_BID
+				);
+			}
+			for i in (AUCTION_PLEDGE_AMOUNT - slash_amount)..100 {
+				assert_eq!(<Test as Config>::Currency::free_balance(&(i as u64)), 0);
+			}
 		})
 	}
 }

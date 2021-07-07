@@ -15,6 +15,7 @@ use sp_runtime::{
 	DispatchResult, SaturatedConversion,
 };
 use sp_std::{cmp::Ordering, prelude::*};
+use std::convert::TryInto;
 
 #[cfg(test)]
 mod mock;
@@ -271,33 +272,10 @@ pub mod auction {
 						sender.cmp(&auction_item.cml_owner) == Ordering::Equal,
 						Error::<T>::AuctionOwnerInvalid
 					);
-
-					if let Some(list) = AuctionBidStore::<T>::get(&auction_id) {
-						let len = list.len();
-						let penalty = T::AuctionOwnerPenaltyForEachBid::get()
-							.saturating_mul(<BalanceOf<T>>::saturated_from(len as u128));
-						ensure!(
-							penalty < <T as auction::Config>::Currency::free_balance(&sender),
-							Error::<T>::NotEnoughBalanceForPenalty
-						);
-					}
 					Ok(())
 				},
 				|sender| {
-					let maybe_list = AuctionBidStore::<T>::get(&auction_id);
-					if let Some(list) = maybe_list {
-						for user in list.into_iter() {
-							if let Err(e) = T::CurrencyOperations::transfer(
-								&sender,
-								&user,
-								T::AuctionOwnerPenaltyForEachBid::get(),
-								AllowDeath,
-							) {
-								// should never happen, print here just in case
-								warn!("transfer failed: {:?}", e);
-							}
-						}
-					}
+					Self::clear_auction_pledge(sender, &auction_id);
 					Self::delete_auction(&auction_id);
 				},
 			)

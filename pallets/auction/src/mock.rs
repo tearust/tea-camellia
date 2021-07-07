@@ -84,11 +84,12 @@ impl pallet_cml::Config for Test {
 pub const AUCTION_DEAL_WINDOW_BLOCK: BlockNumber = 50;
 pub const MIN_PRICE_FOR_BID: Balance = 1;
 pub const AUCTION_PLEDGE_AMOUNT: Balance = 100;
+pub const AUCTION_OWNER_PENALTY_FOR_EACH_BID: Balance = 1;
 
 parameter_types! {
 	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_DEAL_WINDOW_BLOCK;
 	pub const MinPriceForBid: Balance = MIN_PRICE_FOR_BID;
-	pub const AuctionOwnerPenaltyForEachBid: Balance = 1;
+	pub const AuctionOwnerPenaltyForEachBid: Balance = AUCTION_OWNER_PENALTY_FOR_EACH_BID;
 	pub const AuctionPledgeAmount: Balance = AUCTION_PLEDGE_AMOUNT;
 }
 
