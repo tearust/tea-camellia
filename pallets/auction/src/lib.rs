@@ -63,6 +63,8 @@ pub mod auction {
 
 		#[pallet::constant]
 		type AuctionOwnerPenaltyForEachBid: Get<BalanceOf<Self>>;
+
+		type AuctionPledgeAmount: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::error]
@@ -83,6 +85,7 @@ pub mod auction {
 		LockableInvalid,
 		NotAllowToAuction,
 		NotEnoughBalanceForPenalty,
+		InsufficientAuctionPledge,
 	}
 
 	#[pallet::event]
@@ -175,6 +178,11 @@ pub mod auction {
 				|sender| {
 					let cml_item = T::CmlOperation::cml_by_id(&cml_id)?;
 					T::CmlOperation::check_belongs(&cml_id, &sender)?;
+					ensure!(
+						T::CurrencyOperations::free_balance(&sender)
+							>= T::AuctionPledgeAmount::get(),
+						Error::<T>::InsufficientAuctionPledge
+					);
 
 					let current_height = frame_system::Pallet::<T>::block_number();
 					// check cml status
@@ -191,6 +199,12 @@ pub mod auction {
 					Ok(())
 				},
 				|sender| {
+					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+					if T::CurrencyOperations::reserve(sender, T::AuctionPledgeAmount::get())
+						.is_err()
+					{
+						return;
+					}
 					let auction_item = Self::new_auction_item(
 						cml_id,
 						sender.clone(),

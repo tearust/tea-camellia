@@ -232,18 +232,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 		total
 	}
 
-	pub fn check_complete_auction(
-		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
-		target: &T::AccountId,
-	) -> DispatchResult {
-		T::CmlOperation::check_transfer_cml_to_other(
-			&auction_item.cml_owner,
-			&auction_item.cml_id,
-			&target,
-		)?;
-		Ok(())
-	}
-
 	pub fn complete_auction(
 		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 		target: &T::AccountId,

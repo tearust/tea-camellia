@@ -12,6 +12,7 @@ use pallet_utils::CurrencyOperations;
 #[test]
 fn put_to_store_works() {
 	new_test_ext().execute_with(|| {
+		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT);
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
@@ -62,9 +63,26 @@ fn put_not_my_cml_to_store_should_fail() {
 }
 
 #[test]
+fn put_to_store_should_fail_if_free_balance_lower_than_auction_pledge_amount() {
+	new_test_ext().execute_with(|| {
+		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT - 1);
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None),
+			Error::<Test>::InsufficientAuctionPledge
+		);
+	})
+}
+
+#[test]
 fn put_to_store_should_fail_if_cml_is_dead() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, AUCTION_PLEDGE_AMOUNT);
 		let cml_id = 11;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
@@ -82,6 +100,7 @@ fn put_to_store_should_fail_if_cml_is_dead() {
 #[test]
 fn put_to_store_works_for_frozen_seed() {
 	new_test_ext().execute_with(|| {
+		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT);
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
@@ -95,6 +114,7 @@ fn put_to_store_works_for_frozen_seed() {
 #[test]
 fn put_to_store_works_for_locked_frozen_seed() {
 	new_test_ext().execute_with(|| {
+		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT);
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let mut seed = seed_from_lifespan(cml_id, 100);
@@ -113,6 +133,7 @@ fn put_to_store_works_for_locked_frozen_seed() {
 fn put_to_store_works_for_fresh_seed() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, AUCTION_PLEDGE_AMOUNT);
 		let cml_id = 11;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
@@ -128,6 +149,7 @@ fn put_to_store_works_for_fresh_seed() {
 fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, AUCTION_PLEDGE_AMOUNT);
 		let cml_id = 11;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
@@ -185,6 +207,7 @@ fn bid_for_diff_auction_to_check_user_balance() {
 	// cml was not CmlLive, no need deposit.
 	new_test_ext().execute_with(|| {
 		let owner = 2;
+		<Test as Config>::Currency::make_free_balance_be(&owner, AUCTION_PLEDGE_AMOUNT);
 		let bid_user = 10;
 		<Test as Config>::Currency::make_free_balance_be(&bid_user, 1000);
 
@@ -428,7 +451,7 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 			Utils::free_balance(&user_id),
 			user_origin_balance - buy_now_price - STAKING_PRICE
 		);
-		assert_eq!(Utils::reserved_balance(&user_id), 1000);
+		assert_eq!(Utils::reserved_balance(&user_id), STAKING_PRICE);
 
 		assert_eq!(
 			Utils::free_balance(&owner),
@@ -458,7 +481,7 @@ fn bid_mining_cml_should_have_sufficient_free_balance_for_staking() {
 		let owner = 2;
 		let starting_price = 100;
 		let user_origin_balance = starting_price + STAKING_PRICE - 1; // user first bid price is insufficient
-		let owner_origin_balance = STAKING_PRICE;
+		let owner_origin_balance = STAKING_PRICE + AUCTION_PLEDGE_AMOUNT;
 		<Test as Config>::Currency::make_free_balance_be(&user_id, user_origin_balance);
 		<Test as Config>::Currency::make_free_balance_be(&owner, owner_origin_balance);
 
@@ -744,6 +767,7 @@ fn remove_the_winners_bid_should_fail() {
 fn remove_from_store_with_no_bid_works() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&owner, AUCTION_PLEDGE_AMOUNT);
 		let cml_id = 11;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
