@@ -5,18 +5,15 @@
 
 use frame_support::ensure;
 use frame_support::pallet_prelude::*;
-use frame_support::traits::{
-	Currency,
-	ExistenceRequirement::AllowDeath,
-	// LockIdentifier, WithdrawReasons,
-	Get,
-	ReservableCurrency,
-};
+use frame_support::traits::{Currency, ExistenceRequirement::AllowDeath, Get, ReservableCurrency};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use log::{info, warn};
 use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::{traits::Saturating, DispatchResult, SaturatedConversion};
+use sp_runtime::{
+	traits::{Saturating, Zero},
+	DispatchResult, SaturatedConversion,
+};
 use sp_std::{cmp::Ordering, prelude::*};
 
 #[cfg(test)]
@@ -78,14 +75,13 @@ pub mod auction {
 		/// The bid auction item belongs to extrinsic sender self
 		BidSelfBelongs,
 		AuctionOwnerInvalid,
+		AuctionOwnerHasCredit,
 		NotFoundBid,
 		NotAllowQuitBid,
 		NotInWindowBlock,
 
 		LockableInvalid,
-
 		NotAllowToAuction,
-
 		NotEnoughBalanceForPenalty,
 	}
 
@@ -187,6 +183,10 @@ pub mod auction {
 							|| (cml_item.is_fresh_seed() && !cml_item.has_expired(&current_height))
 							|| cml_item.tree_valid(&current_height),
 						Error::<T>::NotAllowToAuction
+					);
+					ensure!(
+						T::CmlOperation::user_credit_amount(sender).is_zero(),
+						Error::<T>::AuctionOwnerHasCredit
 					);
 					Ok(())
 				},

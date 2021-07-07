@@ -31,6 +31,11 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		target_account: &Self::AccountId,
 	) -> DispatchResult {
 		Self::check_belongs(cml_id, from_account)?;
+		ensure!(
+			Self::user_credit_amount(from_account).is_zero(),
+			Error::<T>::CannotTransferCmlWithCredit
+		);
+
 		let cml = CmlStore::<T>::get(cml_id);
 		if cml.is_mining() {
 			ensure!(
@@ -95,6 +100,14 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			}
 		}
 		None
+	}
+
+	fn user_credit_amount(account_id: &Self::AccountId) -> Self::Balance {
+		if !GenesisMinerCreditStore::<T>::contains_key(account_id) {
+			return Zero::zero();
+		}
+
+		GenesisMinerCreditStore::<T>::get(account_id)
 	}
 }
 

@@ -246,6 +246,7 @@ pub mod cml {
 		MinerAlreadyExist,
 		NotFoundMiner,
 		InvalidCreditAmount,
+		CannotTransferCmlWithCredit,
 		InvalidMiner,
 		InvalidMinerIp,
 
@@ -678,6 +679,8 @@ pub trait CmlOperation {
 	);
 
 	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance>;
+
+	fn user_credit_amount(account_id: &Self::AccountId) -> Self::Balance;
 }
 
 pub trait StakingEconomics<Balance> {

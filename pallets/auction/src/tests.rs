@@ -220,6 +220,7 @@ fn bid_for_diff_auction_to_check_user_balance() {
 		let bid_user = 10;
 		let user_origin_balance = 10000;
 		<Test as Config>::Currency::make_free_balance_be(&bid_user, user_origin_balance);
+		<Test as Config>::Currency::make_free_balance_be(&owner, user_origin_balance);
 
 		let cml_id = 1;
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
