@@ -55,16 +55,8 @@ impl<T: utils::Config> CurrencyOperations for utils::Pallet<T> {
 		T::Currency::reserve(who, amount)
 	}
 
-	fn unreserve(who: &Self::AccountId, amount: Self::Balance) -> DispatchResult {
-		ensure!(
-			Self::reserved_balance(who) >= amount,
-			Error::<T>::InsufficientReservedBalance
-		);
-		ensure!(
-			T::Currency::unreserve(who, amount).is_zero(),
-			Error::<T>::UnexpectedBalanceResult
-		);
-		Ok(())
+	fn unreserve(who: &Self::AccountId, value: Self::Balance) -> Self::Balance {
+		T::Currency::unreserve(who, value)
 	}
 
 	fn slash_reserved(who: &Self::AccountId, value: Self::Balance) -> Self::Balance {
@@ -253,11 +245,11 @@ mod tests {
 			assert_eq!(Utils::free_balance(&1), 6);
 			assert_eq!(Utils::reserved_balance(&1), 4);
 
-			assert_ok!(Utils::unreserve(&1, 3));
+			assert_eq!(Utils::unreserve(&1, 3), 0);
 			assert_eq!(Utils::free_balance(&1), 9);
 			assert_eq!(Utils::reserved_balance(&1), 1);
 
-			assert_ok!(Utils::unreserve(&1, 1));
+			assert_eq!(Utils::unreserve(&1, 1), 0);
 			assert_eq!(Utils::free_balance(&1), 10);
 			assert_eq!(Utils::reserved_balance(&1), 0);
 		});
@@ -299,12 +291,10 @@ mod tests {
 			assert_eq!(Utils::free_balance(&1), 6);
 			assert_eq!(Utils::reserved_balance(&1), 4);
 
-			assert_noop!(
-				Utils::unreserve(&1, 9),
-				Error::<Test>::InsufficientReservedBalance,
-			);
-			assert_eq!(Utils::free_balance(&1), 6);
-			assert_eq!(Utils::reserved_balance(&1), 4);
+			assert_eq!(Utils::unreserve(&1, 9), 5);
+
+			assert_eq!(Utils::free_balance(&1), 10);
+			assert_eq!(Utils::reserved_balance(&1), 0);
 		});
 	}
 

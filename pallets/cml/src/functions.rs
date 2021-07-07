@@ -64,14 +64,9 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 				return if let Ok(staking_item) =
 					Self::create_balance_staking(target_account, T::StakingPrice::get())
 				{
-					if T::CurrencyOperations::unreserve(from_account, T::StakingPrice::get())
-						.is_ok()
-					{
-						cml.swap_first_slot(staking_item);
-						true
-					} else {
-						false
-					}
+					T::CurrencyOperations::unreserve(from_account, T::StakingPrice::get());
+					cml.swap_first_slot(staking_item);
+					true
 				} else {
 					false
 				};
@@ -363,7 +358,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 					CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml)))
 				}
 				None => {
-					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get()).unwrap();
+					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get());
 					staking_to
 						.unstake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
 							Some(staking_index),

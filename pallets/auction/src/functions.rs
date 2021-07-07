@@ -201,11 +201,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		let bid_item = BidStore::<T>::take(&who, &auction_id);
 
 		let total = Self::bid_total_price(&bid_item);
-		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-		let res = T::CurrencyOperations::unreserve(who, total);
-		if res.is_err() {
-			return;
-		}
+		T::CurrencyOperations::unreserve(who, total);
 
 		// remove from UserBidStore
 		UserBidStore::<T>::mutate(&who, |maybe_list| {
@@ -254,9 +250,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 	) {
 		let bid_item = BidStore::<T>::get(&target, &auction_item.id);
 		let essential_balance = Self::essential_bid_balance(bid_item.price, &auction_item.cml_id);
-		if T::CurrencyOperations::unreserve(target, essential_balance).is_err() {
-			return;
-		}
+		T::CurrencyOperations::unreserve(target, essential_balance);
 
 		if T::CmlOperation::check_transfer_cml_to_other(
 			&auction_item.cml_owner,
