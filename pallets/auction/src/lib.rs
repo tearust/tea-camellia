@@ -65,7 +65,11 @@ pub mod auction {
 		#[pallet::constant]
 		type AuctionOwnerPenaltyForEachBid: Get<BalanceOf<Self>>;
 
+		#[pallet::constant]
 		type AuctionPledgeAmount: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type MaxUsersPerAuction: Get<u64>;
 	}
 
 	#[pallet::error]
@@ -87,6 +91,7 @@ pub mod auction {
 		NotAllowToAuction,
 		NotEnoughBalanceForPenalty,
 		InsufficientAuctionPledge,
+		OverTheMaxUsersPerAuctionLimit,
 	}
 
 	#[pallet::event]

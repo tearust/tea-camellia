@@ -624,6 +624,38 @@ fn bid_for_auction_with_invalid_price_should_fail() {
 }
 
 #[test]
+fn bid_for_auction_should_fail_if_bid_users_over_the_max_users_per_auction_limit() {
+	new_test_ext().execute_with(|| {
+		let auction_id = 22;
+		let origin_balance = 100 * 1000;
+
+		let starting_price = 100;
+		let mut auction_item = default_auction_item(auction_id, 1111, 1);
+		auction_item.starting_price = starting_price;
+		Auction::add_auction_to_storage(auction_item, &1111);
+
+		for i in 0..MAX_USERS_PER_AUCTION {
+			<Test as Config>::Currency::make_free_balance_be(&i, origin_balance);
+			assert_ok!(Auction::bid_for_auction(
+				Origin::signed(i),
+				auction_id,
+				starting_price + (i as u128 * MIN_PRICE_FOR_BID)
+			));
+		}
+
+		<Test as Config>::Currency::make_free_balance_be(&MAX_USERS_PER_AUCTION, origin_balance);
+		assert_noop!(
+			Auction::bid_for_auction(
+				Origin::signed(MAX_USERS_PER_AUCTION),
+				auction_id,
+				starting_price + (MAX_USERS_PER_AUCTION as u128 * MIN_PRICE_FOR_BID)
+			),
+			Error::<Test>::OverTheMaxUsersPerAuctionLimit
+		);
+	})
+}
+
+#[test]
 fn remove_bid_for_auction_works() {
 	new_test_ext().execute_with(|| {
 		let user1_id = 1;

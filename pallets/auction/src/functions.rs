@@ -359,6 +359,12 @@ impl<T: auction::Config> auction::Pallet<T> {
 			&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal,
 			Error::<T>::BidSelfBelongs
 		);
+		ensure!(
+			AuctionBidStore::<T>::get(auction_id)
+				.unwrap_or_default()
+				.len() < T::MaxUsersPerAuction::get() as usize,
+			Error::<T>::OverTheMaxUsersPerAuctionLimit
+		);
 
 		Ok(())
 	}
