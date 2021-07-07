@@ -1,6 +1,6 @@
 use crate::{
 	mock::*, AuctionBidStore, AuctionItem, AuctionStore, BidStore, EndBlockAuctionStore, Error,
-	UserAuctionStore, UserBidStore,
+	LastAuctionId, UserAuctionStore, UserBidStore,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_cml::{
@@ -738,245 +738,175 @@ fn remove_the_winners_bid_should_fail() {
 		);
 	})
 }
-//
-// #[test]
-// fn remove_from_store_with_no_bid_works() {
-// 	new_test_ext().execute_with(|| {
-// 		let owner_id = 1;
-// 		let amount = 100 * 1000;
-// 		DaiStore::<Test>::insert(owner_id, 100);
-// 		<Test as Config>::Currency::make_free_balance_be(&owner_id, amount);
-//
-// 		Cml::convert_cml_from_dai(Origin::signed(owner_id)).unwrap();
-// 		let cml_list = UserCmlStore::<Test>::get(owner_id).unwrap();
-// 		let cml = CmlStore::<Test>::get(cml_list[0]).unwrap();
-//
-// 		assert_ok!(Cml::active_cml_for_nitro(
-// 			Origin::signed(owner_id),
-// 			cml.id,
-// 			b"miner_id".to_vec(),
-// 			b"miner_ip".to_vec()
-// 		));
-//
-// 		assert_ok!(Auction::put_to_store(
-// 			Origin::signed(owner_id),
-// 			cml.id,
-// 			1000,
-// 			None
-// 		));
-//
-// 		let auction_id = 1; // this is the first auction so ID is 1
-// 		let (_, next_window) = Auction::get_window_block();
-//
-// 		assert_eq!(UserAuctionStore::<Test>::get(owner_id).unwrap().len(), 1);
-// 		assert_eq!(
-// 			EndBlockAuctionStore::<Test>::get(next_window)
-// 				.unwrap()
-// 				.len(),
-// 			1
-// 		);
-// 		assert!(AuctionStore::<Test>::get(auction_id).is_some());
-//
-// 		assert_ok!(Auction::remove_from_store(
-// 			Origin::signed(owner_id),
-// 			auction_id
-// 		));
-// 		assert!(UserAuctionStore::<Test>::get(owner_id).unwrap().is_empty());
-//
-// 		assert!(EndBlockAuctionStore::<Test>::get(next_window)
-// 			.unwrap()
-// 			.is_empty());
-//
-// 		assert!(AuctionStore::<Test>::get(auction_id).is_none());
-// 		// todo check balance of owner
-// 	})
-// }
-//
-// #[test]
-// fn remove_from_store_with_bid_works() {
-// 	new_test_ext().execute_with(|| {
-// 		let owner_id = 1;
-// 		let user_id = 2;
-// 		let amount = 100 * 1000;
-// 		DaiStore::<Test>::insert(owner_id, 100);
-// 		<Test as Config>::Currency::make_free_balance_be(&owner_id, amount);
-// 		<Test as Config>::Currency::make_free_balance_be(&user_id, amount);
-//
-// 		Cml::convert_cml_from_dai(Origin::signed(owner_id)).unwrap();
-// 		let cml_list = UserCmlStore::<Test>::get(1).unwrap();
-// 		let cml = CmlStore::<Test>::get(cml_list[0]).unwrap();
-//
-// 		assert_ok!(Cml::active_cml_for_nitro(
-// 			Origin::signed(owner_id),
-// 			cml.id,
-// 			b"miner_id".to_vec(),
-// 			b"miner_ip".to_vec()
-// 		));
-// 		assert_ok!(Auction::put_to_store(
-// 			Origin::signed(owner_id),
-// 			cml.id,
-// 			100,
-// 			None
-// 		));
-//
-// 		let auction_id = 1; // this is the first auction so ID is 1
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(user_id),
-// 			auction_id,
-// 			150
-// 		));
-//
-// 		assert_ok!(Auction::remove_from_store(
-// 			Origin::signed(owner_id),
-// 			auction_id
-// 		));
-//
-// 		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 0);
-// 		assert_eq!(UserBidStore::<Test>::get(user_id).unwrap().len(), 0);
-// 		assert!(BidStore::<Test>::get(user_id, auction_id).is_none());
-// 		// todo check balance of user and owner
-// 	})
-// }
-//
-// #[test]
-// fn remove_not_my_auction_from_store_should_fail() {
-// 	new_test_ext().execute_with(|| {
-// 		let auction_id = 22;
-// 		let auction_item = default_auction_item(auction_id, 2);
-// 		AuctionStore::<Test>::insert(auction_id, auction_item);
-//
-// 		assert_noop!(
-// 			Auction::remove_from_store(Origin::signed(1), auction_id),
-// 			Error::<Test>::AuctionOwnerInvalid
-// 		);
-// 	})
-// }
-//
-// #[test]
-// fn remove_not_exist_auction_from_store_should_fail() {
-// 	new_test_ext().execute_with(|| {
-// 		assert_noop!(
-// 			Auction::remove_from_store(Origin::signed(1), 11),
-// 			Error::<Test>::AuctionNotExist
-// 		);
-// 	})
-// }
-//
-// #[test]
-// fn after_remove_we_can_start_auction_again() {
-// 	new_test_ext().execute_with(|| {
-// 		let owner_id = 1;
-// 		let amount = 100 * 1000;
-// 		DaiStore::<Test>::insert(owner_id, 100);
-// 		<Test as Config>::Currency::make_free_balance_be(&owner_id, amount);
-//
-// 		Cml::convert_cml_from_dai(Origin::signed(owner_id)).unwrap();
-// 		let cml_list = UserCmlStore::<Test>::get(owner_id).unwrap();
-// 		let cml = CmlStore::<Test>::get(cml_list[0]).unwrap();
-//
-// 		assert_ok!(Cml::active_cml_for_nitro(
-// 			Origin::signed(owner_id),
-// 			cml.id,
-// 			b"miner_id".to_vec(),
-// 			b"miner_ip".to_vec()
-// 		));
-//
-// 		assert_ok!(Auction::put_to_store(
-// 			Origin::signed(owner_id),
-// 			cml.id,
-// 			1000,
-// 			None
-// 		));
-//
-// 		let auction_id = 1; // this is the first auction so ID is 1
-// 		let (_, next_window) = Auction::get_window_block();
-//
-// 		assert_eq!(UserAuctionStore::<Test>::get(owner_id).unwrap().len(), 1);
-// 		assert_eq!(
-// 			EndBlockAuctionStore::<Test>::get(next_window)
-// 				.unwrap()
-// 				.len(),
-// 			1
-// 		);
-// 		assert!(AuctionStore::<Test>::get(auction_id).is_some());
-//
-// 		assert_ok!(Auction::remove_from_store(
-// 			Origin::signed(owner_id),
-// 			auction_id
-// 		));
-// 		assert!(UserAuctionStore::<Test>::get(owner_id).unwrap().is_empty());
-//
-// 		assert!(EndBlockAuctionStore::<Test>::get(next_window)
-// 			.unwrap()
-// 			.is_empty());
-// 		assert!(AuctionStore::<Test>::get(auction_id).is_none());
-//
-// 		// put to store and
-// 		assert_ok!(Auction::put_to_store(
-// 			Origin::signed(owner_id),
-// 			cml.id,
-// 			1500,
-// 			None
-// 		));
-// 		assert_eq!(UserAuctionStore::<Test>::get(owner_id).unwrap().len(), 1);
-//
-// 		assert_eq!(
-// 			EndBlockAuctionStore::<Test>::get(next_window)
-// 				.unwrap()
-// 				.len(),
-// 			1
-// 		);
-//
-// 		let last_auction_index = LastAuctionId::<Test>::get();
-// 		assert!(AuctionStore::<Test>::get(last_auction_index - 1).is_some());
-// 	})
-// }
-//
-// #[test]
-// fn whole_process_for_auction_and_bid() {
-// 	new_test_ext().execute_with(|| {
-// 		let owner = 1;
-// 		let ua = 2;
-// 		<Test as Config>::Currency::make_free_balance_be(&owner, 1000);
-// 		<Test as Config>::Currency::make_free_balance_be(&ua, 1000);
-//
-// 		let cml_id = 1;
-// 		let cml_item = default_cml(cml_id);
-// 		Cml::add_cml(&owner, cml_item);
-//
-// 		assert_ok!(Auction::put_to_store(
-// 			Origin::signed(owner),
-// 			cml_id,
-// 			100,
-// 			Some(200)
-// 		));
-//
-// 		let auction_id = {
-// 			let tmp = UserAuctionStore::<Test>::get(owner).unwrap();
-// 			tmp.get(0).unwrap().clone()
-// 		};
-//
-// 		assert_ok!(Auction::bid_for_auction(
-// 			Origin::signed(ua),
-// 			auction_id,
-// 			// 250,
-// 			110,
-// 		));
-//
-// 		// assert_eq!(1000+250, <Test as Config>::Currency::free_balance(&owner));
-// 		// assert_eq!(1000-250, <Test as Config>::Currency::free_balance(&ua));
-//
-// 		assert_ok!(Auction::remove_from_store(
-// 			Origin::signed(owner),
-// 			auction_id,
-// 		));
-//
-// 		// println!("11 => {:?}", <Test as Config>::Currency::free_balance(&owner));
-// 		// println!("11 => {:?}", <Test as Config>::Currency::free_balance(&ua));
-// 		assert_eq!(1000 - 1, <Test as Config>::Currency::free_balance(&owner));
-// 		assert_eq!(1000 + 1, <Test as Config>::Currency::free_balance(&ua));
-// 	});
-// }
+
+#[test]
+fn remove_from_store_with_no_bid_works() {
+	new_test_ext().execute_with(|| {
+		let owner = 1;
+		let cml_id = 11;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.defrost(&0);
+		CmlStore::<Test>::insert(cml_id, cml);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(owner),
+			cml_id,
+			1000,
+			None
+		));
+
+		let auction_id = 1; // this is the first auction so ID is 1
+		let (_, next_window) = Auction::get_window_block();
+
+		assert_eq!(UserAuctionStore::<Test>::get(&owner).len(), 1);
+		assert_eq!(
+			EndBlockAuctionStore::<Test>::get(next_window)
+				.unwrap()
+				.len(),
+			1
+		);
+		assert!(AuctionStore::<Test>::contains_key(auction_id));
+
+		assert_ok!(Auction::remove_from_store(
+			Origin::signed(owner),
+			auction_id
+		));
+		assert!(UserAuctionStore::<Test>::get(owner).is_empty());
+
+		assert!(EndBlockAuctionStore::<Test>::get(next_window)
+			.unwrap()
+			.is_empty());
+		assert!(!AuctionStore::<Test>::contains_key(auction_id));
+		// todo check balance of owner
+	})
+}
+
+#[test]
+fn remove_from_store_with_bid_works() {
+	new_test_ext().execute_with(|| {
+		let owner_id = 1;
+		let user_id = 2;
+		<Test as Config>::Currency::make_free_balance_be(&user_id, 100 * 1000);
+		<Test as Config>::Currency::make_free_balance_be(&owner_id, 100 * 1000);
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+		UserCmlStore::<Test>::insert(owner_id, cml_id, ());
+
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(owner_id),
+			cml_id,
+			100,
+			None
+		));
+
+		let auction_id = 1; // this is the first auction so ID is 1
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user_id),
+			auction_id,
+			150
+		));
+
+		assert_ok!(Auction::remove_from_store(
+			Origin::signed(owner_id),
+			auction_id
+		));
+
+		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 0);
+		assert_eq!(UserBidStore::<Test>::get(user_id).unwrap().len(), 0);
+		assert!(!BidStore::<Test>::contains_key(user_id, auction_id));
+		// todo check balance of user and owner
+	})
+}
+
+#[test]
+fn remove_not_my_auction_from_store_should_fail() {
+	new_test_ext().execute_with(|| {
+		let auction_id = 22;
+		let auction_item = default_auction_item(auction_id, 2, 1);
+		AuctionStore::<Test>::insert(auction_id, auction_item);
+
+		assert_noop!(
+			Auction::remove_from_store(Origin::signed(1), auction_id),
+			Error::<Test>::AuctionOwnerInvalid
+		);
+	})
+}
+
+#[test]
+fn remove_not_exist_auction_from_store_should_fail() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Auction::remove_from_store(Origin::signed(1), 11),
+			Error::<Test>::AuctionNotExist
+		);
+	})
+}
+
+#[test]
+fn after_remove_we_can_start_auction_again() {
+	new_test_ext().execute_with(|| {
+		let owner_id = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&owner_id, amount);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+		UserCmlStore::<Test>::insert(owner_id, cml_id, ());
+
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(owner_id),
+			cml_id,
+			100,
+			None
+		));
+
+		let auction_id = 1; // this is the first auction so ID is 1
+		let (_, next_window) = Auction::get_window_block();
+
+		assert_eq!(UserAuctionStore::<Test>::get(owner_id).len(), 1);
+		assert_eq!(
+			EndBlockAuctionStore::<Test>::get(next_window)
+				.unwrap()
+				.len(),
+			1
+		);
+		assert!(AuctionStore::<Test>::contains_key(auction_id));
+
+		assert_ok!(Auction::remove_from_store(
+			Origin::signed(owner_id),
+			auction_id
+		));
+		assert!(UserAuctionStore::<Test>::get(owner_id).is_empty());
+
+		assert!(EndBlockAuctionStore::<Test>::get(next_window)
+			.unwrap()
+			.is_empty());
+		assert!(!AuctionStore::<Test>::contains_key(auction_id));
+
+		// put to store and
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(owner_id),
+			cml_id,
+			1500,
+			None
+		));
+		assert_eq!(UserAuctionStore::<Test>::get(owner_id).len(), 1);
+
+		assert_eq!(
+			EndBlockAuctionStore::<Test>::get(next_window)
+				.unwrap()
+				.len(),
+			1
+		);
+
+		assert!(AuctionStore::<Test>::contains_key(
+			LastAuctionId::<Test>::get()
+		));
+	})
+}
 
 fn default_auction_item(id: u64, owner_id: u64, cml_id: CmlId) -> AuctionItem<u64, u128, u64> {
 	let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));

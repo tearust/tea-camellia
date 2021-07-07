@@ -254,12 +254,11 @@ pub mod auction {
 					);
 					let auction_item = AuctionStore::<T>::get(&auction_id);
 					ensure!(
-						&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal,
+						sender.cmp(&auction_item.cml_owner) == Ordering::Equal,
 						Error::<T>::AuctionOwnerInvalid
 					);
 
-					let maybe_list = AuctionBidStore::<T>::get(&auction_id);
-					if let Some(list) = maybe_list {
+					if let Some(list) = AuctionBidStore::<T>::get(&auction_id) {
 						let len = list.len();
 						let penalty = T::AuctionOwnerPenaltyForEachBid::get()
 							.saturating_mul(<BalanceOf<T>>::saturated_from(len as u128));
