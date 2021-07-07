@@ -60,11 +60,20 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		}
 
 		let success = CmlStore::<T>::mutate(&cml_id, |cml| {
+			cml.set_owner(target_account);
 			if cml.is_mining() {
+				let amount = match cml.staking_slots().get(0) {
+					Some(item) => item.amount.clone(),
+					None => None,
+				};
+				if amount.is_none() {
+					return false;
+				}
+
 				return if let Ok(staking_item) =
-					Self::create_balance_staking(target_account, T::StakingPrice::get())
+					Self::create_balance_staking(target_account, amount.unwrap())
 				{
-					T::CurrencyOperations::unreserve(from_account, T::StakingPrice::get());
+					T::CurrencyOperations::unreserve(from_account, amount.unwrap());
 					cml.swap_first_slot(staking_item);
 					true
 				} else {

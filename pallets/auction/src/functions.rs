@@ -209,7 +209,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			Error::<T>::NotFoundBid
 		);
 
-		let bid_item = BidStore::<T>::take(&who, &auction_id);
+		let bid_item = BidStore::<T>::get(&who, &auction_id);
 		let total = Self::bid_total_price(&bid_item);
 		ensure!(
 			T::CurrencyOperations::reserved_balance(who) >= total,
@@ -289,6 +289,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			&target,
 		);
 
+		T::CurrencyOperations::unreserve(&auction_item.cml_owner, T::AuctionPledgeAmount::get());
 		Self::delete_auction(&auction_item.id);
 		Self::deposit_event(Event::AuctionSuccess(
 			auction_item.id,
