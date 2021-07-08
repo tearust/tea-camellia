@@ -356,7 +356,7 @@ pallet_staking_reward_curve::build! {
 #[cfg(not(feature = "fast"))]
 const SESSION_INDEX: u32 = 6;
 #[cfg(feature = "fast")]
-const SESSION_INDEX: u32 = 1;
+const SESSION_INDEX: u32 = 6;
 parameter_types! {
 	pub const SessionsPerEra: sp_staking::SessionIndex = SESSION_INDEX;
 	pub const BondingDuration: pallet_staking::EraIndex = 24 * 28;
