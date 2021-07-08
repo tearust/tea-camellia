@@ -85,7 +85,6 @@ pub mod auction {
 		AuctionOwnerHasCredit,
 		NotFoundBid,
 		NotAllowQuitBid,
-		NotInWindowBlock,
 
 		LockableInvalid,
 		NotAllowToAuction,
@@ -152,19 +151,11 @@ pub mod auction {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_finalize(now: T::BlockNumber) {
-			let b = now % T::AuctionDealWindowBLock::get();
-
-			if b < <T::BlockNumber>::saturated_from(1_u64) {
-				info!("[check_auction_in_block_window] start");
-				let f = match Self::check_auction_in_block_window() {
-					Ok(_) => true,
-					Err(e) => {
-						info!("on_finalize error => {:?}", e);
-						false
-					}
-				};
-				info!("[check_auction_in_block_window] => {:?}", f);
+			if !Self::is_end_of_auction_window(&now) {
+				return;
 			}
+
+			Self::try_complete_auctions();
 		}
 	}
 

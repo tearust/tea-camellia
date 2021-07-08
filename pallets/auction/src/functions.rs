@@ -298,40 +298,24 @@ impl<T: auction::Config> auction::Pallet<T> {
 		));
 	}
 
-	// when in window block, check each auction could complet or not.
-	pub fn check_auction_in_block_window() -> DispatchResult {
-		let (current_window, next_window) = Self::get_window_block();
-		let current_block = frame_system::Pallet::<T>::block_number();
+	pub fn is_end_of_auction_window(current_height: &T::BlockNumber) -> bool {
+		(*current_height % T::AuctionDealWindowBLock::get()).is_zero()
+	}
 
-		ensure!(
-			(current_block % T::AuctionDealWindowBLock::get())
-				> <T::BlockNumber>::saturated_from(3_u64),
-			Error::<T>::NotInWindowBlock
-		);
+	pub fn try_complete_auctions() {
+		let (current_window, next_window) = Self::get_window_block();
 
 		if let Some(auction_list) = EndBlockAuctionStore::<T>::take(current_window) {
 			info!("auction_list => {:?}", auction_list);
 			for auction_id in auction_list.iter() {
 				let auction_item = AuctionStore::<T>::get(&auction_id);
-				Self::check_each_auction_in_block_window(auction_item, next_window)?;
+				if let Some(bid_user) = auction_item.bid_user.as_ref() {
+					Self::complete_auction(&auction_item, bid_user);
+				} else {
+					Self::insert_into_end_block_store(next_window, auction_item.id);
+				}
 			}
 		}
-
-		Ok(())
-	}
-
-	fn check_each_auction_in_block_window(
-		auction_item: AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
-		next_window: T::BlockNumber,
-	) -> DispatchResult {
-		if let Some(ref bid_user) = auction_item.bid_user {
-			Self::complete_auction(&auction_item, &bid_user);
-		} else {
-			// put to next block
-			Self::insert_into_end_block_store(next_window, auction_item.id);
-		}
-
-		Ok(())
 	}
 
 	pub(crate) fn check_bid_for_auction(
