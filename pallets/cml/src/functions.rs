@@ -903,12 +903,14 @@ mod tests {
 			assert_ok!(Cml::start_staking(
 				Origin::signed(user1),
 				cml3_id,
-				Some(cml1_id)
+				Some(cml1_id),
+				None,
 			));
 			assert_ok!(Cml::start_staking(
 				Origin::signed(user2),
 				cml3_id,
-				Some(cml2_id)
+				Some(cml2_id),
+				None,
 			));
 			let staking_slots = CmlStore::<Test>::get(cml3_id).staking_slots().clone();
 			assert_eq!(staking_slots.len(), 3);

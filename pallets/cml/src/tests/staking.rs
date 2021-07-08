@@ -22,7 +22,7 @@ fn start_staking_with_balance_works() {
 			b"miner_ip".to_vec()
 		));
 
-		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None));
+		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
 	})
 }
 
@@ -54,7 +54,8 @@ fn start_staking_with_cml_works() {
 		assert_ok!(Cml::start_staking(
 			Origin::signed(2),
 			cml1_id,
-			Some(cml2_id)
+			Some(cml2_id),
+			None
 		));
 	})
 }
@@ -69,7 +70,7 @@ fn start_staking_with_balance_should_fail_if_free_balance_is_not_enough() {
 
 		// account 2 free balance is zero
 		assert_noop!(
-			Cml::start_staking(Origin::signed(2), cml_id, None),
+			Cml::start_staking(Origin::signed(2), cml_id, None, None),
 			Error::<Test>::InsufficientFreeBalance
 		);
 	})
@@ -79,7 +80,7 @@ fn start_staking_with_balance_should_fail_if_free_balance_is_not_enough() {
 fn start_staking_should_fail_if_miner_is_not_exist() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			Cml::start_staking(Origin::signed(2), 1, None),
+			Cml::start_staking(Origin::signed(2), 1, None, None),
 			Error::<Test>::NotFoundCML
 		);
 	})
@@ -100,7 +101,7 @@ fn start_staking_should_fail_if_miner_is_invalid() {
 
 		// for all kinds of invalid situation please see unit tests in `types/cml.rs`
 		assert_noop!(
-			Cml::start_staking(Origin::signed(2), cml_id, None),
+			Cml::start_staking(Origin::signed(2), cml_id, None, None),
 			Error::<Test>::InvalidStakee
 		);
 	})
@@ -115,7 +116,7 @@ fn start_staking_should_fail_if_staking_cml_not_found() {
 		CmlStore::<Test>::insert(miner_id, miner);
 
 		assert_noop!(
-			Cml::start_staking(Origin::signed(2), miner_id, Some(2)), // cml id 2 is not exist
+			Cml::start_staking(Origin::signed(2), miner_id, Some(2), None), // cml id 2 is not exist
 			Error::<Test>::NotFoundCML
 		);
 	})
@@ -138,7 +139,7 @@ fn start_staking_should_fail_if_staking_cml_not_belong_to_staker() {
 		CmlStore::<Test>::insert(staker_id, staker);
 
 		assert_noop!(
-			Cml::start_staking(Origin::signed(user1), miner_id, Some(staker_id)),
+			Cml::start_staking(Origin::signed(user1), miner_id, Some(staker_id), None),
 			Error::<Test>::CMLOwnerInvalid
 		);
 	})
@@ -163,7 +164,7 @@ fn start_staking_should_fail_if_staking_cml_is_invalid() {
 		frame_system::Pallet::<Test>::set_block_number(50);
 		// for all kinds of invalid situation please see unit tests in `types/cml.rs`
 		assert_noop!(
-			Cml::start_staking(Origin::signed(2), miner_id, Some(staker_id)),
+			Cml::start_staking(Origin::signed(2), miner_id, Some(staker_id), None),
 			Error::<Test>::InvalidStaker
 		);
 	})
@@ -187,13 +188,53 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_the_max_length() {
 
 		for i in 0..STAKING_SLOTS_MAX_LENGTH {
 			<Test as Config>::Currency::make_free_balance_be(&i, amount);
-			assert_ok!(Cml::start_staking(Origin::signed(i), cml_id, None));
+			assert_ok!(Cml::start_staking(Origin::signed(i), cml_id, None, None));
 		}
 
 		<Test as Config>::Currency::make_free_balance_be(&STAKING_SLOTS_MAX_LENGTH, amount);
 		assert_noop!(
-			Cml::start_staking(Origin::signed(STAKING_SLOTS_MAX_LENGTH), cml_id, None),
+			Cml::start_staking(Origin::signed(STAKING_SLOTS_MAX_LENGTH), cml_id, None, None),
 			Error::<Test>::StakingSlotsOverTheMaxLength
+		);
+	})
+}
+
+#[test]
+fn start_staking_should_fail_if_the_stakee_slots_over_than_acceptable_index() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+
+		let cml_id: CmlId = 0;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		let acceptable_slot_index = 10;
+		for i in 0..acceptable_slot_index {
+			<Test as Config>::Currency::make_free_balance_be(&i, amount);
+			assert_ok!(Cml::start_staking(
+				Origin::signed(i),
+				cml_id,
+				None,
+				Some(acceptable_slot_index)
+			));
+		}
+
+		<Test as Config>::Currency::make_free_balance_be(&acceptable_slot_index, amount);
+		assert_noop!(
+			Cml::start_staking(
+				Origin::signed(acceptable_slot_index),
+				cml_id,
+				None,
+				Some(acceptable_slot_index)
+			),
+			Error::<Test>::StakingSlotsOverAcceptableIndex
 		);
 	})
 }
@@ -219,7 +260,7 @@ fn stop_staking_with_balance_works() {
 
 		assert_eq!(<Test as Config>::Currency::total_balance(&2), amount);
 		assert_eq!(<Test as Config>::Currency::free_balance(&2), amount);
-		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None));
+		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
 
 		assert_eq!(<Test as Config>::Currency::total_balance(&2), amount);
 		assert_eq!(
@@ -263,7 +304,8 @@ fn stop_staking_with_cml_works() {
 		assert_ok!(Cml::start_staking(
 			Origin::signed(2),
 			cml1_id,
-			Some(cml2_id)
+			Some(cml2_id),
+			None
 		));
 		assert!(CmlStore::<Test>::get(cml2_id).is_staking());
 
@@ -300,7 +342,8 @@ fn stop_staking_works_with_mixed_staking_items() {
 		assert_ok!(Cml::start_staking(
 			Origin::signed(user2),
 			cml1_id,
-			Some(cml2_id)
+			Some(cml2_id),
+			None
 		));
 		assert_eq!(
 			CmlStore::<Test>::get(cml2_id).staking_index(),
@@ -308,7 +351,12 @@ fn stop_staking_works_with_mixed_staking_items() {
 		);
 
 		<Test as Config>::Currency::make_free_balance_be(&user3, amount);
-		assert_ok!(Cml::start_staking(Origin::signed(user3), cml1_id, None,));
+		assert_ok!(Cml::start_staking(
+			Origin::signed(user3),
+			cml1_id,
+			None,
+			None,
+		));
 
 		let cml4_id: CmlId = 6;
 		UserCmlStore::<Test>::insert(user4, cml4_id, ());
@@ -318,7 +366,8 @@ fn stop_staking_works_with_mixed_staking_items() {
 		assert_ok!(Cml::start_staking(
 			Origin::signed(user4),
 			cml1_id,
-			Some(cml4_id)
+			Some(cml4_id),
+			None
 		));
 		assert_eq!(
 			CmlStore::<Test>::get(cml4_id).staking_index(),

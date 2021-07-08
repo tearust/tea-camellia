@@ -257,6 +257,7 @@ pub mod cml {
 		InvalidUnstaking,
 		NotFoundRewardAccount,
 		StakingSlotsOverTheMaxLength,
+		StakingSlotsOverAcceptableIndex,
 	}
 
 	#[pallet::hooks]
@@ -521,6 +522,7 @@ pub mod cml {
 			sender: OriginFor<T>,
 			staking_to: CmlId,
 			staking_cml: Option<CmlId>,
+			acceptable_slot_index: Option<StakingIndex>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let current_block_number = frame_system::Pallet::<T>::block_number();
@@ -550,6 +552,12 @@ pub mod cml {
 					};
 
 					let cml = CmlStore::<T>::get(staking_to);
+					if let Some(acceptable_slot_index) = acceptable_slot_index {
+						ensure!(
+							cml.staking_slots().len() <= acceptable_slot_index as usize,
+							Error::<T>::StakingSlotsOverAcceptableIndex
+						);
+					}
 					ensure!(
 						cml.staking_slots().len() <= T::StakingSlotsMaxLength::get() as usize,
 						Error::<T>::StakingSlotsOverTheMaxLength
