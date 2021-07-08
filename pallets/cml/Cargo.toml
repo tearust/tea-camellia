@@ -47,7 +47,8 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"frame-benchmarking/std",
-	'pallet-utils/std',
+	"node-primitives/std",
+	"pallet-utils/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",
