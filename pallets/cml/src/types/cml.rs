@@ -502,6 +502,9 @@ where
 		if self.is_mining() {
 			return false;
 		}
+		if self.is_staking() {
+			return false;
+		}
 		if !self.staking_slot.is_empty() {
 			return false;
 		}
@@ -1339,6 +1342,32 @@ mod tests {
 			assert!(!miner.can_start_mining(&0));
 			miner.start_mining([1u8; 32], StakingItem::default(), &0);
 			assert!(!miner.is_mining());
+		}
+
+		#[test]
+		fn start_mining_should_fail_if_cml_is_staking() {
+			let account_id = 10;
+			let cml_id = 11;
+			let mut staker = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(
+				seed_from_lifespan(cml_id, 100),
+			);
+
+			let miner_id = 22;
+			let mut miner = default_miner(miner_id, 100);
+			assert!(miner.can_be_stake(&0, &None, &Some(staker.id())));
+
+			let index = miner.stake::<CML<u32, u32, u128, ConstU32<10>>>(
+				&account_id,
+				&0,
+				None,
+				Some(&mut staker),
+			);
+			assert_eq!(index, Some(1));
+			assert!(staker.is_staking());
+
+			assert!(!staker.can_start_mining(&0));
+			staker.start_mining([3u8; 32], StakingItem::default(), &0);
+			assert!(!staker.is_mining());
 		}
 
 		#[test]
