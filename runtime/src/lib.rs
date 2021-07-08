@@ -1081,6 +1081,16 @@ impl_runtime_apis! {
 		}
 	}
 
+	impl auction_runtime_api::AuctionApi<Block, AccountId> for Runtime {
+		fn user_auction_list(who: &AccountId) -> Vec<u64> {
+			Auction::user_auction_list(who)
+		}
+
+		fn user_bid_list(who: &AccountId) -> Vec<u64> {
+			Auction::user_bid_list(who)
+		}
+	}
+
 	impl fg_primitives::GrandpaApi<Block> for Runtime {
 		fn grandpa_authorities() -> GrandpaAuthorityList {
 			Grandpa::grandpa_authorities()

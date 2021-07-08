@@ -1,6 +1,6 @@
 use crate::{
 	mock::*, AuctionBidStore, AuctionItem, AuctionStore, BidStore, EndBlockAuctionStore, Error,
-	LastAuctionId, UserAuctionStore, UserBidStore,
+	LastAuctionId,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_cml::{
@@ -32,7 +32,7 @@ fn put_to_store_works() {
 		));
 
 		let auction_id = 1; // this is the first auction so ID is 1
-		let store_list = UserAuctionStore::<Test>::get(1);
+		let store_list = Auction::user_auction_list(&1);
 		assert_eq!(store_list.len(), 1);
 		assert_eq!(store_list.get(0).unwrap(), &auction_id);
 
@@ -205,7 +205,7 @@ fn bid_for_auction_works() {
 		let starting_price = 100;
 		let mut auction_item = default_auction_item(auction_id, 2, 1);
 		auction_item.starting_price = starting_price;
-		Auction::add_auction_to_storage(auction_item, &2);
+		Auction::add_auction_to_storage(auction_item);
 
 		assert_ok!(Auction::bid_for_auction(
 			Origin::signed(user_id),
@@ -222,7 +222,7 @@ fn bid_for_auction_works() {
 		assert_eq!(auction_bid_list.len(), 1);
 		assert_eq!(auction_bid_list.get(0).unwrap(), &user_id);
 
-		let user_bid_list = UserBidStore::<Test>::get(user_id).unwrap();
+		let user_bid_list = Auction::user_bid_list(&user_id);
 		assert_eq!(user_bid_list.len(), 1);
 		assert_eq!(user_bid_list.get(0).unwrap(), &auction_id);
 
@@ -258,7 +258,7 @@ fn bid_for_diff_auction_to_check_user_balance() {
 			true
 		));
 
-		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
+		let auction_id = Auction::user_auction_list(&owner)[0];
 
 		// user bid cml with 150
 		assert_ok!(Auction::bid_for_auction(
@@ -300,7 +300,7 @@ fn bid_for_diff_auction_to_check_user_balance() {
 			true
 		));
 
-		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
+		let auction_id = Auction::user_auction_list(&owner)[0];
 
 		let bid_price = 150;
 		assert_ok!(Auction::bid_for_auction(
@@ -330,7 +330,7 @@ fn two_user_bid_for_auction_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
 		let mut auction_item = default_auction_item(auction_id, 5, 1);
 		auction_item.starting_price = 100;
-		Auction::add_auction_to_storage(auction_item, &5);
+		Auction::add_auction_to_storage(auction_item);
 
 		let user1_bid_price = 150;
 		assert_ok!(Auction::bid_for_auction(
@@ -374,7 +374,7 @@ fn bid_for_auction_add_price_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
 		let mut auction_item = default_auction_item(auction_id, 5, 1);
 		auction_item.starting_price = 100;
-		Auction::add_auction_to_storage(auction_item, &5);
+		Auction::add_auction_to_storage(auction_item);
 
 		let user1_bid_price = 150;
 		assert_ok!(Auction::bid_for_auction(
@@ -417,7 +417,7 @@ fn bid_for_seed_with_buy_now_price_should_work() {
 		let mut auction_item = default_auction_item(auction_id, owner, 1);
 		let buy_now_price = 1000;
 		auction_item.buy_now_price = Some(buy_now_price);
-		Auction::add_auction_to_storage(auction_item, &owner);
+		Auction::add_auction_to_storage(auction_item);
 
 		assert_ok!(Auction::bid_for_auction(
 			Origin::signed(user_id),
@@ -478,7 +478,7 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 		let cml = CmlStore::<Test>::get(cml_id);
 		assert_eq!(cml.staking_slots()[0].owner, owner);
 
-		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
+		let auction_id = Auction::user_auction_list(&owner)[0];
 		assert_ok!(Auction::bid_for_auction(
 			Origin::signed(user_id),
 			auction_id,
@@ -549,7 +549,7 @@ fn bid_mining_cml_should_have_sufficient_free_balance_for_staking() {
 			None,
 			true
 		));
-		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
+		let auction_id = Auction::user_auction_list(&owner)[0];
 
 		assert_noop!(
 			Auction::bid_for_auction(Origin::signed(user_id), auction_id, starting_price),
@@ -670,7 +670,7 @@ fn bid_for_auction_should_fail_if_bid_users_over_the_max_users_per_auction_limit
 		let starting_price = 100;
 		let mut auction_item = default_auction_item(auction_id, 1111, 1);
 		auction_item.starting_price = starting_price;
-		Auction::add_auction_to_storage(auction_item, &1111);
+		Auction::add_auction_to_storage(auction_item);
 
 		for i in 0..MAX_USERS_PER_AUCTION {
 			<Test as Config>::Currency::make_free_balance_be(&i, origin_balance);
@@ -704,7 +704,7 @@ fn remove_bid_for_auction_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user1_id, initial_balance);
 		<Test as Config>::Currency::make_free_balance_be(&user2_id, initial_balance);
 		let auction_item = default_auction_item(auction_id, 5, 1);
-		Auction::add_auction_to_storage(auction_item, &5);
+		Auction::add_auction_to_storage(auction_item);
 
 		let user1_bid_price = 150;
 		assert_ok!(Auction::bid_for_auction(
@@ -718,7 +718,7 @@ fn remove_bid_for_auction_works() {
 			200
 		));
 		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 2);
-		assert_eq!(UserBidStore::<Test>::get(user1_id).unwrap().len(), 1);
+		assert_eq!(Auction::user_bid_list(&user1_id).len(), 1);
 		assert!(BidStore::<Test>::contains_key(user1_id, auction_id));
 		assert_eq!(
 			Utils::free_balance(&user1_id),
@@ -734,7 +734,7 @@ fn remove_bid_for_auction_works() {
 			auction_id
 		));
 		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 1);
-		assert_eq!(UserBidStore::<Test>::get(user1_id).unwrap().len(), 0);
+		assert_eq!(Auction::user_bid_list(&user1_id).len(), 0);
 		assert!(!BidStore::<Test>::contains_key(user1_id, auction_id));
 
 		assert_eq!(Utils::free_balance(&user1_id), initial_balance);
@@ -799,7 +799,7 @@ fn after_remove_we_can_bid_again() {
 			200
 		));
 		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 2);
-		assert_eq!(UserBidStore::<Test>::get(user1_id).unwrap().len(), 1);
+		assert_eq!(Auction::user_bid_list(&user1_id).len(), 1);
 		assert!(BidStore::<Test>::contains_key(user1_id, auction_id));
 
 		assert_ok!(Auction::remove_bid_for_auction(
@@ -812,7 +812,7 @@ fn after_remove_we_can_bid_again() {
 		);
 
 		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 1);
-		assert_eq!(UserBidStore::<Test>::get(user1_id).unwrap().len(), 0);
+		assert_eq!(Auction::user_bid_list(&user1_id).len(), 0);
 		assert!(!BidStore::<Test>::contains_key(user1_id, auction_id));
 
 		// user1 bid again
@@ -826,7 +826,7 @@ fn after_remove_we_can_bid_again() {
 			origin_amount - 250,
 		);
 		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 2);
-		assert_eq!(UserBidStore::<Test>::get(user1_id).unwrap().len(), 1);
+		assert_eq!(Auction::user_bid_list(&user1_id).len(), 1);
 		assert!(BidStore::<Test>::contains_key(user1_id, auction_id));
 	})
 }
@@ -879,7 +879,7 @@ fn remove_from_store_with_no_bid_works() {
 		let auction_id = 1; // this is the first auction so ID is 1
 		let (_, next_window) = Auction::get_window_block();
 
-		assert_eq!(UserAuctionStore::<Test>::get(&owner).len(), 1);
+		assert_eq!(Auction::user_auction_list(&owner).len(), 1);
 		assert_eq!(
 			EndBlockAuctionStore::<Test>::get(next_window)
 				.unwrap()
@@ -892,7 +892,7 @@ fn remove_from_store_with_no_bid_works() {
 			Origin::signed(owner),
 			auction_id
 		));
-		assert!(UserAuctionStore::<Test>::get(owner).is_empty());
+		assert!(Auction::user_auction_list(&owner).is_empty());
 
 		assert!(EndBlockAuctionStore::<Test>::get(next_window)
 			.unwrap()
@@ -940,7 +940,7 @@ fn remove_from_store_with_bid_works() {
 		));
 
 		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 0);
-		assert_eq!(UserBidStore::<Test>::get(user_id).unwrap().len(), 0);
+		assert_eq!(Auction::user_auction_list(&user_id).len(), 0);
 		assert!(!BidStore::<Test>::contains_key(user_id, auction_id));
 
 		assert_eq!(
@@ -1001,7 +1001,7 @@ fn after_remove_we_can_start_auction_again() {
 		let auction_id = 1; // this is the first auction so ID is 1
 		let (_, next_window) = Auction::get_window_block();
 
-		assert_eq!(UserAuctionStore::<Test>::get(owner_id).len(), 1);
+		assert_eq!(Auction::user_auction_list(&owner_id).len(), 1);
 		assert_eq!(
 			EndBlockAuctionStore::<Test>::get(next_window)
 				.unwrap()
@@ -1014,7 +1014,7 @@ fn after_remove_we_can_start_auction_again() {
 			Origin::signed(owner_id),
 			auction_id
 		));
-		assert!(UserAuctionStore::<Test>::get(owner_id).is_empty());
+		assert!(Auction::user_auction_list(&owner_id).is_empty());
 
 		assert!(EndBlockAuctionStore::<Test>::get(next_window)
 			.unwrap()
@@ -1029,7 +1029,7 @@ fn after_remove_we_can_start_auction_again() {
 			None,
 			false
 		));
-		assert_eq!(UserAuctionStore::<Test>::get(owner_id).len(), 1);
+		assert_eq!(Auction::user_auction_list(&owner_id).len(), 1);
 
 		assert_eq!(
 			EndBlockAuctionStore::<Test>::get(next_window)

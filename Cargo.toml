@@ -8,5 +8,7 @@ members = [
 	'pallets/*',
 	'simulators/*',
 	'pallets/cml/runtime-api',
+	'pallets/auction/runtime-api',
 	'pallets/cml/rpc',
+	'pallets/auction/rpc',
 ]

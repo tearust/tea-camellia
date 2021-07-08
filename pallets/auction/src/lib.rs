@@ -22,6 +22,7 @@ mod mock;
 mod tests;
 
 mod functions;
+mod rpc;
 mod types;
 mod weights;
 
@@ -113,11 +114,6 @@ pub mod auction {
 	>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn user_auction_store)]
-	pub type UserAuctionStore<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, Vec<AuctionId>, ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn last_auction_id)]
 	pub type LastAuctionId<T: Config> = StorageValue<_, AuctionId, ValueQuery>;
 
@@ -136,10 +132,6 @@ pub mod auction {
 	#[pallet::storage]
 	#[pallet::getter(fn auction_bid_store)]
 	pub type AuctionBidStore<T: Config> = StorageMap<_, Twox64Concat, AuctionId, Vec<T::AccountId>>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn user_bid_store)]
-	pub type UserBidStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<AuctionId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn endblock_auction_store)]
@@ -213,7 +205,7 @@ pub mod auction {
 						buy_now_price,
 						auto_renew,
 					);
-					Self::add_auction_to_storage(auction_item.clone(), &sender);
+					Self::add_auction_to_storage(auction_item.clone());
 
 					Self::deposit_event(Event::NewAuctionToStore(auction_item.id, sender.clone()));
 				},

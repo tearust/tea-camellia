@@ -29,6 +29,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		result
 	}
 }
+
 #[cfg(test)]
 mod tests {
 	use crate::mock::*;

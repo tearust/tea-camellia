@@ -399,6 +399,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "auction-rpc"
+version = "0.1.0"
+dependencies = [
+ "auction-runtime-api",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "auction-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "node-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -701,6 +727,7 @@ checksum = "631ae5198c9be5e753e5cc215e1bd73c2b466a3565173db433f52bb9d3e66dba"
 name = "camellia-runtime"
 version = "0.0.1"
 dependencies = [
+ "auction-runtime-api",
  "chainbridge",
  "cml-runtime-api",
  "frame-benchmarking",

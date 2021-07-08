@@ -71,16 +71,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub fn add_auction_to_storage(
 		auction_item: AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
-		who: &T::AccountId,
 	) {
-		if UserAuctionStore::<T>::contains_key(who) {
-			UserAuctionStore::<T>::mutate(&who, |list| {
-				list.push(auction_item.id);
-			});
-		} else {
-			UserAuctionStore::<T>::insert(who.clone(), vec![auction_item.id]);
-		}
-
 		let (_, next_window) = Self::get_window_block();
 		Self::insert_into_end_block_store(next_window, auction_item.id);
 
@@ -157,15 +148,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 	pub fn delete_auction(auction_id: &AuctionId) {
 		// remove from AuctionStore
-		let auction_item = AuctionStore::<T>::take(&auction_id);
-		let who = auction_item.cml_owner;
-
-		// remove from UserAuctionStore
-		UserAuctionStore::<T>::mutate(&who, |list| {
-			if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-				list.remove(index);
-			}
-		});
+		AuctionStore::<T>::remove(&auction_id);
 
 		// remove from EndBlockAuctionStore
 		let (current_window, next_window) = Self::get_window_block();
@@ -225,15 +208,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 		let total = Self::bid_total_price(&bid_item);
 		T::CurrencyOperations::unreserve(who, total);
-
-		// remove from UserBidStore
-		UserBidStore::<T>::mutate(&who, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				if let Some(index) = list.iter().position(|x| *x == *auction_id) {
-					list.remove(index);
-				}
-			}
-		});
 
 		// remove from AuctionBidStore
 		AuctionBidStore::<T>::mutate(&auction_id, |maybe_list| {
@@ -410,14 +384,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 				list.push(sender.clone());
 			} else {
 				*maybe_list = Some(vec![sender.clone()]);
-			}
-		});
-
-		UserBidStore::<T>::mutate(&sender, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				list.push(auction_item.id);
-			} else {
-				*maybe_list = Some(vec![auction_item.id]);
 			}
 		});
 	}

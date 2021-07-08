@@ -81,6 +81,7 @@ pallet-utils = {default-features = false, path = '../pallets/utils'}
 
 pallet-cml = {default-features = false, path = '../pallets/cml'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
+auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
 
 [features]
 default = ['std']
@@ -171,5 +172,6 @@ std = [
 	'pallet-bridge/std',
 	'pallet-utils/std',
 	'cml-runtime-api/std',
+	'auction-runtime-api/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test
