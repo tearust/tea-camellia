@@ -14,8 +14,7 @@ use sp_runtime::{
 	traits::{Saturating, Zero},
 	DispatchResult, SaturatedConversion,
 };
-use sp_std::{cmp::Ordering, prelude::*};
-use std::convert::TryInto;
+use sp_std::{cmp::Ordering, convert::TryInto, prelude::*};
 
 #[cfg(test)]
 mod mock;
