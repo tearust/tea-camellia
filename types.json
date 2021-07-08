@@ -7,7 +7,12 @@
   "Cid": "Bytes",
   "Signature": "Bytes",
   "NodeStatus": {
-    "_enum": ["Pending", "Active", "Inactive", "Invalid"]
+    "_enum": [
+      "Pending",
+      "Active",
+      "Inactive",
+      "Invalid"
+    ]
   },
   "Node": {
     "teaId": "TeaPubKey",
@@ -32,29 +37,52 @@
     "ephemeralId": "TeaPubKey",
     "updateHeight": "BlockNumber"
   },
-
   "CmlType": {
-    "_enum": ["A", "B", "C"]
+    "_enum": [
+      "A",
+      "B",
+      "C"
+    ]
   },
   "DefrostScheduleType": {
-    "_enum": ["Investor", "Team"]
+    "_enum": [
+      "Investor",
+      "Team"
+    ]
   },
-
   "Voucher": {
     "amount": "u32",
     "cml_type": "CmlType"
   },
-
   "CmlId": "u64",
   "CmlStatus": {
-    "_enum": ["FrozenSeed", "FreshSeed(BlockNumber)", "Tree", "Staking(CmlId, StakingIndex)"]
+    "_enum": {
+      "FrozenSeed": null,
+      "FreshSeed": "CmlStatusFreshSeed",
+      "Tree": null,
+      "Staking": "CmlStatusStaking"
+    }
   },
+
+  "CmlStatusFreshSeed": {
+    "fresh_seed": "BlockNumber"
+  },
+  "CmlStatusStaking": {
+    "cml_id": "CmlId",
+    "staking_index": "StakingIndex"
+  },
+
   "MinerStatus": {
-    "_enum": ["Active", "Offline"]
+    "_enum": [
+      "Active",
+      "Offline"
+    ]
   },
-  
   "StakingCategory": {
-    "_enum": ["Tea", "Cml"]
+    "_enum": [
+      "Tea",
+      "Cml"
+    ]
   },
   "StakingItem": {
     "owner": "AccountId",
@@ -63,7 +91,6 @@
     "cml": "Option<CmlId>"
   },
   "StakingIndex": "u64",
-
   "MachineId": "[u8; 32]",
   "MinerItem": {
     "cml_id": "CmlId",
@@ -71,7 +98,6 @@
     "ip": "Cid",
     "status": "MinerStatus"
   },
-
   "performance": "u32",
   "Seed": {
     "id": "CmlId",
@@ -81,18 +107,19 @@
     "lifespan": "BlockNumber",
     "performance": "performance"
   },
-
   "CML": {
     "intrinsic": "Seed",
     "status": "CmlStatus",
     "owner": "Option<AccountId>",
-    
     "planted_at": "Option<BlockNumber>",
     "staking_slot": "Vec<StakingItem>",
     "machine_id": "Option<MachineId>",
     "fresh_duration": "PhantomData<FreshDuration>"
   },
-  
+
+  "AuctionStatus": {
+    "_enum": ["Normal", "Suspended"]
+  },
   "AuctionId": "u64",
   "AuctionItem": {
     "id": "AuctionId",
@@ -101,19 +128,18 @@
     "starting_price": "Balance",
     "buy_now_price": "Option<Balance>",
     "start_at": "BlockNumber",
-    "end_at": "BlockNumber",
-    "status": "Cid",
-    "bid_user": "Option<AccountId>"
+    "status": "AuctionStatus",
+    "bid_user": "Option<AccountId>",
+    "auto_renew": "bool"
   },
   "BidItem": {
     "auction_id": "AuctionId",
-	  "user": "AccountId",
+    "user": "AccountId",
     "price": "Balance",
     "deposit": "Option<Balance>",
-	  "created_at": "BlockNumber",
-	  "updated_at": "BlockNumber"
+    "created_at": "BlockNumber",
+    "updated_at": "BlockNumber"
   },
-
   "chainbridge::ChainId": "u8",
   "ChainId": "u8",
   "ResourceId": "[u8; 32]",
