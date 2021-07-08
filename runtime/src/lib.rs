@@ -858,6 +858,7 @@ parameter_types! {
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
 	pub const AuctionPledgeAmount: Balance = 100 * DOLLARS;
 	pub const MaxUsersPerAuction: u64 = 10000;
+	pub const AuctionFeePerWindow: Balance = 1 * DOLLARS;
 }
 impl pallet_auction::Config for Runtime {
 	type Event = Event;
@@ -869,6 +870,7 @@ impl pallet_auction::Config for Runtime {
 	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
 	type AuctionPledgeAmount = AuctionPledgeAmount;
 	type MaxUsersPerAuction = MaxUsersPerAuction;
+	type AuctionFeePerWindow = AuctionFeePerWindow;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

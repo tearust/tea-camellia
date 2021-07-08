@@ -18,6 +18,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		cml_owner: T::AccountId,
 		starting_price: BalanceOf<T>,
 		buy_now_price: Option<BalanceOf<T>>,
+		auto_renew: bool,
 	) -> AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber> {
 		AuctionItem {
 			id: Self::next_auction_id(),
@@ -25,6 +26,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			cml_owner,
 			starting_price,
 			buy_now_price,
+			auto_renew,
 			start_at: frame_system::Pallet::<T>::block_number(),
 			status: AuctionStatus::Normal,
 			bid_user: None,
@@ -312,9 +314,31 @@ impl<T: auction::Config> auction::Pallet<T> {
 				if let Some(bid_user) = auction_item.bid_user.as_ref() {
 					Self::complete_auction(&auction_item, bid_user);
 				} else {
-					Self::insert_into_end_block_store(next_window, auction_item.id);
+					Self::deal_with_not_complete_auction(next_window, &auction_item);
 				}
 			}
+		}
+	}
+
+	pub(crate) fn deal_with_not_complete_auction(
+		next_window: T::BlockNumber,
+		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+	) {
+		if auction_item.auto_renew
+			&& T::CurrencyOperations::free_balance(&auction_item.cml_owner)
+				>= T::AuctionFeePerWindow::get()
+		{
+			let _ = T::CurrencyOperations::slash(
+				&auction_item.cml_owner,
+				T::AuctionFeePerWindow::get(),
+			);
+			Self::insert_into_end_block_store(next_window, auction_item.id);
+		} else {
+			T::CurrencyOperations::unreserve(
+				&auction_item.cml_owner,
+				T::AuctionPledgeAmount::get(),
+			);
+			Self::delete_auction(&auction_item.id);
 		}
 	}
 
@@ -658,28 +682,42 @@ mod tests {
 			let owner1 = 11;
 			let owner2 = 12;
 			let owner3 = 13;
+			let owner4 = 14;
+			let owner5 = 15;
 			let user1 = 21;
 			let user2 = 22;
 			let user3 = 23;
 			let cml_id1 = 31;
 			let cml_id2 = 32;
 			let cml_id3 = 33;
+			let cml_id4 = 34;
+			let cml_id5 = 35;
 			let origin_amount = 10000;
 			<Test as Config>::Currency::make_free_balance_be(&owner1, origin_amount);
 			<Test as Config>::Currency::make_free_balance_be(&owner2, origin_amount);
 			<Test as Config>::Currency::make_free_balance_be(&owner3, origin_amount);
+			<Test as Config>::Currency::make_free_balance_be(
+				&owner4,
+				AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+			);
+			<Test as Config>::Currency::make_free_balance_be(&owner5, origin_amount);
 			<Test as Config>::Currency::make_free_balance_be(&user1, origin_amount);
 			<Test as Config>::Currency::make_free_balance_be(&user2, origin_amount);
 			<Test as Config>::Currency::make_free_balance_be(&user3, origin_amount);
 
-			// let auction_id1 bid with two users, auction_id2 bid with buy_now_price, auction_id3
-			// have no bids that should move to the next window
-			let auction_id1 = new_bid_item(owner1, cml_id1, 100, 1000);
-			let auction_id2 = new_bid_item(owner2, cml_id2, 100, 1000);
-			let auction_id3 = new_bid_item(owner3, cml_id3, 100, 1000);
+			// - auction_id1 bid with two users
+			// - auction_id2 bid with buy_now_price
+			// - auction_id3 have no bids that should move to the next window,
+			// - user4 have not enough free balance so auction_id4 will be removed
+			// - user5 set auto_renew with false so auction_id5 will be removed
+			let auction_id1 = new_bid_item(owner1, cml_id1, 100, 1000, true);
+			let auction_id2 = new_bid_item(owner2, cml_id2, 100, 1000, true);
+			let auction_id3 = new_bid_item(owner3, cml_id3, 100, 1000, true);
+			let _auction_id4 = new_bid_item(owner4, cml_id4, 100, 1000, true);
+			let _auction_id5 = new_bid_item(owner5, cml_id5, 100, 1000, false);
 			let (current, next) = Auction::get_window_block();
 			assert_eq!(EndBlockAuctionStore::<Test>::get(current), None);
-			assert_eq!(EndBlockAuctionStore::<Test>::get(next).unwrap().len(), 3);
+			assert_eq!(EndBlockAuctionStore::<Test>::get(next).unwrap().len(), 5);
 
 			let user1_bid_price = 150;
 			assert_ok!(Auction::bid_for_auction(
@@ -703,15 +741,20 @@ mod tests {
 			// check balances of all users
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&owner1),
-				origin_amount - AUCTION_PLEDGE_AMOUNT
+				origin_amount - AUCTION_PLEDGE_AMOUNT - AUCTION_FEE_PER_WINDOW
 			);
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&owner2),
-				origin_amount + user3_bid_price
+				origin_amount + user3_bid_price - AUCTION_FEE_PER_WINDOW
 			);
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&owner3),
-				origin_amount - AUCTION_PLEDGE_AMOUNT
+				origin_amount - AUCTION_PLEDGE_AMOUNT - AUCTION_FEE_PER_WINDOW
+			);
+			assert_eq!(<Test as Config>::Currency::free_balance(&owner4), 0);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner5),
+				origin_amount - AUCTION_PLEDGE_AMOUNT - AUCTION_FEE_PER_WINDOW
 			);
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&user1),
@@ -728,7 +771,7 @@ mod tests {
 
 			frame_system::Pallet::<Test>::set_block_number(AUCTION_DEAL_WINDOW_BLOCK as u64);
 			let (current, next) = Auction::get_window_block();
-			assert_eq!(EndBlockAuctionStore::<Test>::get(current).unwrap().len(), 2);
+			assert_eq!(EndBlockAuctionStore::<Test>::get(current).unwrap().len(), 4);
 			assert_eq!(EndBlockAuctionStore::<Test>::get(next), None);
 			Auction::try_complete_auctions();
 
@@ -742,15 +785,23 @@ mod tests {
 			// check balances of all users
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&owner1),
-				origin_amount + user2_bid_price
+				origin_amount + user2_bid_price - AUCTION_FEE_PER_WINDOW
 			);
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&owner2),
-				origin_amount + user3_bid_price
+				origin_amount + user3_bid_price - AUCTION_FEE_PER_WINDOW
 			);
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&owner3),
-				origin_amount - AUCTION_PLEDGE_AMOUNT
+				origin_amount - AUCTION_PLEDGE_AMOUNT - AUCTION_FEE_PER_WINDOW * 2
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner4),
+				AUCTION_PLEDGE_AMOUNT
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner5),
+				origin_amount - AUCTION_FEE_PER_WINDOW
 			);
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&user1),
@@ -772,6 +823,7 @@ mod tests {
 		cml_id: CmlId,
 		starting_price: u128,
 		buy_now_price: u128,
+		auto_renew: bool,
 	) -> AuctionId {
 		UserCmlStore::<Test>::insert(user_id, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
@@ -781,7 +833,8 @@ mod tests {
 			Origin::signed(user_id),
 			cml_id,
 			starting_price,
-			Some(buy_now_price)
+			Some(buy_now_price),
+			auto_renew,
 		));
 
 		Auction::last_auction_id()

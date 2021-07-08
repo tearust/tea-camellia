@@ -59,6 +59,12 @@ impl<T: utils::Config> CurrencyOperations for utils::Pallet<T> {
 		T::Currency::unreserve(who, value)
 	}
 
+	fn slash(who: &Self::AccountId, value: Self::Balance) -> Self::Balance {
+		let (imbalance, balance) = T::Currency::slash(who, value);
+		T::Slash::on_unbalanced(imbalance);
+		balance
+	}
+
 	fn slash_reserved(who: &Self::AccountId, value: Self::Balance) -> Self::Balance {
 		let (imbalance, balance) = T::Currency::slash_reserved(who, value);
 		T::Slash::on_unbalanced(imbalance);
@@ -296,6 +302,51 @@ mod tests {
 			assert_eq!(Utils::free_balance(&1), 10);
 			assert_eq!(Utils::reserved_balance(&1), 0);
 		});
+	}
+
+	#[test]
+	fn slash_works() {
+		new_test_ext().execute_with(|| {
+			let _ = Balances::deposit_creating(&1, 10);
+
+			assert_eq!(Utils::slash(&1, 3), 0);
+			assert_eq!(Utils::free_balance(&1), 7);
+			assert_eq!(Utils::reserved_balance(&1), 0);
+		})
+	}
+
+	#[test]
+	fn slash_can_delete_slashed_account() {
+		new_test_ext().execute_with(|| {
+			let _ = Balances::deposit_creating(&1, 10);
+
+			assert_eq!(Utils::slash(&1, 10), 0);
+			assert!(!System::account_exists(&1));
+		})
+	}
+
+	#[test]
+	fn slash_amount_more_than_free_balance_works() {
+		new_test_ext().execute_with(|| {
+			let _ = Balances::deposit_creating(&1, 10);
+
+			assert_eq!(Utils::slash(&1, 15), 5);
+			assert_eq!(Utils::free_balance(&1), 0);
+			assert!(!System::account_exists(&1));
+		})
+	}
+
+	#[test]
+	fn slash_can_effect_both_free_and_reserve_balance() {
+		new_test_ext().execute_with(|| {
+			let _ = Balances::deposit_creating(&1, 10);
+
+			assert_ok!(Utils::reserve(&1, 4));
+			assert_eq!(Utils::slash(&1, 9), 0);
+
+			assert_eq!(Utils::free_balance(&1), 0);
+			assert_eq!(Utils::reserved_balance(&1), 1);
+		})
 	}
 
 	#[test]

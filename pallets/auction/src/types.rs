@@ -32,6 +32,7 @@ where
 	pub start_at: BlockNumber,
 	pub status: AuctionStatus,
 	pub bid_user: Option<AccountId>,
+	pub auto_renew: bool,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
@@ -79,6 +80,7 @@ where
 			start_at: BlockNumber::default(),
 			status: AuctionStatus::Normal,
 			bid_user: None,
+			auto_renew: false,
 		}
 	}
 }

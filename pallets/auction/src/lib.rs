@@ -69,6 +69,9 @@ pub mod auction {
 
 		#[pallet::constant]
 		type MaxUsersPerAuction: Get<u64>;
+
+		#[pallet::constant]
+		type AuctionFeePerWindow: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::error]
@@ -88,7 +91,6 @@ pub mod auction {
 		LockableInvalid,
 		NotAllowToAuction,
 		NotEnoughBalanceForPenalty,
-		InsufficientAuctionPledge,
 		OverTheMaxUsersPerAuctionLimit,
 	}
 
@@ -166,6 +168,7 @@ pub mod auction {
 			cml_id: CmlId,
 			starting_price: BalanceOf<T>,
 			buy_now_price: Option<BalanceOf<T>>,
+			auto_renew: bool,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
@@ -176,8 +179,8 @@ pub mod auction {
 					T::CmlOperation::check_belongs(&cml_id, &sender)?;
 					ensure!(
 						T::CurrencyOperations::free_balance(&sender)
-							>= T::AuctionPledgeAmount::get(),
-						Error::<T>::InsufficientAuctionPledge
+							>= T::AuctionPledgeAmount::get() + T::AuctionFeePerWindow::get(),
+						Error::<T>::NotEnoughBalance
 					);
 
 					let current_height = frame_system::Pallet::<T>::block_number();
@@ -201,11 +204,14 @@ pub mod auction {
 					{
 						return;
 					}
+					let _ = T::CurrencyOperations::slash(sender, T::AuctionFeePerWindow::get());
+
 					let auction_item = Self::new_auction_item(
 						cml_id,
 						sender.clone(),
 						starting_price,
 						buy_now_price,
+						auto_renew,
 					);
 					Self::add_auction_to_storage(auction_item.clone(), &sender);
 

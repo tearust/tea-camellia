@@ -12,7 +12,10 @@ use pallet_utils::CurrencyOperations;
 #[test]
 fn put_to_store_works() {
 	new_test_ext().execute_with(|| {
-		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT);
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
@@ -20,7 +23,13 @@ fn put_to_store_works() {
 		cml.convert_to_tree(&0);
 		CmlStore::<Test>::insert(cml_id, cml);
 
-		assert_ok!(Auction::put_to_store(Origin::signed(1), cml_id, 1000, None));
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(1),
+			cml_id,
+			1000,
+			None,
+			true
+		));
 
 		let auction_id = 1; // this is the first auction so ID is 1
 		let store_list = UserAuctionStore::<Test>::get(1);
@@ -42,7 +51,7 @@ fn put_to_store_works() {
 fn put_not_exist_cml_to_store_should_fail() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			Auction::put_to_store(Origin::signed(1), 11, 1000, None),
+			Auction::put_to_store(Origin::signed(1), 11, 1000, None, true),
 			CmlError::<Test>::NotFoundCML
 		);
 	})
@@ -57,7 +66,7 @@ fn put_not_my_cml_to_store_should_fail() {
 			CML::from_genesis_seed(seed_from_lifespan(cml_id, 100)),
 		);
 
-		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
+		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true);
 		assert_noop!(rs, CmlError::<Test>::CMLOwnerInvalid);
 	})
 }
@@ -65,15 +74,22 @@ fn put_not_my_cml_to_store_should_fail() {
 #[test]
 fn put_to_store_should_fail_if_free_balance_lower_than_auction_pledge_amount() {
 	new_test_ext().execute_with(|| {
-		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT - 1);
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
 
+		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT - 1);
 		assert_noop!(
-			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None),
-			Error::<Test>::InsufficientAuctionPledge
+			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true),
+			Error::<Test>::NotEnoughBalance
+		);
+
+		// essential balance should be (AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW)
+		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT);
+		assert_noop!(
+			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true),
+			Error::<Test>::NotEnoughBalance
 		);
 	})
 }
@@ -82,7 +98,10 @@ fn put_to_store_should_fail_if_free_balance_lower_than_auction_pledge_amount() {
 fn put_to_store_should_fail_if_cml_is_dead() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
-		<Test as Config>::Currency::make_free_balance_be(&user, AUCTION_PLEDGE_AMOUNT);
+		<Test as Config>::Currency::make_free_balance_be(
+			&user,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
 		let cml_id = 11;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
@@ -92,7 +111,7 @@ fn put_to_store_should_fail_if_cml_is_dead() {
 		UserCmlStore::<Test>::insert(user, cml_id, ());
 
 		frame_system::Pallet::<Test>::set_block_number(100);
-		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
+		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None, true);
 		assert_noop!(rs, Error::<Test>::NotAllowToAuction);
 	});
 }
@@ -100,13 +119,16 @@ fn put_to_store_should_fail_if_cml_is_dead() {
 #[test]
 fn put_to_store_works_for_frozen_seed() {
 	new_test_ext().execute_with(|| {
-		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT);
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
 
-		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
+		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true);
 		assert_ok!(rs);
 	});
 }
@@ -114,7 +136,10 @@ fn put_to_store_works_for_frozen_seed() {
 #[test]
 fn put_to_store_works_for_locked_frozen_seed() {
 	new_test_ext().execute_with(|| {
-		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT);
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let mut seed = seed_from_lifespan(cml_id, 100);
@@ -124,7 +149,7 @@ fn put_to_store_works_for_locked_frozen_seed() {
 		assert!(!cml.seed_valid(&0));
 		CmlStore::<Test>::insert(cml_id, cml);
 
-		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None);
+		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true);
 		assert_ok!(rs);
 	});
 }
@@ -133,14 +158,17 @@ fn put_to_store_works_for_locked_frozen_seed() {
 fn put_to_store_works_for_fresh_seed() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
-		<Test as Config>::Currency::make_free_balance_be(&user, AUCTION_PLEDGE_AMOUNT);
+		<Test as Config>::Currency::make_free_balance_be(
+			&user,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
 		let cml_id = 11;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
 		CmlStore::<Test>::insert(cml_id, cml);
 		UserCmlStore::<Test>::insert(user, cml_id, ());
 
-		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
+		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None, true);
 		assert_ok!(rs);
 	});
 }
@@ -149,7 +177,10 @@ fn put_to_store_works_for_fresh_seed() {
 fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
-		<Test as Config>::Currency::make_free_balance_be(&user, AUCTION_PLEDGE_AMOUNT);
+		<Test as Config>::Currency::make_free_balance_be(
+			&user,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
 		let cml_id = 11;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
@@ -158,7 +189,7 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 		UserCmlStore::<Test>::insert(user, cml_id, ());
 
 		frame_system::Pallet::<Test>::set_block_number(fresh_duration);
-		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None);
+		let rs = Auction::put_to_store(Origin::signed(user), cml_id, 1000, None, true);
 		assert_noop!(rs, Error::<Test>::NotAllowToAuction);
 	});
 }
@@ -207,7 +238,10 @@ fn bid_for_diff_auction_to_check_user_balance() {
 	// cml was not CmlLive, no need deposit.
 	new_test_ext().execute_with(|| {
 		let owner = 2;
-		<Test as Config>::Currency::make_free_balance_be(&owner, AUCTION_PLEDGE_AMOUNT);
+		<Test as Config>::Currency::make_free_balance_be(
+			&owner,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
 		let bid_user = 10;
 		<Test as Config>::Currency::make_free_balance_be(&bid_user, 1000);
 
@@ -220,7 +254,8 @@ fn bid_for_diff_auction_to_check_user_balance() {
 			Origin::signed(owner),
 			cml_id,
 			100,
-			None
+			None,
+			true
 		));
 
 		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
@@ -261,7 +296,8 @@ fn bid_for_diff_auction_to_check_user_balance() {
 			Origin::signed(owner),
 			cml_id,
 			starting_price,
-			None
+			None,
+			true
 		));
 
 		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
@@ -431,11 +467,12 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 			Origin::signed(owner),
 			cml_id,
 			starting_price,
-			Some(buy_now_price)
+			Some(buy_now_price),
+			true
 		));
 		assert_eq!(
 			Utils::free_balance(&owner),
-			owner_origin_balance - STAKING_PRICE - AUCTION_PLEDGE_AMOUNT
+			owner_origin_balance - STAKING_PRICE - AUCTION_PLEDGE_AMOUNT - AUCTION_FEE_PER_WINDOW
 		);
 		assert!(UserCmlStore::<Test>::contains_key(owner, cml_id));
 		let cml = CmlStore::<Test>::get(cml_id);
@@ -464,7 +501,7 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 
 		assert_eq!(
 			Utils::free_balance(&owner),
-			owner_origin_balance + buy_now_price
+			owner_origin_balance + buy_now_price - AUCTION_FEE_PER_WINDOW
 		);
 		assert_eq!(Utils::reserved_balance(&owner), 0);
 	})
@@ -490,7 +527,7 @@ fn bid_mining_cml_should_have_sufficient_free_balance_for_staking() {
 		let owner = 2;
 		let starting_price = 100;
 		let user_origin_balance = starting_price + STAKING_PRICE - 1; // user first bid price is insufficient
-		let owner_origin_balance = STAKING_PRICE + AUCTION_PLEDGE_AMOUNT;
+		let owner_origin_balance = STAKING_PRICE + AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW;
 		<Test as Config>::Currency::make_free_balance_be(&user_id, user_origin_balance);
 		<Test as Config>::Currency::make_free_balance_be(&owner, owner_origin_balance);
 
@@ -509,7 +546,8 @@ fn bid_mining_cml_should_have_sufficient_free_balance_for_staking() {
 			Origin::signed(owner),
 			cml_id,
 			starting_price,
-			None
+			None,
+			true
 		));
 		let auction_id = UserAuctionStore::<Test>::get(owner)[0];
 
@@ -820,7 +858,10 @@ fn remove_the_winners_bid_should_fail() {
 fn remove_from_store_with_no_bid_works() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
-		<Test as Config>::Currency::make_free_balance_be(&owner, AUCTION_PLEDGE_AMOUNT);
+		<Test as Config>::Currency::make_free_balance_be(
+			&owner,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
 		let cml_id = 11;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
@@ -831,7 +872,8 @@ fn remove_from_store_with_no_bid_works() {
 			Origin::signed(owner),
 			cml_id,
 			1000,
-			None
+			None,
+			false
 		));
 
 		let auction_id = 1; // this is the first auction so ID is 1
@@ -881,7 +923,8 @@ fn remove_from_store_with_bid_works() {
 			Origin::signed(owner_id),
 			cml_id,
 			100,
-			None
+			None,
+			false
 		));
 
 		let auction_id = 1; // this is the first auction so ID is 1
@@ -902,7 +945,7 @@ fn remove_from_store_with_bid_works() {
 
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&owner_id),
-			origin_amount - AUCTION_OWNER_PENALTY_FOR_EACH_BID
+			origin_amount - AUCTION_OWNER_PENALTY_FOR_EACH_BID - AUCTION_FEE_PER_WINDOW
 		);
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user_id),
@@ -951,7 +994,8 @@ fn after_remove_we_can_start_auction_again() {
 			Origin::signed(owner_id),
 			cml_id,
 			100,
-			None
+			None,
+			false
 		));
 
 		let auction_id = 1; // this is the first auction so ID is 1
@@ -982,7 +1026,8 @@ fn after_remove_we_can_start_auction_again() {
 			Origin::signed(owner_id),
 			cml_id,
 			1500,
-			None
+			None,
+			false
 		));
 		assert_eq!(UserAuctionStore::<Test>::get(owner_id).len(), 1);
 

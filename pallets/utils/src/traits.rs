@@ -74,6 +74,15 @@ pub trait CurrencyOperations {
 	/// invoke `on_reserved_too_low` and could reap the account.
 	fn unreserve(who: &Self::AccountId, value: Self::Balance) -> Self::Balance;
 
+	/// Deducts up to `value` from the combined balance of `who`, preferring to deduct from the
+	/// free balance. This function cannot fail.
+	///
+	/// The resulting imbalance is the first item of the tuple returned.
+	///
+	/// As much funds up to `value` will be deducted as possible. If this is less than `value`,
+	/// then a non-zero second item will be returned.
+	fn slash(who: &Self::AccountId, value: Self::Balance) -> Self::Balance;
+
 	/// Deducts up to `value` from reserved balance of `who`. This function cannot fail.
 	///
 	/// As much funds up to `value` will be deducted as possible. If the reserve balance of `who`
