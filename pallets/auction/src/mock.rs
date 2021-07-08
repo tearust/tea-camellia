@@ -57,9 +57,11 @@ impl system::Config for Test {
 	type OnSetCode = ();
 }
 
+pub const STAKING_PRICE: Balance = 1000;
+
 parameter_types! {
 	pub const MinRaPassedThreshold: u32 = 3;
-	pub const StakingPrice: Balance = 1000;
+	pub const StakingPrice: Balance = STAKING_PRICE;
 	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 	pub const StakingPeriodLength: u32 = 100;
 	pub const SeedFreshDuration: u32 = 7 * 30 * 24 * 60 * 10;
@@ -79,23 +81,30 @@ impl pallet_cml::Config for Test {
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 
+pub const AUCTION_DEAL_WINDOW_BLOCK: BlockNumber = 50;
+pub const MIN_PRICE_FOR_BID: Balance = 1;
+pub const AUCTION_PLEDGE_AMOUNT: Balance = 100;
+pub const AUCTION_OWNER_PENALTY_FOR_EACH_BID: Balance = 1;
+pub const MAX_USERS_PER_AUCTION: u64 = 100;
+
 parameter_types! {
-	pub const AuctionDealWindowBLock: BlockNumber = 50;
-	pub const BidDeposit: Balance = 100;
-	pub const MinPriceForBid: Balance = 1;
-	pub const AuctionOwnerPenaltyForEachBid: Balance = 1;
+	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_DEAL_WINDOW_BLOCK;
+	pub const MinPriceForBid: Balance = MIN_PRICE_FOR_BID;
+	pub const AuctionOwnerPenaltyForEachBid: Balance = AUCTION_OWNER_PENALTY_FOR_EACH_BID;
+	pub const AuctionPledgeAmount: Balance = AUCTION_PLEDGE_AMOUNT;
+	pub const MaxUsersPerAuction: u64 = MAX_USERS_PER_AUCTION;
 }
 
 impl pallet_auction::Config for Test {
 	type Event = Event;
-	type AuctionId = u64;
 	type Currency = Balances;
 	type AuctionDealWindowBLock = AuctionDealWindowBLock;
-	type BidDeposit = BidDeposit;
 	type MinPriceForBid = MinPriceForBid;
 	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
+	type AuctionPledgeAmount = AuctionPledgeAmount;
+	type MaxUsersPerAuction = MaxUsersPerAuction;
 }
 
 parameter_types! {

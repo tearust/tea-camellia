@@ -5,48 +5,37 @@
 
 use frame_support::ensure;
 use frame_support::pallet_prelude::*;
-use frame_support::traits::{
-	Currency,
-	ExistenceRequirement::AllowDeath,
-	// LockIdentifier, WithdrawReasons,
-	Get,
-	ReservableCurrency,
-};
+use frame_support::traits::{Currency, ExistenceRequirement::AllowDeath, Get, ReservableCurrency};
 use frame_system::{ensure_signed, pallet_prelude::*};
-use pallet_cml::{CmlId, CmlOperation, TreeProperties};
-use pallet_utils::traits::CurrencyOperations;
+use log::{info, warn};
+use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
+use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Saturating},
+	traits::{Saturating, Zero},
 	DispatchResult, SaturatedConversion,
 };
 use sp_std::{cmp::Ordering, prelude::*};
-
-use log::info;
+use std::convert::TryInto;
 
 #[cfg(test)]
 mod mock;
-
 #[cfg(test)]
 mod tests;
 
 mod functions;
 mod types;
 mod weights;
-pub use types::*;
-
-// pub use weights::WeightInfo;
 
 pub use auction::*;
+pub use types::*;
+// pub use weights::WeightInfo;
 
-// pub const AUCTION_ID: LockIdentifier = *b"_auction";
-
-pub type BalanceOf<T> =
+type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod auction {
 	use super::*;
-	use pallet_cml::SeedProperties;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -65,58 +54,52 @@ pub mod auction {
 			BlockNumber = Self::BlockNumber,
 		>;
 
-		/// The auction ID type.
-		type AuctionId: Parameter
-			+ Member
-			+ AtLeast32BitUnsigned
-			+ Default
-			+ Copy
-			+ MaybeSerializeDeserialize
-			+ Bounded
-			+ codec::FullCodec;
-
 		// type WeightInfo: WeightInfo;
 
 		#[pallet::constant]
 		type AuctionDealWindowBLock: Get<Self::BlockNumber>;
 
 		#[pallet::constant]
-		type BidDeposit: Get<BalanceOf<Self>>;
-
-		#[pallet::constant]
 		type MinPriceForBid: Get<BalanceOf<Self>>;
 
 		#[pallet::constant]
 		type AuctionOwnerPenaltyForEachBid: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type AuctionPledgeAmount: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type MaxUsersPerAuction: Get<u64>;
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		NotEnoughBalance,
+		NotEnoughReserveBalance,
 		AuctionNotExist,
 		InvalidBidPrice,
 		NoNeedBid,
 		/// The bid auction item belongs to extrinsic sender self
 		BidSelfBelongs,
 		AuctionOwnerInvalid,
+		AuctionOwnerHasCredit,
 		NotFoundBid,
 		NotAllowQuitBid,
 		NotInWindowBlock,
 
 		LockableInvalid,
-
 		NotAllowToAuction,
-		BalanceReserveOrUnreserveError,
-
 		NotEnoughBalanceForPenalty,
+		InsufficientAuctionPledge,
+		OverTheMaxUsersPerAuctionLimit,
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub fn deposit_event)]
 	pub enum Event<T: Config> {
-		BidAuction(T::AuctionId, T::AccountId, BalanceOf<T>),
-		NewAuctionToStore(T::AuctionId, T::AccountId),
-		AuctionSuccess(T::AuctionId, T::AccountId, BalanceOf<T>),
+		BidAuction(AuctionId, T::AccountId, BalanceOf<T>),
+		NewAuctionToStore(AuctionId, T::AccountId),
+		AuctionSuccess(AuctionId, T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::storage]
@@ -124,30 +107,19 @@ pub mod auction {
 	pub type AuctionStore<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
-		T::AuctionId,
-		AuctionItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
-		OptionQuery,
+		AuctionId,
+		AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		ValueQuery,
 	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_auction_store)]
-	pub type UserAuctionStore<T: Config> = StorageMap<
-		_,
-		// Blake2_128Concat,
-		Twox64Concat,
-		T::AccountId,
-		Vec<T::AuctionId>,
-		OptionQuery,
-	>;
+	pub type UserAuctionStore<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, Vec<AuctionId>, ValueQuery>;
 
-	#[pallet::type_value]
-	pub fn DefaultAuctionId<T: Config>() -> T::AuctionId {
-		<T::AuctionId>::saturated_from(1_u32)
-	}
 	#[pallet::storage]
 	#[pallet::getter(fn auctions_index)]
-	pub type LastAuctionId<T: Config> =
-		StorageValue<_, T::AuctionId, ValueQuery, DefaultAuctionId<T>>;
+	pub type LastAuctionId<T: Config> = StorageValue<_, AuctionId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn bid_store)]
@@ -156,34 +128,29 @@ pub mod auction {
 		Twox64Concat,
 		T::AccountId,
 		Twox64Concat,
-		T::AuctionId,
-		BidItem<T::AuctionId, T::AccountId, BalanceOf<T>, T::BlockNumber>,
-		OptionQuery,
+		AuctionId,
+		BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		ValueQuery,
 	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn auction_bid_store)]
-	pub type AuctionBidStore<T: Config> =
-		StorageMap<_, Twox64Concat, T::AuctionId, Vec<T::AccountId>>;
+	pub type AuctionBidStore<T: Config> = StorageMap<_, Twox64Concat, AuctionId, Vec<T::AccountId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_bid_store)]
-	pub type UserBidStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<T::AuctionId>>;
+	pub type UserBidStore<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Vec<AuctionId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn endblock_auction_store)]
-	pub type EndblockAuctionStore<T: Config> =
-		StorageMap<_, Twox64Concat, T::BlockNumber, Vec<T::AuctionId>>;
+	pub type EndBlockAuctionStore<T: Config> =
+		StorageMap<_, Twox64Concat, T::BlockNumber, Vec<AuctionId>>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		// fn on_initialize(now: T::BlockNumber) -> Weight {
-
-		// }
-
 		fn on_finalize(now: T::BlockNumber) {
 			let b = now % T::AuctionDealWindowBLock::get();
 
@@ -212,172 +179,131 @@ pub mod auction {
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let cml_item = T::CmlOperation::get_cml_by_id(&cml_id)?;
-			T::CmlOperation::check_belongs(&cml_id, &sender)?;
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					let cml_item = T::CmlOperation::cml_by_id(&cml_id)?;
+					T::CmlOperation::check_belongs(&cml_id, &sender)?;
+					ensure!(
+						T::CurrencyOperations::free_balance(&sender)
+							>= T::AuctionPledgeAmount::get(),
+						Error::<T>::InsufficientAuctionPledge
+					);
 
-			let current_height = frame_system::Pallet::<T>::block_number();
-			// check cml status
-			ensure!(
-				cml_item.is_seed() || cml_item.tree_valid(&current_height),
-				Error::<T>::NotAllowToAuction
-			);
+					let current_height = frame_system::Pallet::<T>::block_number();
+					// check cml status
+					ensure!(
+						cml_item.is_frozen_seed()
+							|| (cml_item.is_fresh_seed() && !cml_item.has_expired(&current_height))
+							|| cml_item.tree_valid(&current_height),
+						Error::<T>::NotAllowToAuction
+					);
+					ensure!(
+						T::CmlOperation::user_credit_amount(sender).is_zero(),
+						Error::<T>::AuctionOwnerHasCredit
+					);
+					Ok(())
+				},
+				|sender| {
+					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+					if T::CurrencyOperations::reserve(sender, T::AuctionPledgeAmount::get())
+						.is_err()
+					{
+						return;
+					}
+					let auction_item = Self::new_auction_item(
+						cml_id,
+						sender.clone(),
+						starting_price,
+						buy_now_price,
+					);
+					Self::add_auction_to_storage(auction_item.clone(), &sender);
 
-			let auction_item =
-				Self::new_auction_item(cml_id, sender.clone(), starting_price, buy_now_price);
-			Self::add_auction_to_storage(auction_item.clone(), &sender);
-
-			Self::deposit_event(Event::NewAuctionToStore(auction_item.id, sender.clone()));
-			Ok(())
+					Self::deposit_event(Event::NewAuctionToStore(auction_item.id, sender.clone()));
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
 		pub fn bid_for_auction(
 			origin: OriginFor<T>,
-			auction_id: T::AuctionId,
+			auction_id: AuctionId,
 			price: BalanceOf<T>,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			// validate balance
-			let balance = <T as auction::Config>::Currency::free_balance(&sender);
-			ensure!(balance >= price, Error::<T>::NotEnoughBalance);
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					Self::check_bid_for_auction(&sender, &auction_id, price)?;
 
-			// check auction item
-			let auction_item =
-				AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
-			let min_price = Self::get_min_bid_price(&auction_item, &sender)?;
-
-			// if let Some(bid_user) = &auction_item.bid_user {
-			//   ensure!(&bid_user.cmp(&sender) != &Ordering::Equal, Error::<T>::NoNeedBid);
-			// }
-
-			ensure!(min_price <= price, Error::<T>::InvalidBidPrice);
-			ensure!(
-				&auction_item.cml_owner.cmp(&sender) != &Ordering::Equal,
-				Error::<T>::BidSelfBelongs
-			);
-
-			let cml_item = T::CmlOperation::get_cml_by_id(&auction_item.cml_id)?;
-			let deposit_bid_price = if !cml_item.is_seed() {
-				let total_price = price.saturating_add(T::BidDeposit::get());
-				ensure!(balance > total_price, Error::<T>::NotEnoughBalance);
-				Some(T::BidDeposit::get())
-			} else {
-				None
-			};
-
-			let current_block = frame_system::Pallet::<T>::block_number();
-			let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
-			if let Some(bid_item) = maybe_bid_item {
-				// increase price
-				let new_price = bid_item.price.saturating_add(price);
-				BidStore::<T>::mutate(&sender, &auction_id, |maybe_item| {
-					if let Some(ref mut item) = maybe_item {
-						item.price = new_price;
-						item.updated_at = current_block;
+					let auction_item = AuctionStore::<T>::get(auction_id);
+					if Self::can_by_now(&auction_item, price) {
+						T::CmlOperation::check_transfer_cml_to_other(
+							&auction_item.cml_owner,
+							&auction_item.cml_id,
+							sender,
+						)?;
 					}
-				});
-			} else {
-				// new bid
-				if let Some(deposit_price) = deposit_bid_price.clone() {
-					T::CurrencyOperations::reserve(&sender, deposit_price)?;
-				}
-				let item =
-					Self::new_bid_item(auction_item.id, sender.clone(), price, deposit_bid_price);
-				BidStore::<T>::insert(sender.clone(), auction_item.id, item);
-				AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
-					if let Some(ref mut list) = maybe_list {
-						list.push(sender.clone());
+					Ok(())
+				},
+				|sender| {
+					if BidStore::<T>::contains_key(&sender, &auction_id) {
+						Self::increase_bid_price(&sender, &auction_id, price);
 					} else {
-						*maybe_list = Some(vec![sender.clone()]);
+						Self::create_new_bid(&sender, &auction_id, price);
 					}
-				});
+					Self::update_current_winner(&auction_id, &sender);
+					Self::deposit_event(Event::BidAuction(auction_id, sender.clone(), price));
 
-				UserBidStore::<T>::mutate(&sender, |maybe_list| {
-					if let Some(ref mut list) = maybe_list {
-						list.push(auction_item.id);
-					} else {
-						*maybe_list = Some(vec![auction_item.id]);
-					}
-				});
-			}
-			Self::update_bid_price_for_auction_item(&auction_id, sender.clone());
-
-			// lock bid price
-			T::CurrencyOperations::reserve(&sender, price)?;
-
-			// check auction success or not.
-			if let Some(buy_now_price) = auction_item.buy_now_price {
-				let maybe_bid_item = BidStore::<T>::get(&sender, &auction_id);
-				if let Some(bid_item) = maybe_bid_item {
-					if bid_item.price >= buy_now_price {
-						Self::complete_auction(&auction_item, &sender)?;
-
-						return Ok(());
-					}
-				}
-			}
-
-			Self::deposit_event(Event::BidAuction(auction_id, sender.clone(), price));
-
-			Ok(())
+					Self::try_complete_auction(&sender, &auction_id);
+				},
+			)
 		}
 
 		#[pallet::weight(100_000)]
-		pub fn remove_from_store(origin: OriginFor<T>, auction_id: T::AuctionId) -> DispatchResult {
+		pub fn remove_from_store(origin: OriginFor<T>, auction_id: AuctionId) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let auction_item =
-				AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
-			ensure!(
-				&sender.cmp(&auction_item.cml_owner) == &Ordering::Equal,
-				Error::<T>::AuctionOwnerInvalid
-			);
-
-			let maybe_list = AuctionBidStore::<T>::get(&auction_id);
-			if let Some(list) = maybe_list {
-				let len = list.len();
-				let penalty = T::AuctionOwnerPenaltyForEachBid::get()
-					.saturating_mul(<BalanceOf<T>>::saturated_from(len as u128));
-				ensure!(
-					penalty < <T as auction::Config>::Currency::free_balance(&sender),
-					Error::<T>::NotEnoughBalanceForPenalty
-				);
-
-				for user in list.into_iter() {
-					T::CurrencyOperations::transfer(
-						&sender,
-						&user,
-						T::AuctionOwnerPenaltyForEachBid::get(),
-						AllowDeath,
-					)?;
-				}
-			}
-			Self::delete_auction(&auction_id)?;
-
-			Ok(())
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					ensure!(
+						AuctionStore::<T>::contains_key(&auction_id),
+						Error::<T>::AuctionNotExist
+					);
+					let auction_item = AuctionStore::<T>::get(&auction_id);
+					ensure!(
+						sender.cmp(&auction_item.cml_owner) == Ordering::Equal,
+						Error::<T>::AuctionOwnerInvalid
+					);
+					Ok(())
+				},
+				|sender| {
+					Self::clear_auction_pledge(sender, &auction_id);
+					Self::delete_auction(&auction_id);
+				},
+			)
 		}
 
 		#[pallet::weight(100_000)]
 		pub fn remove_bid_for_auction(
 			origin: OriginFor<T>,
-			auction_id: T::AuctionId,
+			auction_id: AuctionId,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let auction_item =
-				AuctionStore::<T>::get(&auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					Self::check_delete_bid(sender, &auction_id)?;
 
-			if let Some(bid_user) = auction_item.bid_user {
-				ensure!(
-					&sender.cmp(&bid_user) != &Ordering::Equal,
-					Error::<T>::NotAllowQuitBid
-				);
-			}
-
-			Self::delete_bid(&sender, &auction_id)?;
-
-			Ok(())
+					Ok(())
+				},
+				|sender| {
+					Self::delete_bid(&sender, &auction_id);
+				},
+			)
 		}
 	}
 }

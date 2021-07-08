@@ -6,7 +6,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 	type BlockNumber = T::BlockNumber;
 	type FreshDuration = T::SeedFreshDuration;
 
-	fn get_cml_by_id(
+	fn cml_by_id(
 		cml_id: &CmlId,
 	) -> Result<
 		CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
@@ -25,30 +25,93 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Ok(())
 	}
 
-	fn transfer_cml_other(
+	fn check_transfer_cml_to_other(
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
 	) -> DispatchResult {
 		Self::check_belongs(cml_id, from_account)?;
+		ensure!(
+			Self::user_credit_amount(from_account).is_zero(),
+			Error::<T>::CannotTransferCmlWithCredit
+		);
 
-		CmlStore::<T>::mutate(&cml_id, |cml| -> DispatchResult {
+		let cml = CmlStore::<T>::get(cml_id);
+		if cml.is_mining() {
+			ensure!(
+				T::CurrencyOperations::free_balance(target_account) >= T::StakingPrice::get(),
+				Error::<T>::InsufficientFreeBalance
+			);
+			ensure!(
+				T::CurrencyOperations::reserved_balance(from_account) >= T::StakingPrice::get(),
+				Error::<T>::InsufficientReservedBalance
+			);
+		}
+		Ok(())
+	}
+
+	fn transfer_cml_to_other(
+		from_account: &Self::AccountId,
+		cml_id: &CmlId,
+		target_account: &Self::AccountId,
+	) {
+		if Self::check_transfer_cml_to_other(from_account, cml_id, target_account).is_err() {
+			return;
+		}
+
+		let success = CmlStore::<T>::mutate(&cml_id, |cml| {
+			cml.set_owner(target_account);
 			if cml.is_mining() {
-				// todo check balance before create_balance_staking
-				let staking_item =
-					Self::create_balance_staking(target_account, T::StakingPrice::get())?;
-				cml.swap_first_slot(staking_item);
+				let amount = match cml.staking_slots().get(0) {
+					Some(item) => item.amount.clone(),
+					None => None,
+				};
+				if amount.is_none() {
+					return false;
+				}
 
-				// TODO balance
+				return if let Ok(staking_item) =
+					Self::create_balance_staking(target_account, amount.unwrap())
+				{
+					T::CurrencyOperations::unreserve(from_account, amount.unwrap());
+					cml.swap_first_slot(staking_item);
+					true
+				} else {
+					false
+				};
 			}
-			Ok(())
-		})?;
+			true
+		});
+		// see https://github.com/tearust/tea-camellia/issues/13
+		if !success {
+			return;
+		}
 
 		// remove from from UserCmlStore
 		UserCmlStore::<T>::remove(from_account, cml_id);
 		UserCmlStore::<T>::insert(target_account, cml_id, ());
+	}
 
-		Ok(())
+	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance> {
+		if !CmlStore::<T>::contains_key(cml_id) {
+			return None;
+		}
+
+		let cml = CmlStore::<T>::get(cml_id);
+		if cml.is_mining() {
+			if let Some(staking_item) = cml.staking_slots().get(0) {
+				return staking_item.amount.clone();
+			}
+		}
+		None
+	}
+
+	fn user_credit_amount(account_id: &Self::AccountId) -> Self::Balance {
+		if !GenesisMinerCreditStore::<T>::contains_key(account_id) {
+			return Zero::zero();
+		}
+
+		GenesisMinerCreditStore::<T>::get(account_id)
 	}
 }
 
@@ -304,7 +367,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 					CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml)))
 				}
 				None => {
-					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get()).unwrap();
+					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get());
 					staking_to
 						.unstake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
 							Some(staking_index),

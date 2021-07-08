@@ -62,11 +62,17 @@ pub trait CurrencyOperations {
 	/// be returned to notify of this.
 	fn reserve(who: &Self::AccountId, amount: Self::Balance) -> DispatchResult;
 
-	/// Moves up to `value` from reserved balance to free balance.
+	/// Moves up to `value` from reserved balance to free balance. This function cannot fail.
 	///
 	/// As much funds up to `value` will be moved as possible. If the reserve balance of `who`
-	/// is less than `value`, an `Err` will be returned to notify of this.
-	fn unreserve(who: &Self::AccountId, amount: Self::Balance) -> DispatchResult;
+	/// is less than `value`, then the remaining amount will be returned.
+	///
+	/// # NOTES
+	///
+	/// - This is different from `reserve`.
+	/// - If the remaining reserved balance is less than `ExistentialDeposit`, it will
+	/// invoke `on_reserved_too_low` and could reap the account.
+	fn unreserve(who: &Self::AccountId, value: Self::Balance) -> Self::Balance;
 
 	/// Deducts up to `value` from reserved balance of `who`. This function cannot fail.
 	///

@@ -854,20 +854,21 @@ const AUCTION_WINDOW_BLOCK: BlockNumber = 100;
 const AUCTION_WINDOW_BLOCK: BlockNumber = 1000;
 parameter_types! {
 	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_WINDOW_BLOCK;
-	pub const BidDeposit: Balance = 100 * DOLLARS;
 	pub const MinPriceForBid: Balance = 1 * DOLLARS;
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
+	pub const AuctionPledgeAmount: Balance = 100 * DOLLARS;
+	pub const MaxUsersPerAuction: u64 = 10000;
 }
 impl pallet_auction::Config for Runtime {
 	type Event = Event;
-	type AuctionId = u64;
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
 	type AuctionDealWindowBLock = AuctionDealWindowBLock;
-	type BidDeposit = BidDeposit;
 	type MinPriceForBid = MinPriceForBid;
 	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
+	type AuctionPledgeAmount = AuctionPledgeAmount;
+	type MaxUsersPerAuction = MaxUsersPerAuction;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
