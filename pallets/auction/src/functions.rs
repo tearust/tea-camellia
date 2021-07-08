@@ -1,12 +1,12 @@
 use super::*;
 
 impl<T: auction::Config> auction::Pallet<T> {
-	pub fn get_next_auction_id() -> AuctionId {
+	pub fn next_auction_id() -> AuctionId {
 		LastAuctionId::<T>::mutate(|id| {
 			if *id < u64::MAX {
 				*id += 1;
 			} else {
-				*id = 0;
+				*id = 1;
 			}
 
 			*id
@@ -20,7 +20,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		buy_now_price: Option<BalanceOf<T>>,
 	) -> AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber> {
 		AuctionItem {
-			id: Self::get_next_auction_id(),
+			id: Self::next_auction_id(),
 			cml_id,
 			cml_owner,
 			starting_price,
@@ -439,22 +439,30 @@ impl<T: auction::Config> auction::Pallet<T> {
 
 #[cfg(test)]
 mod tests {
-	use crate::{mock::*, AuctionBidStore, AuctionItem, BidItem, BidStore, Config, LastAuctionId};
-	use frame_support::traits::{Currency, ReservableCurrency};
+	use crate::tests::seed_from_lifespan;
+	use crate::{
+		mock::*, AuctionBidStore, AuctionId, AuctionItem, BidItem, BidStore, Config,
+		EndBlockAuctionStore, LastAuctionId,
+	};
+	use frame_support::{
+		assert_ok,
+		traits::{Currency, ReservableCurrency},
+	};
+	use pallet_cml::{CmlId, CmlStore, UserCmlStore, CML};
 
 	#[test]
-	fn get_next_auction_id_works() {
+	fn next_auction_id_works() {
 		new_test_ext().execute_with(|| {
 			// default auction id started at 0
 			assert_eq!(LastAuctionId::<Test>::get(), 0);
 
-			assert_eq!(Auction::get_next_auction_id(), 1);
+			assert_eq!(Auction::next_auction_id(), 1);
 
 			LastAuctionId::<Test>::set(u64::MAX - 1);
-			assert_eq!(Auction::get_next_auction_id(), u64::MAX);
+			assert_eq!(Auction::next_auction_id(), u64::MAX);
 
 			// auction id back to 0
-			assert_eq!(Auction::get_next_auction_id(), 0);
+			assert_eq!(Auction::next_auction_id(), 1);
 		})
 	}
 
@@ -642,5 +650,140 @@ mod tests {
 				assert_eq!(<Test as Config>::Currency::free_balance(&(i as u64)), 0);
 			}
 		})
+	}
+
+	#[test]
+	fn try_complete_auctions_works() {
+		new_test_ext().execute_with(|| {
+			let owner1 = 11;
+			let owner2 = 12;
+			let owner3 = 13;
+			let user1 = 21;
+			let user2 = 22;
+			let user3 = 23;
+			let cml_id1 = 31;
+			let cml_id2 = 32;
+			let cml_id3 = 33;
+			let origin_amount = 10000;
+			<Test as Config>::Currency::make_free_balance_be(&owner1, origin_amount);
+			<Test as Config>::Currency::make_free_balance_be(&owner2, origin_amount);
+			<Test as Config>::Currency::make_free_balance_be(&owner3, origin_amount);
+			<Test as Config>::Currency::make_free_balance_be(&user1, origin_amount);
+			<Test as Config>::Currency::make_free_balance_be(&user2, origin_amount);
+			<Test as Config>::Currency::make_free_balance_be(&user3, origin_amount);
+
+			// let auction_id1 bid with two users, auction_id2 bid with buy_now_price, auction_id3
+			// have no bids that should move to the next window
+			let auction_id1 = new_bid_item(owner1, cml_id1, 100, 1000);
+			let auction_id2 = new_bid_item(owner2, cml_id2, 100, 1000);
+			let auction_id3 = new_bid_item(owner3, cml_id3, 100, 1000);
+			let (current, next) = Auction::get_window_block();
+			assert_eq!(EndBlockAuctionStore::<Test>::get(current), None);
+			assert_eq!(EndBlockAuctionStore::<Test>::get(next).unwrap().len(), 3);
+
+			let user1_bid_price = 150;
+			assert_ok!(Auction::bid_for_auction(
+				Origin::signed(user1),
+				auction_id1,
+				user1_bid_price,
+			));
+			let user2_bid_price = 200;
+			assert_ok!(Auction::bid_for_auction(
+				Origin::signed(user2),
+				auction_id1,
+				user2_bid_price,
+			));
+			let user3_bid_price = 1000;
+			assert_ok!(Auction::bid_for_auction(
+				Origin::signed(user3),
+				auction_id2,
+				user3_bid_price,
+			));
+
+			// check balances of all users
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner1),
+				origin_amount - AUCTION_PLEDGE_AMOUNT
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner2),
+				origin_amount + user3_bid_price
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner3),
+				origin_amount - AUCTION_PLEDGE_AMOUNT
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user1),
+				origin_amount - user1_bid_price
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user2),
+				origin_amount - user2_bid_price
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user3),
+				origin_amount - user3_bid_price
+			);
+
+			frame_system::Pallet::<Test>::set_block_number(AUCTION_DEAL_WINDOW_BLOCK as u64);
+			let (current, next) = Auction::get_window_block();
+			assert_eq!(EndBlockAuctionStore::<Test>::get(current).unwrap().len(), 2);
+			assert_eq!(EndBlockAuctionStore::<Test>::get(next), None);
+			Auction::try_complete_auctions();
+
+			assert_eq!(EndBlockAuctionStore::<Test>::get(current), None);
+			assert_eq!(EndBlockAuctionStore::<Test>::get(next).unwrap().len(), 1);
+			assert_eq!(
+				EndBlockAuctionStore::<Test>::get(next).unwrap()[0],
+				auction_id3
+			);
+
+			// check balances of all users
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner1),
+				origin_amount + user2_bid_price
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner2),
+				origin_amount + user3_bid_price
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner3),
+				origin_amount - AUCTION_PLEDGE_AMOUNT
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user1),
+				origin_amount
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user2),
+				origin_amount - user2_bid_price
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user3),
+				origin_amount - user3_bid_price
+			);
+		})
+	}
+
+	fn new_bid_item(
+		user_id: u64,
+		cml_id: CmlId,
+		starting_price: u128,
+		buy_now_price: u128,
+	) -> AuctionId {
+		UserCmlStore::<Test>::insert(user_id, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(user_id),
+			cml_id,
+			starting_price,
+			Some(buy_now_price)
+		));
+
+		Auction::last_auction_id()
 	}
 }

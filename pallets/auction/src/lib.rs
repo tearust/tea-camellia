@@ -116,7 +116,7 @@ pub mod auction {
 		StorageMap<_, Twox64Concat, T::AccountId, Vec<AuctionId>, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn auctions_index)]
+	#[pallet::getter(fn last_auction_id)]
 	pub type LastAuctionId<T: Config> = StorageValue<_, AuctionId, ValueQuery>;
 
 	#[pallet::storage]
