@@ -10,10 +10,12 @@ sp_api::decl_runtime_apis! {
 	where
 		AccountId: Codec,
 	{
-		fn get_user_cml_list(who: &AccountId) -> Vec<u64>;
+		fn user_cml_list(who: &AccountId) -> Vec<u64>;
 
 		/// return type: the first field is ID of the cml, the second field is slot index within
 		/// the cml.
-		fn get_user_staking_list(who: &AccountId) -> Vec<(u64, u64)>;
+		fn user_staking_list(who: &AccountId) -> Vec<(u64, u64)>;
+
+		fn current_mining_cml_list() -> Vec<u64>;
 	}
 }

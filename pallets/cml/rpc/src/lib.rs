@@ -11,15 +11,14 @@ const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
 pub trait CmlApi<BlockHash, AccountId> {
-	#[rpc(name = "cml_getUserCmlList")]
-	fn get_user_cml_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
+	#[rpc(name = "cml_userCmlList")]
+	fn user_cml_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
 
-	#[rpc(name = "cml_getUserStakingList")]
-	fn get_user_staking_list(
-		&self,
-		who: AccountId,
-		at: Option<BlockHash>,
-	) -> Result<Vec<(u64, u64)>>;
+	#[rpc(name = "cml_userStakingList")]
+	fn user_staking_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<(u64, u64)>>;
+
+	#[rpc(name = "cml_currentMiningCmlList")]
+	fn current_mining_cml_list(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
 }
 
 pub struct CmlApiImpl<C, M> {
@@ -55,7 +54,7 @@ where
 	C::Api: cml_runtime_api::CmlApi<Block, AccountId>,
 	AccountId: Codec,
 {
-	fn get_user_cml_list(
+	fn user_cml_list(
 		&self,
 		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
@@ -66,12 +65,12 @@ where
 			self.client.info().best_hash));
 
 		let result = api
-			.get_user_cml_list(&at, &who)
+			.user_cml_list(&at, &who)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}
 
-	fn get_user_staking_list(
+	fn user_staking_list(
 		&self,
 		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
@@ -82,7 +81,19 @@ where
 			self.client.info().best_hash));
 
 		let result = api
-			.get_user_staking_list(&at, &who)
+			.user_staking_list(&at, &who)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
+	}
+
+	fn current_mining_cml_list(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u64>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.current_mining_cml_list(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

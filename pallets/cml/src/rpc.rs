@@ -1,14 +1,14 @@
 use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
-	pub fn get_user_cml_list(who: &T::AccountId) -> Vec<u64> {
+	pub fn user_cml_list(who: &T::AccountId) -> Vec<u64> {
 		UserCmlStore::<T>::iter()
 			.filter(|(user, _, _)| *user == *who)
 			.map(|(_, id, _)| id)
 			.collect()
 	}
 
-	pub fn get_user_staking_list(who: &T::AccountId) -> Vec<(u64, u64)> {
+	pub fn user_staking_list(who: &T::AccountId) -> Vec<(u64, u64)> {
 		let mut result = Vec::new();
 		for (_, miner_item) in MinerItemStore::<T>::iter() {
 			if !CmlStore::<T>::contains_key(miner_item.cml_id) {
@@ -28,6 +28,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 		result
 	}
+
+	pub fn current_mining_cml_list() -> Vec<u64> {
+		MinerItemStore::<T>::iter()
+			.map(|(_, miner_item)| miner_item.cml_id)
+			.collect()
+	}
 }
 
 #[cfg(test)]
@@ -40,7 +46,7 @@ mod tests {
 	};
 
 	#[test]
-	fn get_user_cml_list_works() {
+	fn user_cml_list_works() {
 		new_test_ext().execute_with(|| {
 			let account1 = 1;
 			let account2 = 2;
@@ -63,13 +69,13 @@ mod tests {
 			UserCmlStore::<Test>::insert(account2, account2_cml3, ());
 			UserCmlStore::<Test>::insert(account2, account2_cml4, ());
 
-			let user1_cml_ids = Cml::get_user_cml_list(&1);
+			let user1_cml_ids = Cml::user_cml_list(&1);
 			assert_eq!(user1_cml_ids.len(), 3);
 			assert!(user1_cml_ids.contains(&account1_cml1));
 			assert!(user1_cml_ids.contains(&account1_cml2));
 			assert!(user1_cml_ids.contains(&account1_cml3));
 
-			let user2_cml_ids = Cml::get_user_cml_list(&2);
+			let user2_cml_ids = Cml::user_cml_list(&2);
 			assert_eq!(user2_cml_ids.len(), 4);
 			assert!(user2_cml_ids.contains(&account2_cml1));
 			assert!(user2_cml_ids.contains(&account2_cml2));
@@ -79,7 +85,7 @@ mod tests {
 	}
 
 	#[test]
-	fn get_user_staking_list_works() {
+	fn user_staking_list_works() {
 		new_test_ext().execute_with(|| {
 			let user1 = 1;
 			let user2 = 2;
@@ -159,18 +165,18 @@ mod tests {
 				},
 			);
 
-			let user1_staking_list = Cml::get_user_staking_list(&user1);
+			let user1_staking_list = Cml::user_staking_list(&user1);
 			assert_eq!(user1_staking_list.len(), 3);
 			assert!(user1_staking_list.contains(&(cml_id1, 0)));
 			assert!(user1_staking_list.contains(&(cml_id2, 2)));
 			assert!(user1_staking_list.contains(&(cml_id2, 3)));
 
-			let user2_staking_list = Cml::get_user_staking_list(&user2);
+			let user2_staking_list = Cml::user_staking_list(&user2);
 			assert_eq!(user2_staking_list.len(), 2);
 			assert!(user2_staking_list.contains(&(cml_id2, 0)));
 			assert!(user2_staking_list.contains(&(cml_id2, 1)));
 
-			let user3_staking_list = Cml::get_user_staking_list(&user3);
+			let user3_staking_list = Cml::user_staking_list(&user3);
 			assert_eq!(user3_staking_list.len(), 1);
 			assert_eq!(user3_staking_list[0], (cml_id1, 1));
 		})
