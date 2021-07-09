@@ -13,5 +13,7 @@ sp_api::decl_runtime_apis! {
 		fn user_auction_list(who: &AccountId) -> Vec<u64>;
 
 		fn user_bid_list(who: &AccountId) -> Vec<u64>;
+
+		fn current_auction_list() -> Vec<u64>;
 	}
 }

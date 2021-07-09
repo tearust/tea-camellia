@@ -14,6 +14,10 @@ impl<T: auction::Config> auction::Pallet<T> {
 			.map(|(_, auction_id, _)| auction_id)
 			.collect()
 	}
+
+	pub fn current_auction_list() -> Vec<u64> {
+		AuctionStore::<T>::iter().map(|(id, _)| id).collect()
+	}
 }
 
 #[cfg(test)]

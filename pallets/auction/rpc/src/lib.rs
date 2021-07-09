@@ -16,6 +16,9 @@ pub trait AuctionApi<BlockHash, AccountId> {
 
 	#[rpc(name = "auction_userBidList")]
 	fn user_bid_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
+
+	#[rpc(name = "auction_currentAuctionList")]
+	fn current_auction_list(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
 }
 
 pub struct AuctionApiImpl<C, M> {
@@ -80,6 +83,18 @@ where
 
 		let result = api
 			.user_bid_list(&at, &who)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
+	}
+
+	fn current_auction_list(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u64>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.current_auction_list(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

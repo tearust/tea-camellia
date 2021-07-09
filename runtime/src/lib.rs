@@ -1089,6 +1089,10 @@ impl_runtime_apis! {
 		fn user_bid_list(who: &AccountId) -> Vec<u64> {
 			Auction::user_bid_list(who)
 		}
+
+		fn current_auction_list() -> Vec<u64> {
+			Auction::current_auction_list()
+		}
 	}
 
 	impl fg_primitives::GrandpaApi<Block> for Runtime {
