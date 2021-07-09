@@ -33,6 +33,7 @@ where
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: cml_runtime_api::CmlApi<Block, AccountId>,
+	C::Api: auction_runtime_api::AuctionApi<Block, AccountId>,
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
 {
@@ -63,6 +64,9 @@ where
 	io.extend_with(cml_rpc::CmlApi::to_delegate(cml_rpc::CmlApiImpl::new(
 		client.clone(),
 	)));
+	io.extend_with(auction_rpc::AuctionApi::to_delegate(
+		auction_rpc::AuctionApiImpl::new(client.clone()),
+	));
 
 	io
 }

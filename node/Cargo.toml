@@ -67,6 +67,8 @@ pallet-authority-discovery = {version = '3.0.0', git = 'https://github.com/parit
 camellia-runtime = {version = '0.0.1', path = '../runtime'}
 cml-runtime-api = {path = '../pallets/cml/runtime-api'}
 cml-rpc = {path = '../pallets/cml/rpc'}
+auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
+auction-rpc = {path = '../pallets/auction/rpc'}
 
 [features]
 default = []
