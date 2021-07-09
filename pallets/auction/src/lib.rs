@@ -269,7 +269,7 @@ pub mod auction {
 				},
 				|sender| {
 					Self::clear_auction_pledge(sender, &auction_id);
-					Self::delete_auction(&auction_id);
+					Self::delete_auction(&auction_id, None);
 				},
 			)
 		}
@@ -289,7 +289,8 @@ pub mod auction {
 					Ok(())
 				},
 				|sender| {
-					Self::delete_bid(&sender, &auction_id);
+					let bid_item = Self::delete_bid(sender, &auction_id);
+					Self::return_for_bid(sender, &bid_item);
 				},
 			)
 		}

@@ -477,6 +477,7 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 		assert!(UserCmlStore::<Test>::contains_key(owner, cml_id));
 		let cml = CmlStore::<Test>::get(cml_id);
 		assert_eq!(cml.staking_slots()[0].owner, owner);
+		assert_eq!(cml.staking_slots()[0].amount, Some(STAKING_PRICE));
 
 		let auction_id = Auction::user_auction_list(&owner)[0];
 		assert_ok!(Auction::bid_for_auction(
@@ -487,17 +488,16 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 		assert_eq!(AuctionStore::<Test>::get(auction_id).bid_user, None);
 		assert!(!BidStore::<Test>::contains_key(user_id, auction_id));
 
-		// todo should pass
-		// assert_eq!(
-		// 	Utils::free_balance(&user_id),
-		// 	user_origin_balance - buy_now_price - STAKING_PRICE
-		// );
-		// assert_eq!(Utils::reserved_balance(&user_id), STAKING_PRICE);
-
 		assert!(UserCmlStore::<Test>::contains_key(user_id, cml_id));
 		let cml = CmlStore::<Test>::get(cml_id);
 		assert_eq!(cml.owner(), Some(&user_id));
 		assert_eq!(cml.staking_slots()[0].owner, user_id);
+
+		assert_eq!(
+			Utils::free_balance(&user_id),
+			user_origin_balance - buy_now_price - STAKING_PRICE
+		);
+		assert_eq!(Utils::reserved_balance(&user_id), STAKING_PRICE);
 
 		assert_eq!(
 			Utils::free_balance(&owner),

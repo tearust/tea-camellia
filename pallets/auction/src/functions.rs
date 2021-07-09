@@ -146,7 +146,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		}
 	}
 
-	pub fn delete_auction(auction_id: &AuctionId) {
+	pub fn delete_auction(auction_id: &AuctionId, success_user: Option<&T::AccountId>) {
 		// remove from AuctionStore
 		AuctionStore::<T>::remove(&auction_id);
 
@@ -170,7 +170,12 @@ impl<T: auction::Config> auction::Pallet<T> {
 		// remove from AuctionBidStore
 		if let Some(bid_user_list) = AuctionBidStore::<T>::get(&auction_id) {
 			for user in bid_user_list.into_iter() {
-				Self::delete_bid(&user, &auction_id);
+				let bid_item = Self::delete_bid(&user, auction_id);
+
+				if success_user.is_some() && *success_user.unwrap() == user {
+					continue;
+				}
+				Self::return_for_bid(&user, &bid_item);
 			}
 		}
 	}
@@ -203,12 +208,18 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(())
 	}
 
-	pub fn delete_bid(who: &T::AccountId, auction_id: &AuctionId) {
-		let bid_item = BidStore::<T>::take(&who, &auction_id);
-
-		let total = Self::bid_total_price(&bid_item);
+	pub fn return_for_bid(
+		who: &T::AccountId,
+		bid_item: &BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+	) {
+		let total = Self::bid_total_price(bid_item);
 		T::CurrencyOperations::unreserve(who, total);
+	}
 
+	pub fn delete_bid(
+		who: &T::AccountId,
+		auction_id: &AuctionId,
+	) -> BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber> {
 		// remove from AuctionBidStore
 		AuctionBidStore::<T>::mutate(&auction_id, |maybe_list| {
 			if let Some(ref mut list) = maybe_list {
@@ -217,6 +228,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 				}
 			}
 		});
+
+		BidStore::<T>::take(&who, &auction_id)
 	}
 
 	pub(crate) fn bid_total_price(
@@ -266,7 +279,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		);
 
 		T::CurrencyOperations::unreserve(&auction_item.cml_owner, T::AuctionPledgeAmount::get());
-		Self::delete_auction(&auction_item.id);
+		Self::delete_auction(&auction_item.id, Some(target));
 		Self::deposit_event(Event::AuctionSuccess(
 			auction_item.id,
 			target.clone(),
@@ -312,7 +325,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 				&auction_item.cml_owner,
 				T::AuctionPledgeAmount::get(),
 			);
-			Self::delete_auction(&auction_item.id);
+			Self::delete_auction(&auction_item.id, None);
 		}
 	}
 
