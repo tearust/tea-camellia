@@ -628,6 +628,31 @@ fn bid_for_auction_with_invalid_price_should_fail() {
 		);
 	});
 
+	// two users bid the same price, only the first one success
+	new_test_ext().execute_with(|| {
+		let user1_id = 1;
+		let user2_id = 2;
+		let auction_id = 22;
+		<Test as Config>::Currency::make_free_balance_be(&user1_id, 100 * 1000);
+		<Test as Config>::Currency::make_free_balance_be(&user2_id, 100 * 1000);
+		let mut auction_item = default_auction_item(auction_id, 5, 1);
+		auction_item.starting_price = 100;
+		AuctionStore::<Test>::insert(auction_id, auction_item);
+
+		let bid_price = 150;
+
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id,
+			bid_price,
+		));
+
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(user2_id), auction_id, bid_price),
+			Error::<Test>::InvalidBidPrice
+		);
+	});
+
 	// user add price should larger than the former price
 	new_test_ext().execute_with(|| {
 		let user1_id = 1;
