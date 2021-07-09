@@ -7,8 +7,11 @@ members = [
 	'runtime',
 	'pallets/*',
 	'simulators/*',
+
 	'pallets/cml/runtime-api',
-	'pallets/auction/runtime-api',
 	'pallets/cml/rpc',
+	'pallets/cml/staking-economics',
+
+	'pallets/auction/runtime-api',
 	'pallets/auction/rpc',
 ]

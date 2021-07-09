@@ -1,6 +1,9 @@
 use crate as pallet_cml;
 use crate::generator::init_genesis;
-use crate::{GenesisSeeds, GenesisVouchers, VoucherConfig};
+use crate::{
+	GenesisSeeds, GenesisVouchers, MinerStakingPoint, StakingEconomics, StakingSnapshotItem,
+	VoucherConfig,
+};
 use frame_support::pallet_prelude::*;
 use frame_support::parameter_types;
 use frame_system as system;
@@ -13,6 +16,9 @@ use sp_runtime::{
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+
+pub const CENTS: node_primitives::Balance = 10_000_000_000;
+pub const DOLLARS: node_primitives::Balance = 100 * CENTS;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -83,7 +89,7 @@ impl pallet_cml::Config for Test {
 	type SeedFreshDuration = SeedFreshDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
-	type StakingEconomics = Cml;
+	type StakingEconomics = StakingEconomicsMock;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 
@@ -157,5 +163,29 @@ impl ExtBuilder {
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));
 		ext
+	}
+}
+
+pub struct StakingEconomicsMock {}
+
+impl Default for StakingEconomicsMock {
+	fn default() -> Self {
+		StakingEconomicsMock {}
+	}
+}
+
+impl StakingEconomics<Balance, u64> for StakingEconomicsMock {
+	fn increase_issuance(_total_point: u64) -> Balance {
+		1 * DOLLARS
+	}
+
+	fn total_staking_rewards_of_miner(_miner_point: u64, _total_point: u64) -> Balance {
+		1 * DOLLARS
+	}
+
+	fn miner_staking_points(
+		snapshots: &Vec<StakingSnapshotItem<u64>>,
+	) -> Vec<(u64, MinerStakingPoint)> {
+		snapshots.iter().map(|item| (item.owner, 1)).collect()
 	}
 }

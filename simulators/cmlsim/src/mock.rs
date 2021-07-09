@@ -78,7 +78,7 @@ impl pallet_cml::Config for Test {
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type SeedFreshDuration = SeedFreshDuration;
-	type StakingEconomics = Cml;
+	type StakingEconomics = staking_economics::TeaStakingEconomics<Balance, u64>;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 

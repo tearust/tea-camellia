@@ -51,3 +51,16 @@ where
 		}
 	}
 }
+
+impl<AccountId> Default for StakingSnapshotItem<AccountId>
+where
+	AccountId: Default,
+{
+	fn default() -> Self {
+		StakingSnapshotItem {
+			owner: AccountId::default(),
+			weight: 0,
+			staking_at: 0,
+		}
+	}
+}

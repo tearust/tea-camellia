@@ -82,6 +82,7 @@ pallet-utils = {default-features = false, path = '../pallets/utils'}
 pallet-cml = {default-features = false, path = '../pallets/cml'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
 auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
+staking-economics = {default-features = false, path = '../pallets/cml/staking-economics'}
 
 [features]
 default = ['std']
@@ -173,5 +174,6 @@ std = [
 	'pallet-utils/std',
 	'cml-runtime-api/std',
 	'auction-runtime-api/std',
+	'staking-economics/std',
 ]
 fast = [] # indicate the block duration and epoch will be shorter to test

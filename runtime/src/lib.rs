@@ -815,7 +815,7 @@ impl pallet_cml::Config for Runtime {
 	type SeedFreshDuration = SeedFreshDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
-	type StakingEconomics = Cml;
+	type StakingEconomics = staking_economics::TeaStakingEconomics<Balance, AccountId>;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 

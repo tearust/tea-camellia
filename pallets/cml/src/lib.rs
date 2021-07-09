@@ -60,7 +60,7 @@ pub mod cml {
 			Balance = BalanceOf<Self>,
 		>;
 
-		type StakingEconomics: StakingEconomics<BalanceOf<Self>, AccountId = Self::AccountId>;
+		type StakingEconomics: StakingEconomics<BalanceOf<Self>, Self::AccountId>;
 
 		type StakingSlotsMaxLength: Get<StakingIndex>;
 	}
@@ -692,9 +692,7 @@ pub trait CmlOperation {
 	fn user_credit_amount(account_id: &Self::AccountId) -> Self::Balance;
 }
 
-pub trait StakingEconomics<Balance> {
-	type AccountId: PartialEq + Clone;
-
+pub trait StakingEconomics<Balance, AccountId> {
 	fn increase_issuance(total_point: ServiceTaskPoint) -> Balance;
 
 	fn total_staking_rewards_of_miner(
@@ -702,13 +700,7 @@ pub trait StakingEconomics<Balance> {
 		total_point: ServiceTaskPoint,
 	) -> Balance;
 
-	fn miner_staking_point(
-		snapshots: &Vec<StakingSnapshotItem<Self::AccountId>>,
-	) -> MinerStakingPoint;
-
-	fn single_staking_reward(
-		miner_total_rewards: Balance,
-		total_staking_point: MinerStakingPoint,
-		snapshot_item: &StakingSnapshotItem<Self::AccountId>,
-	) -> Balance;
+	fn miner_staking_points(
+		snapshots: &Vec<StakingSnapshotItem<AccountId>>,
+	) -> Vec<(AccountId, MinerStakingPoint)>;
 }

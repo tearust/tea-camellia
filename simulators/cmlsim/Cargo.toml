@@ -21,4 +21,5 @@ node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/subs
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 pallet-cml = { path = '../../pallets/cml' }
 pallet-utils = { path = '../../pallets/utils'}
+staking-economics = { path = '../../pallets/cml/staking-economics'}
 
