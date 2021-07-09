@@ -9,11 +9,12 @@ use frame_support::{assert_noop, assert_ok, traits::Currency};
 #[test]
 fn start_mining_with_frozen_seed_works() {
 	new_test_ext().execute_with(|| {
+		let user_id = 1;
 		let amount = 100 * 1000; // Unit * StakingPrice
-		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+		<Test as Config>::Currency::make_free_balance_be(&user_id, amount);
 
 		let cml_id: CmlId = 4;
-		UserCmlStore::<Test>::insert(1, cml_id, ());
+		UserCmlStore::<Test>::insert(user_id, cml_id, ());
 		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		assert!(cml.is_seed());
 		assert!(cml.can_be_defrost(&0));
@@ -22,34 +23,56 @@ fn start_mining_with_frozen_seed_works() {
 		let machine_id: MachineId = [1u8; 32];
 		let miner_ip = b"miner_ip".to_vec();
 		assert_ok!(Cml::start_mining(
-			Origin::signed(1),
+			Origin::signed(user_id),
 			cml_id,
 			machine_id,
 			miner_ip.clone()
 		));
+
+		let cml = CmlStore::<Test>::get(cml_id);
+		assert!(cml.is_mining());
+		assert_eq!(cml.staking_slots().len(), 1);
+		assert_eq!(cml.staking_slots()[0].amount, Some(STAKING_PRICE));
+		assert_eq!(cml.staking_slots()[0].owner, user_id);
+
+		assert!(!GenesisMinerCreditStore::<Test>::contains_key(&user_id));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user_id),
+			amount - STAKING_PRICE
+		);
+		assert_eq!(
+			<Test as Config>::Currency::reserved_balance(&user_id),
+			STAKING_PRICE
+		);
 	})
 }
 
 #[test]
 fn start_mining_works_with_insufficient_balance() {
 	new_test_ext().execute_with(|| {
+		let user_id = 1;
 		let amount = STAKING_PRICE - 1;
-		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+		<Test as Config>::Currency::make_free_balance_be(&user_id, amount);
 
 		let cml_id: CmlId = 4;
-		UserCmlStore::<Test>::insert(1, cml_id, ());
+		UserCmlStore::<Test>::insert(user_id, cml_id, ());
 		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
 		assert_ok!(Cml::start_mining(
-			Origin::signed(1),
+			Origin::signed(user_id),
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec()
 		));
 
-		assert_eq!(GenesisMinerCreditStore::<Test>::get(&1), 1);
+		assert_eq!(GenesisMinerCreditStore::<Test>::get(&user_id), 1);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user_id), 0);
+		assert_eq!(
+			<Test as Config>::Currency::reserved_balance(&user_id),
+			STAKING_PRICE - 1
+		);
 	})
 }
 

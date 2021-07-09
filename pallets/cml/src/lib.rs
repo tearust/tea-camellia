@@ -7,6 +7,7 @@ pub mod mock;
 #[cfg(test)]
 mod tests;
 
+mod cml_operation;
 mod functions;
 pub mod generator;
 mod rpc;
