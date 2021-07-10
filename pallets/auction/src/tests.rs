@@ -195,6 +195,31 @@ fn put_to_store_should_fail_if_seed_has_overed_fresh_duration() {
 }
 
 #[test]
+fn put_to_store_should_fail_if_buy_now_price_lower_equal_than_starting_price() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(
+			&user,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+		UserCmlStore::<Test>::insert(user, cml_id, ());
+
+		assert_noop!(
+			Auction::put_to_store(Origin::signed(user), cml_id, 1000, Some(99), true),
+			Error::<Test>::BuyNotPriceShouldHigherThanStartingPrice
+		);
+
+		assert_noop!(
+			Auction::put_to_store(Origin::signed(user), cml_id, 1000, Some(1000), true),
+			Error::<Test>::BuyNotPriceShouldHigherThanStartingPrice
+		);
+	})
+}
+
+#[test]
 fn bid_for_auction_works() {
 	new_test_ext().execute_with(|| {
 		let user_id = 11;

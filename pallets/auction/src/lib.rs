@@ -93,6 +93,7 @@ pub mod auction {
 		NotAllowToAuction,
 		NotEnoughBalanceForPenalty,
 		OverTheMaxUsersPerAuctionLimit,
+		BuyNotPriceShouldHigherThanStartingPrice,
 	}
 
 	#[pallet::event]
@@ -174,6 +175,12 @@ pub mod auction {
 							>= T::AuctionPledgeAmount::get() + T::AuctionFeePerWindow::get(),
 						Error::<T>::NotEnoughBalance
 					);
+					if let Some(buy_now_price) = buy_now_price.as_ref() {
+						ensure!(
+							*buy_now_price > starting_price,
+							Error::<T>::BuyNotPriceShouldHigherThanStartingPrice
+						);
+					}
 
 					let current_height = frame_system::Pallet::<T>::block_number();
 					// check cml status
