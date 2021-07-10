@@ -4,6 +4,7 @@
 use crate::index::{DOLLARS, STAKING_PRICE_TABLE};
 use node_primitives::{AccountId, Balance};
 use pallet_cml::{ServiceTaskPoint, StakingEconomics, StakingSnapshotItem};
+use sp_runtime::traits::Zero;
 use sp_std::cmp::min;
 use sp_std::prelude::*;
 
@@ -35,9 +36,13 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 		let total_slot_height = snapshots
 			.last()
 			.map(|item| item.staking_at + item.weight)
-			.unwrap_or(1);
+			.unwrap_or(0);
 
 		let max_index = safe_index(total_slot_height);
+		if max_index == 0 {
+			return Zero::zero();
+		}
+
 		STAKING_PRICE_TABLE.iter().take(max_index).sum()
 	}
 
@@ -46,6 +51,10 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 		total_staking_point: Balance,
 		snapshot_item: &StakingSnapshotItem<AccountId>,
 	) -> Balance {
+		if miner_total_rewards.is_zero() || total_staking_point.is_zero() {
+			return Zero::zero();
+		}
+
 		let mut staking_point = 0;
 		for i in snapshot_item.staking_at..(snapshot_item.staking_at + snapshot_item.weight) {
 			staking_point += STAKING_PRICE_TABLE[safe_index(i)];

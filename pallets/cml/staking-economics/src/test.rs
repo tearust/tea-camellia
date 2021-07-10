@@ -35,6 +35,11 @@ fn miner_total_staking_price_works() {
 }
 
 #[test]
+fn miner_total_staking_price_works_if_snapshot_is_empty() {
+	assert_eq!(TeaStakingEconomics::miner_total_staking_price(&vec![]), 0);
+}
+
+#[test]
 fn single_staking_reward_works() {
 	let total_balance = 10 * DOLLARS;
 	let staking_count = 10;
@@ -100,6 +105,48 @@ fn single_staking_reward_works_if_weight_larger_than_one() {
 			}
 		),
 		STAKING_PRICE_TABLE[5] + STAKING_PRICE_TABLE[6] + STAKING_PRICE_TABLE[7]
+	);
+}
+
+#[test]
+fn single_staking_reward_works_if_has_zero_value() {
+	assert_eq!(
+		TeaStakingEconomics::single_staking_reward(
+			0,
+			10000,
+			&StakingSnapshotItem {
+				owner: AccountId::default(),
+				weight: 3,
+				staking_at: 5,
+			}
+		),
+		0
+	);
+
+	assert_eq!(
+		TeaStakingEconomics::single_staking_reward(
+			10000,
+			0,
+			&StakingSnapshotItem {
+				owner: AccountId::default(),
+				weight: 3,
+				staking_at: 5,
+			}
+		),
+		0
+	);
+
+	assert_eq!(
+		TeaStakingEconomics::single_staking_reward(
+			0,
+			0,
+			&StakingSnapshotItem {
+				owner: AccountId::default(),
+				weight: 3,
+				staking_at: 5,
+			}
+		),
+		0
 	);
 }
 

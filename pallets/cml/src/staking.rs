@@ -450,4 +450,13 @@ mod tests {
 			assert_eq!(<Test as Config>::Currency::reserved_balance(&user3), 0);
 		})
 	}
+
+	#[test]
+	fn calculate_staking_works_if_snapshots_is_empty() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(ActiveStakingSnapshot::<Test>::iter().count(), 0);
+			Cml::calculate_staking();
+			assert_eq!(AccountRewards::<Test>::iter().count(), 0);
+		})
+	}
 }
