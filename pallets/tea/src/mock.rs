@@ -2,6 +2,7 @@ use crate as pallet_tea;
 use frame_support::parameter_types;
 use frame_system as system;
 use node_primitives::Balance;
+use pallet_cml::{MachineId, Task};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -91,6 +92,7 @@ impl pallet_tea::Config for Test {
 	type MinRaPassedThreshold = MinRaPassedThreshold;
 	type WeightInfo = ();
 	type CommonUtils = Utils;
+	type TaskService = MockTaskService;
 }
 
 // Build genesis storage according to the mock runtime.
@@ -99,4 +101,18 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.build_storage::<Test>()
 		.unwrap()
 		.into()
+}
+
+pub struct MockTaskService {}
+
+impl Default for MockTaskService {
+	fn default() -> Self {
+		MockTaskService {}
+	}
+}
+
+impl Task for MockTaskService {
+	fn complete_ra_task(_machine_id: MachineId) {
+		// do nothing here
+	}
 }

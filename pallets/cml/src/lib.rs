@@ -100,7 +100,8 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn miner_item_store)]
-	pub type MinerItemStore<T: Config> = StorageMap<_, Twox64Concat, MachineId, MinerItem>;
+	pub type MinerItemStore<T: Config> =
+		StorageMap<_, Twox64Concat, MachineId, MinerItem, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn miner_credit_store)]
@@ -123,6 +124,11 @@ pub mod cml {
 	#[pallet::getter(fn active_staking_snapshot)]
 	pub type ActiveStakingSnapshot<T: Config> =
 		StorageMap<_, Twox64Concat, CmlId, Vec<StakingSnapshotItem<T::AccountId>>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn mining_cml_task_points)]
+	pub type MiningCmlTaskPoints<T: Config> =
+		StorageMap<_, Twox64Concat, CmlId, ServiceTaskPoint, ValueQuery>;
 
 	#[pallet::storage]
 	pub type AccountRewards<T: Config> =
@@ -657,6 +663,31 @@ pub mod cml {
 				},
 			)
 		}
+
+		#[pallet::weight(10_000)]
+		pub fn dummy_ra_task(sender: OriginFor<T>, machine_id: MachineId) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						MinerItemStore::<T>::contains_key(machine_id),
+						Error::<T>::NotFoundMiner
+					);
+					let machine_item = MinerItemStore::<T>::get(machine_id);
+
+					ensure!(
+						CmlStore::<T>::contains_key(machine_item.cml_id),
+						Error::<T>::NotFoundCML
+					);
+					Self::check_belongs(&machine_item.cml_id, who)
+				},
+				|_who| {
+					Self::complete_ra_task(machine_id);
+				},
+			)
+		}
 	}
 }
 
@@ -707,4 +738,8 @@ pub trait StakingEconomics<Balance, AccountId> {
 		total_staking_point: Balance,
 		snapshot_item: &StakingSnapshotItem<AccountId>,
 	) -> Balance;
+}
+
+pub trait Task {
+	fn complete_ra_task(machine_id: MachineId);
 }

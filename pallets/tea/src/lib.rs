@@ -21,6 +21,7 @@ mod weights;
 
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify};
 use frame_system::pallet_prelude::*;
+use pallet_cml::Task;
 use pallet_utils::{extrinsic_procedure, CommonUtils};
 use sp_core::{ed25519, U256};
 use sp_std::prelude::*;
@@ -47,6 +48,8 @@ pub mod tea {
 		type WeightInfo: WeightInfo;
 		/// Common utils trait
 		type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
+		/// Operations type about task execution
+		type TaskService: Task;
 	}
 
 	#[pallet::pallet]
@@ -269,6 +272,7 @@ pub mod tea {
 					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
 					let target_status =
 						Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
+					T::TaskService::complete_ra_task(tea_id);
 					Self::deposit_event(Event::CommitRaResult(
 						sender.clone(),
 						RaResult {

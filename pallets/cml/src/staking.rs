@@ -45,6 +45,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn clear_staking_info() {
 		ActiveStakingSnapshot::<T>::remove_all();
+		MiningCmlTaskPoints::<T>::remove_all();
 	}
 
 	pub(crate) fn calculate_staking() {
@@ -53,7 +54,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		let snapshots: Vec<(CmlId, Vec<StakingSnapshotItem<T::AccountId>>)> =
 			ActiveStakingSnapshot::<T>::iter().collect();
 		for (cml_id, snapshot_items) in snapshots {
-			let miner_task_point = Self::get_miner_task_point(cml_id);
+			let miner_task_point = Self::miner_task_point(cml_id);
 			let miner_total_reward = T::StakingEconomics::total_staking_rewards_of_miner(
 				miner_task_point,
 				total_task_point,
@@ -112,13 +113,15 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn service_task_point_total() -> ServiceTaskPoint {
-		// todo calculate service task total point later
-		1
+		let mut total: ServiceTaskPoint = 0;
+		for (_, point) in MiningCmlTaskPoints::<T>::iter() {
+			total = total.saturating_add(point);
+		}
+		total
 	}
 
-	pub(crate) fn get_miner_task_point(_cml_id: CmlId) -> ServiceTaskPoint {
-		// todo implement me later
-		1
+	pub(crate) fn miner_task_point(cml_id: CmlId) -> ServiceTaskPoint {
+		MiningCmlTaskPoints::<T>::get(cml_id)
 	}
 
 	pub(crate) fn check_miner_first_staking(

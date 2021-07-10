@@ -777,6 +777,7 @@ impl pallet_tea::Config for Runtime {
 	type MinRaPassedThreshold = MinRaPassedThreshold;
 	type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
 	type CommonUtils = Utils;
+	type TaskService = Cml;
 }
 
 #[cfg(not(feature = "fast"))]

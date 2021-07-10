@@ -24,6 +24,7 @@ frame-support = {default-features = false, version = '3.0.0', git = 'https://git
 frame-system = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
+pallet-cml = {default-features = false, path = '../cml'}
 
 # Only used in benchmarking to generate random contract code
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
@@ -55,5 +56,6 @@ std = [
 	'frame-benchmarking/std',
 
 	'pallet-utils/std',
+	'pallet-cml/std',
 ]
 try-runtime = ['frame-support/try-runtime']

@@ -19,3 +19,14 @@ pub struct MinerItem {
 	pub ip: Vec<u8>,
 	pub status: MinerStatus,
 }
+
+impl Default for MinerItem {
+	fn default() -> Self {
+		MinerItem {
+			cml_id: 0,
+			id: [0; 32],
+			ip: vec![],
+			status: MinerStatus::Offline,
+		}
+	}
+}

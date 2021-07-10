@@ -2,7 +2,7 @@ use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_CO
 use crate::tests::{new_genesis_frozen_seed, new_genesis_seed, seed_from_lifespan};
 use crate::{
 	mock::*, types::*, CmlStore, Config, Error, GenesisMinerCreditStore, MinerItemStore,
-	UserCmlStore,
+	MiningCmlTaskPoints, UserCmlStore,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 
@@ -424,5 +424,40 @@ fn stop_mining_should_fail_if_machine_id_not_exist_in_miner_item_store() {
 			Cml::stop_mining(Origin::signed(1), cml_id, machine_id),
 			Error::<Test>::NotFoundMiner
 		);
+	})
+}
+
+#[test]
+fn dummy_ra_task_works() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+		let machine_id = [1u8; 32];
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
+		cml.start_mining(machine_id, StakingItem::default(), &0);
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		MinerItemStore::<Test>::insert(
+			machine_id,
+			MinerItem {
+				cml_id,
+				id: machine_id,
+				ip: vec![],
+				status: MinerStatus::Active,
+			},
+		);
+
+		assert!(!MiningCmlTaskPoints::<Test>::contains_key(&cml_id));
+
+		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id));
+		assert_eq!(MiningCmlTaskPoints::<Test>::get(&cml_id), 1);
+
+		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id));
+		assert_eq!(MiningCmlTaskPoints::<Test>::get(&cml_id), 2);
+
+		// a machine can only have u32::MAX points
+		MiningCmlTaskPoints::<Test>::mutate(&cml_id, |point| *point = u32::MAX);
+		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id));
+		assert_eq!(MiningCmlTaskPoints::<Test>::get(&cml_id), u32::MAX);
 	})
 }

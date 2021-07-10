@@ -291,6 +291,22 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
+impl<T: cml::Config> Task for cml::Pallet<T> {
+	fn complete_ra_task(machine_id: MachineId) {
+		// for now all ra task will have one unit point
+		let new_task_point: ServiceTaskPoint = 1;
+		let machine_item = MinerItemStore::<T>::get(machine_id);
+
+		if MiningCmlTaskPoints::<T>::contains_key(machine_item.cml_id) {
+			MiningCmlTaskPoints::<T>::mutate(machine_item.cml_id, |point| {
+				*point = point.saturating_add(new_task_point);
+			});
+		} else {
+			MiningCmlTaskPoints::<T>::insert(machine_item.cml_id, new_task_point);
+		}
+	}
+}
+
 pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber, Balance, FreshDuration>(
 	seeds: &Vec<Seed>,
 ) -> (
