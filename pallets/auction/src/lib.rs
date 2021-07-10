@@ -93,7 +93,7 @@ pub mod auction {
 		NotAllowToAuction,
 		NotEnoughBalanceForPenalty,
 		OverTheMaxUsersPerAuctionLimit,
-		BuyNotPriceShouldHigherThanStartingPrice,
+		BuyNowPriceShouldHigherThanStartingPrice,
 	}
 
 	#[pallet::event]
@@ -178,7 +178,7 @@ pub mod auction {
 					if let Some(buy_now_price) = buy_now_price.as_ref() {
 						ensure!(
 							*buy_now_price > starting_price,
-							Error::<T>::BuyNotPriceShouldHigherThanStartingPrice
+							Error::<T>::BuyNowPriceShouldHigherThanStartingPrice
 						);
 					}
 

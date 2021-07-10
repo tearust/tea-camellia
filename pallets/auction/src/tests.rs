@@ -209,12 +209,12 @@ fn put_to_store_should_fail_if_buy_now_price_lower_equal_than_starting_price() {
 
 		assert_noop!(
 			Auction::put_to_store(Origin::signed(user), cml_id, 1000, Some(99), true),
-			Error::<Test>::BuyNotPriceShouldHigherThanStartingPrice
+			Error::<Test>::BuyNowPriceShouldHigherThanStartingPrice
 		);
 
 		assert_noop!(
 			Auction::put_to_store(Origin::signed(user), cml_id, 1000, Some(1000), true),
-			Error::<Test>::BuyNotPriceShouldHigherThanStartingPrice
+			Error::<Test>::BuyNowPriceShouldHigherThanStartingPrice
 		);
 	})
 }
