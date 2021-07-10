@@ -1001,6 +1001,7 @@ dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
  "jsonrpc-derive",
+ "node-primitives",
  "parity-scale-codec",
  "serde",
  "sp-api",

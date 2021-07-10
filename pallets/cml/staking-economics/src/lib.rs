@@ -1,10 +1,12 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crate::index::DOLLARS;
 use node_primitives::{AccountId, Balance};
 use pallet_cml::{MinerStakingPoint, ServiceTaskPoint, StakingEconomics, StakingSnapshotItem};
-use sp_runtime::traits::Zero;
 use sp_std::prelude::*;
+
+pub mod index;
 
 pub struct TeaStakingEconomics {}
 
@@ -15,17 +17,15 @@ impl Default for TeaStakingEconomics {
 }
 
 impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
-	fn increase_issuance(_total_point: ServiceTaskPoint) -> Balance {
-		// todo implement me later
-		Zero::zero()
+	fn increase_issuance(total_point: ServiceTaskPoint) -> Balance {
+		(total_point as Balance) * DOLLARS
 	}
 
 	fn total_staking_rewards_of_miner(
-		_miner_point: ServiceTaskPoint,
+		miner_point: ServiceTaskPoint,
 		_total_point: ServiceTaskPoint,
 	) -> Balance {
-		// todo implement me later
-		Zero::zero()
+		(miner_point as Balance) * DOLLARS
 	}
 
 	fn miner_staking_points(

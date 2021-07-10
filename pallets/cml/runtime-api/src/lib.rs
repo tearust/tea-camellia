@@ -3,6 +3,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::Codec;
+use node_primitives::Balance;
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
@@ -17,5 +18,7 @@ sp_api::decl_runtime_apis! {
 		fn user_staking_list(who: &AccountId) -> Vec<(u64, u64)>;
 
 		fn current_mining_cml_list() -> Vec<u64>;
+
+		fn staking_price_table() -> Vec<Balance>;
 	}
 }

@@ -43,6 +43,7 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use staking_economics::index::{STAKING_PRICE_TABLE, STAKING_SLOTS_MAX_LENGTH};
 
 // A few exports that help ease life for downstream crates.
 pub use node_primitives::{AccountId, Balance, Index, Signature};
@@ -804,7 +805,7 @@ parameter_types! {
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
-	pub const StakingSlotsMaxLength: u32 = 1024;
+	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
 }
 impl pallet_cml::Config for Runtime {
 	type Event = Event;
@@ -1082,6 +1083,10 @@ impl_runtime_apis! {
 
 		fn current_mining_cml_list() -> Vec<u64> {
 			Cml::current_mining_cml_list()
+		}
+
+		fn staking_price_table() -> Vec<Balance> {
+			STAKING_PRICE_TABLE.to_vec()
 		}
 	}
 

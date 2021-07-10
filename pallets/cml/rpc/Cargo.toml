@@ -13,6 +13,7 @@ jsonrpc-core-client = "15.1.0"
 jsonrpc-derive = "15.1.0"
 serde = { version = "1.0", features = ["derive"], optional = true }
 
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-api = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-blockchain = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-rpc = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
@@ -24,9 +25,10 @@ cml-runtime-api = {default-features = false, path = '../runtime-api'}
 [features]
 default = ["std"]
 std = [
-    'serde',
-    'codec/std',
-    'sp-api/std',
+    "serde",
+    "codec/std",
+    "sp-api/std",
     "sp-runtime/std",
+    "node-primitives/std",
     "cml-runtime-api/std"
 ]

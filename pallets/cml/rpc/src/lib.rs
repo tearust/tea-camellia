@@ -2,6 +2,7 @@ use cml_runtime_api::CmlApi as CmlRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
+use node_primitives::Balance;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
@@ -19,6 +20,9 @@ pub trait CmlApi<BlockHash, AccountId> {
 
 	#[rpc(name = "cml_currentMiningCmlList")]
 	fn current_mining_cml_list(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
+
+	#[rpc(name = "cml_stakingPriceTable")]
+	fn staking_price_table(&self, at: Option<BlockHash>) -> Result<Vec<Balance>>;
 }
 
 pub struct CmlApiImpl<C, M> {
@@ -94,6 +98,18 @@ where
 
 		let result = api
 			.current_mining_cml_list(&at)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
+	}
+
+	fn staking_price_table(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<Balance>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.staking_price_table(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}
