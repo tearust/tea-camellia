@@ -8,6 +8,8 @@ use sp_std::cmp::min;
 use sp_std::prelude::*;
 
 pub mod index;
+#[cfg(test)]
+mod test;
 
 pub struct TeaStakingEconomics {}
 
@@ -46,7 +48,7 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 	) -> Balance {
 		let mut staking_point = 0;
 		for i in snapshot_item.staking_at..(snapshot_item.staking_at + snapshot_item.weight) {
-			staking_point += STAKING_PRICE_TABLE[safe_index(i) - 1];
+			staking_point += STAKING_PRICE_TABLE[safe_index(i)];
 		}
 		miner_total_rewards * staking_point / total_staking_point
 	}

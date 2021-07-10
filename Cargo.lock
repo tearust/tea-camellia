@@ -7702,6 +7702,7 @@ version = "0.1.0"
 dependencies = [
  "node-primitives",
  "pallet-cml",
+ "rand 0.7.3",
  "sp-runtime",
  "sp-std",
 ]
