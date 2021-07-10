@@ -804,7 +804,7 @@ parameter_types! {
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
-	pub const StakingSlotsMaxLength: u64 = 10000;
+	pub const StakingSlotsMaxLength: u32 = 1024;
 }
 impl pallet_cml::Config for Runtime {
 	type Event = Event;
@@ -815,7 +815,7 @@ impl pallet_cml::Config for Runtime {
 	type SeedFreshDuration = SeedFreshDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
-	type StakingEconomics = staking_economics::TeaStakingEconomics<Balance, AccountId>;
+	type StakingEconomics = staking_economics::TeaStakingEconomics;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 

@@ -578,7 +578,7 @@ pub mod cml {
 					Self::deposit_event(Event::Staked(
 						who.clone(),
 						staking_to,
-						staking_index.unwrap_or(u64::MAX),
+						staking_index.unwrap_or(u32::MAX),
 					));
 				},
 			)

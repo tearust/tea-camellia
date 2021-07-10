@@ -1,9 +1,6 @@
 use crate as pallet_cml;
 use crate::generator::init_genesis;
-use crate::{
-	GenesisSeeds, GenesisVouchers, MinerStakingPoint, StakingEconomics, StakingSnapshotItem,
-	VoucherConfig,
-};
+use crate::{GenesisSeeds, GenesisVouchers, VoucherConfig};
 use frame_support::pallet_prelude::*;
 use frame_support::parameter_types;
 use frame_system as system;
@@ -17,8 +14,8 @@ use sp_runtime::{
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
-pub const CENTS: node_primitives::Balance = 10_000_000_000;
-pub const DOLLARS: node_primitives::Balance = 100 * CENTS;
+// same as mock implementation of StakingEconomics in "staking.rs" file
+pub const DOLLARS: node_primitives::Balance = 100000;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -69,7 +66,7 @@ pub const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
 pub const STAKING_PERIOD_LENGTH: u32 = 100;
 pub const STAKING_PRICE: Balance = 1000;
 pub const SEED_FRESH_DURATION: u32 = 7 * 30 * 24 * 60 * 10;
-pub const STAKING_SLOTS_MAX_LENGTH: u64 = 100;
+pub const STAKING_SLOTS_MAX_LENGTH: u32 = 100;
 
 parameter_types! {
 	pub const MinRaPassedThreshold: u32 = 3;
@@ -77,7 +74,7 @@ parameter_types! {
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
-	pub const StakingSlotsMaxLength: u64 = STAKING_SLOTS_MAX_LENGTH;
+	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
 }
 
 impl pallet_cml::Config for Test {
@@ -89,7 +86,7 @@ impl pallet_cml::Config for Test {
 	type SeedFreshDuration = SeedFreshDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
-	type StakingEconomics = StakingEconomicsMock;
+	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 
@@ -163,29 +160,5 @@ impl ExtBuilder {
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));
 		ext
-	}
-}
-
-pub struct StakingEconomicsMock {}
-
-impl Default for StakingEconomicsMock {
-	fn default() -> Self {
-		StakingEconomicsMock {}
-	}
-}
-
-impl StakingEconomics<Balance, u64> for StakingEconomicsMock {
-	fn increase_issuance(_total_point: u64) -> Balance {
-		1 * DOLLARS
-	}
-
-	fn total_staking_rewards_of_miner(_miner_point: u64, _total_point: u64) -> Balance {
-		1 * DOLLARS
-	}
-
-	fn miner_staking_points(
-		snapshots: &Vec<StakingSnapshotItem<u64>>,
-	) -> Vec<(u64, MinerStakingPoint)> {
-		snapshots.iter().map(|item| (item.owner, 1)).collect()
 	}
 }

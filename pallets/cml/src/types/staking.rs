@@ -8,13 +8,13 @@ use sp_std::prelude::*;
 /// - A class cml: 3
 /// - B class cml: 2
 /// - C class cml: 1
-pub type StakingWeight = u64;
+pub type StakingWeight = u32;
 
-pub type ServiceTaskPoint = u64;
+pub type ServiceTaskPoint = u32;
 
-pub type MinerStakingPoint = u64;
+pub type MinerStakingPoint = u32;
 
-pub type StakingIndex = u64;
+pub type StakingIndex = u32;
 
 #[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
 pub enum StakingCategory {

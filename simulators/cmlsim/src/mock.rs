@@ -66,7 +66,7 @@ parameter_types! {
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedFreshDuration: u32 = SEED_ROTTEN_DURATION;
-	pub const StakingSlotsMaxLength: u64 = 10000;
+	pub const StakingSlotsMaxLength: u32 = 1024;
 }
 
 impl pallet_cml::Config for Test {
@@ -78,7 +78,8 @@ impl pallet_cml::Config for Test {
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type SeedFreshDuration = SeedFreshDuration;
-	type StakingEconomics = staking_economics::TeaStakingEconomics<Balance, u64>;
+	// todo replace value with StakingEconomics later
+	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 }
 

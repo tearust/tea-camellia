@@ -1,38 +1,20 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use node_primitives::{AccountId, Balance};
 use pallet_cml::{MinerStakingPoint, ServiceTaskPoint, StakingEconomics, StakingSnapshotItem};
 use sp_runtime::traits::Zero;
-use sp_std::{marker::PhantomData, prelude::*};
+use sp_std::prelude::*;
 
-pub struct TeaStakingEconomics<Balance, AccountId>
-where
-	Balance: Zero,
-	AccountId: Clone,
-{
-	balance: PhantomData<Balance>,
-	account_id: PhantomData<AccountId>,
-}
+pub struct TeaStakingEconomics {}
 
-impl<Balance, AccountId> Default for TeaStakingEconomics<Balance, AccountId>
-where
-	Balance: Zero,
-	AccountId: Clone,
-{
+impl Default for TeaStakingEconomics {
 	fn default() -> Self {
-		TeaStakingEconomics {
-			balance: PhantomData,
-			account_id: PhantomData,
-		}
+		TeaStakingEconomics {}
 	}
 }
 
-impl<Balance, AccountId> StakingEconomics<Balance, AccountId>
-	for TeaStakingEconomics<Balance, AccountId>
-where
-	Balance: Zero,
-	AccountId: Clone,
-{
+impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 	fn increase_issuance(_total_point: ServiceTaskPoint) -> Balance {
 		// todo implement me later
 		Zero::zero()

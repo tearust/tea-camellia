@@ -163,6 +163,34 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
+/// simple implementation of staking economics, this should only be used in unit tests,
+/// and can not be used in production environment.
+impl<T: cml::Config> StakingEconomics<BalanceOf<T>, T::AccountId> for cml::Pallet<T> {
+	fn increase_issuance(total_point: ServiceTaskPoint) -> BalanceOf<T> {
+		const DOLLARS: u32 = 100000;
+
+		(total_point * DOLLARS).into()
+	}
+
+	fn total_staking_rewards_of_miner(
+		miner_point: ServiceTaskPoint,
+		_total_point: ServiceTaskPoint,
+	) -> BalanceOf<T> {
+		const DOLLARS: u32 = 100000;
+
+		(miner_point * DOLLARS).into()
+	}
+
+	fn miner_staking_points(
+		snapshots: &Vec<StakingSnapshotItem<T::AccountId>>,
+	) -> Vec<(T::AccountId, MinerStakingPoint)> {
+		snapshots
+			.iter()
+			.map(|item| (item.owner.clone(), 1))
+			.collect()
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use crate::mock::*;

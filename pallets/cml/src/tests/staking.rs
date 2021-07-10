@@ -187,13 +187,26 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_the_max_length() {
 		));
 
 		for i in 0..STAKING_SLOTS_MAX_LENGTH {
-			<Test as Config>::Currency::make_free_balance_be(&i, amount);
-			assert_ok!(Cml::start_staking(Origin::signed(i), cml_id, None, None));
+			<Test as Config>::Currency::make_free_balance_be(&(i as u64), amount);
+			assert_ok!(Cml::start_staking(
+				Origin::signed(i as u64),
+				cml_id,
+				None,
+				None
+			));
 		}
 
-		<Test as Config>::Currency::make_free_balance_be(&STAKING_SLOTS_MAX_LENGTH, amount);
+		<Test as Config>::Currency::make_free_balance_be(
+			&(STAKING_SLOTS_MAX_LENGTH as u64),
+			amount,
+		);
 		assert_noop!(
-			Cml::start_staking(Origin::signed(STAKING_SLOTS_MAX_LENGTH), cml_id, None, None),
+			Cml::start_staking(
+				Origin::signed(STAKING_SLOTS_MAX_LENGTH as u64),
+				cml_id,
+				None,
+				None
+			),
 			Error::<Test>::StakingSlotsOverTheMaxLength
 		);
 	})
@@ -222,7 +235,7 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_acceptable_index() {
 				Origin::signed(i),
 				cml_id,
 				None,
-				Some(acceptable_slot_index)
+				Some(acceptable_slot_index as u32)
 			));
 		}
 
@@ -232,7 +245,7 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_acceptable_index() {
 				Origin::signed(acceptable_slot_index),
 				cml_id,
 				None,
-				Some(acceptable_slot_index)
+				Some(acceptable_slot_index as u32)
 			),
 			Error::<Test>::StakingSlotsOverAcceptableIndex
 		);

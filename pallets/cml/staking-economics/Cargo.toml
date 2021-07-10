@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 sp-std = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-runtime = { version = "3.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 pallet-cml = {default-features = false, path = '../../cml'}
 
@@ -17,6 +18,7 @@ default = ["std"]
 std = [
     "sp-std/std",
     "sp-runtime/std",
+    "node-primitives/std",
     "pallet-cml/std",
 ]
 

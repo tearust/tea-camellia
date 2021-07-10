@@ -20,7 +20,6 @@ log = "0.4.8"
 
 pallet-cml = { path = "../cml", version="3.0.0", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
-staking-economics = {default-features = false, path = '../cml/staking-economics'}
 
 [dev-dependencies]
 sp-core = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
@@ -39,6 +38,5 @@ std = [
 	"frame-system/std",
 	"pallet-cml/std",
     "pallet-utils/std",
-	"staking-economics/std",
 ]
 try-runtime = ["frame-support/try-runtime"]
