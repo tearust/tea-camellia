@@ -1,9 +1,10 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::index::DOLLARS;
+use crate::index::{DOLLARS, STAKING_PRICE_TABLE};
 use node_primitives::{AccountId, Balance};
-use pallet_cml::{MinerStakingPoint, ServiceTaskPoint, StakingEconomics, StakingSnapshotItem};
+use pallet_cml::{ServiceTaskPoint, StakingEconomics, StakingSnapshotItem};
+use sp_std::cmp::min;
 use sp_std::prelude::*;
 
 pub mod index;
@@ -28,20 +29,29 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 		(miner_point as Balance) * DOLLARS
 	}
 
-	fn miner_staking_points(
-		snapshots: &Vec<StakingSnapshotItem<AccountId>>,
-	) -> Vec<(AccountId, MinerStakingPoint)> {
+	fn miner_total_staking_price(snapshots: &Vec<StakingSnapshotItem<AccountId>>) -> Balance {
 		let total_slot_height = snapshots
 			.last()
 			.map(|item| item.staking_at + item.weight)
-			.unwrap_or_default();
+			.unwrap_or(1);
 
-		snapshots
-			.iter()
-			.map(|item| {
-				let base_point = total_slot_height - item.staking_at;
-				(item.owner.clone(), base_point * base_point * item.weight)
-			})
-			.collect()
+		let max_index = safe_index(total_slot_height);
+		STAKING_PRICE_TABLE.iter().take(max_index).sum()
 	}
+
+	fn single_staking_reward(
+		miner_total_rewards: Balance,
+		total_staking_point: Balance,
+		snapshot_item: &StakingSnapshotItem<AccountId>,
+	) -> Balance {
+		let mut staking_point = 0;
+		for i in snapshot_item.staking_at..(snapshot_item.staking_at + snapshot_item.weight) {
+			staking_point += STAKING_PRICE_TABLE[safe_index(i) - 1];
+		}
+		miner_total_rewards * staking_point / total_staking_point
+	}
+}
+
+fn safe_index(index: u32) -> usize {
+	min(index as usize, STAKING_PRICE_TABLE.len())
 }

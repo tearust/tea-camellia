@@ -11,8 +11,8 @@ pub use cml::{CmlId, CmlStatus, CmlType, CML};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
 pub use staking::{
-	MinerStakingPoint, ServiceTaskPoint, StakingCategory, StakingIndex, StakingItem,
-	StakingSnapshotItem, StakingWeight,
+	ServiceTaskPoint, StakingCategory, StakingIndex, StakingItem, StakingSnapshotItem,
+	StakingWeight,
 };
 pub use vouchers::{GenesisVouchers, Voucher, VoucherConfig};
 

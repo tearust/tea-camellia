@@ -12,8 +12,6 @@ pub type StakingWeight = u32;
 
 pub type ServiceTaskPoint = u32;
 
-pub type MinerStakingPoint = u32;
-
 pub type StakingIndex = u32;
 
 #[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]

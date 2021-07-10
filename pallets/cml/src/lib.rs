@@ -24,7 +24,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
 use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedSub, Saturating, Zero};
-use sp_std::{convert::TryInto, prelude::*};
+use sp_std::prelude::*;
 
 pub use cml::*;
 
@@ -700,7 +700,11 @@ pub trait StakingEconomics<Balance, AccountId> {
 		total_point: ServiceTaskPoint,
 	) -> Balance;
 
-	fn miner_staking_points(
-		snapshots: &Vec<StakingSnapshotItem<AccountId>>,
-	) -> Vec<(AccountId, MinerStakingPoint)>;
+	fn miner_total_staking_price(snapshots: &Vec<StakingSnapshotItem<AccountId>>) -> Balance;
+
+	fn single_staking_reward(
+		miner_total_rewards: Balance,
+		total_staking_point: Balance,
+		snapshot_item: &StakingSnapshotItem<AccountId>,
+	) -> Balance;
 }

@@ -58,25 +58,27 @@ impl<T: cml::Config> cml::Pallet<T> {
 				miner_task_point,
 				total_task_point,
 			);
-			let miner_staking_points = T::StakingEconomics::miner_staking_points(&snapshot_items);
+			let total_staking_point =
+				T::StakingEconomics::miner_total_staking_price(&snapshot_items);
 
-			let miner_total_point: MinerStakingPoint =
-				miner_staking_points.iter().map(|(_, point)| *point).sum();
-			for (user, point) in miner_staking_points.iter() {
-				let mut reward = miner_total_reward * (*point).try_into().unwrap_or(0u32.into())
-					/ miner_total_point.try_into().unwrap_or(1u32.into());
+			for item in snapshot_items.iter() {
+				let mut reward = T::StakingEconomics::single_staking_reward(
+					miner_total_reward,
+					total_staking_point,
+					item,
+				);
 
-				reward = Self::try_return_left_staking_reward(user, reward);
+				reward = Self::try_return_left_staking_reward(&item.owner, reward);
 				if reward.is_zero() {
 					continue;
 				}
 
-				if AccountRewards::<T>::contains_key(user) {
-					AccountRewards::<T>::mutate(user, |balance| {
+				if AccountRewards::<T>::contains_key(&item.owner) {
+					AccountRewards::<T>::mutate(&item.owner, |balance| {
 						*balance = balance.saturating_add(reward);
 					});
 				} else {
-					AccountRewards::<T>::insert(user, reward);
+					AccountRewards::<T>::insert(&item.owner, reward);
 				}
 			}
 		}
@@ -163,12 +165,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
+const DOLLARS: u32 = 100000;
 /// simple implementation of staking economics, this should only be used in unit tests,
 /// and can not be used in production environment.
 impl<T: cml::Config> StakingEconomics<BalanceOf<T>, T::AccountId> for cml::Pallet<T> {
 	fn increase_issuance(total_point: ServiceTaskPoint) -> BalanceOf<T> {
-		const DOLLARS: u32 = 100000;
-
 		(total_point * DOLLARS).into()
 	}
 
@@ -176,18 +177,21 @@ impl<T: cml::Config> StakingEconomics<BalanceOf<T>, T::AccountId> for cml::Palle
 		miner_point: ServiceTaskPoint,
 		_total_point: ServiceTaskPoint,
 	) -> BalanceOf<T> {
-		const DOLLARS: u32 = 100000;
-
 		(miner_point * DOLLARS).into()
 	}
 
-	fn miner_staking_points(
+	fn miner_total_staking_price(
 		snapshots: &Vec<StakingSnapshotItem<T::AccountId>>,
-	) -> Vec<(T::AccountId, MinerStakingPoint)> {
-		snapshots
-			.iter()
-			.map(|item| (item.owner.clone(), 1))
-			.collect()
+	) -> BalanceOf<T> {
+		(snapshots.len() as u32 * DOLLARS).into()
+	}
+
+	fn single_staking_reward(
+		_miner_total_rewards: BalanceOf<T>,
+		_total_staking_point: BalanceOf<T>,
+		_snapshot_item: &StakingSnapshotItem<T::AccountId>,
+	) -> BalanceOf<T> {
+		DOLLARS.into()
 	}
 }
 
@@ -364,10 +368,10 @@ mod tests {
 
 			assert_eq!(AccountRewards::<Test>::iter().count(), 5);
 			for user_id in 1..=2 {
-				assert_eq!(AccountRewards::<Test>::get(user_id), DOLLARS / 2);
+				assert_eq!(AccountRewards::<Test>::get(user_id), DOLLARS);
 			}
 			for user_id in 3..=5 {
-				assert_eq!(AccountRewards::<Test>::get(user_id), DOLLARS / 3);
+				assert_eq!(AccountRewards::<Test>::get(user_id), DOLLARS);
 			}
 		})
 	}
@@ -417,7 +421,7 @@ mod tests {
 				],
 			);
 
-			let credit_amount = DOLLARS;
+			let credit_amount = DOLLARS * 2;
 			GenesisMinerCreditStore::<Test>::insert(user1, credit_amount);
 			GenesisMinerCreditStore::<Test>::insert(user2, credit_amount);
 
@@ -427,19 +431,19 @@ mod tests {
 			assert!(!AccountRewards::<Test>::contains_key(&user1));
 			assert_eq!(
 				<Test as Config>::Currency::reserved_balance(&user1),
-				DOLLARS
+				DOLLARS * 2
 			);
 
 			assert!(GenesisMinerCreditStore::<Test>::contains_key(&user2));
-			assert_eq!(GenesisMinerCreditStore::<Test>::get(user2), DOLLARS / 2);
+			assert_eq!(GenesisMinerCreditStore::<Test>::get(user2), DOLLARS);
 			assert!(!AccountRewards::<Test>::contains_key(&user2));
 			assert_eq!(
 				<Test as Config>::Currency::reserved_balance(&user2),
-				DOLLARS / 2
+				DOLLARS
 			);
 
 			assert!(AccountRewards::<Test>::contains_key(&user3));
-			assert_eq!(AccountRewards::<Test>::get(&user3), DOLLARS / 2);
+			assert_eq!(AccountRewards::<Test>::get(&user3), DOLLARS);
 			assert_eq!(<Test as Config>::Currency::reserved_balance(&user3), 0);
 		})
 	}
