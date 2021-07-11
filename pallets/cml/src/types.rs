@@ -56,7 +56,7 @@ pub trait SeedProperties<BlockNumber> {
 pub trait TreeProperties<AccountId, BlockNumber, Balance> {
 	fn get_plant_at(&self) -> Option<&BlockNumber>;
 
-	fn tree_valid(&self, height: &BlockNumber) -> bool;
+	fn check_tree_validity(&self, height: &BlockNumber) -> CmlResult;
 
 	fn should_dead(&self, height: &BlockNumber) -> bool;
 
