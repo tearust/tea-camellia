@@ -36,8 +36,14 @@ pub enum CmlError {
 	CmlFreshSeedExpired,
 	/// Cml is tree means that can't be frozen seed or fresh seed.
 	CmlShouldBeTree,
-	/// Cml has over the lifespan
+	/// Cml has over the lifespan.
 	CmlShouldDead,
+	/// Cml is mining that can start mining again.
+	CmlIsMiningAlready,
+	/// Cml is staking that can't staking again or start mining.
+	CmlIsStaking,
+	/// Before start mining staking slot should be empty.
+	CmlStakingSlotNotEmpty,
 }
 pub type CmlResult = Result<(), CmlError>;
 
@@ -532,21 +538,19 @@ where
 		self.staking_slot.insert(0, staking_item);
 	}
 
-	fn can_start_mining(&self, current_height: &BlockNumber) -> bool {
-		// todo return error
-		if self.seed_or_tree_valid(current_height).is_err() {
-			return false;
-		}
+	fn check_start_mining(&self, current_height: &BlockNumber) -> CmlResult {
+		self.seed_or_tree_valid(current_height)?;
+
 		if self.is_mining() {
-			return false;
+			return Err(CmlError::CmlIsMiningAlready);
 		}
 		if self.is_staking() {
-			return false;
+			return Err(CmlError::CmlIsStaking);
 		}
 		if !self.staking_slot.is_empty() {
-			return false;
+			return Err(CmlError::CmlStakingSlotNotEmpty);
 		}
-		true
+		Ok(())
 	}
 
 	fn start_mining(
@@ -555,7 +559,7 @@ where
 		staking_item: StakingItem<AccountId, Balance>,
 		current_height: &BlockNumber,
 	) {
-		if !self.can_start_mining(current_height) {
+		if self.check_start_mining(current_height).is_err() {
 			return;
 		}
 		self.try_convert_to_tree(current_height);
@@ -1276,7 +1280,7 @@ mod tests {
 			miner.defrost(&0);
 			miner.convert_to_tree(&0);
 
-			assert!(miner.can_start_mining(&0));
+			assert!(miner.check_start_mining(&0).is_ok());
 			miner.start_mining(
 				[1u8; 32],
 				StakingItem {
@@ -1300,7 +1304,7 @@ mod tests {
 			);
 
 			assert!(miner.is_frozen_seed());
-			assert!(miner.can_start_mining(&0));
+			assert!(miner.check_start_mining(&0).is_ok());
 			miner.start_mining(
 				[1u8; 32],
 				StakingItem {
@@ -1325,7 +1329,7 @@ mod tests {
 			miner.defrost(&0);
 
 			assert!(miner.is_fresh_seed());
-			assert!(miner.can_start_mining(&0));
+			assert!(miner.check_start_mining(&0).is_ok());
 			miner.start_mining(
 				[1u8; 32],
 				StakingItem {
@@ -1351,13 +1355,13 @@ mod tests {
 
 			let fresh_duration = miner.get_fresh_duration();
 			assert!(miner.check_seed_validity(&fresh_duration).is_err());
-			assert!(!miner.can_start_mining(&fresh_duration));
+			assert!(miner.check_start_mining(&fresh_duration).is_err());
 			miner.start_mining([1u8; 32], StakingItem::default(), &fresh_duration);
 			assert!(!miner.is_mining());
 
 			miner.convert_to_tree(&0);
 			assert!(miner.check_tree_validity(&lifespan).is_err());
-			assert!(!miner.can_start_mining(&lifespan));
+			assert!(miner.check_start_mining(&lifespan).is_err());
 			miner.start_mining([1u8; 32], StakingItem::default(), &lifespan);
 			assert!(!miner.is_mining());
 		}
@@ -1366,7 +1370,7 @@ mod tests {
 		fn start_mining_should_fail_if_cml_is_mining_already() {
 			let mut miner = default_miner(11, 100);
 
-			assert!(!miner.can_start_mining(&0));
+			assert!(miner.check_start_mining(&0).is_err());
 			miner.start_mining([1u8; 32], StakingItem::default(), &0);
 			assert_ne!(miner.staking_slots()[0].owner, 0); // owner of staking item not reset to 0
 		}
@@ -1377,7 +1381,7 @@ mod tests {
 				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed_from_lifespan(11, 100));
 			miner.staking_slot.push(StakingItem::default());
 
-			assert!(!miner.can_start_mining(&0));
+			assert!(miner.check_start_mining(&0).is_err());
 			miner.start_mining([1u8; 32], StakingItem::default(), &0);
 			assert!(!miner.is_mining());
 		}
@@ -1403,7 +1407,7 @@ mod tests {
 			assert_eq!(index, Some(1));
 			assert!(staker.is_staking());
 
-			assert!(!staker.can_start_mining(&0));
+			assert!(staker.check_start_mining(&0).is_err());
 			staker.start_mining([3u8; 32], StakingItem::default(), &0);
 			assert!(!staker.is_mining());
 		}

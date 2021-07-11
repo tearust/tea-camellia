@@ -155,7 +155,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 
 		assert_noop!(
 			Cml::start_mining(Origin::signed(1), cml1_id, machine_id_2, miner_ip_2.clone()),
-			Error::<Test>::InvalidMiner
+			Error::<Test>::CmlIsMiningAlready
 		);
 	})
 }
@@ -225,14 +225,14 @@ fn start_mining_should_fail_if_cml_is_not_valid() {
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		cml.defrost(&0);
 		cml.convert_to_tree(&0);
-		assert!(!cml.can_start_mining(&100));
+		assert!(cml.check_start_mining(&100).is_err());
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		frame_system::Pallet::<Test>::set_block_number(100);
 		// for all kinds of mining invalid situation please see unit tests in `types/cml.rs`
 		assert_noop!(
 			Cml::start_mining(Origin::signed(1), cml_id, [1u8; 32], b"miner_id".to_vec()),
-			Error::<Test>::InvalidMiner
+			Error::<Test>::CmlShouldDead
 		);
 	})
 }
@@ -322,7 +322,7 @@ fn start_mining_with_frozen_cml_should_fail() {
 		let miner_ip = b"miner_ip".to_vec();
 		assert_noop!(
 			Cml::start_mining(Origin::signed(1), cml_id, machine_id, miner_ip.clone()),
-			Error::<Test>::InvalidMiner
+			Error::<Test>::CmlStillInFrozenLockedPeriod
 		);
 	});
 }
