@@ -296,6 +296,8 @@ pub mod cml {
 		CmlOwnerMismatch,
 		/// Cml is not staking that can't unstake.
 		CmlIsNotStaking,
+		/// Some status that can't convert to another status.
+		CmlInvalidStatusConversion,
 	}
 
 	#[pallet::hooks]
@@ -735,6 +737,7 @@ pub mod cml {
 				CmlError::CmlOwnerIsNone => Error::<T>::CmlOwnerIsNone,
 				CmlError::CmlOwnerMismatch => Error::<T>::CmlOwnerMismatch,
 				CmlError::CmlIsNotStaking => Error::<T>::CmlIsNotStaking,
+				CmlError::CmlInvalidStatusConversion => Error::<T>::CmlInvalidStatusConversion,
 			}
 		}
 	}
