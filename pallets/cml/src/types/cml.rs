@@ -58,6 +58,8 @@ pub enum CmlError {
 	CmlOwnerMismatch,
 	/// Cml is not staking that can't unstake.
 	CmlIsNotStaking,
+	/// Some status that can't convert to another status.
+	CmlInvalidStatusConversion,
 }
 pub type CmlResult = Result<(), CmlError>;
 
@@ -607,12 +609,15 @@ where
 		&self.status
 	}
 
-	fn can_convert(&self, to_status: &CmlStatus<BlockNumber>) -> bool {
-		self.status.valid_conversion(to_status)
+	fn check_convert(&self, to_status: &CmlStatus<BlockNumber>) -> CmlResult {
+		if !self.status.valid_conversion(to_status) {
+			return Err(CmlError::CmlInvalidStatusConversion);
+		}
+		Ok(())
 	}
 
 	fn convert(&mut self, to_status: CmlStatus<BlockNumber>) {
-		if !self.can_convert(&to_status) {
+		if self.check_convert(&to_status).is_err() {
 			return;
 		}
 

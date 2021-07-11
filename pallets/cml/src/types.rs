@@ -150,7 +150,7 @@ where
 {
 	fn status(&self) -> &CmlStatus<BlockNumber>;
 
-	fn can_convert(&self, to_status: &CmlStatus<BlockNumber>) -> bool;
+	fn check_convert(&self, to_status: &CmlStatus<BlockNumber>) -> CmlResult;
 
 	fn convert(&mut self, to_status: CmlStatus<BlockNumber>);
 
