@@ -262,6 +262,9 @@ pub mod cml {
 		StakingSlotsOverTheMaxLength,
 		StakingSlotsOverAcceptableIndex,
 
+		/// There is no credit of user, no need to pay for it.
+		CmlNoNeedToPayOff,
+
 		/// Defrost time should have value when defrost.
 		CmlDefrostTimeIsNone,
 		/// Cml should be frozen seed.
@@ -685,6 +688,35 @@ pub mod cml {
 					let balance = AccountRewards::<T>::get(who);
 					T::CurrencyOperations::deposit_creating(&who, balance);
 					AccountRewards::<T>::remove(who);
+				},
+			)
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn pay_off_mining_credit(sender: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						GenesisMinerCreditStore::<T>::contains_key(who),
+						Error::<T>::CmlNoNeedToPayOff
+					);
+					ensure!(
+						T::CurrencyOperations::free_balance(who)
+							>= GenesisMinerCreditStore::<T>::get(who),
+						Error::<T>::InsufficientFreeBalance
+					);
+					Ok(())
+				},
+				|who| {
+					let pay_off_balance = GenesisMinerCreditStore::<T>::get(who);
+					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+					if T::CurrencyOperations::reserve(who, pay_off_balance).is_err() {
+						return;
+					}
+					GenesisMinerCreditStore::<T>::remove(who);
 				},
 			)
 		}

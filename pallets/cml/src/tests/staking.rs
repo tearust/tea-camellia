@@ -1,5 +1,8 @@
 use crate::tests::{new_genesis_seed, seed_from_lifespan};
-use crate::{mock::*, types::*, AccountRewards, CmlStore, Config, Error, UserCmlStore};
+use crate::{
+	mock::*, types::*, AccountRewards, CmlStore, Config, Error, GenesisMinerCreditStore,
+	UserCmlStore,
+};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_utils::CurrencyOperations;
 
@@ -456,6 +459,67 @@ fn withdraw_staking_reward_should_fail_if_user_not_have_reward() {
 		assert_noop!(
 			Cml::withdraw_staking_reward(Origin::signed(1)),
 			Error::<Test>::NotFoundRewardAccount
+		);
+	})
+}
+
+#[test]
+fn pay_off_mining_credit_works() {
+	new_test_ext().execute_with(|| {
+		let user1 = 11;
+		let free_balance = 10000;
+		<Test as Config>::Currency::make_free_balance_be(&user1, free_balance);
+
+		let credit_balance = 1000;
+		GenesisMinerCreditStore::<Test>::insert(user1, credit_balance);
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user1),
+			free_balance
+		);
+		assert_eq!(<Test as Config>::Currency::reserved_balance(&user1), 0);
+
+		assert_ok!(Cml::pay_off_mining_credit(Origin::signed(user1)));
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user1),
+			free_balance - credit_balance
+		);
+		assert_eq!(
+			<Test as Config>::Currency::reserved_balance(&user1),
+			credit_balance
+		);
+		assert!(!GenesisMinerCreditStore::<Test>::contains_key(&user1));
+	})
+}
+
+#[test]
+fn pay_off_mining_credit_should_fail_if_there_is_no_credit() {
+	new_test_ext().execute_with(|| {
+		let user1 = 11;
+		assert!(!GenesisMinerCreditStore::<Test>::contains_key(&user1));
+
+		assert_noop!(
+			Cml::pay_off_mining_credit(Origin::signed(user1)),
+			Error::<Test>::CmlNoNeedToPayOff
+		);
+	})
+}
+
+#[test]
+fn pay_off_mining_credit_should_fail_if_not_enough_balance() {
+	new_test_ext().execute_with(|| {
+		let user1 = 11;
+		let free_balance = 100;
+		<Test as Config>::Currency::make_free_balance_be(&user1, free_balance);
+
+		let credit_balance = 1000;
+		GenesisMinerCreditStore::<Test>::insert(user1, credit_balance);
+
+		assert!(free_balance < credit_balance);
+		assert_noop!(
+			Cml::pay_off_mining_credit(Origin::signed(user1)),
+			Error::<Test>::InsufficientFreeBalance
 		);
 	})
 }

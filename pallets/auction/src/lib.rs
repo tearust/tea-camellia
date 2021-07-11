@@ -187,7 +187,7 @@ pub mod auction {
 					ensure!(
 						cml_item.is_frozen_seed()
 							|| (cml_item.is_fresh_seed() && !cml_item.has_expired(&current_height))
-							|| cml_item.tree_valid(&current_height),
+							|| cml_item.check_tree_validity(&current_height).is_ok(),
 						Error::<T>::NotAllowToAuction
 					);
 					ensure!(

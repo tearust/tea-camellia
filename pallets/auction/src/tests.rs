@@ -146,7 +146,7 @@ fn put_to_store_works_for_locked_frozen_seed() {
 		seed.defrost_time = Some(1000);
 		let cml = CML::from_genesis_seed(seed);
 		assert!(cml.is_frozen_seed());
-		assert!(!cml.seed_valid(&0));
+		assert!(cml.check_seed_validity(&0).is_err());
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let rs = Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true);
