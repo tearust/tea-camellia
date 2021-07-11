@@ -279,6 +279,12 @@ pub mod cml {
 		CmlShouldBeTree,
 		/// Cml has over the lifespan
 		CmlShouldDead,
+		/// Cml is mining that can start mining again.
+		CmlIsMiningAlready,
+		/// Cml is staking that can't staking again or start mining.
+		CmlIsStaking,
+		/// Before start mining staking slot should be empty.
+		CmlStakingSlotNotEmpty,
 	}
 
 	#[pallet::hooks]
@@ -473,10 +479,8 @@ pub mod cml {
 					Self::check_miner_ip_validity(&miner_ip)?;
 
 					let cml = CmlStore::<T>::get(cml_id);
-					ensure!(
-						cml.can_start_mining(&current_block_number),
-						Error::<T>::InvalidMiner
-					);
+					cml.check_start_mining(&current_block_number)
+						.map_err(|e| Error::<T>::from(e))?;
 					Self::check_miner_first_staking(&sender, &cml)?;
 
 					Ok(())
@@ -714,6 +718,9 @@ pub mod cml {
 				CmlError::CmlFreshSeedExpired => Error::<T>::CmlFreshSeedExpired,
 				CmlError::CmlShouldBeTree => Error::<T>::CmlShouldBeTree,
 				CmlError::CmlShouldDead => Error::<T>::CmlShouldDead,
+				CmlError::CmlIsMiningAlready => Error::<T>::CmlIsMiningAlready,
+				CmlError::CmlIsStaking => Error::<T>::CmlIsStaking,
+				CmlError::CmlStakingSlotNotEmpty => Error::<T>::CmlStakingSlotNotEmpty,
 			}
 		}
 	}

@@ -132,7 +132,7 @@ pub trait MiningProperties<AccountId, BlockNumber, Balance> {
 
 	fn swap_first_slot(&mut self, staking_item: StakingItem<AccountId, Balance>);
 
-	fn can_start_mining(&self, current_height: &BlockNumber) -> bool;
+	fn check_start_mining(&self, current_height: &BlockNumber) -> CmlResult;
 
 	fn start_mining(
 		&mut self,
