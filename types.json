@@ -90,7 +90,7 @@
     "amount": "Option<Balance>",
     "cml": "Option<CmlId>"
   },
-  "StakingIndex": "u64",
+  "StakingIndex": "u32",
   "MachineId": "[u8; 32]",
   "MinerItem": {
     "cml_id": "CmlId",
