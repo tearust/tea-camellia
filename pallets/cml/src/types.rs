@@ -33,22 +33,21 @@ pub trait SeedProperties<BlockNumber> {
 
 	fn get_fresh_duration(&self) -> BlockNumber;
 
-	fn can_convert_to_tree(&self, height: &BlockNumber) -> bool;
+	fn check_convert_to_tree(&self, height: &BlockNumber) -> CmlResult;
 
 	fn convert_to_tree(&mut self, height: &BlockNumber);
 
 	/// expire happens when a `FreshSeed` not planted after a certain period.
 	fn has_expired(&self, height: &BlockNumber) -> bool;
 
-	fn seed_valid(&self, height: &BlockNumber) -> bool {
-		// todo return error instead
-		if self.is_frozen_seed() && self.check_defrost(height).is_err() {
-			return false;
+	fn check_seed_validity(&self, height: &BlockNumber) -> CmlResult {
+		if self.is_frozen_seed() {
+			self.check_defrost(height)?;
 		}
-		if self.is_fresh_seed() && self.has_expired(height) {
-			return false;
+		if self.is_fresh_seed() {
+			self.check_convert_to_tree(height)?;
 		}
-		true
+		Ok(())
 	}
 
 	fn is_from_genesis(&self) -> bool;

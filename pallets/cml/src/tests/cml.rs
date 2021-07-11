@@ -89,7 +89,7 @@ fn active_cml_cannot_defrost_should_fail() {
 
 		assert_noop!(
 			Cml::active_cml(Origin::signed(1), cml_id),
-			Error::<Test>::SeedNotValid
+			Error::<Test>::CmlStillInFrozenLockedPeriod
 		);
 	})
 }
@@ -107,7 +107,7 @@ fn active_cml_expired_fresh_duration_should_fail() {
 		frame_system::Pallet::<Test>::set_block_number(fresh_duration);
 		assert_noop!(
 			Cml::active_cml(Origin::signed(1), cml_id),
-			Error::<Test>::SeedNotValid
+			Error::<Test>::CmlFreshSeedExpired
 		);
 	})
 }
