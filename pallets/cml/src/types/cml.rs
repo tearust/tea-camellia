@@ -25,11 +25,15 @@ pub enum CmlType {
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
 pub enum CmlError {
 	/// Defrost time should have value when defrost.
-	DefrostTimeIsNone,
+	CmlDefrostTimeIsNone,
 	/// Cml should be frozen seed.
-	ShouldBeFrozenSeed,
+	CmlShouldBeFrozenSeed,
 	/// Cml is still in frozen locked period that cannot be defrosted.
-	StillInFrozenLockedPeriod,
+	CmlStillInFrozenLockedPeriod,
+	/// Cml should be fresh seed.
+	CmlShouldBeFreshSeed,
+	/// Cml in fresh seed state and have expired the fresh duration.
+	CmlFreshSeedExpired,
 }
 pub type CmlResult = Result<(), CmlError>;
 
@@ -146,7 +150,8 @@ where
 	}
 
 	pub(crate) fn seed_or_tree_valid(&self, current_height: &BlockNumber) -> bool {
-		if self.is_seed() && !self.seed_valid(current_height) {
+		// todo return error
+		if self.is_seed() && self.check_seed_validity(current_height).is_err() {
 			return false;
 		}
 		if !self.is_seed() && !self.tree_valid(current_height) {
@@ -185,13 +190,13 @@ where
 
 	fn check_defrost(&self, height: &BlockNumber) -> CmlResult {
 		if self.intrinsic.defrost_time.is_none() {
-			return Err(CmlError::DefrostTimeIsNone);
+			return Err(CmlError::CmlDefrostTimeIsNone);
 		}
 		if !self.is_frozen_seed() {
-			return Err(CmlError::ShouldBeFrozenSeed);
+			return Err(CmlError::CmlShouldBeFrozenSeed);
 		}
 		if *height < self.intrinsic.defrost_time.unwrap().into() {
-			return Err(CmlError::StillInFrozenLockedPeriod);
+			return Err(CmlError::CmlStillInFrozenLockedPeriod);
 		}
 
 		Ok(())
@@ -215,12 +220,18 @@ where
 		FreshDuration::get()
 	}
 
-	fn can_convert_to_tree(&self, height: &BlockNumber) -> bool {
-		self.is_fresh_seed() && self.seed_valid(height)
+	fn check_convert_to_tree(&self, height: &BlockNumber) -> CmlResult {
+		if !self.is_fresh_seed() {
+			return Err(CmlError::CmlShouldBeFreshSeed);
+		}
+		if self.has_expired(height) {
+			return Err(CmlError::CmlFreshSeedExpired);
+		}
+		Ok(())
 	}
 
 	fn convert_to_tree(&mut self, height: &BlockNumber) {
-		if !self.can_convert_to_tree(height) {
+		if self.check_convert_to_tree(height).is_err() {
 			return;
 		}
 
@@ -711,15 +722,15 @@ mod tests {
 			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
 
 			assert!(cml.check_defrost(&(DEFROST_AT - 1)).is_err());
-			assert!(!cml.seed_valid(&(DEFROST_AT - 1)));
+			assert!(cml.check_seed_validity(&(DEFROST_AT - 1)).is_err());
 
 			cml.defrost(&DEFROST_AT);
 			assert!(cml.is_fresh_seed());
 			assert!(!cml.has_expired(&DEFROST_AT));
-			assert!(cml.seed_valid(&DEFROST_AT));
+			assert!(cml.check_seed_validity(&DEFROST_AT).is_ok());
 
 			assert!(cml.has_expired(&(DEFROST_AT + LIFESPAN)));
-			assert!(!cml.seed_valid(&(DEFROST_AT + LIFESPAN)));
+			assert!(cml.check_seed_validity(&(DEFROST_AT + LIFESPAN)).is_err());
 		}
 
 		#[test]
@@ -753,7 +764,7 @@ mod tests {
 			let defrost_at = 100;
 			cml.defrost(&defrost_at);
 
-			assert!(cml.can_convert_to_tree(&(defrost_at + 1)));
+			assert!(cml.check_convert_to_tree(&(defrost_at + 1)).is_ok());
 			cml.convert_to_tree(&(defrost_at + 1));
 			assert_eq!(cml.status, CmlStatus::Tree);
 			assert_eq!(cml.get_plant_at(), Some(&(defrost_at + 1)));
@@ -765,7 +776,7 @@ mod tests {
 				CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
 			assert!(cml.is_frozen_seed());
 
-			assert!(!cml.can_convert_to_tree(&0));
+			assert!(cml.check_convert_to_tree(&0).is_err());
 			cml.convert_to_tree(&0);
 			assert!(cml.is_frozen_seed());
 		}
@@ -777,7 +788,7 @@ mod tests {
 			cml.defrost(&0);
 
 			let fresh_duration = cml.get_fresh_duration();
-			assert!(!cml.can_convert_to_tree(&fresh_duration));
+			assert!(cml.check_convert_to_tree(&fresh_duration).is_err());
 			cml.convert_to_tree(&fresh_duration);
 			assert!(cml.is_fresh_seed());
 		}
@@ -793,7 +804,7 @@ mod tests {
 			assert_eq!(cml.status, CmlStatus::Tree);
 			assert_eq!(cml.get_plant_at(), Some(&0));
 
-			assert!(!cml.can_convert_to_tree(&1));
+			assert!(cml.check_convert_to_tree(&1).is_err());
 			cml.convert_to_tree(&1);
 			assert_ne!(cml.get_plant_at(), Some(&1));
 		}
@@ -1045,7 +1056,7 @@ mod tests {
 
 			// fresh seed cannot stake if has expired fresh duration
 			let fresh_duration = staker.get_fresh_duration();
-			assert!(!staker.seed_valid(&fresh_duration));
+			assert!(staker.check_seed_validity(&fresh_duration).is_err());
 			assert!(!staker.can_stake_to(&fresh_duration));
 			assert_eq!(
 				miner.stake::<CML<u32, u32, u128, ConstU32<10>>>(
@@ -1329,7 +1340,7 @@ mod tests {
 			miner.defrost(&0);
 
 			let fresh_duration = miner.get_fresh_duration();
-			assert!(!miner.seed_valid(&fresh_duration));
+			assert!(miner.check_seed_validity(&fresh_duration).is_err());
 			assert!(!miner.can_start_mining(&fresh_duration));
 			miner.start_mining([1u8; 32], StakingItem::default(), &fresh_duration);
 			assert!(!miner.is_mining());

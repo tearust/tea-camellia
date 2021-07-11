@@ -246,7 +246,6 @@ pub mod cml {
 		NotFoundCML,
 		CMLOwnerInvalid,
 		CmlIsNotSeed,
-		SeedNotValid,
 
 		InsufficientFreeBalance,
 		InsufficientReservedBalance,
@@ -265,6 +264,17 @@ pub mod cml {
 		NotFoundRewardAccount,
 		StakingSlotsOverTheMaxLength,
 		StakingSlotsOverAcceptableIndex,
+
+		/// Defrost time should have value when defrost.
+		CmlDefrostTimeIsNone,
+		/// Cml should be frozen seed.
+		CmlShouldBeFrozenSeed,
+		/// Cml is still in frozen locked period that cannot be defrosted.
+		CmlStillInFrozenLockedPeriod,
+		/// Cml should be fresh seed.
+		CmlShouldBeFreshSeed,
+		/// Cml in fresh seed state and have expired the fresh duration.
+		CmlFreshSeedExpired,
 	}
 
 	#[pallet::hooks]
@@ -687,6 +697,18 @@ pub mod cml {
 					Self::complete_ra_task(machine_id);
 				},
 			)
+		}
+	}
+
+	impl<T: Config> From<CmlError> for Error<T> {
+		fn from(e: CmlError) -> Self {
+			match e {
+				CmlError::CmlDefrostTimeIsNone => Error::<T>::CmlDefrostTimeIsNone,
+				CmlError::CmlShouldBeFrozenSeed => Error::<T>::CmlShouldBeFrozenSeed,
+				CmlError::CmlStillInFrozenLockedPeriod => Error::<T>::CmlStillInFrozenLockedPeriod,
+				CmlError::CmlShouldBeFreshSeed => Error::<T>::CmlShouldBeFreshSeed,
+				CmlError::CmlFreshSeedExpired => Error::<T>::CmlFreshSeedExpired,
+			}
 		}
 	}
 }

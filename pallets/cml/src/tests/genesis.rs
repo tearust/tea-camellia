@@ -55,7 +55,7 @@ fn genesis_build_related_logic_works() {
 				let cml = CmlStore::<Test>::get(i);
 				assert_eq!(cml.id(), i);
 
-				if cml.seed_valid(&0) {
+				if cml.check_seed_validity(&0).is_ok() {
 					live_seeds_count += 1;
 				}
 			}
