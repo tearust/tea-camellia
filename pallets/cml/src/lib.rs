@@ -256,11 +256,8 @@ pub mod cml {
 		InvalidMiner,
 		InvalidMinerIp,
 
-		InvalidStaker,
-		InvalidStakee,
 		InvalidStakingIndex,
 		InvalidStakingOwner,
-		InvalidUnstaking,
 		NotFoundRewardAccount,
 		StakingSlotsOverTheMaxLength,
 		StakingSlotsOverAcceptableIndex,
@@ -285,6 +282,20 @@ pub mod cml {
 		CmlIsStaking,
 		/// Before start mining staking slot should be empty.
 		CmlStakingSlotNotEmpty,
+		/// Means we cannot decide staking type from given params.
+		ConfusedStakingType,
+		/// Cml is not mining that can't stake to.
+		CmlIsNotMining,
+		/// Cml is not staking to current miner that can't unstake.
+		CmlIsNotStakingToCurrentMiner,
+		/// Cml staking index over than staking slot length, that means point to not exist staking.
+		CmlStakingIndexOverflow,
+		/// Cml staking item owner is none, that can't identify staking belongs.
+		CmlOwnerIsNone,
+		/// Cml staking item owner and the owner field of cml item not match.
+		CmlOwnerMismatch,
+		/// Cml is not staking that can't unstake.
+		CmlIsNotStaking,
 	}
 
 	#[pallet::hooks]
@@ -560,19 +571,17 @@ pub mod cml {
 						Error::<T>::NotFoundCML
 					);
 
-					let amount = match staking_cml {
+					let amount: Result<Option<BalanceOf<T>>, DispatchError> = match staking_cml {
 						Some(cml_id) => {
 							Self::check_belongs(&cml_id, &who)?;
 							let cml = CmlStore::<T>::get(cml_id);
-							ensure!(
-								cml.can_stake_to(&current_block_number),
-								Error::<T>::InvalidStaker
-							);
-							None
+							cml.check_can_stake_to(&current_block_number)
+								.map_err(|e| Error::<T>::from(e))?;
+							Ok(None)
 						}
 						None => {
 							Self::check_balance_staking(&who)?;
-							Some(T::StakingPrice::get())
+							Ok(Some(T::StakingPrice::get()))
 						}
 					};
 
@@ -587,10 +596,8 @@ pub mod cml {
 						cml.staking_slots().len() <= T::StakingSlotsMaxLength::get() as usize,
 						Error::<T>::StakingSlotsOverTheMaxLength
 					);
-					ensure!(
-						cml.can_be_stake(&current_block_number, &amount, &staking_cml),
-						Error::<T>::InvalidStakee
-					);
+					cml.check_can_be_stake(&current_block_number, &amount?, &staking_cml)
+						.map_err(|e| Error::<T>::from(e))?;
 					Ok(())
 				},
 				|who| {
@@ -646,10 +653,8 @@ pub mod cml {
 						Some(cml_id) => (None, Some(CmlStore::<T>::get(cml_id))),
 						None => (Some(staking_index), None),
 					};
-					ensure!(
-						cml.can_unstake(&index, &staking_cml.as_ref()),
-						Error::<T>::InvalidUnstaking
-					);
+					cml.check_unstake(&index, &staking_cml.as_ref())
+						.map_err(|e| Error::<T>::from(e))?;
 
 					Ok(())
 				},
@@ -721,6 +726,15 @@ pub mod cml {
 				CmlError::CmlIsMiningAlready => Error::<T>::CmlIsMiningAlready,
 				CmlError::CmlIsStaking => Error::<T>::CmlIsStaking,
 				CmlError::CmlStakingSlotNotEmpty => Error::<T>::CmlStakingSlotNotEmpty,
+				CmlError::ConfusedStakingType => Error::<T>::ConfusedStakingType,
+				CmlError::CmlIsNotMining => Error::<T>::CmlIsNotMining,
+				CmlError::CmlIsNotStakingToCurrentMiner => {
+					Error::<T>::CmlIsNotStakingToCurrentMiner
+				}
+				CmlError::CmlStakingIndexOverflow => Error::<T>::CmlStakingIndexOverflow,
+				CmlError::CmlOwnerIsNone => Error::<T>::CmlOwnerIsNone,
+				CmlError::CmlOwnerMismatch => Error::<T>::CmlOwnerMismatch,
+				CmlError::CmlIsNotStaking => Error::<T>::CmlIsNotStaking,
 			}
 		}
 	}
