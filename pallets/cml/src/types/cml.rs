@@ -34,6 +34,10 @@ pub enum CmlError {
 	CmlShouldBeFreshSeed,
 	/// Cml in fresh seed state and have expired the fresh duration.
 	CmlFreshSeedExpired,
+	/// Cml is tree means that can't be frozen seed or fresh seed.
+	CmlShouldBeTree,
+	/// Cml has over the lifespan
+	CmlShouldDead,
 }
 pub type CmlResult = Result<(), CmlError>;
 
@@ -149,15 +153,13 @@ where
 		self.owner = Some(account.clone());
 	}
 
-	pub(crate) fn seed_or_tree_valid(&self, current_height: &BlockNumber) -> bool {
-		// todo return error
-		if self.is_seed() && self.check_seed_validity(current_height).is_err() {
-			return false;
+	pub(crate) fn seed_or_tree_valid(&self, current_height: &BlockNumber) -> CmlResult {
+		if self.is_seed() {
+			self.check_seed_validity(current_height)?;
+		} else {
+			self.check_tree_validity(current_height)?;
 		}
-		if !self.is_seed() && !self.tree_valid(current_height) {
-			return false;
-		}
-		true
+		Ok(())
 	}
 }
 
@@ -265,8 +267,15 @@ where
 		self.planted_at.as_ref()
 	}
 
-	fn tree_valid(&self, height: &BlockNumber) -> bool {
-		!self.is_seed() && !self.should_dead(height)
+	fn check_tree_validity(&self, height: &BlockNumber) -> CmlResult {
+		if self.is_seed() {
+			return Err(CmlError::CmlShouldBeTree);
+		}
+
+		if self.should_dead(height) {
+			return Err(CmlError::CmlShouldDead);
+		}
+		Ok(())
 	}
 
 	fn should_dead(&self, height: &BlockNumber) -> bool {
@@ -354,7 +363,7 @@ where
 	}
 
 	fn can_stake_to(&self, current_height: &BlockNumber) -> bool {
-		if !self.seed_or_tree_valid(current_height) {
+		if self.seed_or_tree_valid(current_height).is_err() {
 			return false;
 		}
 
@@ -524,7 +533,8 @@ where
 	}
 
 	fn can_start_mining(&self, current_height: &BlockNumber) -> bool {
-		if !self.seed_or_tree_valid(current_height) {
+		// todo return error
+		if self.seed_or_tree_valid(current_height).is_err() {
 			return false;
 		}
 		if self.is_mining() {
@@ -1346,7 +1356,7 @@ mod tests {
 			assert!(!miner.is_mining());
 
 			miner.convert_to_tree(&0);
-			assert!(!miner.tree_valid(&lifespan));
+			assert!(miner.check_tree_validity(&lifespan).is_err());
 			assert!(!miner.can_start_mining(&lifespan));
 			miner.start_mining([1u8; 32], StakingItem::default(), &lifespan);
 			assert!(!miner.is_mining());

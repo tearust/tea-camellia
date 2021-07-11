@@ -275,6 +275,10 @@ pub mod cml {
 		CmlShouldBeFreshSeed,
 		/// Cml in fresh seed state and have expired the fresh duration.
 		CmlFreshSeedExpired,
+		/// Cml is tree means that can't be frozen seed or fresh seed.
+		CmlShouldBeTree,
+		/// Cml has over the lifespan
+		CmlShouldDead,
 	}
 
 	#[pallet::hooks]
@@ -708,6 +712,8 @@ pub mod cml {
 				CmlError::CmlStillInFrozenLockedPeriod => Error::<T>::CmlStillInFrozenLockedPeriod,
 				CmlError::CmlShouldBeFreshSeed => Error::<T>::CmlShouldBeFreshSeed,
 				CmlError::CmlFreshSeedExpired => Error::<T>::CmlFreshSeedExpired,
+				CmlError::CmlShouldBeTree => Error::<T>::CmlShouldBeTree,
+				CmlError::CmlShouldDead => Error::<T>::CmlShouldDead,
 			}
 		}
 	}
