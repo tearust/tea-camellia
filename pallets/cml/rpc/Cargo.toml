@@ -21,6 +21,8 @@ sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github
 
 cml-runtime-api = {default-features = false, path = '../runtime-api'}
 
+[dev-dependencies]
+rmp-serde = "0.14.3"
 
 [features]
 default = ["std"]

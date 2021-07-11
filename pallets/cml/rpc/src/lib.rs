@@ -8,6 +8,10 @@ use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
 
+mod types;
+
+pub use types::*;
+
 const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
@@ -22,7 +26,7 @@ pub trait CmlApi<BlockHash, AccountId> {
 	fn current_mining_cml_list(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
 
 	#[rpc(name = "cml_stakingPriceTable")]
-	fn staking_price_table(&self, at: Option<BlockHash>) -> Result<Vec<Balance>>;
+	fn staking_price_table(&self, at: Option<BlockHash>) -> Result<Vec<Price>>;
 }
 
 pub struct CmlApiImpl<C, M> {
@@ -102,15 +106,15 @@ where
 		Ok(result)
 	}
 
-	fn staking_price_table(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<Balance>> {
+	fn staking_price_table(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<Price>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let result = api
+		let result: Vec<Balance> = api
 			.staking_price_table(&at)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(result)
+		Ok(result.iter().map(|v| Price(*v)).collect())
 	}
 }
