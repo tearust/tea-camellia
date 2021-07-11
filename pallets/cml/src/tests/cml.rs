@@ -12,7 +12,7 @@ fn active_cml_for_nitro_works() {
 
 		let cml_id: CmlId = 4;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
-		assert!(cml.is_seed() && cml.can_be_defrost(&current_height));
+		assert!(cml.is_seed() && cml.check_defrost(&current_height).is_ok());
 		cml.defrost(&current_height);
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -81,7 +81,9 @@ fn active_cml_cannot_defrost_should_fail() {
 		let mut seed = new_genesis_seed(cml_id);
 		seed.defrost_time = Some(100);
 		let cml = CML::from_genesis_seed(seed);
-		assert!(!cml.can_be_defrost(&frame_system::Pallet::<Test>::block_number()));
+		assert!(cml
+			.check_defrost(&frame_system::Pallet::<Test>::block_number())
+			.is_err());
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
