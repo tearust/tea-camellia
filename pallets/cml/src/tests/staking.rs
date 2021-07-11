@@ -96,13 +96,13 @@ fn start_staking_should_fail_if_miner_is_invalid() {
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 
-		assert!(!cml.can_be_stake(&0, &None, &Some(cml_id)));
+		assert!(cml.check_can_be_stake(&0, &None, &Some(cml_id)).is_err());
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		// for all kinds of invalid situation please see unit tests in `types/cml.rs`
 		assert_noop!(
 			Cml::start_staking(Origin::signed(2), cml_id, None, None),
-			Error::<Test>::InvalidStakee
+			Error::<Test>::CmlIsNotMining
 		);
 	})
 }
@@ -165,7 +165,7 @@ fn start_staking_should_fail_if_staking_cml_is_invalid() {
 		// for all kinds of invalid situation please see unit tests in `types/cml.rs`
 		assert_noop!(
 			Cml::start_staking(Origin::signed(2), miner_id, Some(staker_id), None),
-			Error::<Test>::InvalidStaker
+			Error::<Test>::CmlShouldDead
 		);
 	})
 }
