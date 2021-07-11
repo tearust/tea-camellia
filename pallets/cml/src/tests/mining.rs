@@ -17,7 +17,7 @@ fn start_mining_with_frozen_seed_works() {
 		UserCmlStore::<Test>::insert(user_id, cml_id, ());
 		let cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
 		assert!(cml.is_seed());
-		assert!(cml.can_be_defrost(&0));
+		assert!(cml.check_defrost(&0).is_ok());
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
@@ -247,7 +247,7 @@ fn miner_ip_is_empty_or_invalid_should_fail() {
 
 		let cml_id: CmlId = 4;
 		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
-		assert!(cml.is_seed() && cml.can_be_defrost(&current_height));
+		assert!(cml.is_seed() && cml.check_defrost(&current_height).is_ok());
 		cml.defrost(&current_height);
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -272,7 +272,7 @@ fn active_cml_to_already_started_mining_machine_should_fail() {
 
 		let cml_id: CmlId = 4;
 		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
-		assert!(cml.is_seed() && cml.can_be_defrost(&current_height));
+		assert!(cml.is_seed() && cml.check_defrost(&current_height).is_ok());
 		cml.defrost(&current_height);
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -289,7 +289,7 @@ fn active_cml_to_already_started_mining_machine_should_fail() {
 
 		let cml_id: CmlId = 5;
 		let mut cml = CML::from_genesis_seed(new_genesis_seed(cml_id));
-		assert!(cml.is_seed() && cml.can_be_defrost(&current_height));
+		assert!(cml.is_seed() && cml.check_defrost(&current_height).is_ok());
 		cml.defrost(&current_height);
 		UserCmlStore::<Test>::insert(2, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -314,7 +314,7 @@ fn start_mining_with_frozen_cml_should_fail() {
 
 		let cml_id: CmlId = 4;
 		let cml = CML::from_genesis_seed(new_genesis_frozen_seed(cml_id));
-		assert!(cml.is_seed() && !cml.can_be_defrost(&current_height));
+		assert!(cml.is_seed() && cml.check_defrost(&current_height).is_err());
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 

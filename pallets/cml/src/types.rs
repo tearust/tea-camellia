@@ -7,7 +7,7 @@ mod seeds;
 mod staking;
 mod vouchers;
 
-pub use cml::{CmlId, CmlStatus, CmlType, CML};
+pub use cml::{CmlError, CmlId, CmlResult, CmlStatus, CmlType, CML};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
 pub use staking::{
@@ -25,7 +25,7 @@ pub trait SeedProperties<BlockNumber> {
 
 	fn is_fresh_seed(&self) -> bool;
 
-	fn can_be_defrost(&self, height: &BlockNumber) -> bool;
+	fn check_defrost(&self, height: &BlockNumber) -> CmlResult;
 
 	fn defrost(&mut self, height: &BlockNumber);
 
@@ -41,7 +41,8 @@ pub trait SeedProperties<BlockNumber> {
 	fn has_expired(&self, height: &BlockNumber) -> bool;
 
 	fn seed_valid(&self, height: &BlockNumber) -> bool {
-		if self.is_frozen_seed() && !self.can_be_defrost(height) {
+		// todo return error instead
+		if self.is_frozen_seed() && self.check_defrost(height).is_err() {
 			return false;
 		}
 		if self.is_fresh_seed() && self.has_expired(height) {

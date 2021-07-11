@@ -23,6 +23,17 @@ pub enum CmlType {
 }
 
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+pub enum CmlError {
+	/// Defrost time should have value when defrost.
+	DefrostTimeIsNone,
+	/// Cml should be frozen seed.
+	ShouldBeFrozenSeed,
+	/// Cml is still in frozen locked period that cannot be defrosted.
+	StillInFrozenLockedPeriod,
+}
+pub type CmlResult = Result<(), CmlError>;
+
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
 pub enum CmlStatus<BlockNumber>
 where
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
@@ -172,16 +183,22 @@ where
 		}
 	}
 
-	fn can_be_defrost(&self, height: &BlockNumber) -> bool {
+	fn check_defrost(&self, height: &BlockNumber) -> CmlResult {
 		if self.intrinsic.defrost_time.is_none() {
-			return false;
+			return Err(CmlError::DefrostTimeIsNone);
+		}
+		if !self.is_frozen_seed() {
+			return Err(CmlError::ShouldBeFrozenSeed);
+		}
+		if *height < self.intrinsic.defrost_time.unwrap().into() {
+			return Err(CmlError::StillInFrozenLockedPeriod);
 		}
 
-		self.is_frozen_seed() && *height >= self.intrinsic.defrost_time.unwrap().into()
+		Ok(())
 	}
 
 	fn defrost(&mut self, height: &BlockNumber) {
-		if !self.can_be_defrost(height) {
+		if self.check_defrost(height).is_err() {
 			return;
 		}
 		self.convert(CmlStatus::FreshSeed(height.clone()))
@@ -619,7 +636,7 @@ mod tests {
 			assert!(cml.is_seed());
 			assert!(cml.is_frozen_seed());
 			assert!(!cml.is_fresh_seed());
-			assert!(cml.can_be_defrost(&DEFROST_AT));
+			assert!(cml.check_defrost(&DEFROST_AT).is_ok());
 		}
 
 		#[test]
@@ -629,8 +646,8 @@ mod tests {
 			seed.defrost_time = Some(DEFROST_AT);
 			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
 
-			assert!(!cml.can_be_defrost(&0));
-			assert!(cml.can_be_defrost(&DEFROST_AT));
+			assert!(cml.check_defrost(&0).is_err());
+			assert!(cml.check_defrost(&DEFROST_AT).is_ok());
 
 			assert!(cml.is_frozen_seed());
 			cml.defrost(&DEFROST_AT);
@@ -644,7 +661,7 @@ mod tests {
 			seed.defrost_time = None;
 			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
 
-			assert!(!cml.can_be_defrost(&u32::MAX));
+			assert!(cml.check_defrost(&u32::MAX).is_err());
 			assert!(cml.is_frozen_seed());
 			cml.defrost(&u32::MAX);
 			assert!(cml.is_frozen_seed());
@@ -658,7 +675,7 @@ mod tests {
 			seed.defrost_time = Some(DEFROST_AT);
 			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
 
-			assert!(!cml.can_be_defrost(&(DEFROST_AT - 1)));
+			assert!(cml.check_defrost(&(DEFROST_AT - 1)).is_err());
 			cml.defrost(&(DEFROST_AT - 1));
 			assert!(cml.is_frozen_seed());
 			assert_eq!(cml.get_sprout_at(), None);
@@ -668,7 +685,7 @@ mod tests {
 		fn genesis_seed_defrost_at_initial() {
 			let cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(new_genesis_seed(1));
 			assert_eq!(cml.intrinsic.defrost_time, Some(0));
-			assert!(cml.can_be_defrost(&0));
+			assert!(cml.check_defrost(&0).is_ok());
 		}
 
 		#[test]
@@ -693,7 +710,7 @@ mod tests {
 			seed.defrost_time = Some(DEFROST_AT);
 			let mut cml = CML::<u32, u32, u128, ConstU32<10>>::from_genesis_seed(seed);
 
-			assert!(!cml.can_be_defrost(&(DEFROST_AT - 1)));
+			assert!(cml.check_defrost(&(DEFROST_AT - 1)).is_err());
 			assert!(!cml.seed_valid(&(DEFROST_AT - 1)));
 
 			cml.defrost(&DEFROST_AT);
