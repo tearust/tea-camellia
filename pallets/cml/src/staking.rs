@@ -459,4 +459,54 @@ mod tests {
 			assert_eq!(AccountRewards::<Test>::iter().count(), 0);
 		})
 	}
+
+	#[test]
+	fn try_return_left_staking_reward_works() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let initial_amount = 1000;
+			<Test as Config>::Currency::make_free_balance_be(&user1, initial_amount);
+
+			let initial_reward1 = 50;
+			assert!(!GenesisMinerCreditStore::<Test>::contains_key(&user1));
+			let reward = Cml::try_return_left_staking_reward(&user1, initial_reward1);
+			assert_eq!(reward, initial_reward1); // return all rewards if not have credit
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user1),
+				initial_amount
+			);
+			assert_eq!(<Test as Config>::Currency::reserved_balance(&user1), 0);
+
+			let credit_amount2 = 1000;
+			let initial_reward2 = 100; // initial reward small than credit amount
+			GenesisMinerCreditStore::<Test>::insert(user1, credit_amount2);
+			let reward = Cml::try_return_left_staking_reward(&user1, initial_reward2);
+			assert_eq!(reward, 0); // should have no reward
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user1),
+				initial_amount
+			);
+			assert_eq!(
+				<Test as Config>::Currency::reserved_balance(&user1),
+				initial_reward2
+			);
+			assert_eq!(
+				GenesisMinerCreditStore::<Test>::get(user1),
+				credit_amount2 - initial_reward2
+			);
+
+			let initial_reward3 = 1000; // initial reward can pay all the credit
+			let reward = Cml::try_return_left_staking_reward(&user1, initial_reward3);
+			assert_eq!(reward, initial_reward3 - (credit_amount2 - initial_reward2));
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user1),
+				initial_amount
+			);
+			assert_eq!(
+				<Test as Config>::Currency::reserved_balance(&user1),
+				credit_amount2
+			);
+			assert!(!GenesisMinerCreditStore::<Test>::contains_key(user1))
+		})
+	}
 }
