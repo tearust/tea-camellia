@@ -19,7 +19,7 @@ pub fn make_generate_defrost_time_fn(
 		let mut rng = thread_rng();
 		let r: u32 = rng.gen();
 		let random_offset: u32 = r % (6 * BLOCKS_IN_A_DAY);
-
+		// assert_eq!(BLOCKS_IN_A_DAY, 144);
 		match defrost_schedule {
 			DefrostScheduleType::Investor => {
 				let prob = r % 100;
@@ -48,7 +48,7 @@ mod tests {
 
 	#[test]
 	fn check_seeds_defrost_time_distribution() {
-		println!("Team defrost ...");
+		println!("Team defrost ...{}", BLOCKS_IN_A_DAY);
 		let closure_defrost_time = make_generate_defrost_time_fn(DefrostScheduleType::Team);
 
 		let test_sample_count = 1000;
@@ -57,6 +57,10 @@ mod tests {
 		for _i in 0..test_sample_count {
 			let defrost_time = closure_defrost_time();
 			let defrost_days = (defrost_time / BLOCKS_IN_A_DAY) as usize;
+			// println!(
+			// 	"Defrost time {}, defrost_day {}",
+			// 	defrost_time, defrost_days
+			// );
 			distribute[defrost_days] += 1;
 			let defrost_month = (defrost_time / BLOCKS_IN_A_MONTH) as usize;
 			month_distribute[defrost_month] += 1;

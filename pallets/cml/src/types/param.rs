@@ -15,19 +15,19 @@ pub const UNFROZEN_SEEDS_PERCENTAGE_INVESTOR: u32 = 50;
 #[cfg(not(feature = "fast"))]
 pub const BLOCKS_IN_A_MONTH: u32 = 438000; //365*24*600/12
 #[cfg(feature = "fast")]
-pub const BLOCKS_IN_A_MONTH: u32 = 4380; 
+pub const BLOCKS_IN_A_MONTH: u32 = 4380;
 #[cfg(not(feature = "fast"))]
 pub const BLOCKS_IN_HALF_MONTH: u32 = 219000; //365*24*600/12/2
 #[cfg(feature = "fast")]
-pub const BLOCKS_IN_HALF_MONTH: u32 = 2190; 
+pub const BLOCKS_IN_HALF_MONTH: u32 = 2190;
 #[cfg(not(feature = "fast"))]
 pub const BLOCKS_IN_A_DAY: u32 = 14400; //24*600
 #[cfg(feature = "fast")]
-pub const BLOCKS_IN_A_DAY: u32 = 140; 
+pub const BLOCKS_IN_A_DAY: u32 = 144;
 #[cfg(not(feature = "fast"))]
 pub const BLOCKS_IN_HALF_DAY: u32 = 7200; //24*600
 #[cfg(feature = "fast")]
-pub const BLOCKS_IN_HALF_DAY: u32 = 72; 
+pub const BLOCKS_IN_HALF_DAY: u32 = 72;
 
 ///The base value of life span of a Camellia. The actually value will be a random deviation on this base value
 pub const BASE_LIFESPAN_A: BlockNumber = 24 * BLOCKS_IN_A_MONTH;
