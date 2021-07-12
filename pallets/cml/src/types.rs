@@ -1,20 +1,19 @@
 use sp_std::prelude::*;
 
 mod cml;
+mod coupons;
 mod miner;
 pub mod param;
 mod seeds;
 mod staking;
-mod vouchers;
 
 pub use cml::{CmlError, CmlId, CmlResult, CmlStatus, CmlType, CML};
+pub use coupons::{Coupon, CouponConfig, GenesisCoupons};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
 pub use staking::{
-	ServiceTaskPoint, StakingCategory, StakingIndex, StakingItem, StakingSnapshotItem,
-	StakingWeight,
+	ServiceTaskPoint, StakingCategory, StakingIndex, StakingItem, StakingSnapshotItem, StakingWeight,
 };
-pub use vouchers::{GenesisVouchers, Voucher, VoucherConfig};
 
 pub trait SeedProperties<BlockNumber> {
 	fn id(&self) -> CmlId;

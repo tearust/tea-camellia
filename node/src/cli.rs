@@ -9,9 +9,9 @@ pub struct Cli {
 	#[structopt(flatten)]
 	pub run: RunCmd,
 
-	/// The csv file path to define genesis vouchers.
+	/// The csv file path to define genesis coupons.
 	#[structopt(long)]
-	pub genesis_vouchers_path: Option<String>,
+	pub genesis_coupons_path: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]

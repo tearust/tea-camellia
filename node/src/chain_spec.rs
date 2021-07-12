@@ -1,7 +1,7 @@
 use camellia_runtime::{
 	constants::currency::{CENTS, DOLLARS},
 	opaque::SessionKeys,
-	pallet_cml::{generator::init_genesis, GenesisSeeds, GenesisVouchers},
+	pallet_cml::{generator::init_genesis, GenesisCoupons, GenesisSeeds},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
 	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
@@ -22,7 +22,7 @@ use sp_runtime::{
 use std::collections::HashSet;
 
 const INITIAL_ACCOUNT_BALANCE: Balance = 10000 * DOLLARS;
-const VOUCHER_ACCOUNT_BALANCE: Balance = 1 * CENTS;
+const COUPON_ACCOUNT_BALANCE: Balance = 1 * CENTS;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -79,9 +79,7 @@ fn get_properties(symbol: &str) -> Properties {
 	.clone()
 }
 
-pub fn development_config(
-	genesis_vouchers: GenesisVouchers<AccountId>,
-) -> Result<ChainSpec, String> {
+pub fn development_config(genesis_coupons: GenesisCoupons<AccountId>) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
@@ -98,7 +96,7 @@ pub fn development_config(
 				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
 				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 			];
-			let imported_endowed_accounts = get_unique_accounts(&genesis_vouchers);
+			let imported_endowed_accounts = get_unique_accounts(&genesis_coupons);
 			endowed_accounts.extend(imported_endowed_accounts);
 
 			let endowed_balances =
@@ -113,7 +111,7 @@ pub fn development_config(
 				// Pre-funded accounts
 				endowed_accounts,
 				endowed_balances,
-				genesis_vouchers.clone(),
+				genesis_coupons.clone(),
 				genesis_seeds,
 			)
 		},
@@ -131,7 +129,7 @@ pub fn development_config(
 }
 
 pub fn local_testnet_config(
-	genesis_vouchers: GenesisVouchers<AccountId>,
+	genesis_coupons: GenesisCoupons<AccountId>,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
@@ -160,10 +158,10 @@ pub fn local_testnet_config(
 			let mut endowed_balances =
 				generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
 
-			let imported_endowed_accounts = get_unique_accounts(&genesis_vouchers);
+			let imported_endowed_accounts = get_unique_accounts(&genesis_coupons);
 			endowed_balances.extend(generate_account_balance_list(
 				&imported_endowed_accounts,
-				VOUCHER_ACCOUNT_BALANCE,
+				COUPON_ACCOUNT_BALANCE,
 			));
 			endowed_accounts.extend(imported_endowed_accounts);
 
@@ -179,7 +177,7 @@ pub fn local_testnet_config(
 				// Pre-funded accounts
 				endowed_accounts,
 				endowed_balances,
-				genesis_vouchers.clone(),
+				genesis_coupons.clone(),
 				genesis_seeds,
 			)
 		},
@@ -210,7 +208,7 @@ fn testnet_genesis(
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	endowed_balances: Vec<(AccountId, Balance)>,
-	genesis_vouchers: GenesisVouchers<AccountId>,
+	genesis_coupons: GenesisCoupons<AccountId>,
 	genesis_seeds: GenesisSeeds,
 ) -> GenesisConfig {
 	const STASH: Balance = 100 * DOLLARS;
@@ -292,7 +290,7 @@ fn testnet_genesis(
 			],
 		},
 		pallet_cml: CmlConfig {
-			genesis_vouchers,
+			genesis_coupons,
 			genesis_seeds,
 		},
 	}
@@ -312,9 +310,9 @@ fn session_keys(
 	}
 }
 
-fn get_unique_accounts(genesis_vouchers: &GenesisVouchers<AccountId>) -> Vec<AccountId> {
-	let accounts: HashSet<AccountId> = genesis_vouchers
-		.vouchers
+fn get_unique_accounts(genesis_coupons: &GenesisCoupons<AccountId>) -> Vec<AccountId> {
+	let accounts: HashSet<AccountId> = genesis_coupons
+		.coupons
 		.iter()
 		.map(|item| item.account.clone())
 		.collect();
@@ -335,9 +333,7 @@ fn generate_account_balance_list(
 #[cfg(test)]
 mod tests {
 	use crate::chain_spec::get_unique_accounts;
-	use camellia_runtime::pallet_cml::{
-		CmlType, DefrostScheduleType, GenesisVouchers, VoucherConfig,
-	};
+	use camellia_runtime::pallet_cml::{CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons};
 	use sp_runtime::AccountId32;
 
 	#[test]
@@ -348,10 +344,10 @@ mod tests {
 		}
 		accounts.push(accounts[accounts.len() - 1]); // duplicate the last one
 
-		let result = get_unique_accounts(&GenesisVouchers {
-			vouchers: accounts
+		let result = get_unique_accounts(&GenesisCoupons {
+			coupons: accounts
 				.iter()
-				.map(|account| VoucherConfig {
+				.map(|account| CouponConfig {
 					account: AccountId32::new(account.clone()),
 					cml_type: CmlType::A,
 					schedule_type: DefrostScheduleType::Team,

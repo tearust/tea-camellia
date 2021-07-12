@@ -1,17 +1,17 @@
 use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::{
-	mock::*, types::*, CmlStore, InvestorVoucherStore, LastCmlId, LuckyDrawBox, TeamVoucherStore,
+	mock::*, types::*, CmlStore, InvestorCouponStore, LastCmlId, LuckyDrawBox, TeamCouponStore,
 };
 
 #[test]
 fn genesis_build_related_logic_works() {
-	let voucher_config1 = VoucherConfig {
+	let coupon_config1 = CouponConfig {
 		account: 1,
 		cml_type: CmlType::A,
 		schedule_type: DefrostScheduleType::Team,
 		amount: 100,
 	};
-	let voucher_config2 = VoucherConfig {
+	let coupon_config2 = CouponConfig {
 		account: 2,
 		cml_type: CmlType::B,
 		schedule_type: DefrostScheduleType::Investor,
@@ -20,18 +20,18 @@ fn genesis_build_related_logic_works() {
 
 	ExtBuilder::default()
 		.init_seeds()
-		.vouchers(vec![voucher_config1.clone(), voucher_config2.clone()])
+		.coupons(vec![coupon_config1.clone(), coupon_config2.clone()])
 		.build()
 		.execute_with(|| {
-			let voucher1 = TeamVoucherStore::<Test>::get(1, CmlType::A);
-			assert!(voucher1.is_some());
-			let voucher1 = voucher1.unwrap();
-			assert_eq!(voucher1.amount, voucher_config1.amount);
+			let coupon1 = TeamCouponStore::<Test>::get(1, CmlType::A);
+			assert!(coupon1.is_some());
+			let coupon1 = coupon1.unwrap();
+			assert_eq!(coupon1.amount, coupon_config1.amount);
 
-			let voucher2 = InvestorVoucherStore::<Test>::get(2, CmlType::B);
-			assert!(voucher2.is_some());
-			let voucher2 = voucher2.unwrap();
-			assert_eq!(voucher2.amount, voucher_config2.amount);
+			let coupon2 = InvestorCouponStore::<Test>::get(2, CmlType::B);
+			assert!(coupon2.is_some());
+			let coupon2 = coupon2.unwrap();
+			assert_eq!(coupon2.amount, coupon_config2.amount);
 
 			assert_eq!(
 				GENESIS_SEED_A_COUNT as usize,

@@ -1,12 +1,12 @@
 use crate::{CmlId, CmlType, DefrostScheduleType, Seed};
 
 mod cml;
+mod coupon;
 mod draw;
 mod genesis;
 mod mining;
 mod staking;
 mod sudo;
-mod voucher;
 
 pub fn new_genesis_seed(id: CmlId) -> Seed {
 	Seed {

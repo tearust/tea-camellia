@@ -1,12 +1,12 @@
-use crate::tests::voucher::new_voucher;
+use crate::tests::coupon::new_coupon;
 use crate::{
-	mock::*, types::*, Error, Event as CmlEvent, InvestorVoucherStore, LuckyDrawBox,
-	TeamVoucherStore, UserCmlStore,
+	mock::*, types::*, Error, Event as CmlEvent, InvestorCouponStore, LuckyDrawBox, TeamCouponStore,
+	UserCmlStore,
 };
 use frame_support::{assert_noop, assert_ok};
 
 #[test]
-fn draw_cmls_from_voucher_works() {
+fn draw_cmls_from_coupon_works() {
 	new_test_ext().execute_with(|| {
 		frame_system::Pallet::<Test>::set_block_number(100);
 
@@ -18,11 +18,11 @@ fn draw_cmls_from_voucher_works() {
 		LuckyDrawBox::<Test>::insert(CmlType::B, DefrostScheduleType::Team, origin_b_box.clone());
 		LuckyDrawBox::<Test>::insert(CmlType::C, DefrostScheduleType::Team, origin_c_box.clone());
 
-		TeamVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
-		TeamVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
-		TeamVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
+		TeamCouponStore::<Test>::insert(1, CmlType::A, new_coupon(3, CmlType::A));
+		TeamCouponStore::<Test>::insert(1, CmlType::B, new_coupon(4, CmlType::B));
+		TeamCouponStore::<Test>::insert(1, CmlType::C, new_coupon(5, CmlType::C));
 
-		assert_ok!(Cml::draw_cmls_from_voucher(
+		assert_ok!(Cml::draw_cmls_from_coupon(
 			Origin::signed(1),
 			DefrostScheduleType::Team
 		));
@@ -38,7 +38,7 @@ fn draw_cmls_from_voucher_works() {
 }
 
 #[test]
-fn draw_cmls_works_the_second_time_if_get_voucher_again() {
+fn draw_cmls_works_the_second_time_if_get_coupon_again() {
 	new_test_ext().execute_with(|| {
 		frame_system::Pallet::<Test>::set_block_number(100);
 
@@ -62,14 +62,14 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 			origin_c_box.clone(),
 		);
 
-		InvestorVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
-		InvestorVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
-		InvestorVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
-		InvestorVoucherStore::<Test>::insert(2, CmlType::A, new_voucher(1, CmlType::A));
-		InvestorVoucherStore::<Test>::insert(2, CmlType::B, new_voucher(2, CmlType::B));
-		InvestorVoucherStore::<Test>::insert(2, CmlType::C, new_voucher(3, CmlType::C));
+		InvestorCouponStore::<Test>::insert(1, CmlType::A, new_coupon(3, CmlType::A));
+		InvestorCouponStore::<Test>::insert(1, CmlType::B, new_coupon(4, CmlType::B));
+		InvestorCouponStore::<Test>::insert(1, CmlType::C, new_coupon(5, CmlType::C));
+		InvestorCouponStore::<Test>::insert(2, CmlType::A, new_coupon(1, CmlType::A));
+		InvestorCouponStore::<Test>::insert(2, CmlType::B, new_coupon(2, CmlType::B));
+		InvestorCouponStore::<Test>::insert(2, CmlType::C, new_coupon(3, CmlType::C));
 
-		assert_ok!(Cml::draw_cmls_from_voucher(
+		assert_ok!(Cml::draw_cmls_from_coupon(
 			Origin::signed(1),
 			DefrostScheduleType::Investor
 		));
@@ -80,21 +80,21 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 			3 + 4 + 5
 		);
 
-		assert_ok!(Cml::transfer_voucher(
+		assert_ok!(Cml::transfer_coupon(
 			Origin::signed(2),
 			1,
 			CmlType::A,
 			DefrostScheduleType::Investor,
 			1
 		));
-		assert_ok!(Cml::transfer_voucher(
+		assert_ok!(Cml::transfer_coupon(
 			Origin::signed(2),
 			1,
 			CmlType::B,
 			DefrostScheduleType::Investor,
 			2
 		));
-		assert_ok!(Cml::transfer_voucher(
+		assert_ok!(Cml::transfer_coupon(
 			Origin::signed(2),
 			1,
 			CmlType::C,
@@ -102,7 +102,7 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 			3
 		));
 
-		assert_ok!(Cml::draw_cmls_from_voucher(
+		assert_ok!(Cml::draw_cmls_from_coupon(
 			Origin::signed(1),
 			DefrostScheduleType::Investor
 		));
@@ -116,16 +116,16 @@ fn draw_cmls_works_the_second_time_if_get_voucher_again() {
 }
 
 #[test]
-fn draw_cmls_from_voucher_should_fail_if_timeout() {
+fn draw_cmls_from_coupon_should_fail_if_timeout() {
 	new_test_ext().execute_with(|| {
 		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
 		assert_noop!(
-			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Team),
-			Error::<Test>::VouchersHasOutdated
+			Cml::draw_cmls_from_coupon(Origin::signed(1), DefrostScheduleType::Team),
+			Error::<Test>::CouponsHasOutdated
 		);
 		assert_noop!(
-			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Investor),
-			Error::<Test>::VouchersHasOutdated
+			Cml::draw_cmls_from_coupon(Origin::signed(1), DefrostScheduleType::Investor),
+			Error::<Test>::CouponsHasOutdated
 		);
 	})
 }
@@ -143,31 +143,31 @@ fn draw_same_cmls_multiple_times_should_fail() {
 		LuckyDrawBox::<Test>::insert(CmlType::B, DefrostScheduleType::Team, origin_b_box.clone());
 		LuckyDrawBox::<Test>::insert(CmlType::C, DefrostScheduleType::Team, origin_c_box.clone());
 
-		TeamVoucherStore::<Test>::insert(1, CmlType::A, new_voucher(3, CmlType::A));
-		TeamVoucherStore::<Test>::insert(1, CmlType::B, new_voucher(4, CmlType::B));
-		TeamVoucherStore::<Test>::insert(1, CmlType::C, new_voucher(5, CmlType::C));
+		TeamCouponStore::<Test>::insert(1, CmlType::A, new_coupon(3, CmlType::A));
+		TeamCouponStore::<Test>::insert(1, CmlType::B, new_coupon(4, CmlType::B));
+		TeamCouponStore::<Test>::insert(1, CmlType::C, new_coupon(5, CmlType::C));
 
-		assert_ok!(Cml::draw_cmls_from_voucher(
+		assert_ok!(Cml::draw_cmls_from_coupon(
 			Origin::signed(1),
 			DefrostScheduleType::Team
 		));
 		assert_noop!(
-			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Team),
-			Error::<Test>::WithoutVoucher
+			Cml::draw_cmls_from_coupon(Origin::signed(1), DefrostScheduleType::Team),
+			Error::<Test>::WithoutCoupon
 		);
 	})
 }
 
 #[test]
-fn draw_cmls_should_fail_when_no_voucher_exist() {
+fn draw_cmls_should_fail_when_no_coupon_exist() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Team),
-			Error::<Test>::WithoutVoucher
+			Cml::draw_cmls_from_coupon(Origin::signed(1), DefrostScheduleType::Team),
+			Error::<Test>::WithoutCoupon
 		);
 		assert_noop!(
-			Cml::draw_cmls_from_voucher(Origin::signed(1), DefrostScheduleType::Investor),
-			Error::<Test>::WithoutVoucher
+			Cml::draw_cmls_from_coupon(Origin::signed(1), DefrostScheduleType::Investor),
+			Error::<Test>::WithoutCoupon
 		);
 	})
 }

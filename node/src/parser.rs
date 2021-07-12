@@ -1,6 +1,6 @@
 use super::cli::Cli;
 use camellia_runtime::{
-	pallet_cml::{CmlType, DefrostScheduleType, GenesisVouchers, VoucherConfig},
+	pallet_cml::{CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons},
 	AccountId,
 };
 use sp_core::crypto::AccountId32;
@@ -13,35 +13,33 @@ const B_CML_AMOUNT_INDEX: usize = 5;
 const C_CML_AMOUNT_INDEX: usize = 6;
 
 impl Cli {
-	pub fn parse_genesis_vouchers(&self) -> Result<GenesisVouchers<AccountId>, String> {
-		let vouchers = if let Some(path) = self.genesis_vouchers_path.as_ref() {
+	pub fn parse_genesis_coupons(&self) -> Result<GenesisCoupons<AccountId>, String> {
+		let coupons = if let Some(path) = self.genesis_coupons_path.as_ref() {
 			let mut rdr = csv::Reader::from_path(path).map_err(|e| e.to_string())?;
-			parse_voucher_configs(&mut rdr)?
+			parse_coupon_configs(&mut rdr)?
 		} else {
 			let mut rdr = csv::Reader::from_reader(&include_bytes!("dev.csv")[..]);
-			parse_voucher_configs(&mut rdr)?
+			parse_coupon_configs(&mut rdr)?
 		};
 
-		Ok(GenesisVouchers { vouchers })
+		Ok(GenesisCoupons { coupons })
 	}
 }
 
-fn parse_voucher_configs<R>(
-	rdr: &mut csv::Reader<R>,
-) -> Result<Vec<VoucherConfig<AccountId>>, String>
+fn parse_coupon_configs<R>(rdr: &mut csv::Reader<R>) -> Result<Vec<CouponConfig<AccountId>>, String>
 where
 	R: std::io::Read,
 {
-	let mut vouchers = Vec::new();
+	let mut coupons = Vec::new();
 
 	for record in rdr.records() {
 		let record = record.map_err(|e| e.to_string())?;
 		let schedule_type = parse_defrost_schedule_type(record.get(DEFROST_SCHEDULE_TYPE_INDEX))?;
 		let account = parse_account_address(record.get(ACCOUNT_ADDRESS_INDEX))?;
 
-		let a_amount = parse_voucher_amount(record.get(A_CML_AMOUNT_INDEX));
+		let a_amount = parse_coupon_amount(record.get(A_CML_AMOUNT_INDEX));
 		if a_amount > 0 {
-			vouchers.push(VoucherConfig {
+			coupons.push(CouponConfig {
 				account: account.clone(),
 				schedule_type,
 				cml_type: CmlType::A,
@@ -49,9 +47,9 @@ where
 			});
 		}
 
-		let b_amount = parse_voucher_amount(record.get(B_CML_AMOUNT_INDEX));
+		let b_amount = parse_coupon_amount(record.get(B_CML_AMOUNT_INDEX));
 		if b_amount > 0 {
-			vouchers.push(VoucherConfig {
+			coupons.push(CouponConfig {
 				account: account.clone(),
 				schedule_type,
 				cml_type: CmlType::B,
@@ -59,9 +57,9 @@ where
 			});
 		}
 
-		let c_amount = parse_voucher_amount(record.get(C_CML_AMOUNT_INDEX));
+		let c_amount = parse_coupon_amount(record.get(C_CML_AMOUNT_INDEX));
 		if c_amount > 0 {
-			vouchers.push(VoucherConfig {
+			coupons.push(CouponConfig {
 				account: account.clone(),
 				schedule_type,
 				cml_type: CmlType::C,
@@ -70,7 +68,7 @@ where
 		}
 	}
 
-	Ok(vouchers)
+	Ok(coupons)
 }
 
 fn parse_defrost_schedule_type(value: Option<&str>) -> Result<DefrostScheduleType, String> {
@@ -91,24 +89,24 @@ fn parse_account_address(value: Option<&str>) -> Result<AccountId, String> {
 	)?)
 }
 
-fn parse_voucher_amount(value: Option<&str>) -> u32 {
+fn parse_coupon_amount(value: Option<&str>) -> u32 {
 	value.unwrap_or_default().parse().unwrap_or_default()
 }
 
 #[cfg(test)]
 mod tests {
-	use super::parse_voucher_configs;
+	use super::parse_coupon_configs;
 	use camellia_runtime::pallet_cml::{CmlType, DefrostScheduleType};
 	use sp_core::crypto::AccountId32;
 	use std::str::FromStr;
 
 	#[test]
-	fn parse_voucher_configs_works() -> Result<(), String> {
+	fn parse_coupon_configs_works() -> Result<(), String> {
 		let account = AccountId32::from_str("5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP")
 			.map_err(|e| e.to_string())?;
 
 		let mut rdr = csv::Reader::from_reader(&include_bytes!("dev.csv")[..]);
-		let configs = parse_voucher_configs(&mut rdr)?;
+		let configs = parse_coupon_configs(&mut rdr)?;
 		assert_eq!(configs.len(), 6);
 		for i in 0..3 {
 			assert_eq!(configs[i].schedule_type, DefrostScheduleType::Investor);

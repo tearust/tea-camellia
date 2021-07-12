@@ -73,7 +73,7 @@ impl pallet_cml::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
-	type VoucherTimoutHeight = SeedsTimeoutHeight;
+	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;

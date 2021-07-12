@@ -47,3 +47,12 @@ Use this mnemonic
 runway where sponsor visual reject drill dwarf tired wild flag monitor test
 ```
 to create a new account for testing, because this account `5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP` is hard coded for temp testing
+
+# Genesis seeds coupon distribution CSV file
+Use the following parameters to start
+
+`--genesis-coupons-path <genesis-coupons-path>`
+下面是使用示例：
+
+./tea-camellia --alice --dev --tmp --genesis-coupons-path test.csv
+If this parameter is missing, system will use https://github.com/tearust/tea-camellia/blob/main/node/src/dev.csv instead.

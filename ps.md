@@ -1,4 +1,4 @@
-### Add your own voucher for test
+### Add your own coupon for test
 
 Modify the node/src/chain_spec.rs to add your own account;
 

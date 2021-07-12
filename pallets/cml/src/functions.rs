@@ -11,32 +11,31 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub fn check_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
 		let cml = CmlStore::<T>::get(cml_id);
 		ensure!(cml.is_seed(), Error::<T>::CmlIsNotSeed);
-		cml.check_seed_validity(height)
+		cml
+			.check_seed_validity(height)
 			.map_err(|e| Error::<T>::from(e))?;
 
 		Ok(())
 	}
 
-	pub fn set_voucher(
+	pub fn set_coupon(
 		who: &T::AccountId,
 		cml_type: CmlType,
 		schedule_type: DefrostScheduleType,
 		amount: u32,
 	) {
-		let set_store_hanlder = |maybe_item: &mut Option<Voucher>| {
+		let set_store_hanlder = |maybe_item: &mut Option<Coupon>| {
 			if let Some(ref mut item) = maybe_item {
 				item.amount = amount;
 			} else {
-				*maybe_item = Some(Voucher { cml_type, amount });
+				*maybe_item = Some(Coupon { cml_type, amount });
 			}
 		};
 		match schedule_type {
 			DefrostScheduleType::Investor => {
-				InvestorVoucherStore::<T>::mutate(&who, cml_type, set_store_hanlder)
+				InvestorCouponStore::<T>::mutate(&who, cml_type, set_store_hanlder)
 			}
-			DefrostScheduleType::Team => {
-				TeamVoucherStore::<T>::mutate(&who, cml_type, set_store_hanlder)
-			}
+			DefrostScheduleType::Team => TeamCouponStore::<T>::mutate(&who, cml_type, set_store_hanlder),
 		}
 	}
 
@@ -49,12 +48,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 		UserCmlStore::<T>::insert(who, cml_id, ());
 	}
 
-	pub(crate) fn is_voucher_outdated(block_number: T::BlockNumber) -> bool {
-		block_number > T::VoucherTimoutHeight::get()
+	pub(crate) fn is_coupon_outdated(block_number: T::BlockNumber) -> bool {
+		block_number > T::CouponTimoutHeight::get()
 	}
 
-	pub(crate) fn try_clean_outdated_vouchers(block_number: T::BlockNumber) {
-		if !Self::is_voucher_outdated(block_number) {
+	pub(crate) fn try_clean_outdated_coupons(block_number: T::BlockNumber) {
+		if !Self::is_coupon_outdated(block_number) {
 			return;
 		}
 
@@ -70,8 +69,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 		LuckyDrawBox::<T>::mutate(CmlType::C, DefrostScheduleType::Investor, remove_handler);
 		LuckyDrawBox::<T>::mutate(CmlType::C, DefrostScheduleType::Team, remove_handler);
 
-		InvestorVoucherStore::<T>::remove_all();
-		TeamVoucherStore::<T>::remove_all();
+		InvestorCouponStore::<T>::remove_all();
+		TeamCouponStore::<T>::remove_all();
 	}
 
 	pub(crate) fn try_kill_cml(block_number: T::BlockNumber) -> Vec<CmlId> {
@@ -114,25 +113,25 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 	}
 
-	pub(crate) fn take_vouchers(
+	pub(crate) fn take_coupons(
 		who: &T::AccountId,
 		schedule_type: DefrostScheduleType,
 	) -> (u32, u32, u32) {
-		let get_voucher_amount = |cml_type: CmlType, who: &T::AccountId| {
+		let get_coupon_amount = |cml_type: CmlType, who: &T::AccountId| {
 			let item = match schedule_type {
-				DefrostScheduleType::Investor => InvestorVoucherStore::<T>::take(who, cml_type),
-				DefrostScheduleType::Team => TeamVoucherStore::<T>::take(who, cml_type),
+				DefrostScheduleType::Investor => InvestorCouponStore::<T>::take(who, cml_type),
+				DefrostScheduleType::Team => TeamCouponStore::<T>::take(who, cml_type),
 			};
 			match item {
-				Some(voucher) => voucher.amount,
+				Some(coupon) => coupon.amount,
 				None => 0,
 			}
 		};
 
 		(
-			get_voucher_amount(CmlType::A, who),
-			get_voucher_amount(CmlType::B, who),
-			get_voucher_amount(CmlType::C, who),
+			get_coupon_amount(CmlType::A, who),
+			get_coupon_amount(CmlType::B, who),
+			get_coupon_amount(CmlType::C, who),
 		)
 	}
 
@@ -185,8 +184,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		let mut seed_ids = Vec::new();
 		let mut draw_handler = |draw_box: &mut Vec<u64>, cml_type: CmlType, coupon_len: u32| {
 			for i in 0..coupon_len {
-				let rand_index =
-					Self::get_draw_seed_random_index(who, cml_type, i, draw_box.len() as u32);
+				let rand_index = Self::get_draw_seed_random_index(who, cml_type, i, draw_box.len() as u32);
 				let seed_id = draw_box.swap_remove(rand_index as usize);
 				seed_ids.push(seed_id);
 			}
@@ -231,13 +229,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 			}),
 			None => {
 				T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
-				staking_to
-					.stake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
-						&who,
-						current_height,
-						Some(T::StakingPrice::get()),
-						None,
-					)
+				staking_to.stake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
+					&who,
+					current_height,
+					Some(T::StakingPrice::get()),
+					None,
+				)
 			}
 		}
 	}
@@ -249,9 +246,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	) {
 		if let Some(staking_item) = staking_to.staking_slots().get(staking_index as usize) {
 			let index = match staking_item.cml {
-				Some(cml_id) => {
-					CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml)))
-				}
+				Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml))),
 				None => {
 					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get());
 					staking_to
@@ -341,8 +336,8 @@ where
 #[cfg(test)]
 mod tests {
 	use crate::{
-		mock::*, CmlId, CmlStore, CmlType, DefrostScheduleType, InvestorVoucherStore, LuckyDrawBox,
-		MinerItemStore, Seed, SeedProperties, StakingProperties, TeamVoucherStore, TreeProperties,
+		mock::*, CmlId, CmlStore, CmlType, DefrostScheduleType, InvestorCouponStore, LuckyDrawBox,
+		MinerItemStore, Seed, SeedProperties, StakingProperties, TeamCouponStore, TreeProperties,
 		UserCmlStore, CML,
 	};
 	use frame_support::assert_ok;
@@ -385,13 +380,9 @@ mod tests {
 			let a_coupon = 2u32;
 			let b_coupon = 3u32;
 			let c_coupon = 4u32;
-			assert!(Cml::check_luck_draw(
-				a_coupon,
-				b_coupon,
-				c_coupon,
-				DefrostScheduleType::Investor
-			)
-			.is_ok());
+			assert!(
+				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Investor).is_ok()
+			);
 			let res = Cml::lucky_draw(
 				&1,
 				a_coupon,
@@ -422,29 +413,16 @@ mod tests {
 			let origin_b_box: Vec<u64> = (11..=20).collect();
 			let origin_c_box: Vec<u64> = (21..=30).collect();
 
-			LuckyDrawBox::<Test>::insert(
-				CmlType::A,
-				DefrostScheduleType::Team,
-				origin_a_box.clone(),
-			);
-			LuckyDrawBox::<Test>::insert(
-				CmlType::B,
-				DefrostScheduleType::Team,
-				origin_b_box.clone(),
-			);
-			LuckyDrawBox::<Test>::insert(
-				CmlType::C,
-				DefrostScheduleType::Team,
-				origin_c_box.clone(),
-			);
+			LuckyDrawBox::<Test>::insert(CmlType::A, DefrostScheduleType::Team, origin_a_box.clone());
+			LuckyDrawBox::<Test>::insert(CmlType::B, DefrostScheduleType::Team, origin_b_box.clone());
+			LuckyDrawBox::<Test>::insert(CmlType::C, DefrostScheduleType::Team, origin_c_box.clone());
 
 			frame_system::Pallet::<Test>::set_block_number(100);
 			let a_coupon = 2u32;
 			let b_coupon = 3u32;
 			let c_coupon = 4u32;
 			assert!(
-				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team)
-					.is_ok()
+				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team).is_ok()
 			);
 			let res = Cml::lucky_draw(&1, a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team);
 
@@ -489,8 +467,7 @@ mod tests {
 			let b_coupon = 10u32;
 			let c_coupon = 10u32;
 			assert!(
-				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team)
-					.is_ok()
+				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team).is_ok()
 			);
 			let res = Cml::lucky_draw(&1, a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team);
 
@@ -511,7 +488,7 @@ mod tests {
 	}
 
 	#[test]
-	fn try_clean_outdated_vouchers_works() {
+	fn try_clean_outdated_coupons_works() {
 		new_test_ext().execute_with(|| {
 			let origin_investor_a_box: Vec<u64> = (1..=10).collect();
 			let origin_investor_b_box: Vec<u64> = (11..=20).collect();
@@ -587,7 +564,7 @@ mod tests {
 				);
 			}
 
-			Cml::try_clean_outdated_vouchers(SEEDS_TIMEOUT_HEIGHT as u64);
+			Cml::try_clean_outdated_coupons(SEEDS_TIMEOUT_HEIGHT as u64);
 			assert_eq!(
 				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).len(),
 				10
@@ -613,7 +590,7 @@ mod tests {
 				10
 			); // not cleaned yet
 
-			Cml::try_clean_outdated_vouchers(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
+			Cml::try_clean_outdated_coupons(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
 			assert_eq!(
 				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).len(),
 				0
@@ -658,8 +635,8 @@ mod tests {
 				assert!(!CmlStore::<Test>::contains_key(id));
 			}
 
-			assert_eq!(InvestorVoucherStore::<Test>::iter().count(), 0);
-			assert_eq!(TeamVoucherStore::<Test>::iter().count(), 0);
+			assert_eq!(InvestorCouponStore::<Test>::iter().count(), 0);
+			assert_eq!(TeamCouponStore::<Test>::iter().count(), 0);
 		})
 	}
 

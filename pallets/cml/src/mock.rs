@@ -1,6 +1,6 @@
 use crate as pallet_cml;
 use crate::generator::init_genesis;
-use crate::{GenesisSeeds, GenesisVouchers, VoucherConfig};
+use crate::{CouponConfig, GenesisCoupons, GenesisSeeds};
 use frame_support::pallet_prelude::*;
 use frame_support::parameter_types;
 use frame_system as system;
@@ -82,7 +82,7 @@ impl pallet_cml::Config for Test {
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
 	type StakingPeriodLength = StakingPeriodLength;
-	type VoucherTimoutHeight = SeedsTimeoutHeight;
+	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type SeedFreshDuration = SeedFreshDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
@@ -122,14 +122,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 pub struct ExtBuilder {
 	seeds: GenesisSeeds,
-	vouchers: GenesisVouchers<u64>,
+	coupons: GenesisCoupons<u64>,
 }
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
 			seeds: GenesisSeeds::default(),
-			vouchers: GenesisVouchers::default(),
+			coupons: GenesisCoupons::default(),
 		}
 	}
 }
@@ -140,8 +140,8 @@ impl ExtBuilder {
 		self
 	}
 
-	pub fn vouchers(mut self, vouchers: Vec<VoucherConfig<u64>>) -> Self {
-		self.vouchers.vouchers = vouchers;
+	pub fn coupons(mut self, coupons: Vec<CouponConfig<u64>>) -> Self {
+		self.coupons.coupons = coupons;
 		self
 	}
 
@@ -152,7 +152,7 @@ impl ExtBuilder {
 
 		pallet_cml::GenesisConfig::<Test> {
 			genesis_seeds: self.seeds,
-			genesis_vouchers: self.vouchers,
+			genesis_coupons: self.coupons,
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

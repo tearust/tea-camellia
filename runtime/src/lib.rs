@@ -258,16 +258,11 @@ impl pallet_grandpa::Config for Runtime {
 	type KeyOwnerProof =
 		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		GrandpaId,
-	)>>::IdentificationTuple;
+	type KeyOwnerIdentification =
+		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
 
-	type HandleEquivocation = pallet_grandpa::EquivocationHandler<
-		Self::KeyOwnerIdentification,
-		Offences,
-		ReportLongevity,
-	>;
+	type HandleEquivocation =
+		pallet_grandpa::EquivocationHandler<Self::KeyOwnerIdentification, Offences, ReportLongevity>;
 
 	type WeightInfo = (); // not setting because polkadot do not set either, add weight info if needed later
 }
@@ -808,7 +803,7 @@ impl pallet_cml::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
-	type VoucherTimoutHeight = SeedsTimeoutHeight;
+	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
 	type SeedFreshDuration = SeedFreshDuration;
 	type CommonUtils = Utils;
