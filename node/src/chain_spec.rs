@@ -19,6 +19,7 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
+use std::collections::HashSet;
 
 const INITIAL_ACCOUNT_BALANCE: Balance = 10000 * DOLLARS;
 const VOUCHER_ACCOUNT_BALANCE: Balance = 1 * CENTS;
@@ -82,7 +83,6 @@ pub fn development_config(
 	genesis_vouchers: GenesisVouchers<AccountId>,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-	let imported_endowed_accounts = get_unique_accounts(&genesis_vouchers);
 
 	Ok(ChainSpec::from_genesis(
 		// Name
@@ -98,7 +98,8 @@ pub fn development_config(
 				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
 				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 			];
-			endowed_accounts.extend(imported_endowed_accounts.clone());
+			let imported_endowed_accounts = get_unique_accounts(&genesis_vouchers);
+			endowed_accounts.extend(imported_endowed_accounts);
 
 			let endowed_balances =
 				generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
@@ -312,12 +313,12 @@ fn session_keys(
 }
 
 fn get_unique_accounts(genesis_vouchers: &GenesisVouchers<AccountId>) -> Vec<AccountId> {
-	genesis_vouchers
+	let accounts: HashSet<AccountId> = genesis_vouchers
 		.vouchers
 		.iter()
 		.map(|item| item.account.clone())
-		// .unique() // todo let accounts be unique
-		.collect()
+		.collect();
+	accounts.iter().cloned().collect()
 }
 
 fn generate_account_balance_list(
@@ -329,4 +330,39 @@ fn generate_account_balance_list(
 		.cloned()
 		.map(|k| (k, balance))
 		.collect()
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::chain_spec::get_unique_accounts;
+	use camellia_runtime::pallet_cml::{
+		CmlType, DefrostScheduleType, GenesisVouchers, VoucherConfig,
+	};
+	use sp_runtime::AccountId32;
+
+	#[test]
+	fn get_unique_accounts_works() {
+		let mut accounts = Vec::new();
+		for i in 0..=9u8 {
+			accounts.push([i; 32])
+		}
+		accounts.push(accounts[accounts.len() - 1]); // duplicate the last one
+
+		let result = get_unique_accounts(&GenesisVouchers {
+			vouchers: accounts
+				.iter()
+				.map(|account| VoucherConfig {
+					account: AccountId32::new(account.clone()),
+					cml_type: CmlType::A,
+					schedule_type: DefrostScheduleType::Team,
+					amount: 10,
+				})
+				.collect(),
+		});
+
+		assert_eq!(result.len(), 10);
+		for i in 0..=9u8 {
+			assert!(result.contains(&AccountId32::new([i; 32])));
+		}
+	}
 }
