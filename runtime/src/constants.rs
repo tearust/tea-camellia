@@ -38,7 +38,10 @@ pub mod time {
 	pub const SECS_PER_BLOCK: Moment = MILLISECS_PER_BLOCK / 1000;
 
 	// Time is measured by number of blocks.
+	#[cfg(not(feature = "fast"))]
 	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+	#[cfg(feature = "fast")]
+	pub const MINUTES: BlockNumber = 30_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 	pub const HOURS: BlockNumber = MINUTES * 60;
 	pub const DAYS: BlockNumber = HOURS * 24;
 
@@ -51,10 +54,7 @@ pub mod time {
 
 	// NOTE: Currently it is not possible to change the epoch duration after the chain has started.
 	//       Attempting to do so will brick block production.
-	#[cfg(not(feature = "fast"))]
 	pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 10 * MINUTES;
-	#[cfg(feature = "fast")]
-	pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 5 * MINUTES; // epoch duration is actually 2.5 minutes
 	pub const EPOCH_DURATION_IN_SLOTS: u64 = {
 		const SLOT_FILL_RATE: f64 = MILLISECS_PER_BLOCK as f64 / SLOT_DURATION as f64;
 
