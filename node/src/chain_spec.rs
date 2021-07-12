@@ -1,5 +1,5 @@
 use camellia_runtime::{
-	constants::currency::DOLLARS,
+	constants::currency::{CENTS, DOLLARS},
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisSeeds, GenesisVouchers},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
@@ -19,6 +19,9 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
+
+const INITIAL_ACCOUNT_BALANCE: Balance = 10000 * DOLLARS;
+const VOUCHER_ACCOUNT_BALANCE: Balance = 1 * CENTS;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -79,12 +82,7 @@ pub fn development_config(
 	genesis_vouchers: GenesisVouchers<AccountId>,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-	let imported_endowed_accounts: Vec<AccountId> = genesis_vouchers
-		.vouchers
-		.iter()
-		.map(|item| item.account.clone())
-		// .unique() // todo let accounts be unique
-		.collect();
+	let imported_endowed_accounts = get_unique_accounts(&genesis_vouchers);
 
 	Ok(ChainSpec::from_genesis(
 		// Name
@@ -102,6 +100,9 @@ pub fn development_config(
 			];
 			endowed_accounts.extend(imported_endowed_accounts.clone());
 
+			let endowed_balances =
+				generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
+
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
@@ -110,7 +111,7 @@ pub fn development_config(
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
 				endowed_accounts,
-				10000 * DOLLARS,
+				endowed_balances,
 				genesis_vouchers.clone(),
 				genesis_seeds,
 			)
@@ -141,6 +142,29 @@ pub fn local_testnet_config(
 		ChainType::Local,
 		move || {
 			let genesis_seeds = init_genesis();
+			let mut endowed_accounts = vec![
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_account_id_from_seed::<sr25519::Public>("Bob"),
+				get_account_id_from_seed::<sr25519::Public>("Charlie"),
+				get_account_id_from_seed::<sr25519::Public>("Dave"),
+				get_account_id_from_seed::<sr25519::Public>("Eve"),
+				get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+			];
+			let mut endowed_balances =
+				generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
+
+			let imported_endowed_accounts = get_unique_accounts(&genesis_vouchers);
+			endowed_balances.extend(generate_account_balance_list(
+				&imported_endowed_accounts,
+				VOUCHER_ACCOUNT_BALANCE,
+			));
+			endowed_accounts.extend(imported_endowed_accounts);
 
 			testnet_genesis(
 				wasm_binary,
@@ -152,21 +176,8 @@ pub fn local_testnet_config(
 				// Sudo account
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-				],
-				1 << 60,
+				endowed_accounts,
+				endowed_balances,
 				genesis_vouchers.clone(),
 				genesis_seeds,
 			)
@@ -197,7 +208,7 @@ fn testnet_genesis(
 	)>,
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
-	endowed_balance: Balance,
+	endowed_balances: Vec<(AccountId, Balance)>,
 	genesis_vouchers: GenesisVouchers<AccountId>,
 	genesis_seeds: GenesisSeeds,
 ) -> GenesisConfig {
@@ -211,11 +222,7 @@ fn testnet_genesis(
 		},
 		pallet_balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
-			balances: endowed_accounts
-				.iter()
-				.cloned()
-				.map(|k| (k, endowed_balance))
-				.collect(),
+			balances: endowed_balances,
 		},
 		pallet_babe: BabeConfig {
 			authorities: vec![],
@@ -302,4 +309,24 @@ fn session_keys(
 		im_online,
 		authority_discovery,
 	}
+}
+
+fn get_unique_accounts(genesis_vouchers: &GenesisVouchers<AccountId>) -> Vec<AccountId> {
+	genesis_vouchers
+		.vouchers
+		.iter()
+		.map(|item| item.account.clone())
+		// .unique() // todo let accounts be unique
+		.collect()
+}
+
+fn generate_account_balance_list(
+	endowed_accounts: &Vec<AccountId>,
+	balance: Balance,
+) -> Vec<(AccountId, Balance)> {
+	endowed_accounts
+		.iter()
+		.cloned()
+		.map(|k| (k, balance))
+		.collect()
 }
