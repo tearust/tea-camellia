@@ -14,19 +14,26 @@ const C_CML_AMOUNT_INDEX: usize = 6;
 
 impl Cli {
 	pub fn parse_genesis_vouchers(&self) -> Result<GenesisVouchers<AccountId>, String> {
-		let mut vouchers = Vec::new();
-		if let Some(path) = self.genesis_vouchers_path.as_ref() {
-			vouchers = parse_voucher_configs(path)?;
-		}
+		let vouchers = if let Some(path) = self.genesis_vouchers_path.as_ref() {
+			let mut rdr = csv::Reader::from_path(path).map_err(|e| e.to_string())?;
+			parse_voucher_configs(&mut rdr)?
+		} else {
+			let mut rdr = csv::Reader::from_reader(&include_bytes!("dev.csv")[..]);
+			parse_voucher_configs(&mut rdr)?
+		};
 
 		Ok(GenesisVouchers { vouchers })
 	}
 }
 
-fn parse_voucher_configs(path: &str) -> Result<Vec<VoucherConfig<AccountId>>, String> {
+fn parse_voucher_configs<R>(
+	rdr: &mut csv::Reader<R>,
+) -> Result<Vec<VoucherConfig<AccountId>>, String>
+where
+	R: std::io::Read,
+{
 	let mut vouchers = Vec::new();
 
-	let mut rdr = csv::Reader::from_path(path).map_err(|e| e.to_string())?;
 	for record in rdr.records() {
 		let record = record.map_err(|e| e.to_string())?;
 		let schedule_type = parse_defrost_schedule_type(record.get(DEFROST_SCHEDULE_TYPE_INDEX))?;
@@ -99,7 +106,9 @@ mod tests {
 	fn parse_voucher_configs_works() -> Result<(), String> {
 		let account = AccountId32::from_str("5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP")
 			.map_err(|e| e.to_string())?;
-		let configs = parse_voucher_configs("data/dev.csv")?;
+
+		let mut rdr = csv::Reader::from_reader(&include_bytes!("dev.csv")[..]);
+		let configs = parse_voucher_configs(&mut rdr)?;
 		assert_eq!(configs.len(), 6);
 		for i in 0..3 {
 			assert_eq!(configs[i].schedule_type, DefrostScheduleType::Investor);
