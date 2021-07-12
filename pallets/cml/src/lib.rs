@@ -46,10 +46,13 @@ pub mod cml {
 
 		/// The latest block height to draw seeds use voucher, after this block height the left
 		/// seeds shall be destroyed.
+		#[pallet::constant]
 		type VoucherTimoutHeight: Get<Self::BlockNumber>;
 
+		#[pallet::constant]
 		type SeedFreshDuration: Get<Self::BlockNumber>;
 
+		#[pallet::constant]
 		type StakingPeriodLength: Get<Self::BlockNumber>;
 
 		/// Common utils trait
@@ -62,6 +65,7 @@ pub mod cml {
 
 		type StakingEconomics: StakingEconomics<BalanceOf<Self>, Self::AccountId>;
 
+		#[pallet::constant]
 		type StakingSlotsMaxLength: Get<StakingIndex>;
 	}
 
