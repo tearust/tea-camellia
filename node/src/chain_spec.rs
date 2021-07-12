@@ -1,8 +1,7 @@
-use camellia_runtime::pallet_cml::DefrostScheduleType;
 use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
-	pallet_cml::{generator::init_genesis, CmlType, GenesisSeeds, GenesisVouchers, VoucherConfig},
+	pallet_cml::{generator::init_genesis, GenesisSeeds, GenesisVouchers},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
 	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
@@ -14,13 +13,12 @@ use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_service::{ChainType, Properties};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_core::{crypto, sr25519, Pair, Public};
+use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
-use std::str::FromStr;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -77,12 +75,16 @@ fn get_properties(symbol: &str) -> Properties {
 	.clone()
 }
 
-pub fn development_config() -> Result<ChainSpec, String> {
+pub fn development_config(
+	genesis_vouchers: GenesisVouchers<AccountId>,
+) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-	// let jacky_account =
-	// crypto::AccountId32::from_str("5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs").unwrap();
-	let kevin_account =
-		crypto::AccountId32::from_str("5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP").unwrap();
+	let imported_endowed_accounts: Vec<AccountId> = genesis_vouchers
+		.vouchers
+		.iter()
+		.map(|item| item.account.clone())
+		// .unique() // todo let accounts be unique
+		.collect();
 
 	Ok(ChainSpec::from_genesis(
 		// Name
@@ -92,6 +94,14 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		ChainType::Development,
 		move || {
 			let genesis_seeds = init_genesis();
+			let mut endowed_accounts = vec![
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_account_id_from_seed::<sr25519::Public>("Bob"),
+				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+			];
+			endowed_accounts.extend(imported_endowed_accounts.clone());
+
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
@@ -99,55 +109,9 @@ pub fn development_config() -> Result<ChainSpec, String> {
 				// Sudo account
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					kevin_account.clone(),
-					// jacky_account.clone(),
-				],
+				endowed_accounts,
 				10000 * DOLLARS,
-				GenesisVouchers {
-					vouchers: vec![
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::A,
-							DefrostScheduleType::Team,
-							6,
-						),
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::A,
-							DefrostScheduleType::Investor,
-							4,
-						),
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::B,
-							DefrostScheduleType::Team,
-							18,
-						),
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::B,
-							DefrostScheduleType::Investor,
-							12,
-						),
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::C,
-							DefrostScheduleType::Team,
-							36,
-						),
-						VoucherConfig::new(
-							kevin_account.clone(),
-							CmlType::C,
-							DefrostScheduleType::Investor,
-							24,
-						),
-					],
-				},
+				genesis_vouchers.clone(),
 				genesis_seeds,
 			)
 		},
@@ -164,7 +128,9 @@ pub fn development_config() -> Result<ChainSpec, String> {
 	))
 }
 
-pub fn local_testnet_config() -> Result<ChainSpec, String> {
+pub fn local_testnet_config(
+	genesis_vouchers: GenesisVouchers<AccountId>,
+) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
@@ -201,7 +167,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 				],
 				1 << 60,
-				GenesisVouchers::default(),
+				genesis_vouchers.clone(),
 				genesis_seeds,
 			)
 		},

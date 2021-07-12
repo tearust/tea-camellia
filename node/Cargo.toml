@@ -22,6 +22,7 @@ substrate-build-script-utils = {version = '3.0.0', git = 'https://github.com/par
 jsonrpc-core = '15.1.0'
 structopt = '0.3.8'
 hex-literal = "0.3.1"
+csv = "1.1"
 
 # Substrate dependencies
 sc-basic-authorship = {version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
