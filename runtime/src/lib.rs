@@ -791,8 +791,8 @@ const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 60 * 10;
 /// Staking period length is (1 * 24 * 60 * 10) about 1 day
 const STAKING_PERIOD_LENGTH: u32 = 1 * 24 * 60 * 10;
 #[cfg(feature = "fast")]
-/// Staking period length is (10 * 10) about 10 minuts
-const STAKING_PERIOD_LENGTH: u32 = 10 * 10;
+/// Staking period length is 10 about 1 minutes
+const STAKING_PERIOD_LENGTH: u32 = 10;
 
 #[cfg(not(feature = "fast"))]
 /// Seed fresh duration is (7 * 24 * 60 * 10) about 1 week
