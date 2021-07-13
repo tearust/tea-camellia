@@ -17,3 +17,7 @@
 
 # IntelliJ project
 .idea
+
+## ignored scripts
+fast.sh
+run-local.sh

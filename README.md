@@ -42,7 +42,7 @@ About the command params:
 - [pallet name]: is the pallet name defined in runtime
 
 # Setup the testing account
-We have export all test accounts to the file `batch_exported_account_asdfasdf.json` in the root folder of this git repo.
+We have export all test accounts to the file `tests/batch_exported_account_asdfasdf.json` in the root folder of this git repo.
 
 You need to install a Polkadot browser extension. Click Restore accounts from backup JSON file. Select this JSON file, input the restore password `asdfasdf`. You can see all acounts are restored.
 
