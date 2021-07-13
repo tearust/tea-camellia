@@ -333,7 +333,9 @@ fn generate_account_balance_list(
 #[cfg(test)]
 mod tests {
 	use crate::chain_spec::get_unique_accounts;
-	use camellia_runtime::pallet_cml::{CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons};
+	use camellia_runtime::pallet_cml::{
+		CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons,
+	};
 	use sp_runtime::AccountId32;
 
 	#[test]
