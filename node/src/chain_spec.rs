@@ -141,7 +141,7 @@ pub fn local_testnet_config(
 		ChainType::Local,
 		move || {
 			let genesis_seeds = init_genesis();
-			let mut endowed_accounts = vec![
+			let endowed_accounts = vec![
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				get_account_id_from_seed::<sr25519::Public>("Bob"),
 				get_account_id_from_seed::<sr25519::Public>("Charlie"),
@@ -155,15 +155,14 @@ pub fn local_testnet_config(
 				get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 				get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 			];
-			let mut endowed_balances =
+			let mut initial_balances =
 				generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
 
 			let imported_endowed_accounts = get_unique_accounts(&genesis_coupons);
-			endowed_balances.extend(generate_account_balance_list(
+			initial_balances.extend(generate_account_balance_list(
 				&imported_endowed_accounts,
 				COUPON_ACCOUNT_BALANCE,
 			));
-			endowed_accounts.extend(imported_endowed_accounts);
 
 			testnet_genesis(
 				wasm_binary,
@@ -176,7 +175,7 @@ pub fn local_testnet_config(
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
 				endowed_accounts,
-				endowed_balances,
+				initial_balances,
 				genesis_coupons.clone(),
 				genesis_seeds,
 			)
@@ -207,7 +206,7 @@ fn testnet_genesis(
 	)>,
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
-	endowed_balances: Vec<(AccountId, Balance)>,
+	initial_balances: Vec<(AccountId, Balance)>,
 	genesis_coupons: GenesisCoupons<AccountId>,
 	genesis_seeds: GenesisSeeds,
 ) -> GenesisConfig {
@@ -221,7 +220,7 @@ fn testnet_genesis(
 		},
 		pallet_balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
-			balances: endowed_balances,
+			balances: initial_balances,
 		},
 		pallet_babe: BabeConfig {
 			authorities: vec![],
