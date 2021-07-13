@@ -23,7 +23,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
-use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedSub, Saturating, Zero};
+use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
 use sp_std::prelude::*;
 
 pub use cml::*;
@@ -157,8 +157,7 @@ pub mod cml {
 		fn build(&self) {
 			use crate::functions::convert_genesis_seeds_to_cmls;
 
-			self
-				.genesis_coupons
+			self.genesis_coupons
 				.coupons
 				.iter()
 				.for_each(|coupon_config| {
@@ -169,9 +168,11 @@ pub mod cml {
 							coupon_config.cml_type,
 							coupon,
 						),
-						DefrostScheduleType::Team => {
-							TeamCouponStore::<T>::insert(&coupon_config.account, coupon_config.cml_type, coupon)
-						}
+						DefrostScheduleType::Team => TeamCouponStore::<T>::insert(
+							&coupon_config.account,
+							coupon_config.cml_type,
+							coupon,
+						),
 					}
 				});
 
@@ -437,7 +438,8 @@ pub mod cml {
 					Ok(())
 				},
 				|sender| {
-					let seed_ids = Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type);
+					let seed_ids =
+						Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type);
 					let seeds_count = seed_ids.len() as u64;
 					seed_ids.iter().for_each(|id| {
 						CmlStore::<T>::mutate(id, |cml| {
@@ -494,8 +496,7 @@ pub mod cml {
 					Self::check_miner_ip_validity(&miner_ip)?;
 
 					let cml = CmlStore::<T>::get(cml_id);
-					cml
-						.check_start_mining(&current_block_number)
+					cml.check_start_mining(&current_block_number)
 						.map_err(|e| Error::<T>::from(e))?;
 					Self::check_miner_first_staking(&sender, &cml)?;
 
@@ -580,8 +581,7 @@ pub mod cml {
 						Some(cml_id) => {
 							Self::check_belongs(&cml_id, &who)?;
 							let cml = CmlStore::<T>::get(cml_id);
-							cml
-								.check_can_stake_to(&current_block_number)
+							cml.check_can_stake_to(&current_block_number)
 								.map_err(|e| Error::<T>::from(e))?;
 							Ok(None)
 						}
@@ -602,15 +602,15 @@ pub mod cml {
 						cml.staking_slots().len() <= T::StakingSlotsMaxLength::get() as usize,
 						Error::<T>::StakingSlotsOverTheMaxLength
 					);
-					cml
-						.check_can_be_stake(&current_block_number, &amount?, &staking_cml)
+					cml.check_can_be_stake(&current_block_number, &amount?, &staking_cml)
 						.map_err(|e| Error::<T>::from(e))?;
 					Ok(())
 				},
 				|who| {
-					let staking_index: Option<StakingIndex> = CmlStore::<T>::mutate(staking_to, |cml| {
-						Self::stake(who, cml, &staking_cml, &current_block_number)
-					});
+					let staking_index: Option<StakingIndex> =
+						CmlStore::<T>::mutate(staking_to, |cml| {
+							Self::stake(who, cml, &staking_cml, &current_block_number)
+						});
 
 					Self::deposit_event(Event::Staked(
 						who.clone(),
@@ -659,8 +659,7 @@ pub mod cml {
 						Some(cml_id) => (None, Some(CmlStore::<T>::get(cml_id))),
 						None => (Some(staking_index), None),
 					};
-					cml
-						.check_unstake(&index, &staking_cml.as_ref())
+					cml.check_unstake(&index, &staking_cml.as_ref())
 						.map_err(|e| Error::<T>::from(e))?;
 
 					Ok(())
@@ -706,7 +705,8 @@ pub mod cml {
 						Error::<T>::CmlNoNeedToPayOff
 					);
 					ensure!(
-						T::CurrencyOperations::free_balance(who) >= GenesisMinerCreditStore::<T>::get(who),
+						T::CurrencyOperations::free_balance(who)
+							>= GenesisMinerCreditStore::<T>::get(who),
 						Error::<T>::InsufficientFreeBalance
 					);
 					Ok(())
@@ -763,7 +763,9 @@ pub mod cml {
 				CmlError::CmlStakingSlotNotEmpty => Error::<T>::CmlStakingSlotNotEmpty,
 				CmlError::ConfusedStakingType => Error::<T>::ConfusedStakingType,
 				CmlError::CmlIsNotMining => Error::<T>::CmlIsNotMining,
-				CmlError::CmlIsNotStakingToCurrentMiner => Error::<T>::CmlIsNotStakingToCurrentMiner,
+				CmlError::CmlIsNotStakingToCurrentMiner => {
+					Error::<T>::CmlIsNotStakingToCurrentMiner
+				}
 				CmlError::CmlStakingIndexOverflow => Error::<T>::CmlStakingIndexOverflow,
 				CmlError::CmlOwnerIsNone => Error::<T>::CmlOwnerIsNone,
 				CmlError::CmlOwnerMismatch => Error::<T>::CmlOwnerMismatch,

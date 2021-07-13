@@ -67,12 +67,17 @@ fn start_mining_works_with_insufficient_balance() {
 			b"miner_ip".to_vec()
 		));
 
-		assert_eq!(GenesisMinerCreditStore::<Test>::get(&user_id), 1);
-		assert_eq!(<Test as Config>::Currency::free_balance(&user_id), 0);
+		// if free balance is not enough, will let all staking needed price be debt, with free
+		// balance left as it is.
 		assert_eq!(
-			<Test as Config>::Currency::reserved_balance(&user_id),
+			GenesisMinerCreditStore::<Test>::get(&user_id),
+			STAKING_PRICE
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user_id),
 			STAKING_PRICE - 1
 		);
+		assert_eq!(<Test as Config>::Currency::reserved_balance(&user_id), 0);
 	})
 }
 

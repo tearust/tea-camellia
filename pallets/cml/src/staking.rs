@@ -139,10 +139,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
 		let free_balance = T::CurrencyOperations::free_balance(who);
 		let (actual_staking, credit_amount) = if free_balance < T::StakingPrice::get() {
-			let credit_amount = T::StakingPrice::get()
-				.checked_sub(&free_balance)
-				.ok_or(Error::<T>::InvalidCreditAmount)?;
-			(free_balance, Some(credit_amount))
+			(Zero::zero(), Some(T::StakingPrice::get()))
 		} else {
 			(T::StakingPrice::get(), None)
 		};
