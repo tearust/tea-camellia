@@ -43,11 +43,16 @@ About the command params:
 
 # Running
 ## Running on native host
-### Running with `dev` mode
+### Running with `dev` mode 
 
 ```bash
 ./tea-camellia --tmp --alice --dev
 ```
+### Running with `dev` and open ports for network access (no safe)
+```
+./target/debug/tea-camellia --dev --alice --port 30334 --ws-port 9944 --rpc-port 9933 --unsafe-rpc-external --unsafe-ws-external --tmp
+```
+
 ## Running multiple nodes with docker compose
 First, you should prepare the docker image `tearust/tea-camellia:latest`, if you want to build by yourself please run `docker/build-image.sh` or `docker/build-image.sh fast` if you want to test with fast mode.
 
