@@ -369,10 +369,10 @@ where
 	LuckyDrawBox::<T>::insert(CmlType::C, DefrostScheduleType::Team, team_c_draw_box);
 
 	a_cml_list
-		.iter()
-		.chain(b_cml_list.iter())
-		.chain(c_cml_list.iter())
-		.for_each(|cml| CmlStore::<T>::insert(cml.id(), cml.clone()));
+		.into_iter()
+		.chain(b_cml_list.into_iter())
+		.chain(c_cml_list.into_iter())
+		.for_each(|cml| CmlStore::<T>::insert(cml.id(), cml));
 
 	LastCmlId::<T>::set(
 		(genesis_seeds.a_seeds.len() + genesis_seeds.b_seeds.len() + genesis_seeds.c_seeds.len())
