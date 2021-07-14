@@ -155,75 +155,8 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			use crate::functions::convert_genesis_seeds_to_cmls;
-
-			self.genesis_coupons
-				.coupons
-				.iter()
-				.for_each(|coupon_config| {
-					let coupon: Coupon = coupon_config.clone().into();
-					match coupon_config.schedule_type {
-						DefrostScheduleType::Investor => InvestorCouponStore::<T>::insert(
-							&coupon_config.account,
-							coupon_config.cml_type,
-							coupon,
-						),
-						DefrostScheduleType::Team => TeamCouponStore::<T>::insert(
-							&coupon_config.account,
-							coupon_config.cml_type,
-							coupon,
-						),
-					}
-				});
-
-			let (a_cml_list, investor_a_draw_box, team_a_draw_box) = convert_genesis_seeds_to_cmls::<
-				T::AccountId,
-				T::BlockNumber,
-				BalanceOf<T>,
-				T::SeedFreshDuration,
-			>(&self.genesis_seeds.a_seeds);
-			let (b_cml_list, investor_b_draw_box, team_b_draw_box) = convert_genesis_seeds_to_cmls::<
-				T::AccountId,
-				T::BlockNumber,
-				BalanceOf<T>,
-				T::SeedFreshDuration,
-			>(&self.genesis_seeds.b_seeds);
-			let (c_cml_list, investor_c_draw_box, team_c_draw_box) = convert_genesis_seeds_to_cmls::<
-				T::AccountId,
-				T::BlockNumber,
-				BalanceOf<T>,
-				T::SeedFreshDuration,
-			>(&self.genesis_seeds.c_seeds);
-			LuckyDrawBox::<T>::insert(
-				CmlType::A,
-				DefrostScheduleType::Investor,
-				investor_a_draw_box,
-			);
-			LuckyDrawBox::<T>::insert(CmlType::A, DefrostScheduleType::Team, team_a_draw_box);
-			LuckyDrawBox::<T>::insert(
-				CmlType::B,
-				DefrostScheduleType::Investor,
-				investor_b_draw_box,
-			);
-			LuckyDrawBox::<T>::insert(CmlType::B, DefrostScheduleType::Team, team_b_draw_box);
-			LuckyDrawBox::<T>::insert(
-				CmlType::C,
-				DefrostScheduleType::Investor,
-				investor_c_draw_box,
-			);
-			LuckyDrawBox::<T>::insert(CmlType::C, DefrostScheduleType::Team, team_c_draw_box);
-
-			a_cml_list
-				.iter()
-				.chain(b_cml_list.iter())
-				.chain(c_cml_list.iter())
-				.for_each(|cml| CmlStore::<T>::insert(cml.id(), cml.clone()));
-
-			LastCmlId::<T>::set(
-				(self.genesis_seeds.a_seeds.len()
-					+ self.genesis_seeds.b_seeds.len()
-					+ self.genesis_seeds.c_seeds.len()) as CmlId,
-			)
+			crate::functions::init_from_genesis_coupons::<T>(&self.genesis_coupons);
+			crate::functions::init_from_genesis_seeds::<T>(&self.genesis_seeds);
 		}
 	}
 

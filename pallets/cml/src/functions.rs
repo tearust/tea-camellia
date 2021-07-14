@@ -11,8 +11,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub fn check_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
 		let cml = CmlStore::<T>::get(cml_id);
 		ensure!(cml.is_seed(), Error::<T>::CmlIsNotSeed);
-		cml
-			.check_seed_validity(height)
+		cml.check_seed_validity(height)
 			.map_err(|e| Error::<T>::from(e))?;
 
 		Ok(())
@@ -35,7 +34,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 			DefrostScheduleType::Investor => {
 				InvestorCouponStore::<T>::mutate(&who, cml_type, set_store_hanlder)
 			}
-			DefrostScheduleType::Team => TeamCouponStore::<T>::mutate(&who, cml_type, set_store_hanlder),
+			DefrostScheduleType::Team => {
+				TeamCouponStore::<T>::mutate(&who, cml_type, set_store_hanlder)
+			}
 		}
 	}
 
@@ -184,7 +185,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 		let mut seed_ids = Vec::new();
 		let mut draw_handler = |draw_box: &mut Vec<u64>, cml_type: CmlType, coupon_len: u32| {
 			for i in 0..coupon_len {
-				let rand_index = Self::get_draw_seed_random_index(who, cml_type, i, draw_box.len() as u32);
+				let rand_index =
+					Self::get_draw_seed_random_index(who, cml_type, i, draw_box.len() as u32);
 				let seed_id = draw_box.swap_remove(rand_index as usize);
 				seed_ids.push(seed_id);
 			}
@@ -229,12 +231,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 			}),
 			None => {
 				T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
-				staking_to.stake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
-					&who,
-					current_height,
-					Some(T::StakingPrice::get()),
-					None,
-				)
+				staking_to
+					.stake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
+						&who,
+						current_height,
+						Some(T::StakingPrice::get()),
+						None,
+					)
 			}
 		}
 	}
@@ -246,7 +249,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 	) {
 		if let Some(staking_item) = staking_to.staking_slots().get(staking_index as usize) {
 			let index = match staking_item.cml {
-				Some(cml_id) => CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml))),
+				Some(cml_id) => {
+					CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml)))
+				}
 				None => {
 					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get());
 					staking_to
@@ -303,6 +308,78 @@ impl<T: cml::Config> Task for cml::Pallet<T> {
 	}
 }
 
+pub fn init_from_genesis_coupons<T>(genesis_coupons: &GenesisCoupons<T::AccountId>)
+where
+	T: Config,
+{
+	genesis_coupons.coupons.iter().for_each(|coupon_config| {
+		let coupon: Coupon = coupon_config.clone().into();
+		match coupon_config.schedule_type {
+			DefrostScheduleType::Investor => InvestorCouponStore::<T>::insert(
+				&coupon_config.account,
+				coupon_config.cml_type,
+				coupon,
+			),
+			DefrostScheduleType::Team => {
+				TeamCouponStore::<T>::insert(&coupon_config.account, coupon_config.cml_type, coupon)
+			}
+		}
+	});
+}
+
+pub fn init_from_genesis_seeds<T>(genesis_seeds: &GenesisSeeds)
+where
+	T: Config,
+{
+	let (a_cml_list, investor_a_draw_box, team_a_draw_box) = convert_genesis_seeds_to_cmls::<
+		T::AccountId,
+		T::BlockNumber,
+		BalanceOf<T>,
+		T::SeedFreshDuration,
+	>(&genesis_seeds.a_seeds);
+	let (b_cml_list, investor_b_draw_box, team_b_draw_box) = convert_genesis_seeds_to_cmls::<
+		T::AccountId,
+		T::BlockNumber,
+		BalanceOf<T>,
+		T::SeedFreshDuration,
+	>(&genesis_seeds.b_seeds);
+	let (c_cml_list, investor_c_draw_box, team_c_draw_box) = convert_genesis_seeds_to_cmls::<
+		T::AccountId,
+		T::BlockNumber,
+		BalanceOf<T>,
+		T::SeedFreshDuration,
+	>(&genesis_seeds.c_seeds);
+	LuckyDrawBox::<T>::insert(
+		CmlType::A,
+		DefrostScheduleType::Investor,
+		investor_a_draw_box,
+	);
+	LuckyDrawBox::<T>::insert(CmlType::A, DefrostScheduleType::Team, team_a_draw_box);
+	LuckyDrawBox::<T>::insert(
+		CmlType::B,
+		DefrostScheduleType::Investor,
+		investor_b_draw_box,
+	);
+	LuckyDrawBox::<T>::insert(CmlType::B, DefrostScheduleType::Team, team_b_draw_box);
+	LuckyDrawBox::<T>::insert(
+		CmlType::C,
+		DefrostScheduleType::Investor,
+		investor_c_draw_box,
+	);
+	LuckyDrawBox::<T>::insert(CmlType::C, DefrostScheduleType::Team, team_c_draw_box);
+
+	a_cml_list
+		.iter()
+		.chain(b_cml_list.iter())
+		.chain(c_cml_list.iter())
+		.for_each(|cml| CmlStore::<T>::insert(cml.id(), cml.clone()));
+
+	LastCmlId::<T>::set(
+		(genesis_seeds.a_seeds.len() + genesis_seeds.b_seeds.len() + genesis_seeds.c_seeds.len())
+			as CmlId,
+	)
+}
+
 pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber, Balance, FreshDuration>(
 	seeds: &Vec<Seed>,
 ) -> (
@@ -335,13 +412,152 @@ where
 
 #[cfg(test)]
 mod tests {
+	use crate::functions::{init_from_genesis_coupons, init_from_genesis_seeds};
+	use crate::generator::init_genesis;
+	use crate::param::{
+		GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT, TEAM_PERCENTAGE,
+	};
 	use crate::{
-		mock::*, CmlId, CmlStore, CmlType, DefrostScheduleType, InvestorCouponStore, LuckyDrawBox,
-		MinerItemStore, Seed, SeedProperties, StakingProperties, TeamCouponStore, TreeProperties,
-		UserCmlStore, CML,
+		mock::*, CmlId, CmlStore, CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons,
+		InvestorCouponStore, LastCmlId, LuckyDrawBox, MinerItemStore, Seed, SeedProperties,
+		StakingProperties, TeamCouponStore, TreeProperties, UserCmlStore, CML,
 	};
 	use frame_support::assert_ok;
 	use rand::{thread_rng, Rng};
+
+	#[test]
+	fn init_from_genesis_coupons_works() {
+		new_test_ext().execute_with(|| {
+			let user11 = 11;
+			let user12 = 12;
+			let user13 = 13;
+			let user21 = 21;
+			let user22 = 22;
+			let user23 = 23;
+			let genesis_coupons = GenesisCoupons {
+				coupons: vec![
+					CouponConfig {
+						account: user11,
+						cml_type: CmlType::A,
+						schedule_type: DefrostScheduleType::Team,
+						amount: 1,
+					},
+					CouponConfig {
+						account: user12,
+						cml_type: CmlType::B,
+						schedule_type: DefrostScheduleType::Team,
+						amount: 2,
+					},
+					CouponConfig {
+						account: user13,
+						cml_type: CmlType::C,
+						schedule_type: DefrostScheduleType::Team,
+						amount: 3,
+					},
+					CouponConfig {
+						account: user21,
+						cml_type: CmlType::A,
+						schedule_type: DefrostScheduleType::Investor,
+						amount: 4,
+					},
+					CouponConfig {
+						account: user22,
+						cml_type: CmlType::B,
+						schedule_type: DefrostScheduleType::Investor,
+						amount: 5,
+					},
+					CouponConfig {
+						account: user23,
+						cml_type: CmlType::C,
+						schedule_type: DefrostScheduleType::Investor,
+						amount: 6,
+					},
+				],
+			};
+			init_from_genesis_coupons::<Test>(&genesis_coupons);
+
+			assert_eq!(InvestorCouponStore::<Test>::iter().count(), 3);
+			assert_eq!(TeamCouponStore::<Test>::iter().count(), 3);
+
+			assert_eq!(
+				TeamCouponStore::<Test>::get(user11, CmlType::A)
+					.unwrap()
+					.amount,
+				1
+			);
+			assert_eq!(
+				TeamCouponStore::<Test>::get(user12, CmlType::B)
+					.unwrap()
+					.amount,
+				2
+			);
+			assert_eq!(
+				TeamCouponStore::<Test>::get(user13, CmlType::C)
+					.unwrap()
+					.amount,
+				3
+			);
+			assert_eq!(
+				InvestorCouponStore::<Test>::get(user21, CmlType::A)
+					.unwrap()
+					.amount,
+				4
+			);
+			assert_eq!(
+				InvestorCouponStore::<Test>::get(user22, CmlType::B)
+					.unwrap()
+					.amount,
+				5
+			);
+			assert_eq!(
+				InvestorCouponStore::<Test>::get(user23, CmlType::C)
+					.unwrap()
+					.amount,
+				6
+			);
+		})
+	}
+
+	#[test]
+	fn init_from_genesis_seeds_works() {
+		new_test_ext().execute_with(|| {
+			let genesis_seeds = init_genesis();
+			init_from_genesis_seeds::<Test>(&genesis_seeds);
+
+			assert_eq!(
+				CmlStore::<Test>::iter().count() as u64,
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
+			);
+			assert_eq!(
+				LastCmlId::<Test>::get(),
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Team).len() as u64,
+				GENESIS_SEED_A_COUNT * TEAM_PERCENTAGE / 100
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).len() as u64,
+				GENESIS_SEED_A_COUNT * (100 - TEAM_PERCENTAGE) / 100
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Team).len() as u64,
+				GENESIS_SEED_B_COUNT * TEAM_PERCENTAGE / 100
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Investor).len() as u64,
+				GENESIS_SEED_B_COUNT * (100 - TEAM_PERCENTAGE) / 100
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Team).len() as u64,
+				GENESIS_SEED_C_COUNT * TEAM_PERCENTAGE / 100
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Investor).len() as u64,
+				GENESIS_SEED_C_COUNT * (100 - TEAM_PERCENTAGE) / 100
+			);
+		})
+	}
 
 	#[test]
 	fn div_mod_works() {
@@ -380,9 +596,13 @@ mod tests {
 			let a_coupon = 2u32;
 			let b_coupon = 3u32;
 			let c_coupon = 4u32;
-			assert!(
-				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Investor).is_ok()
-			);
+			assert!(Cml::check_luck_draw(
+				a_coupon,
+				b_coupon,
+				c_coupon,
+				DefrostScheduleType::Investor
+			)
+			.is_ok());
 			let res = Cml::lucky_draw(
 				&1,
 				a_coupon,
@@ -413,16 +633,29 @@ mod tests {
 			let origin_b_box: Vec<u64> = (11..=20).collect();
 			let origin_c_box: Vec<u64> = (21..=30).collect();
 
-			LuckyDrawBox::<Test>::insert(CmlType::A, DefrostScheduleType::Team, origin_a_box.clone());
-			LuckyDrawBox::<Test>::insert(CmlType::B, DefrostScheduleType::Team, origin_b_box.clone());
-			LuckyDrawBox::<Test>::insert(CmlType::C, DefrostScheduleType::Team, origin_c_box.clone());
+			LuckyDrawBox::<Test>::insert(
+				CmlType::A,
+				DefrostScheduleType::Team,
+				origin_a_box.clone(),
+			);
+			LuckyDrawBox::<Test>::insert(
+				CmlType::B,
+				DefrostScheduleType::Team,
+				origin_b_box.clone(),
+			);
+			LuckyDrawBox::<Test>::insert(
+				CmlType::C,
+				DefrostScheduleType::Team,
+				origin_c_box.clone(),
+			);
 
 			frame_system::Pallet::<Test>::set_block_number(100);
 			let a_coupon = 2u32;
 			let b_coupon = 3u32;
 			let c_coupon = 4u32;
 			assert!(
-				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team).is_ok()
+				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team)
+					.is_ok()
 			);
 			let res = Cml::lucky_draw(&1, a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team);
 
@@ -467,7 +700,8 @@ mod tests {
 			let b_coupon = 10u32;
 			let c_coupon = 10u32;
 			assert!(
-				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team).is_ok()
+				Cml::check_luck_draw(a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team)
+					.is_ok()
 			);
 			let res = Cml::lucky_draw(&1, a_coupon, b_coupon, c_coupon, DefrostScheduleType::Team);
 
