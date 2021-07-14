@@ -41,7 +41,19 @@ Or run the following command if you want to update single weight file:
 About the command params:
 - [pallet name]: is the pallet name defined in runtime
 
-# Setup the testing account
+# Running
+## Running on native host
+### Running with `dev` mode
+
+```bash
+./tea-camellia --tmp --alice --dev
+```
+## Running multiple nodes with docker compose
+First, you should prepare the docker image `tearust/tea-camellia:latest`, if you want to build by yourself please run `docker/build-image.sh` or `docker/build-image.sh fast` if you want to test with fast mode.
+
+Then, cd into the `tests/local-network` directory and run `docker-compose up` (or `docker compose up` if you have new version of docker client) to start nodes.
+
+## Setup the testing account
 We have export all test accounts to the file `tests/batch_exported_account_asdfasdf.json` in the root folder of this git repo.
 
 You need to install a Polkadot browser extension. Click Restore accounts from backup JSON file. Select this JSON file, input the restore password `asdfasdf`. You can see all acounts are restored.
@@ -53,7 +65,7 @@ This dummy password will not be used in production or testnet.
 
 
 
-# Genesis seeds coupon distribution CSV file
+## Genesis seeds coupon distribution CSV file
 Use the following parameters to start
 
 `--genesis-coupons-path <genesis-coupons-path>`
