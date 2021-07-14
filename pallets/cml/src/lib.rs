@@ -338,12 +338,14 @@ pub mod cml {
 					match target_coupon.as_ref() {
 						Some(target_coupon) => {
 							let to_amount = target_coupon.amount.saturating_add(amount);
-							Self::set_coupon(&target, cml_type, schedule_type, to_amount);
+							Self::add_or_create_coupon(&target, cml_type, schedule_type, to_amount);
 						}
-						None => Self::set_coupon(&target, cml_type, schedule_type, amount),
+						None => {
+							Self::add_or_create_coupon(&target, cml_type, schedule_type, amount)
+						}
 					}
 
-					Self::set_coupon(&sender, cml_type, schedule_type, from_amount);
+					Self::add_or_create_coupon(&sender, cml_type, schedule_type, from_amount);
 				},
 			)
 		}

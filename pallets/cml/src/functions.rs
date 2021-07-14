@@ -17,7 +17,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Ok(())
 	}
 
-	pub fn set_coupon(
+	pub fn add_or_create_coupon(
 		who: &T::AccountId,
 		cml_type: CmlType,
 		schedule_type: DefrostScheduleType,
