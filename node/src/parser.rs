@@ -116,14 +116,11 @@ fn parse_coupon_amount(value: Option<&str>) -> u32 {
 #[cfg(test)]
 mod tests {
 	use super::parse_coupon_configs;
-	use sp_core::crypto::AccountId32;
-	use std::str::FromStr;
 
 	#[test]
 	fn parse_coupon_configs_works() -> Result<(), String> {
 		let mut rdr = csv::Reader::from_reader(&include_bytes!("dev.csv")[..]);
-		let configs = parse_coupon_configs(&mut rdr)?;
-		assert_eq!(configs.len(), 18);
+		let _configs = parse_coupon_configs(&mut rdr)?;
 		Ok(())
 	}
 }

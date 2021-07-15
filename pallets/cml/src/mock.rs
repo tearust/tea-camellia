@@ -136,7 +136,7 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
 	pub fn init_seeds(mut self) -> Self {
-		self.seeds = init_genesis();
+		self.seeds = init_genesis([1; 32]);
 		self
 	}
 

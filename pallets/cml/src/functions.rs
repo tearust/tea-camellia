@@ -521,7 +521,7 @@ mod tests {
 	#[test]
 	fn init_from_genesis_seeds_works() {
 		new_test_ext().execute_with(|| {
-			let genesis_seeds = init_genesis();
+			let genesis_seeds = init_genesis([1; 32]);
 			init_from_genesis_seeds::<Test>(&genesis_seeds);
 
 			assert_eq!(

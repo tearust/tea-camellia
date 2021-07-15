@@ -34,15 +34,15 @@ mod tests {
 		let mut total_b: u64 = 0;
 		let mut total_c: u64 = 0;
 		for _ in 0..test_sample_count {
-			let closure = make_generate_lifespan_fn();
+			let closure = make_generate_lifespan_fn([1; 32]);
 			total_a += closure(CmlType::A) as u64;
 		}
 		for _ in 0..test_sample_count {
-			let closure = make_generate_lifespan_fn();
+			let closure = make_generate_lifespan_fn([1; 32]);
 			total_b += closure(CmlType::B) as u64;
 		}
 		for _ in 0..test_sample_count {
-			let closure = make_generate_lifespan_fn();
+			let closure = make_generate_lifespan_fn([1; 32]);
 			total_c += closure(CmlType::C) as u64;
 		}
 		println!(
@@ -58,7 +58,7 @@ mod tests {
 			total_c / test_sample_count / BLOCKS_IN_A_DAY as u64
 		);
 		for _ in 0..20 {
-			let closure = make_generate_lifespan_fn();
+			let closure = make_generate_lifespan_fn([1; 32]);
 			println!("lifespan seeds b is {}", closure(CmlType::B));
 		}
 	}

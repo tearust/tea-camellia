@@ -51,7 +51,8 @@ mod tests {
 	#[test]
 	fn check_seeds_defrost_time_distribution() {
 		println!("Team defrost ...{}", BLOCKS_IN_A_DAY);
-		let closure_defrost_time = make_generate_defrost_time_fn(DefrostScheduleType::Team);
+		let closure_defrost_time =
+			make_generate_defrost_time_fn([1; 32], DefrostScheduleType::Team);
 
 		let test_sample_count = 1000;
 		let mut distribute = [0u16; 36 * 30];
@@ -78,7 +79,8 @@ mod tests {
 		}
 		println!("Investor defrost ...");
 		let mut month_distribute = [0u16; 24];
-		let closure_defrost_time = make_generate_defrost_time_fn(DefrostScheduleType::Investor);
+		let closure_defrost_time =
+			make_generate_defrost_time_fn([1; 32], DefrostScheduleType::Investor);
 
 		let test_sample_count = 1000;
 		let mut distribute = [0u16; 36 * 30];
