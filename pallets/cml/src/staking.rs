@@ -146,7 +146,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 		let result = Self::create_balance_staking(who, actual_staking)?;
 		if let Some(credit_amount) = credit_amount {
-			GenesisMinerCreditStore::<T>::insert(who, credit_amount);
+			if !GenesisMinerCreditStore::<T>::contains_key(who) {
+				GenesisMinerCreditStore::<T>::insert(who, credit_amount);
+			} else {
+				GenesisMinerCreditStore::<T>::mutate(who, |amount| {
+					*amount = amount.saturating_add(credit_amount);
+				});
+			}
 		}
 		Ok(result)
 	}

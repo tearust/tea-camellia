@@ -82,6 +82,48 @@ fn start_mining_works_with_insufficient_balance() {
 }
 
 #[test]
+fn start_mining_of_multipile_cml_works_with_insufficient_balance() {
+	new_test_ext().execute_with(|| {
+		let user_id = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user_id, 0);
+
+		let cml_id1: CmlId = 4;
+		UserCmlStore::<Test>::insert(user_id, cml_id1, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100));
+		CmlStore::<Test>::insert(cml_id1, cml);
+
+		let cml_id2: CmlId = 5;
+		UserCmlStore::<Test>::insert(user_id, cml_id2, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100));
+		CmlStore::<Test>::insert(cml_id2, cml);
+
+		let machine_id1: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(user_id),
+			cml_id1,
+			machine_id1,
+			b"miner_ip".to_vec()
+		));
+		assert_eq!(
+			GenesisMinerCreditStore::<Test>::get(&user_id),
+			STAKING_PRICE
+		);
+
+		let machine_id2: MachineId = [2u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(user_id),
+			cml_id2,
+			machine_id2,
+			b"miner_ip2".to_vec()
+		));
+		assert_eq!(
+			GenesisMinerCreditStore::<Test>::get(&user_id),
+			STAKING_PRICE * 2
+		);
+	})
+}
+
+#[test]
 fn start_mining_not_belongs_to_me_should_fail() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;
