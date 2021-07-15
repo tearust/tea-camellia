@@ -75,12 +75,30 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let cml_id: CmlId = 4;
 		let machine_id: MachineId = [1u8; 32];
-		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
-		cml.start_mining(machine_id, StakingItem::default(), &T::BlockNumber::zero());
-		UserCmlStore::<T>::insert(&caller, cml_id, ());
-		CmlStore::<T>::insert(cml_id, cml);
-		MinerItemStore::<T>::insert(machine_id, MinerItem::default());
+		start_mining_inner::<T>(cml_id, machine_id, &caller);
 	}: _(RawOrigin::Signed(caller), cml_id, machine_id)
+
+	start_balance_staking {
+		let caller: T::AccountId = whitelisted_caller();
+		T::Currency::make_free_balance_be(&caller, 1000000u32.into());
+
+		let cml_id: CmlId = 4;
+		let machine_id: MachineId = [1u8; 32];
+		start_mining_inner::<T>(cml_id, machine_id, &caller);
+	}: start_staking(RawOrigin::Signed(caller), cml_id, None, Some(10))
+
+	start_cml_staking {
+		let caller: T::AccountId = whitelisted_caller();
+
+		let cml_id: CmlId = 4;
+		let machine_id: MachineId = [1u8; 32];
+		start_mining_inner::<T>(cml_id, machine_id, &caller);
+
+		let cml2_id: CmlId = 5;
+		let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml2_id, 100));
+		UserCmlStore::<T>::insert(&caller, cml2_id, ());
+		CmlStore::<T>::insert(cml2_id, cml2);
+	}: start_staking(RawOrigin::Signed(caller), cml_id, Some(cml2_id), Some(10))
 }
 
 fn init_lucky_draw_box<T: Config>(schedule_type: DefrostScheduleType) {
@@ -122,6 +140,14 @@ fn get_count_by_schedule_type(count: u64, schedule_type: DefrostScheduleType) ->
 		DefrostScheduleType::Team => count * TEAM_PERCENTAGE / 100,
 		DefrostScheduleType::Investor => count * (100 - TEAM_PERCENTAGE) / 100,
 	};
+}
+
+fn start_mining_inner<T: Config>(cml_id: CmlId, machine_id: MachineId, caller: &T::AccountId) {
+	let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+	cml.start_mining(machine_id, StakingItem::default(), &T::BlockNumber::zero());
+	UserCmlStore::<T>::insert(caller, cml_id, ());
+	CmlStore::<T>::insert(cml_id, cml);
+	MinerItemStore::<T>::insert(machine_id, MinerItem::default());
 }
 
 fn new_coupon(amount: u32, cml_type: CmlType) -> Coupon {
