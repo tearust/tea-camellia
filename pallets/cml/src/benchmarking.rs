@@ -9,6 +9,8 @@ use crate::Pallet as Template;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::RawOrigin;
 
+const STAKING_SLOTS_MAX_LENGTH: StakingIndex = 1024;
+
 benchmarks! {
 	transfer_coupon {
 		let caller: T::AccountId = whitelisted_caller();
@@ -99,6 +101,115 @@ benchmarks! {
 		UserCmlStore::<T>::insert(&caller, cml2_id, ());
 		CmlStore::<T>::insert(cml2_id, cml2);
 	}: start_staking(RawOrigin::Signed(caller), cml_id, Some(cml2_id), Some(10))
+
+	stop_balance_staking {
+		let s in 0 .. STAKING_SLOTS_MAX_LENGTH;
+		let caller: T::AccountId = whitelisted_caller();
+
+		let cml_id: CmlId = 9999;
+		prepare_staked_tree::<T>(cml_id, StakingCategory::Tea, &caller);
+
+		T::Currency::make_free_balance_be(&caller, 1000000u32.into());
+		T::CurrencyOperations::reserve(&caller, 1000000u32.into()).unwrap();
+	}: stop_staking(RawOrigin::Signed(caller), cml_id, s)
+
+	stop_cml_staking {
+		let s in 0 .. STAKING_SLOTS_MAX_LENGTH;
+		let caller: T::AccountId = whitelisted_caller();
+
+		let cml_id: CmlId = 9999;
+		prepare_staked_tree::<T>(cml_id, StakingCategory::Cml, &caller);
+
+		T::Currency::make_free_balance_be(&caller, 1000000u32.into());
+		T::CurrencyOperations::reserve(&caller, 1000000u32.into()).unwrap();
+	}: stop_staking(RawOrigin::Signed(caller), cml_id, s)
+
+	withdraw_staking_reward {
+		let amount: BalanceOf<T> = 10000u32.into();
+		let caller: T::AccountId = whitelisted_caller();
+
+		AccountRewards::<T>::insert(&caller, amount);
+	}: _(RawOrigin::Signed(caller))
+
+	pay_off_mining_credit {
+		let amount: BalanceOf<T> = 10000u32.into();
+		let caller: T::AccountId = whitelisted_caller();
+
+		T::Currency::make_free_balance_be(&caller, amount);
+		GenesisMinerCreditStore::<T>::insert(&caller, amount);
+	}: _(RawOrigin::Signed(caller.clone()))
+	verify {
+		assert!(!GenesisMinerCreditStore::<T>::contains_key(&caller));
+	}
+
+	dummy_ra_task {
+		let caller: T::AccountId = whitelisted_caller();
+
+		let cml_id: CmlId = 4;
+		let machine_id: MachineId = [1u8; 32];
+		start_mining_inner::<T>(cml_id, machine_id, &caller);
+	}: _(RawOrigin::Signed(caller), machine_id)
+}
+
+impl_benchmark_test_suite!(Template, crate::mock::new_test_ext(), crate::mock::Test);
+
+fn prepare_staked_tree<T: Config>(cml_id: CmlId, category: StakingCategory, caller: &T::AccountId) {
+	let machine_id: MachineId = [1u8; 32];
+	let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+	cml.start_mining(
+		machine_id,
+		new_staking_item::<T>(cml_id, StakingCategory::Tea, caller),
+		&T::BlockNumber::zero(),
+	);
+
+	for i in 0..STAKING_SLOTS_MAX_LENGTH {
+		let staking_cml_id = i as u64;
+		cml.staking_slots_mut()
+			.push(new_staking_item::<T>(staking_cml_id, category, caller));
+		if category == StakingCategory::Cml {
+			CmlStore::<T>::insert(
+				staking_cml_id,
+				new_staking_cml::<T>(cml_id, staking_cml_id, i, caller),
+			);
+			UserCmlStore::<T>::insert(caller, staking_cml_id, ());
+		}
+	}
+
+	UserCmlStore::<T>::insert(caller, cml_id, ());
+	CmlStore::<T>::insert(cml_id, cml);
+	MinerItemStore::<T>::insert(machine_id, MinerItem::default());
+}
+
+fn new_staking_cml<T: Config>(
+	cml_id: CmlId,
+	staking_cml_id: CmlId,
+	index: StakingIndex,
+	owner: &T::AccountId,
+) -> CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration> {
+	let mut cml = CML::from_genesis_seed(seed_from_lifespan(staking_cml_id, 100));
+	cml.defrost(&0u32.into());
+	cml.convert_to_tree(&0u32.into());
+	cml.convert(CmlStatus::Staking(cml_id, index));
+	cml.set_owner(owner);
+	cml
+}
+
+fn new_staking_item<T: Config>(
+	cml_id: CmlId,
+	category: StakingCategory,
+	caller: &T::AccountId,
+) -> StakingItem<T::AccountId, BalanceOf<T>> {
+	let mut staking_item = StakingItem {
+		owner: caller.clone(),
+		category,
+		amount: None,
+		cml: None,
+	};
+	match category {
+		StakingCategory::Cml => staking_item.cml = Some(cml_id),
+		StakingCategory::Tea => staking_item.amount = Some(1u32.into()),
+	}
+	staking_item
 }
 
 fn init_lucky_draw_box<T: Config>(schedule_type: DefrostScheduleType) {
@@ -118,21 +229,42 @@ fn init_coupon_store<T: Config>(account: &T::AccountId, schedule_type: DefrostSc
 	let max_a_count = get_count_by_schedule_type(GENESIS_SEED_A_COUNT, schedule_type);
 	let max_b_count = get_count_by_schedule_type(GENESIS_SEED_B_COUNT, schedule_type);
 	let max_c_count = get_count_by_schedule_type(GENESIS_SEED_C_COUNT, schedule_type);
-	TeamCouponStore::<T>::insert(
-		account,
-		CmlType::A,
-		new_coupon(max_a_count as u32, CmlType::A),
-	);
-	TeamCouponStore::<T>::insert(
-		account,
-		CmlType::B,
-		new_coupon(max_b_count as u32, CmlType::B),
-	);
-	TeamCouponStore::<T>::insert(
-		account,
-		CmlType::C,
-		new_coupon(max_c_count as u32, CmlType::C),
-	);
+	match schedule_type {
+		DefrostScheduleType::Investor => {
+			InvestorCouponStore::<T>::insert(
+				account,
+				CmlType::A,
+				new_coupon(max_a_count as u32, CmlType::A),
+			);
+			InvestorCouponStore::<T>::insert(
+				account,
+				CmlType::B,
+				new_coupon(max_b_count as u32, CmlType::B),
+			);
+			InvestorCouponStore::<T>::insert(
+				account,
+				CmlType::C,
+				new_coupon(max_c_count as u32, CmlType::C),
+			);
+		}
+		DefrostScheduleType::Team => {
+			TeamCouponStore::<T>::insert(
+				account,
+				CmlType::A,
+				new_coupon(max_a_count as u32, CmlType::A),
+			);
+			TeamCouponStore::<T>::insert(
+				account,
+				CmlType::B,
+				new_coupon(max_b_count as u32, CmlType::B),
+			);
+			TeamCouponStore::<T>::insert(
+				account,
+				CmlType::C,
+				new_coupon(max_c_count as u32, CmlType::C),
+			);
+		}
+	}
 }
 
 fn get_count_by_schedule_type(count: u64, schedule_type: DefrostScheduleType) -> u64 {
@@ -147,7 +279,15 @@ fn start_mining_inner<T: Config>(cml_id: CmlId, machine_id: MachineId, caller: &
 	cml.start_mining(machine_id, StakingItem::default(), &T::BlockNumber::zero());
 	UserCmlStore::<T>::insert(caller, cml_id, ());
 	CmlStore::<T>::insert(cml_id, cml);
-	MinerItemStore::<T>::insert(machine_id, MinerItem::default());
+	MinerItemStore::<T>::insert(
+		machine_id,
+		MinerItem {
+			cml_id,
+			id: machine_id,
+			ip: vec![],
+			status: MinerStatus::Active,
+		},
+	);
 }
 
 fn new_coupon(amount: u32, cml_type: CmlType) -> Coupon {
@@ -155,8 +295,12 @@ fn new_coupon(amount: u32, cml_type: CmlType) -> Coupon {
 }
 
 pub fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
-	let mut seed = Seed::default();
-	seed.id = id;
-	seed.lifespan = lifespan;
-	seed
+	Seed {
+		id,
+		cml_type: CmlType::A,
+		defrost_schedule: Some(DefrostScheduleType::Team),
+		defrost_time: Some(0),
+		lifespan,
+		performance: 0,
+	}
 }

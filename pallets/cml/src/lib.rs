@@ -257,7 +257,7 @@ pub mod cml {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(1_000)]
+		#[pallet::weight(195_000_000)]
 		pub fn clean_outdated_seeds(sender: OriginFor<T>) -> DispatchResult {
 			let root = ensure_root(sender)?;
 			let current_block = frame_system::Pallet::<T>::block_number();
