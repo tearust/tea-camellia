@@ -79,7 +79,10 @@ fn get_properties(symbol: &str) -> Properties {
 	.clone()
 }
 
-pub fn development_config(genesis_coupons: GenesisCoupons<AccountId>) -> Result<ChainSpec, String> {
+pub fn development_config(
+	genesis_coupons: GenesisCoupons<AccountId>,
+	seed: [u8; 32],
+) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
@@ -89,7 +92,7 @@ pub fn development_config(genesis_coupons: GenesisCoupons<AccountId>) -> Result<
 		"dev",
 		ChainType::Development,
 		move || {
-			let genesis_seeds = init_genesis();
+			let genesis_seeds = init_genesis(seed);
 			let mut endowed_accounts = vec![
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -130,6 +133,7 @@ pub fn development_config(genesis_coupons: GenesisCoupons<AccountId>) -> Result<
 
 pub fn local_testnet_config(
 	genesis_coupons: GenesisCoupons<AccountId>,
+	seed: [u8; 32],
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
@@ -140,7 +144,7 @@ pub fn local_testnet_config(
 		"local_testnet",
 		ChainType::Local,
 		move || {
-			let genesis_seeds = init_genesis();
+			let genesis_seeds = init_genesis(seed);
 			let endowed_accounts = vec![
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				get_account_id_from_seed::<sr25519::Public>("Bob"),

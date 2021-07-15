@@ -1,11 +1,12 @@
 use crate::param::{BASE_LIFESPAN_A, BASE_LIFESPAN_B, BASE_LIFESPAN_C, DEVIATION};
 use crate::CmlType;
 use node_primitives::BlockNumber;
-use rand::{thread_rng, Rng};
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 
-pub fn make_generate_lifespan_fn() -> impl Fn(CmlType) -> BlockNumber {
+pub fn make_generate_lifespan_fn(seed: [u8; 32]) -> impl Fn(CmlType) -> BlockNumber {
 	move |cml_type: CmlType| {
-		let mut rng = thread_rng();
+		let mut rng: StdRng = SeedableRng::from_seed(seed);
 		let r: u8 = rng.gen();
 		let base_lifespan = {
 			match cml_type {

@@ -12,6 +12,9 @@ pub struct Cli {
 	/// The csv file path to define genesis coupons.
 	#[structopt(long)]
 	pub genesis_coupons_path: Option<String>,
+
+	#[structopt(long)]
+	pub genesis_seed: Option<[u8; 32]>,
 }
 
 #[derive(Debug, StructOpt)]

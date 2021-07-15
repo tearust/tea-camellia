@@ -116,7 +116,7 @@ impl Default for ExtBuilder {
 		Self {
 			account_number: 50,
 			initial_balance: 10_000,
-			seeds: init_genesis(),
+			seeds: init_genesis([1; 32]),
 		}
 	}
 }

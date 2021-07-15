@@ -50,9 +50,11 @@ impl SubstrateCli for Cli {
 		Ok(match id {
 			"dev" => Box::new(chain_spec::development_config(
 				self.parse_genesis_coupons()?,
+				self.genesis_seed(),
 			)?),
 			"" | "local" => Box::new(chain_spec::local_testnet_config(
 				self.parse_genesis_coupons()?,
+				self.genesis_seed(),
 			)?),
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
@@ -143,11 +145,9 @@ pub fn run() -> sc_cli::Result<()> {
 
 				runner.sync_run(|config| cmd.run::<Block, service::Executor>(config))
 			} else {
-				Err(
-					"Benchmarking wasn't enabled when building the node. \
+				Err("Benchmarking wasn't enabled when building the node. \
 				You can enable it with `--features runtime-benchmarks`."
-						.into(),
-				)
+					.into())
 			}
 		}
 		None => {

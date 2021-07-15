@@ -10,12 +10,12 @@ mod defrost;
 mod lifespan;
 mod performance;
 
-pub fn init_genesis() -> GenesisSeeds {
+pub fn init_genesis(seed: [u8; 32]) -> GenesisSeeds {
 	info!("init_genesis");
 	GenesisSeeds::generate(
-		make_generate_defrost_time_fn(DefrostScheduleType::Team),
-		make_generate_defrost_time_fn(DefrostScheduleType::Investor),
-		make_generate_lifespan_fn(),
-		make_generate_performance_fn(),
+		make_generate_defrost_time_fn(seed, DefrostScheduleType::Team),
+		make_generate_defrost_time_fn(seed, DefrostScheduleType::Investor),
+		make_generate_lifespan_fn(seed),
+		make_generate_performance_fn(seed),
 	)
 }

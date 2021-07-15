@@ -3,10 +3,12 @@ use crate::param::{
 };
 use crate::DefrostScheduleType;
 use node_primitives::BlockNumber;
-use rand::{thread_rng, Rng};
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 
 ///create a closure. this closure is used to generate the random defrost time for different kinds of DefrostSchedule (team or investor).
 pub fn make_generate_defrost_time_fn(
+	seed: [u8; 32],
 	defrost_schedule: DefrostScheduleType,
 ) -> impl Fn() -> BlockNumber {
 	move || {
@@ -16,7 +18,7 @@ pub fn make_generate_defrost_time_fn(
 				i * BLOCKS_IN_A_MONTH - BLOCKS_IN_A_MONTH / 2, //every mid_of_a_month is a defrost time point
 			)
 		}
-		let mut rng = thread_rng();
+		let mut rng: StdRng = SeedableRng::from_seed(seed);
 		let r: u32 = rng.gen();
 		let random_offset: u32 = r % (6 * BLOCKS_IN_A_DAY);
 		// assert_eq!(BLOCKS_IN_A_DAY, 144);

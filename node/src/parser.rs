@@ -24,6 +24,19 @@ impl Cli {
 
 		Ok(GenesisCoupons { coupons })
 	}
+
+	pub fn genesis_seed(&self) -> [u8; 32] {
+		if let Some(seed) = self.genesis_seed {
+			seed
+		} else {
+			let mut seed = [0; 32];
+			b"tearust"
+				.iter()
+				.enumerate()
+				.for_each(|(i, v)| seed[i] = *v);
+			seed
+		}
+	}
 }
 
 fn parse_coupon_configs<R>(rdr: &mut csv::Reader<R>) -> Result<Vec<CouponConfig<AccountId>>, String>

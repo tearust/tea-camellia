@@ -22,19 +22,24 @@ fn main() -> anyhow::Result<()> {
 	env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 	let opts: Opts = Opts::parse();
 
-	let context = simulate(opts.end_block_height);
+	let mut seed = [0; 32];
+	b"tearust"
+		.iter()
+		.enumerate()
+		.for_each(|(i, v)| seed[i] = *v);
+	let context = simulate(opts.end_block_height, seed);
 	if !opts.disable_output {
 		output(context)?;
 	}
 	Ok(())
 }
 
-fn simulate(end_block_height: u32) -> GlobalContext {
+fn simulate(end_block_height: u32, seed: [u8; 32]) -> GlobalContext {
 	let mut global_context = GlobalContext::new();
 	for block_height in 0..end_block_height {
 		info!("block_height {}", block_height);
 		if global_context.block_height == 0 {
-			global_context.genesis_seeds = Some(init_genesis());
+			global_context.genesis_seeds = Some(init_genesis(seed));
 			global_context.a_lucky_draw_box = global_context
 				.genesis_seeds
 				.clone()
