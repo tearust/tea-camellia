@@ -58,6 +58,9 @@ First, you should prepare the docker image `tearust/tea-camellia:latest`, if you
 
 Then, cd into the `tests/local-network` directory and run `docker-compose up` (or `docker compose up` if you have new version of docker client) to start nodes.
 
+## Running on canary network
+Follow the guide [here](https://github.com/tearust/tea-camellia/tree/main/tests/canary-network)
+
 ## Setup the testing account
 We have export all test accounts to the file `tests/batch_exported_account_asdfasdf.json` in the root folder of this git repo.
 
