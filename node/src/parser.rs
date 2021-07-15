@@ -4,6 +4,7 @@ use camellia_runtime::{
 	AccountId,
 };
 use sp_core::crypto::AccountId32;
+use std::cmp::min;
 use std::str::FromStr;
 
 const DEFROST_SCHEDULE_TYPE_INDEX: usize = 2;
@@ -26,17 +27,23 @@ impl Cli {
 	}
 
 	pub fn genesis_seed(&self) -> [u8; 32] {
-		if let Some(seed) = self.genesis_seed {
-			seed
+		if let Some(s) = self.genesis_seed.as_ref() {
+			seed_from_string(s)
 		} else {
-			let mut seed = [0; 32];
-			b"tearust"
-				.iter()
-				.enumerate()
-				.for_each(|(i, v)| seed[i] = *v);
-			seed
+			seed_from_string("tearust")
 		}
 	}
+}
+
+fn seed_from_string(s: &str) -> [u8; 32] {
+	let mut seed = [0; 32];
+	let str_bytes = s.as_bytes();
+	let len = min(seed.len(), str_bytes.len());
+
+	for i in 0..len {
+		seed[i] = str_bytes[i];
+	}
+	seed
 }
 
 fn parse_coupon_configs<R>(rdr: &mut csv::Reader<R>) -> Result<Vec<CouponConfig<AccountId>>, String>

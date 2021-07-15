@@ -14,7 +14,7 @@ pub struct Cli {
 	pub genesis_coupons_path: Option<String>,
 
 	#[structopt(long)]
-	pub genesis_seed: Option<[u8; 32]>,
+	pub genesis_seed: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
