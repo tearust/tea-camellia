@@ -777,8 +777,8 @@ impl pallet_tea::Config for Runtime {
 /// Timeout height is (1 * 30 * 24 * 60 * 10 * 6secs) about 1 month
 const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
 #[cfg(feature = "fast")]
-/// Timeout height is (1 * 60 * 10 * 6secs) about 1 hour
-const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 60 * 10;
+/// Timeout height is (2 * 7 * 24 * 60 * 10 * 6secs) about 2 weeks
+const SEEDS_TIMEOUT_HEIGHT: u32 = 2 * 7 * 24 * 60 * 10;
 
 #[cfg(not(feature = "fast"))]
 /// Staking period length is (1 * 24 * 60 * 10) about 1 day
