@@ -320,4 +320,9 @@ pub trait AuctionOperation {
 	fn add_auction_to_storage(
 		auction_item: AuctionItem<Self::AccountId, Self::Balance, Self::BlockNumber>,
 	);
+
+	fn create_new_bid(sender: &Self::AccountId, auction_id: &AuctionId, price: Self::Balance);
+
+	// return current block window number and next.
+	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber);
 }

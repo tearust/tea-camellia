@@ -13,6 +13,43 @@ impl<T: auction::Config> AuctionOperation for auction::Pallet<T> {
 
 		AuctionStore::<T>::insert(auction_item.id, auction_item);
 	}
+
+	fn create_new_bid(sender: &Self::AccountId, auction_id: &AuctionId, price: Self::Balance) {
+		let auction_item = AuctionStore::<T>::get(auction_id);
+
+		let essential_balance = Self::essential_bid_balance(price, &auction_item.cml_id);
+		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+		if T::CurrencyOperations::reserve(&sender, essential_balance).is_err() {
+			return;
+		}
+
+		let item = Self::new_bid_item(
+			auction_item.id,
+			sender.clone(),
+			price,
+			T::CmlOperation::cml_deposit_price(&auction_item.cml_id),
+		);
+		BidStore::<T>::insert(sender.clone(), auction_item.id, item);
+		AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
+			if let Some(ref mut list) = maybe_list {
+				list.push(sender.clone());
+			} else {
+				*maybe_list = Some(vec![sender.clone()]);
+			}
+		});
+	}
+
+	// return current block window number and next.
+	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber) {
+		let current_block = frame_system::Pallet::<T>::block_number();
+		let current_index = current_block / T::AuctionDealWindowBLock::get();
+		let next_index = current_index + <T::BlockNumber>::saturated_from(1_u64);
+
+		(
+			current_index * T::AuctionDealWindowBLock::get(),
+			next_index * T::AuctionDealWindowBLock::get(),
+		)
+	}
 }
 
 impl<T: auction::Config> auction::Pallet<T> {
@@ -70,18 +107,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 			created_at: current_block,
 			updated_at: current_block,
 		}
-	}
-
-	// return current block window number and next.
-	pub fn get_window_block() -> (T::BlockNumber, T::BlockNumber) {
-		let current_block = frame_system::Pallet::<T>::block_number();
-		let current_index = current_block / T::AuctionDealWindowBLock::get();
-		let next_index = current_index + <T::BlockNumber>::saturated_from(1_u64);
-
-		(
-			current_index * T::AuctionDealWindowBLock::get(),
-			next_index * T::AuctionDealWindowBLock::get(),
-		)
 	}
 
 	fn insert_into_end_block_store(window_height: T::BlockNumber, auction_id: AuctionId) {
@@ -378,35 +403,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 		}
 	}
 
-	pub(crate) fn create_new_bid(
-		sender: &T::AccountId,
-		auction_id: &AuctionId,
-		price: BalanceOf<T>,
-	) {
-		let auction_item = AuctionStore::<T>::get(auction_id);
-
-		let essential_balance = Self::essential_bid_balance(price, &auction_item.cml_id);
-		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-		if T::CurrencyOperations::reserve(&sender, essential_balance).is_err() {
-			return;
-		}
-
-		let item = Self::new_bid_item(
-			auction_item.id,
-			sender.clone(),
-			price,
-			T::CmlOperation::cml_deposit_price(&auction_item.cml_id),
-		);
-		BidStore::<T>::insert(sender.clone(), auction_item.id, item);
-		AuctionBidStore::<T>::mutate(auction_item.id, |maybe_list| {
-			if let Some(ref mut list) = maybe_list {
-				list.push(sender.clone());
-			} else {
-				*maybe_list = Some(vec![sender.clone()]);
-			}
-		});
-	}
-
 	pub(crate) fn increase_bid_price(
 		sender: &T::AccountId,
 		auction_id: &AuctionId,
@@ -450,8 +446,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 mod tests {
 	use crate::tests::seed_from_lifespan;
 	use crate::{
-		mock::*, AuctionBidStore, AuctionId, AuctionItem, BidItem, BidStore, Config,
-		EndBlockAuctionStore, LastAuctionId,
+		mock::*, AuctionBidStore, AuctionId, AuctionItem, AuctionOperation, BidItem, BidStore,
+		Config, EndBlockAuctionStore, LastAuctionId,
 	};
 	use frame_support::{
 		assert_ok,
