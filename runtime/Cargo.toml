@@ -117,6 +117,7 @@ runtime-benchmarks = [
 	'chainbridge/runtime-benchmarks',
 	'pallet-tea/runtime-benchmarks',
 	'pallet-cml/runtime-benchmarks',
+  	'pallet-auction/runtime-benchmarks',
 ]
 std = [
 	'codec/std',

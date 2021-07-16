@@ -1,4 +1,4 @@
-//! Benchmarking setup for pallet-tea
+//! Benchmarking setup for pallet-cml
 
 use super::*;
 use crate::param::{

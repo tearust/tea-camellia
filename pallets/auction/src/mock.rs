@@ -105,6 +105,7 @@ impl pallet_auction::Config for Test {
 	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
+	type AuctionOperation = Auction;
 	type AuctionPledgeAmount = AuctionPledgeAmount;
 	type MaxUsersPerAuction = MaxUsersPerAuction;
 	type AuctionFeePerWindow = AuctionFeePerWindow;

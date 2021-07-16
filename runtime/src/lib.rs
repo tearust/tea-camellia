@@ -860,6 +860,7 @@ impl pallet_auction::Config for Runtime {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
+	type AuctionOperation = Auction;
 	type AuctionDealWindowBLock = AuctionDealWindowBLock;
 	type MinPriceForBid = MinPriceForBid;
 	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;

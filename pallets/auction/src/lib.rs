@@ -21,6 +21,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 mod functions;
 mod rpc;
 mod types;
@@ -49,6 +51,12 @@ pub mod auction {
 		>;
 
 		type CmlOperation: CmlOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+			BlockNumber = Self::BlockNumber,
+		>;
+
+		type AuctionOperation: AuctionOperation<
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 			BlockNumber = Self::BlockNumber,
@@ -302,4 +310,14 @@ pub mod auction {
 			)
 		}
 	}
+}
+
+pub trait AuctionOperation {
+	type AccountId: Default;
+	type Balance: Default;
+	type BlockNumber: Default;
+
+	fn add_auction_to_storage(
+		auction_item: AuctionItem<Self::AccountId, Self::Balance, Self::BlockNumber>,
+	);
 }

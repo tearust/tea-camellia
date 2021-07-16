@@ -113,6 +113,15 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 
 		GenesisMinerCreditStore::<T>::get(account_id)
 	}
+
+	fn add_cml(
+		who: &Self::AccountId,
+		cml: CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
+	) {
+		let cml_id = cml.id();
+		CmlStore::<T>::insert(cml_id, cml);
+		UserCmlStore::<T>::insert(who, cml_id, ());
+	}
 }
 
 #[cfg(test)]

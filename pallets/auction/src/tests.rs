@@ -1,11 +1,11 @@
 use crate::{
-	mock::*, AuctionBidStore, AuctionItem, AuctionStore, BidStore, EndBlockAuctionStore, Error,
-	LastAuctionId,
+	mock::*, AuctionBidStore, AuctionItem, AuctionOperation, AuctionStore, BidStore,
+	EndBlockAuctionStore, Error, LastAuctionId,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_cml::{
-	CmlId, CmlStore, CmlType, Config, DefrostScheduleType, Error as CmlError, Seed, SeedProperties,
-	StakingProperties, TreeProperties, UserCmlStore, CML,
+	CmlId, CmlOperation, CmlStore, CmlType, Config, DefrostScheduleType, Error as CmlError, Seed,
+	SeedProperties, StakingProperties, TreeProperties, UserCmlStore, CML,
 };
 use pallet_utils::CurrencyOperations;
 

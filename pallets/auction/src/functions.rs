@@ -1,5 +1,20 @@
 use super::*;
 
+impl<T: auction::Config> AuctionOperation for auction::Pallet<T> {
+	type AccountId = T::AccountId;
+	type Balance = BalanceOf<T>;
+	type BlockNumber = T::BlockNumber;
+
+	fn add_auction_to_storage(
+		auction_item: AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+	) {
+		let (_, next_window) = Self::get_window_block();
+		Self::insert_into_end_block_store(next_window, auction_item.id);
+
+		AuctionStore::<T>::insert(auction_item.id, auction_item);
+	}
+}
+
 impl<T: auction::Config> auction::Pallet<T> {
 	pub fn next_auction_id() -> AuctionId {
 		LastAuctionId::<T>::mutate(|id| {
@@ -67,15 +82,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 			current_index * T::AuctionDealWindowBLock::get(),
 			next_index * T::AuctionDealWindowBLock::get(),
 		)
-	}
-
-	pub fn add_auction_to_storage(
-		auction_item: AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
-	) {
-		let (_, next_window) = Self::get_window_block();
-		Self::insert_into_end_block_store(next_window, auction_item.id);
-
-		AuctionStore::<T>::insert(auction_item.id, auction_item);
 	}
 
 	fn insert_into_end_block_store(window_height: T::BlockNumber, auction_id: AuctionId) {

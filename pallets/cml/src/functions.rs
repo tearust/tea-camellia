@@ -40,15 +40,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 	}
 
-	pub fn add_cml(
-		who: &T::AccountId,
-		cml: CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
-	) {
-		let cml_id = cml.id();
-		CmlStore::<T>::insert(cml_id, cml);
-		UserCmlStore::<T>::insert(who, cml_id, ());
-	}
-
 	pub(crate) fn is_coupon_outdated(block_number: T::BlockNumber) -> bool {
 		block_number > T::CouponTimoutHeight::get()
 	}

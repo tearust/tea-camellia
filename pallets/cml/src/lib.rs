@@ -663,7 +663,7 @@ pub mod cml {
 
 			extrinsic_procedure(
 				&who,
-				|who| {
+				|_who| {
 					ensure!(
 						MinerItemStore::<T>::contains_key(machine_id),
 						Error::<T>::NotFoundMiner
@@ -742,6 +742,11 @@ pub trait CmlOperation {
 	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance>;
 
 	fn user_credit_amount(account_id: &Self::AccountId) -> Self::Balance;
+
+	fn add_cml(
+		who: &Self::AccountId,
+		cml: CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
+	);
 }
 
 pub trait StakingEconomics<Balance, AccountId> {
