@@ -674,7 +674,8 @@ pub mod cml {
 						CmlStore::<T>::contains_key(machine_item.cml_id),
 						Error::<T>::NotFoundCML
 					);
-					Self::check_belongs(&machine_item.cml_id, who)
+					// Self::check_belongs(&machine_item.cml_id, who)
+					Ok(())
 				},
 				|_who| {
 					Self::complete_ra_task(machine_id);
