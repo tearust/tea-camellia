@@ -10,6 +10,7 @@ mod defrost;
 mod lifespan;
 mod performance;
 
+/// Generate fixed number of seeds with random properties.
 pub fn init_genesis(seed: [u8; 32]) -> GenesisSeeds {
 	info!("init_genesis");
 	GenesisSeeds::generate(

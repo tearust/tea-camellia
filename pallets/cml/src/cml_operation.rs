@@ -6,6 +6,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 	type BlockNumber = T::BlockNumber;
 	type FreshDuration = T::SeedFreshDuration;
 
+	/// Get cml with given cml ID, if not exist will throw the `NotFoundCML` error.
 	fn cml_by_id(
 		cml_id: &CmlId,
 	) -> Result<
@@ -16,6 +17,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Ok(CmlStore::<T>::get(cml_id))
 	}
 
+	/// Check if the given CML not belongs to specified account.
 	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> DispatchResult {
 		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
 		ensure!(
@@ -25,6 +27,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Ok(())
 	}
 
+	/// Check if `from_account` can transfer the specifying CML to `target_account`.
 	fn check_transfer_cml_to_other(
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
@@ -50,6 +53,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Ok(())
 	}
 
+	/// Transfer `from_account` the specifying CML to `target_account`.
 	fn transfer_cml_to_other(
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
@@ -92,6 +96,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		UserCmlStore::<T>::insert(target_account, cml_id, ());
 	}
 
+	/// Get the deposit price if CML is mining, or `None` otherwise.
 	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance> {
 		if !CmlStore::<T>::contains_key(cml_id) {
 			return None;
@@ -106,6 +111,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		None
 	}
 
+	/// Get credit amount of the given user.
 	fn user_credit_amount(account_id: &Self::AccountId) -> Self::Balance {
 		if !GenesisMinerCreditStore::<T>::contains_key(account_id) {
 			return Zero::zero();
@@ -114,6 +120,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		GenesisMinerCreditStore::<T>::get(account_id)
 	}
 
+	/// Add a cml into `CmlStore` and bind the CML with the given user.
 	fn add_cml(
 		who: &Self::AccountId,
 		cml: CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,

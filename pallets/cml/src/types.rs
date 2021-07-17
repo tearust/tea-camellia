@@ -12,22 +12,32 @@ pub use coupons::{Coupon, CouponConfig, GenesisCoupons};
 pub use miner::{MachineId, MinerItem, MinerStatus};
 pub use seeds::{DefrostScheduleType, GenesisSeeds, Seed};
 pub use staking::{
-	ServiceTaskPoint, StakingCategory, StakingIndex, StakingItem, StakingSnapshotItem, StakingWeight,
+	ServiceTaskPoint, StakingCategory, StakingIndex, StakingItem, StakingSnapshotItem,
+	StakingWeight,
 };
 
+/// Trait described seed properties about a CML.
 pub trait SeedProperties<BlockNumber> {
+	/// CML identity.
 	fn id(&self) -> CmlId;
 
+	/// Return `true` if CML is frozen seed or fresh seed, or `false` otherwise.
 	fn is_seed(&self) -> bool;
 
+	/// Return `true` if CML is frozen seed, or `false` otherwise.
 	fn is_frozen_seed(&self) -> bool;
 
+	/// Return `true` if CML is fresh seed, or `false` otherwise.
 	fn is_fresh_seed(&self) -> bool;
 
+	/// Check if a frozen seed can defrost to fresh seed successfuly, return `Ok(())` if can defrost
+	/// or `Err(CmlError)` otherwise.
 	fn check_defrost(&self, height: &BlockNumber) -> CmlResult;
 
+	/// Defrost a frozen seed to fresh seed.
 	fn defrost(&mut self, height: &BlockNumber);
 
+	/// Get sprout height of a fresh seed, if CML is not fresh seed will return `None`.
 	fn get_sprout_at(&self) -> Option<&BlockNumber>;
 
 	fn get_fresh_duration(&self) -> BlockNumber;

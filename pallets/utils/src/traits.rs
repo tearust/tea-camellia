@@ -6,6 +6,7 @@ pub trait CommonUtils {
 	fn generate_random(sender: Self::AccountId, salt: &RandomSalt) -> U256;
 }
 
+/// Operations about currency that used in Tea Camellia.
 pub trait CurrencyOperations {
 	type AccountId;
 	/// The balance of an account.

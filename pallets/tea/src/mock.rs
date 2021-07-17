@@ -112,6 +112,7 @@ impl Default for MockTaskService {
 }
 
 impl Task for MockTaskService {
+	/// Called after a miner has complete a RA task.
 	fn complete_ra_task(_machine_id: MachineId) {
 		// do nothing here
 	}

@@ -21,10 +21,13 @@ impl Default for TeaStakingEconomics {
 }
 
 impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
+	/// Calculate issuance balance with given total task point of current staking window.
 	fn increase_issuance(total_point: ServiceTaskPoint) -> Balance {
 		(total_point as Balance) * DOLLARS
 	}
 
+	/// Calculate total staking rewards of the given miner, the staking rewards should split to all staking
+	/// users.
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		_total_point: ServiceTaskPoint,
@@ -32,7 +35,8 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 		(miner_point as Balance) * DOLLARS
 	}
 
-	fn miner_total_staking_price(snapshots: &Vec<StakingSnapshotItem<AccountId>>) -> Balance {
+	/// Calculate all staking weight about the given miner.
+	fn miner_total_staking_weight(snapshots: &Vec<StakingSnapshotItem<AccountId>>) -> Balance {
 		let total_slot_height = snapshots
 			.last()
 			.map(|item| item.staking_at + item.weight)
@@ -46,6 +50,7 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 		STAKING_PRICE_TABLE.iter().take(max_index).sum()
 	}
 
+	/// Calculate a single staking reward.
 	fn single_staking_reward(
 		miner_total_rewards: Balance,
 		total_staking_point: Balance,

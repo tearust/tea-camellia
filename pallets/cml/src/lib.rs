@@ -32,6 +32,7 @@ use pallet_utils::{
 use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
 use sp_std::prelude::*;
 
+/// The balance type of this module.
 pub type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -45,6 +46,7 @@ pub mod cml {
 
 		type Currency: Currency<Self::AccountId>;
 
+		/// The fixed (free balance) amount to staking to a CML with balance.
 		#[pallet::constant]
 		type StakingPrice: Get<BalanceOf<Self>>;
 
@@ -53,24 +55,33 @@ pub mod cml {
 		#[pallet::constant]
 		type CouponTimoutHeight: Get<Self::BlockNumber>;
 
+		/// Fresh seed duration, if a fresh seed stays over than the duration can't active (including planting
+		///	and mining) any more.
 		#[pallet::constant]
 		type SeedFreshDuration: Get<Self::BlockNumber>;
 
+		/// Length of a staking window, staking rewards will be dispathed at the end of the staking period.
 		#[pallet::constant]
 		type StakingPeriodLength: Get<Self::BlockNumber>;
 
 		/// Common utils trait
 		type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
 
+		/// Operations about currency that used in Tea Camellia.
 		type CurrencyOperations: CurrencyOperations<
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 		>;
 
+		/// Operations to calculate staking rewards.
 		type StakingEconomics: StakingEconomics<BalanceOf<Self>, Self::AccountId>;
 
+		/// Weight definition about all user related extrinsics.
 		type WeightInfo: WeightInfo;
 
+		/// Max length about staking slots of a mining CML, note this is max length of the staking slot array
+		/// not the max staking index, due to a CML can stake into the mining CML the actual staking index may
+		/// larger than `StakingSlotsMaxLength`.
 		#[pallet::constant]
 		type StakingSlotsMaxLength: Get<StakingIndex>;
 	}
@@ -79,10 +90,13 @@ pub mod cml {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+	/// Used to allocate CML ID of new created DAO CML.
 	#[pallet::storage]
 	#[pallet::getter(fn last_cml_id)]
 	pub type LastCmlId<T: Config> = StorageValue<_, CmlId, ValueQuery>;
 
+	/// Storage of all valid CMLs, invalid CMLs (dead CML or fresh seed that over the fresh duration) will be
+	/// cleaned every staking period begins.
 	#[pallet::storage]
 	#[pallet::getter(fn cml_store)]
 	pub type CmlStore<T: Config> = StorageMap<
@@ -93,31 +107,39 @@ pub mod cml {
 		ValueQuery,
 	>;
 
+	/// Double map about user and related cml ID of him.
 	#[pallet::storage]
 	#[pallet::getter(fn user_cml_store)]
 	pub type UserCmlStore<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlId, ()>;
 
+	/// Double map about investor user and `CmlType` of his coupon, value is the information of the coupon.
 	#[pallet::storage]
 	#[pallet::getter(fn investor_user_store)]
 	pub type InvestorCouponStore<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Coupon>;
 
+	/// Double map about team user and `CmlType` of his coupon, value is the information of the coupon.
 	#[pallet::storage]
 	#[pallet::getter(fn team_user_store)]
 	pub type TeamCouponStore<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, CmlType, Coupon>;
 
+	/// Storage of miner.
 	#[pallet::storage]
 	#[pallet::getter(fn miner_item_store)]
 	pub type MinerItemStore<T: Config> =
 		StorageMap<_, Twox64Concat, MachineId, MinerItem, ValueQuery>;
 
+	/// Storage map of all miners that have credit when starting mining (when start mining with a seed
+	/// generated at genesis block, if users have insufficient free balance Camellia allow them to have
+	/// credit and mining first).
 	#[pallet::storage]
 	#[pallet::getter(fn miner_credit_store)]
 	pub type GenesisMinerCreditStore<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
+	/// Double map about `CmlType` and `DefrostScheduleType`, value is the rest of CMLs in lucky draw box.
 	#[pallet::storage]
 	#[pallet::getter(fn lucky_draw_box)]
 	pub type LuckyDrawBox<T: Config> = StorageDoubleMap<
@@ -130,16 +152,19 @@ pub mod cml {
 		ValueQuery,
 	>;
 
+	/// Storage of the snapshot about current active staking related information.
 	#[pallet::storage]
 	#[pallet::getter(fn active_staking_snapshot)]
 	pub type ActiveStakingSnapshot<T: Config> =
 		StorageMap<_, Twox64Concat, CmlId, Vec<StakingSnapshotItem<T::AccountId>>, ValueQuery>;
 
+	/// Storage of the accumulating stask point about a miner.
 	#[pallet::storage]
 	#[pallet::getter(fn mining_cml_task_points)]
 	pub type MiningCmlTaskPoints<T: Config> =
 		StorageMap<_, Twox64Concat, CmlId, ServiceTaskPoint, ValueQuery>;
 
+	/// Staking rewards of all participating staking users.
 	#[pallet::storage]
 	pub type AccountRewards<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
@@ -170,44 +195,76 @@ pub mod cml {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(T::AccountId = "AccountId", CmlId = "CmlId")]
 	pub enum Event<T: Config> {
+		/// Event fired after user drawed CMLs from lucky draw box successfully.
+		///
+		/// First paramter is account id of the user, and the second parameter is the total drawed CML counts.
 		DrawCmls(T::AccountId, u64),
+		/// Event fired after user converted a seed to tree successfully.
+		///
+		/// First paramter is account id of the user, and the second parameter is the CML ID.
 		ActiveCml(T::AccountId, CmlId),
+		/// Event fired after user staked into a CML successfully.
+		///
+		/// First paramter is account id of the user, and the second parameter is the staking CML ID,
+		/// the third paramter is current staking index.
 		Staked(T::AccountId, CmlId, StakingIndex),
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
+		/// User have no coupons to draw cmls.
 		WithoutCoupon,
+		/// User have not enough coupons to transfer.
 		NotEnoughCoupon,
+		/// User transfer the coupons amount is over than he really has.
 		InvalidCouponAmount,
 
+		/// There is not enough draw seeds left in luck draw box (this error indicate the genesis draw seeds count
+		/// and coupons amount not matched).
 		NotEnoughDrawSeeds,
+		/// Seeds is not outdated that can't be clean out with `clean_outdated_seeds` extrinsic.
 		SeedsNotOutdatedYet,
+		/// Coupons has outdated that can't transfer or be used to transfer to others.
 		CouponsHasOutdated,
+		/// Lucky draw box is already empty so there is no need to clean out.
 		NoNeedToCleanOutdatedSeeds,
 
+		/// Could not find CML in the cml store, indicates that the specified CML not existed.
 		NotFoundCML,
+		/// Trying to operate a CML not belongs to the user.
 		CMLOwnerInvalid,
+		/// Cml is not seed so there is no need to active (to tree) or do something else.
 		CmlIsNotSeed,
 
+		/// User account free balance is not enoungh.
 		InsufficientFreeBalance,
+		/// User account reserved balance is not enough.
 		InsufficientReservedBalance,
+		/// The specified machine ID is already mining, that should not be used to start mining again.
 		MinerAlreadyExist,
+		/// The specified machine ID is not found in the machine store, indicates that the specified machin
+		/// ID not existed.
 		NotFoundMiner,
-		InvalidCreditAmount,
+		/// When user has credit it is forbidden for transfering CML to others.
 		CannotTransferCmlWithCredit,
+		/// Specified CML in not valid to operate as a mining tree.
 		InvalidMiner,
+		/// Sepcified miner IP is not a valid format of IPv4.
 		InvalidMinerIp,
 
+		/// Specified staking index is over than the max length of current staking slots.
 		InvalidStakingIndex,
+		/// User is not the owner of specified CML.
 		InvalidStakingOwner,
+		/// User has no reward of staking that can't to withdraw the reward.
 		NotFoundRewardAccount,
+		/// Specified CML has been staked by too much users that can't be append staking anymore.
 		StakingSlotsOverTheMaxLength,
+		/// User specfied max acceptable slot length and current staking index has over than that.
 		StakingSlotsOverAcceptableIndex,
 
 		/// There is no credit of user, no need to pay for it.
 		CmlNoNeedToPayOff,
-
 		/// Defrost time should have value when defrost.
 		CmlDefrostTimeIsNone,
 		/// Cml should be frozen seed.
@@ -263,6 +320,7 @@ pub mod cml {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Called by sudo user to clean up outdated seeds after the coupon has outdated.
 		#[pallet::weight(195_000_000)]
 		pub fn clean_outdated_seeds(sender: OriginFor<T>) -> DispatchResult {
 			let root = ensure_root(sender)?;
@@ -290,6 +348,7 @@ pub mod cml {
 			)
 		}
 
+		/// Transfer coupon from `sender` to `target`.
 		#[pallet::weight(T::WeightInfo::transfer_coupon())]
 		pub fn transfer_coupon(
 			sender: OriginFor<T>,
@@ -356,6 +415,7 @@ pub mod cml {
 			)
 		}
 
+		/// Draw cmls with coupon in lucky draw box.
 		#[pallet::weight(T::WeightInfo::draw_investor_cmls_from_coupon())]
 		pub fn draw_cmls_from_coupon(
 			sender: OriginFor<T>,
@@ -401,6 +461,7 @@ pub mod cml {
 			)
 		}
 
+		/// Convert a valid seed into tree.
 		#[pallet::weight(T::WeightInfo::active_cml())]
 		pub fn active_cml(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
@@ -423,6 +484,7 @@ pub mod cml {
 			)
 		}
 
+		/// Start mining with binding a `MachineId` with given CML.
 		#[pallet::weight(T::WeightInfo::start_mining())]
 		pub fn start_mining(
 			sender: OriginFor<T>,
@@ -478,6 +540,7 @@ pub mod cml {
 			)
 		}
 
+		/// Stop mining cml, and or slots staking to the CML will be canceled.
 		#[pallet::weight(T::WeightInfo::stop_mining())]
 		pub fn stop_mining(
 			sender: OriginFor<T>,
@@ -507,6 +570,7 @@ pub mod cml {
 			)
 		}
 
+		/// Staking to a CML with other free balance or another CML belongs to user.
 		#[pallet::weight(T::WeightInfo::start_balance_staking())]
 		pub fn start_staking(
 			sender: OriginFor<T>,
@@ -574,6 +638,7 @@ pub mod cml {
 			)
 		}
 
+		/// Stop staking to CML.
 		#[pallet::weight(T::WeightInfo::stop_balance_staking(*staking_index))]
 		pub fn stop_staking(
 			sender: OriginFor<T>,
@@ -626,6 +691,7 @@ pub mod cml {
 			)
 		}
 
+		/// Withdraw staking rewards of given user.
 		#[pallet::weight(T::WeightInfo::withdraw_staking_reward())]
 		pub fn withdraw_staking_reward(sender: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(sender)?;
@@ -647,6 +713,7 @@ pub mod cml {
 			)
 		}
 
+		/// Pay off all credit of current user about mining genesis CMLs.
 		#[pallet::weight(T::WeightInfo::pay_off_mining_credit())]
 		pub fn pay_off_mining_credit(sender: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(sender)?;
@@ -676,6 +743,9 @@ pub mod cml {
 			)
 		}
 
+		/// Called after a miner has complete a RA task, note this is dummy extrinsic to simulate the
+		/// task submit, the real RA task should initiate at an Enclave enviroment and validate by
+		/// other nodes.
 		#[pallet::weight(T::WeightInfo::dummy_ra_task())]
 		pub fn dummy_ra_task(sender: OriginFor<T>, machine_id: MachineId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
@@ -731,12 +801,14 @@ pub mod cml {
 	}
 }
 
+/// Operations about CML that called by other pallets to interact with.
 pub trait CmlOperation {
 	type AccountId: PartialEq + Clone;
 	type Balance: Clone;
 	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
 	type FreshDuration: Get<Self::BlockNumber>;
 
+	/// Get cml with given cml ID, if not exist will throw the `NotFoundCML` error.
 	fn cml_by_id(
 		cml_id: &CmlId,
 	) -> Result<
@@ -744,40 +816,52 @@ pub trait CmlOperation {
 		DispatchError,
 	>;
 
+	/// Check if the given CML not belongs to specified account.
 	fn check_belongs(cml_id: &CmlId, who: &Self::AccountId) -> Result<(), DispatchError>;
 
+	/// Check if `from_account` can transfer the specifying CML to `target_account`.
 	fn check_transfer_cml_to_other(
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
 	) -> DispatchResult;
 
+	/// Transfer `from_account` the specifying CML to `target_account`.
 	fn transfer_cml_to_other(
 		from_account: &Self::AccountId,
 		cml_id: &CmlId,
 		target_account: &Self::AccountId,
 	);
 
+	/// Get the deposit price if CML is mining, or `None` otherwise.
 	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance>;
 
+	/// Get credit amount of the given user.
 	fn user_credit_amount(account_id: &Self::AccountId) -> Self::Balance;
 
+	/// Add a cml into `CmlStore` and bind the CML with the given user.
 	fn add_cml(
 		who: &Self::AccountId,
 		cml: CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
 	);
 }
 
+/// Operations to calculate staking rewards.
 pub trait StakingEconomics<Balance, AccountId> {
+	/// Calculate issuance balance with given total task point of current staking window.
 	fn increase_issuance(total_point: ServiceTaskPoint) -> Balance;
 
+	/// Calculate total staking rewards of the given miner, the staking rewards should split to all staking
+	/// users.
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		total_point: ServiceTaskPoint,
 	) -> Balance;
 
-	fn miner_total_staking_price(snapshots: &Vec<StakingSnapshotItem<AccountId>>) -> Balance;
+	/// Calculate all staking weight about the given miner.
+	fn miner_total_staking_weight(snapshots: &Vec<StakingSnapshotItem<AccountId>>) -> Balance;
 
+	/// Calculate a single staking reward.
 	fn single_staking_reward(
 		miner_total_rewards: Balance,
 		total_staking_point: Balance,
@@ -785,6 +869,8 @@ pub trait StakingEconomics<Balance, AccountId> {
 	) -> Balance;
 }
 
+/// Operations about task, tasks usually initiated at an enclave environment.
 pub trait Task {
+	/// Called after a miner has complete a RA task.
 	fn complete_ra_task(machine_id: MachineId);
 }

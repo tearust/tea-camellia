@@ -297,6 +297,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 }
 
 impl<T: cml::Config> Task for cml::Pallet<T> {
+	/// Called after a miner has complete a RA task.
 	fn complete_ra_task(machine_id: MachineId) {
 		// for now all ra task will have one unit point
 		let new_task_point: ServiceTaskPoint = 1;

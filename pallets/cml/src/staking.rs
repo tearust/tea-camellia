@@ -175,10 +175,13 @@ const DOLLARS: u32 = 100000;
 /// simple implementation of staking economics, this should only be used in unit tests,
 /// and can not be used in production environment.
 impl<T: cml::Config> StakingEconomics<BalanceOf<T>, T::AccountId> for cml::Pallet<T> {
+	/// Calculate issuance balance with given total task point of current staking window.
 	fn increase_issuance(total_point: ServiceTaskPoint) -> BalanceOf<T> {
 		(total_point * DOLLARS).into()
 	}
 
+	/// Calculate total staking rewards of the given miner, the staking rewards should split to all staking
+	/// users.
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		_total_point: ServiceTaskPoint,
@@ -186,12 +189,14 @@ impl<T: cml::Config> StakingEconomics<BalanceOf<T>, T::AccountId> for cml::Palle
 		(miner_point * DOLLARS).into()
 	}
 
-	fn miner_total_staking_price(
+	/// Calculate all staking weight about the given miner.
+	fn miner_total_staking_weight(
 		snapshots: &Vec<StakingSnapshotItem<T::AccountId>>,
 	) -> BalanceOf<T> {
 		(snapshots.len() as u32 * DOLLARS).into()
 	}
 
+	/// Calculate a single staking reward.
 	fn single_staking_reward(
 		_miner_total_rewards: BalanceOf<T>,
 		_total_staking_point: BalanceOf<T>,

@@ -193,18 +193,22 @@ where
 	Balance: Clone,
 	FreshDuration: Get<BlockNumber>,
 {
+	/// CML identity.
 	fn id(&self) -> CmlId {
 		self.intrinsic.id
 	}
 
+	/// Return `true` if CML is frozen seed or fresh seed.
 	fn is_seed(&self) -> bool {
 		self.is_frozen_seed() || self.is_fresh_seed()
 	}
 
+	/// Return `true` if CML is frozen seed, or `false` otherwise.
 	fn is_frozen_seed(&self) -> bool {
 		self.status == CmlStatus::FrozenSeed
 	}
 
+	/// Return `true` if CML is fresh seed, or `false` otherwise.
 	fn is_fresh_seed(&self) -> bool {
 		match self.status {
 			CmlStatus::FreshSeed(_) => true,
@@ -212,6 +216,8 @@ where
 		}
 	}
 
+	/// Check if a frozen seed can defrost to fresh seed successfuly, return `Ok(())` if can defrost
+	/// or `Err(CmlError)` otherwise.
 	fn check_defrost(&self, height: &BlockNumber) -> CmlResult {
 		if self.intrinsic.defrost_time.is_none() {
 			return Err(CmlError::CmlDefrostTimeIsNone);
@@ -226,6 +232,7 @@ where
 		Ok(())
 	}
 
+	/// Defrost a frozen seed to fresh seed.
 	fn defrost(&mut self, height: &BlockNumber) {
 		if self.check_defrost(height).is_err() {
 			return;
@@ -233,6 +240,7 @@ where
 		self.convert(CmlStatus::FreshSeed(height.clone()))
 	}
 
+	/// Get sprout height of a fresh seed, if CML is not fresh seed will return `None`.
 	fn get_sprout_at(&self) -> Option<&BlockNumber> {
 		match &self.status {
 			CmlStatus::FreshSeed(height) => Some(height),
