@@ -152,7 +152,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(rs)
 	}
 
-	pub fn clear_auction_pledge(sender: &T::AccountId, auction_id: &AuctionId) {
+	pub fn clear_auction_pledge(sender: &T::AccountId, auction_id: &AuctionId) -> bool {
 		let pledge_amount = T::AuctionPledgeAmount::get();
 		let unreserved_amount =
 			pledge_amount - T::CurrencyOperations::unreserve(sender, pledge_amount);
@@ -171,10 +171,14 @@ impl<T: auction::Config> auction::Pallet<T> {
 							warn!("transfer from {:?} to {:?} failed: {:?}", sender, &acc, e);
 						}
 					});
+					if !list.is_empty() {
+						return true;
+					}
 				}
 				Err(_) => warn!("calculate auction penalty count failed"),
 			}
 		}
+		false
 	}
 
 	pub fn delete_auction(auction_id: &AuctionId, success_user: Option<&T::AccountId>) {
@@ -432,13 +436,15 @@ impl<T: auction::Config> auction::Pallet<T> {
 		false
 	}
 
-	pub(crate) fn try_complete_auction(sender: &T::AccountId, auction_id: &AuctionId) {
+	pub(crate) fn try_complete_auction(sender: &T::AccountId, auction_id: &AuctionId) -> bool {
 		let auction_item = AuctionStore::<T>::get(auction_id);
 		let bid_item = BidStore::<T>::get(&sender, &auction_id);
 
 		if Self::can_by_now(&auction_item, bid_item.price) {
 			Self::complete_auction(&auction_item, &sender);
+			return true;
 		}
+		false
 	}
 }
 

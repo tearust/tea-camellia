@@ -88,6 +88,7 @@ impl pallet_cml::Config for Test {
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
+	type WeightInfo = ();
 }
 
 impl pallet_utils::Config for Test {

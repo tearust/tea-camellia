@@ -79,6 +79,7 @@ impl pallet_cml::Config for Test {
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
+	type WeightInfo = ();
 }
 
 pub const AUCTION_DEAL_WINDOW_BLOCK: BlockNumber = 50;
@@ -109,6 +110,7 @@ impl pallet_auction::Config for Test {
 	type AuctionPledgeAmount = AuctionPledgeAmount;
 	type MaxUsersPerAuction = MaxUsersPerAuction;
 	type AuctionFeePerWindow = AuctionFeePerWindow;
+	type WeightInfo = ();
 }
 
 parameter_types! {

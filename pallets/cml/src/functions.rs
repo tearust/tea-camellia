@@ -237,25 +237,32 @@ impl<T: cml::Config> cml::Pallet<T> {
 		who: &T::AccountId,
 		staking_to: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 		staking_index: StakingIndex,
-	) {
+	) -> bool {
 		if let Some(staking_item) = staking_to.staking_slots().get(staking_index as usize) {
-			let index = match staking_item.cml {
-				Some(cml_id) => {
-					CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml)))
-				}
+			let (index, is_balance_staking) = match staking_item.cml {
+				Some(cml_id) => (
+					CmlStore::<T>::mutate(cml_id, |cml| staking_to.unstake(None, Some(cml))),
+					false,
+				),
 				None => {
 					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get());
-					staking_to
-						.unstake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
-							Some(staking_index),
-							None,
-						)
+					(
+						staking_to.unstake::<CML<
+							T::AccountId,
+							T::BlockNumber,
+							BalanceOf<T>,
+							T::SeedFreshDuration,
+						>>(Some(staking_index), None),
+						true,
+					)
 				}
 			};
 			if let Some(index) = index {
 				Self::adjust_staking_cml_index(staking_to, index);
 			}
+			return is_balance_staking;
 		}
+		true
 	}
 
 	pub(crate) fn check_miner_ip_validity(miner_ip: &Vec<u8>) -> DispatchResult {

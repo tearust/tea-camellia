@@ -13,7 +13,11 @@ pub mod generator;
 mod rpc;
 mod staking;
 mod types;
+mod weights;
+
+pub use cml::*;
 pub use types::*;
+pub use weights::WeightInfo;
 
 use frame_support::{
 	dispatch::DispatchResult,
@@ -22,11 +26,11 @@ use frame_support::{
 	traits::{Currency, Get},
 };
 use frame_system::pallet_prelude::*;
-use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
+use pallet_utils::{
+	extrinsic_procedure, extrinsic_procedure_with_weight, CommonUtils, CurrencyOperations,
+};
 use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
 use sp_std::prelude::*;
-
-pub use cml::*;
 
 pub type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -64,6 +68,8 @@ pub mod cml {
 		>;
 
 		type StakingEconomics: StakingEconomics<BalanceOf<Self>, Self::AccountId>;
+
+		type WeightInfo: WeightInfo;
 
 		#[pallet::constant]
 		type StakingSlotsMaxLength: Get<StakingIndex>;
@@ -284,7 +290,7 @@ pub mod cml {
 			)
 		}
 
-		#[pallet::weight(1_000)]
+		#[pallet::weight(T::WeightInfo::transfer_coupon())]
 		pub fn transfer_coupon(
 			sender: OriginFor<T>,
 			target: T::AccountId,
@@ -350,15 +356,15 @@ pub mod cml {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::draw_investor_cmls_from_coupon())]
 		pub fn draw_cmls_from_coupon(
 			sender: OriginFor<T>,
 			schedule_type: DefrostScheduleType,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(sender)?;
 			let (a_coupon, b_coupon, c_coupon) = Self::take_coupons(&sender, schedule_type);
 
-			extrinsic_procedure(
+			extrinsic_procedure_with_weight(
 				&sender,
 				|_| {
 					ensure!(
@@ -373,6 +379,12 @@ pub mod cml {
 					Ok(())
 				},
 				|sender| {
+					let weight = match schedule_type {
+						DefrostScheduleType::Investor => None,
+						DefrostScheduleType::Team => {
+							Some(T::WeightInfo::draw_team_cmls_from_coupon())
+						}
+					};
 					let seed_ids =
 						Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type);
 					let seeds_count = seed_ids.len() as u64;
@@ -384,11 +396,12 @@ pub mod cml {
 					});
 
 					Self::deposit_event(Event::DrawCmls(sender.clone(), seeds_count));
+					weight
 				},
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::active_cml())]
 		pub fn active_cml(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 			let current_block_number = frame_system::Pallet::<T>::block_number();
@@ -410,7 +423,7 @@ pub mod cml {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::start_mining())]
 		pub fn start_mining(
 			sender: OriginFor<T>,
 			cml_id: CmlId,
@@ -465,7 +478,7 @@ pub mod cml {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::stop_mining())]
 		pub fn stop_mining(
 			sender: OriginFor<T>,
 			cml_id: CmlId,
@@ -494,17 +507,17 @@ pub mod cml {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::start_balance_staking())]
 		pub fn start_staking(
 			sender: OriginFor<T>,
 			staking_to: CmlId,
 			staking_cml: Option<CmlId>,
 			acceptable_slot_index: Option<StakingIndex>,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(sender)?;
 			let current_block_number = frame_system::Pallet::<T>::block_number();
 
-			extrinsic_procedure(
+			extrinsic_procedure_with_weight(
 				&who,
 				|who| {
 					ensure!(
@@ -542,6 +555,10 @@ pub mod cml {
 					Ok(())
 				},
 				|who| {
+					let weight = staking_cml
+						.as_ref()
+						.map(|_| T::WeightInfo::start_cml_staking());
+
 					let staking_index: Option<StakingIndex> =
 						CmlStore::<T>::mutate(staking_to, |cml| {
 							Self::stake(who, cml, &staking_cml, &current_block_number)
@@ -552,19 +569,20 @@ pub mod cml {
 						staking_to,
 						staking_index.unwrap_or(u32::MAX),
 					));
+					weight
 				},
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::stop_balance_staking(*staking_index))]
 		pub fn stop_staking(
 			sender: OriginFor<T>,
 			staking_to: CmlId,
 			staking_index: StakingIndex,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(sender)?;
 
-			extrinsic_procedure(
+			extrinsic_procedure_with_weight(
 				&who,
 				|who| {
 					ensure!(
@@ -599,15 +617,16 @@ pub mod cml {
 
 					Ok(())
 				},
-				|who| {
-					CmlStore::<T>::mutate(staking_to, |cml| {
-						Self::unstake(who, cml, staking_index);
-					});
+				|who| match CmlStore::<T>::mutate(staking_to, |cml| {
+					Self::unstake(who, cml, staking_index)
+				}) {
+					true => None,
+					false => Some(T::WeightInfo::stop_cml_staking(staking_index)),
 				},
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::withdraw_staking_reward())]
 		pub fn withdraw_staking_reward(sender: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
@@ -628,7 +647,7 @@ pub mod cml {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::pay_off_mining_credit())]
 		pub fn pay_off_mining_credit(sender: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
@@ -657,7 +676,7 @@ pub mod cml {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::dummy_ra_task())]
 		pub fn dummy_ra_task(sender: OriginFor<T>, machine_id: MachineId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 

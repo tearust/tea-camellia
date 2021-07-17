@@ -18,4 +18,6 @@ pub mod pallet_timestamp;
 pub mod pallet_treasury;
 pub mod pallet_utility;
 
+pub mod pallet_auction;
+pub mod pallet_cml;
 pub mod pallet_tea;

@@ -9,7 +9,7 @@ use frame_support::traits::{Currency, ExistenceRequirement::AllowDeath, Get, Res
 use frame_system::{ensure_signed, pallet_prelude::*};
 use log::{info, warn};
 use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
-use pallet_utils::{extrinsic_procedure, CurrencyOperations};
+use pallet_utils::{extrinsic_procedure, extrinsic_procedure_with_weight, CurrencyOperations};
 use sp_runtime::{
 	traits::{Saturating, Zero},
 	DispatchResult, SaturatedConversion,
@@ -30,7 +30,7 @@ mod weights;
 
 pub use auction::*;
 pub use types::*;
-// pub use weights::WeightInfo;
+pub use weights::WeightInfo;
 
 type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -62,7 +62,7 @@ pub mod auction {
 			BlockNumber = Self::BlockNumber,
 		>;
 
-		// type WeightInfo: WeightInfo;
+		type WeightInfo: WeightInfo;
 
 		#[pallet::constant]
 		type AuctionDealWindowBLock: Get<Self::BlockNumber>;
@@ -163,7 +163,7 @@ pub mod auction {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::put_to_store())]
 		pub fn put_to_store(
 			origin: OriginFor<T>,
 			cml_id: CmlId,
@@ -227,15 +227,15 @@ pub mod auction {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::bid_for_auction_normal())]
 		pub fn bid_for_auction(
 			origin: OriginFor<T>,
 			auction_id: AuctionId,
 			price: BalanceOf<T>,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			extrinsic_procedure(
+			extrinsic_procedure_with_weight(
 				&sender,
 				|sender| {
 					Self::check_bid_for_auction(&sender, &auction_id, price)?;
@@ -259,16 +259,22 @@ pub mod auction {
 					Self::update_current_winner(&auction_id, &sender);
 					Self::deposit_event(Event::BidAuction(auction_id, sender.clone(), price));
 
-					Self::try_complete_auction(&sender, &auction_id);
+					if Self::try_complete_auction(&sender, &auction_id) {
+						return Some(T::WeightInfo::bid_for_auction_with_buy_now_price());
+					}
+					None
 				},
 			)
 		}
 
-		#[pallet::weight(100_000)]
-		pub fn remove_from_store(origin: OriginFor<T>, auction_id: AuctionId) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::remove_from_store_with_no_bid())]
+		pub fn remove_from_store(
+			origin: OriginFor<T>,
+			auction_id: AuctionId,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			extrinsic_procedure(
+			extrinsic_procedure_with_weight(
 				&sender,
 				|sender| {
 					ensure!(
@@ -283,13 +289,17 @@ pub mod auction {
 					Ok(())
 				},
 				|sender| {
-					Self::clear_auction_pledge(sender, &auction_id);
+					let weight = match Self::clear_auction_pledge(sender, &auction_id) {
+						true => Some(T::WeightInfo::remove_from_store_with_bids()),
+						false => None,
+					};
 					Self::delete_auction(&auction_id, None);
+					weight
 				},
 			)
 		}
 
-		#[pallet::weight(100_000)]
+		#[pallet::weight(T::WeightInfo::remove_bid_for_auction())]
 		pub fn remove_bid_for_auction(
 			origin: OriginFor<T>,
 			auction_id: AuctionId,

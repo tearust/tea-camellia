@@ -17,10 +17,12 @@ pub mod traits;
 mod types;
 
 use frame_support::{
+	dispatch::DispatchResultWithPostInfo,
 	pallet_prelude::*,
 	traits::{
 		BalanceStatus, Currency, ExistenceRequirement, OnUnbalanced, Randomness, ReservableCurrency,
 	},
+	weights::Weight,
 };
 use frame_system::pallet_prelude::*;
 use sp_core::U256;
@@ -92,4 +94,17 @@ where
 	ck_fn(who)?;
 	set_fn(who);
 	Ok(())
+}
+
+pub fn extrinsic_procedure_with_weight<AccountId, CheckFn, SetFn>(
+	who: &AccountId,
+	ck_fn: CheckFn,
+	set_fn: SetFn,
+) -> DispatchResultWithPostInfo
+where
+	CheckFn: Fn(&AccountId) -> DispatchResult,
+	SetFn: Fn(&AccountId) -> Option<Weight>,
+{
+	ck_fn(who)?;
+	Ok(set_fn(who).into())
 }

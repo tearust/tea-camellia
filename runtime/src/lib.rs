@@ -812,6 +812,7 @@ impl pallet_cml::Config for Runtime {
 	type CurrencyOperations = Utils;
 	type StakingEconomics = staking_economics::TeaStakingEconomics;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
+	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -867,6 +868,7 @@ impl pallet_auction::Config for Runtime {
 	type AuctionPledgeAmount = AuctionPledgeAmount;
 	type MaxUsersPerAuction = MaxUsersPerAuction;
 	type AuctionFeePerWindow = AuctionFeePerWindow;
+	type WeightInfo = weights::pallet_auction::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

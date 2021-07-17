@@ -81,6 +81,7 @@ impl pallet_cml::Config for Test {
 	// todo replace value with StakingEconomics later
 	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
+	type WeightInfo = ();
 }
 
 impl pallet_utils::Config for Test {
