@@ -67,7 +67,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn try_kill_cml(block_number: T::BlockNumber) -> Vec<CmlId> {
 		let dead_cmls: Vec<CmlId> = CmlStore::<T>::iter()
-			.filter(|(_, cml)| cml.should_dead(&block_number))
+			.filter(|(_, cml)| {
+				if cml.is_seed() {
+					cml.check_seed_validity(&block_number).is_err()
+				} else {
+					cml.check_tree_validity(&block_number).is_err()
+				}
+			})
 			.map(|(id, cml)| {
 				Self::clean_cml_related(&cml);
 				id
@@ -913,6 +919,48 @@ mod tests {
 				let count_after = CmlStore::<Test>::iter().count();
 				assert_eq!(count_before, dead_cmls.len() + count_after);
 			}
+
+			assert_eq!(CmlStore::<Test>::iter().count(), 0);
+			assert_eq!(UserCmlStore::<Test>::iter().count(), 0);
+		})
+	}
+
+	#[test]
+	fn try_kill_cml_works_with_fresh_seed() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let user2 = 2;
+			let cml1_id = 1;
+			let cml2_id = 2;
+
+			UserCmlStore::<Test>::insert(user1, cml1_id, ());
+			let mut cml1 =
+				CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100, DefrostScheduleType::Team));
+			cml1.set_owner(&user1);
+			cml1.defrost(&0);
+			CmlStore::<Test>::insert(cml1_id, cml1);
+
+			UserCmlStore::<Test>::insert(user2, cml2_id, ());
+			let mut cml2 =
+				CML::from_genesis_seed(seed_from_lifespan(cml2_id, 200, DefrostScheduleType::Team));
+			cml2.set_owner(&user2);
+			cml2.defrost(&100);
+			CmlStore::<Test>::insert(cml2_id, cml2);
+
+			let dead_cmls = Cml::try_kill_cml(99);
+			assert_eq!(dead_cmls.len(), 0);
+
+			let dead_cmls = Cml::try_kill_cml(SEED_FRESH_DURATION as u64);
+			assert_eq!(dead_cmls.len(), 1);
+			assert_eq!(dead_cmls[0], cml1_id);
+			assert!(!CmlStore::<Test>::contains_key(cml1_id));
+			assert!(!UserCmlStore::<Test>::contains_key(user1, cml1_id));
+
+			let dead_cmls = Cml::try_kill_cml(SEED_FRESH_DURATION as u64 + 100);
+			assert_eq!(dead_cmls.len(), 1);
+			assert_eq!(dead_cmls[0], cml2_id);
+			assert!(!CmlStore::<Test>::contains_key(cml2_id));
+			assert!(!UserCmlStore::<Test>::contains_key(user2, cml2_id));
 
 			assert_eq!(CmlStore::<Test>::iter().count(), 0);
 			assert_eq!(UserCmlStore::<Test>::iter().count(), 0);
