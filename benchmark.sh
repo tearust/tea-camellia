@@ -109,6 +109,8 @@ elif [ $PRIME_COMMAND = "batch_weight" ]; then
     PALLET_NAME=pallet_treasury && generate_weight
 
     PALLET_NAME=pallet_tea && generate_weight
+    PALLET_NAME=pallet_cml && generate_weight
+    PALLET_NAME=pallet_auction && generate_weight
 else
     echo "unknown command, supported commands: build, test, weight, template"
 fi

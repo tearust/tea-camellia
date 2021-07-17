@@ -1210,6 +1210,8 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_treasury, Treasury);
 
 			add_benchmark!(params, batches, pallet_tea, Tea);
+			add_benchmark!(params, batches, pallet_cml, Cml);
+			add_benchmark!(params, batches, pallet_auction, Auction);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)

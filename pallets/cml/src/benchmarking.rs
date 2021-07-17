@@ -8,8 +8,11 @@ use crate::param::{
 use crate::Pallet as Template;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::RawOrigin;
+use sp_std::convert::TryInto;
 
 const STAKING_SLOTS_MAX_LENGTH: StakingIndex = 1024;
+const CENTS: u128 = 10_000_000_000u128;
+const DOLLARS: u128 = 100u128 * CENTS;
 
 benchmarks! {
 	transfer_coupon {
@@ -82,7 +85,7 @@ benchmarks! {
 
 	start_balance_staking {
 		let caller: T::AccountId = whitelisted_caller();
-		T::Currency::make_free_balance_be(&caller, 1000000u32.into());
+		T::Currency::make_free_balance_be(&caller, u128_to_balance::<T>(10000 * DOLLARS));
 
 		let cml_id: CmlId = 4;
 		let machine_id: MachineId = [1u8; 32];
@@ -109,8 +112,8 @@ benchmarks! {
 		let cml_id: CmlId = 9999;
 		prepare_staked_tree::<T>(cml_id, StakingCategory::Tea, &caller);
 
-		T::Currency::make_free_balance_be(&caller, 1000000u32.into());
-		T::CurrencyOperations::reserve(&caller, 1000000u32.into()).unwrap();
+		T::Currency::make_free_balance_be(&caller, u128_to_balance::<T>(10000 * DOLLARS));
+		T::CurrencyOperations::reserve(&caller, u128_to_balance::<T>(10000 * DOLLARS)).unwrap();
 	}: stop_staking(RawOrigin::Signed(caller), cml_id, s)
 
 	stop_cml_staking {
@@ -120,8 +123,8 @@ benchmarks! {
 		let cml_id: CmlId = 9999;
 		prepare_staked_tree::<T>(cml_id, StakingCategory::Cml, &caller);
 
-		T::Currency::make_free_balance_be(&caller, 1000000u32.into());
-		T::CurrencyOperations::reserve(&caller, 1000000u32.into()).unwrap();
+		T::Currency::make_free_balance_be(&caller, u128_to_balance::<T>(10000 * DOLLARS));
+		T::CurrencyOperations::reserve(&caller, u128_to_balance::<T>(10000 * DOLLARS)).unwrap();
 	}: stop_staking(RawOrigin::Signed(caller), cml_id, s)
 
 	withdraw_staking_reward {
@@ -135,7 +138,7 @@ benchmarks! {
 		let amount: BalanceOf<T> = 10000u32.into();
 		let caller: T::AccountId = whitelisted_caller();
 
-		T::Currency::make_free_balance_be(&caller, amount);
+		T::Currency::make_free_balance_be(&caller, u128_to_balance::<T>(10000 * DOLLARS));
 		GenesisMinerCreditStore::<T>::insert(&caller, amount);
 	}: _(RawOrigin::Signed(caller.clone()))
 	verify {
@@ -303,4 +306,8 @@ pub fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
 		lifespan,
 		performance: 0,
 	}
+}
+
+fn u128_to_balance<T: Config>(amount: u128) -> BalanceOf<T> {
+	amount.try_into().map_err(|_| "").unwrap()
 }
