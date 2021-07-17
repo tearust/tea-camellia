@@ -3,7 +3,7 @@
 use super::*;
 #[allow(unused)]
 use crate::Pallet as Template;
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::RawOrigin;
 use pallet_cml::{CmlId, CmlOperation, CmlType, DefrostScheduleType, Seed, CML};
 
@@ -49,7 +49,6 @@ benchmarks! {
 		let total_price: BalanceOf<T> = u128_to_balance::<T>(1000 * DOLLARS);
 		let starting_price: BalanceOf<T> = 100u32.into();
 		T::Currency::make_free_balance_be(&caller, total_price);
-		T::Currency::reserve(&caller, starting_price).unwrap();
 
 		init_auction::<T>(4, &caller, auction_id, starting_price, None);
 
@@ -61,13 +60,16 @@ benchmarks! {
 				}
 			}
 		});
+
+		let user2 = account("user2", 2, 2);
+		T::AuctionOperation::create_new_bid(&user2, &auction_id, starting_price + 100u32.into());
+		T::AuctionOperation::update_current_winner(&auction_id, &user2);
 	}: _(RawOrigin::Signed(caller.clone()), auction_id)
 	verify {
 		assert_eq!(BidStore::<T>::iter().count(), 0);
 		assert_eq!(AuctionBidStore::<T>::get(&auction_id).unwrap().len() as u64, MAX_USERS_PER_AUCTION - 1);
-		// todo should pass
-		// assert_eq!(T::Currency::reserved_balance(&caller), 0u32.into());
-		// assert_eq!(T::Currency::free_balance(&caller), total_price);
+		assert_eq!(T::Currency::reserved_balance(&caller), 0u32.into());
+		assert_eq!(T::Currency::free_balance(&caller), total_price);
 	}
 
 	remove_from_store_with_no_bid {
@@ -88,8 +90,7 @@ benchmarks! {
 		T::Currency::make_free_balance_be(&caller, u128_to_balance::<T>(1000 * DOLLARS));
 		T::Currency::reserve(&caller, u128_to_balance::<T>(1000 * DOLLARS)).unwrap();
 
-		let buy_now_price: BalanceOf<T> = 1000u32.into();
-		init_auction::<T>(4, &caller, auction_id, 100u32.into(), Some(buy_now_price));
+		init_auction::<T>(4, &caller, auction_id, 100u32.into(), None);
 
 		AuctionBidStore::<T>::mutate(&auction_id, |list| {
 			if let Some(list) = list {
@@ -111,8 +112,7 @@ benchmarks! {
 		assert_eq!(EndBlockAuctionStore::<T>::get(current).unwrap().len(), AVERAGE_END_BLOCK_AUCTION_COUNT as usize);
 		assert_eq!(EndBlockAuctionStore::<T>::get(next).unwrap().len(), AVERAGE_END_BLOCK_AUCTION_COUNT as usize);
 		assert_eq!(AuctionBidStore::<T>::get(&auction_id), None);
-		// todo should pass
-		// assert_eq!(T::Currency::reserved_balance(&caller), u128_to_balance::<T>(1000 * DOLLARS - 100));
+		assert_eq!(T::Currency::reserved_balance(&caller), u128_to_balance::<T>(1000 * DOLLARS) - T::AuctionPledgeAmount::get());
 	}
 }
 

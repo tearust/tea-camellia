@@ -39,6 +39,12 @@ impl<T: auction::Config> AuctionOperation for auction::Pallet<T> {
 		});
 	}
 
+	fn update_current_winner(auction_id: &AuctionId, bid_user: &Self::AccountId) {
+		AuctionStore::<T>::mutate(&auction_id, |item| {
+			item.bid_user = Some(bid_user.clone());
+		});
+	}
+
 	// return current block window number and next.
 	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber) {
 		let current_block = frame_system::Pallet::<T>::block_number();
@@ -83,12 +89,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 			status: AuctionStatus::Normal,
 			bid_user: None,
 		}
-	}
-
-	pub(super) fn update_current_winner(auction_id: &AuctionId, bid_user: &T::AccountId) {
-		AuctionStore::<T>::mutate(&auction_id, |item| {
-			item.bid_user = Some(bid_user.clone());
-		});
 	}
 
 	pub(super) fn new_bid_item(

@@ -333,6 +333,8 @@ pub trait AuctionOperation {
 
 	fn create_new_bid(sender: &Self::AccountId, auction_id: &AuctionId, price: Self::Balance);
 
+	fn update_current_winner(auction_id: &AuctionId, bid_user: &Self::AccountId);
+
 	// return current block window number and next.
 	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber);
 }
