@@ -80,7 +80,7 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let cml_id: CmlId = 4;
 		let machine_id: MachineId = [1u8; 32];
-		start_mining_inner::<T>(cml_id, machine_id, &caller);
+		prepare_staked_tree::<T>(cml_id, StakingCategory::Cml, &caller);
 	}: _(RawOrigin::Signed(caller), cml_id, machine_id)
 
 	start_balance_staking {
@@ -180,7 +180,15 @@ fn prepare_staked_tree<T: Config>(cml_id: CmlId, category: StakingCategory, call
 
 	UserCmlStore::<T>::insert(caller, cml_id, ());
 	CmlStore::<T>::insert(cml_id, cml);
-	MinerItemStore::<T>::insert(machine_id, MinerItem::default());
+	MinerItemStore::<T>::insert(
+		machine_id,
+		MinerItem {
+			cml_id,
+			id: machine_id,
+			ip: vec![],
+			status: MinerStatus::Active,
+		},
+	);
 }
 
 fn new_staking_cml<T: Config>(
