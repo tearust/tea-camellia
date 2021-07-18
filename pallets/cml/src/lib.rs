@@ -561,6 +561,14 @@ pub mod cml {
 				},
 				|_sender| {
 					CmlStore::<T>::mutate(cml_id, |cml| {
+						let staking_slots_length = cml.staking_slots().len();
+						// user reverse order iterator to avoid staking index adjustments
+						for i in (0..staking_slots_length).rev() {
+							if let Some(staking_item) = cml.staking_slots().get(i) {
+								Self::unstake(&staking_item.owner.clone(), cml, i as u32);
+							}
+						}
+
 						cml.stop_mining();
 					});
 					MinerItemStore::<T>::remove(machine_id);

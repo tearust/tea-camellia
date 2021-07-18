@@ -407,6 +407,134 @@ fn stop_mining_works() {
 }
 
 #[test]
+fn stop_mining_works_with_balance_staking() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let user1 = 2;
+		let user2 = 3;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+		<Test as Config>::Currency::make_free_balance_be(&user1, amount);
+		<Test as Config>::Currency::make_free_balance_be(&user2, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(Cml::start_staking(
+			Origin::signed(user1),
+			cml_id,
+			None,
+			None
+		));
+		assert_ok!(Cml::start_staking(
+			Origin::signed(user2),
+			cml_id,
+			None,
+			None
+		));
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&miner),
+			amount - STAKING_PRICE
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user1),
+			amount - STAKING_PRICE
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user2),
+			amount - STAKING_PRICE
+		);
+
+		assert_ok!(Cml::stop_mining(Origin::signed(1), cml_id, machine_id));
+
+		assert_eq!(<Test as Config>::Currency::free_balance(&miner), amount);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user1), amount);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user2), amount);
+	})
+}
+
+#[test]
+fn stop_mining_works_with_cml_staking() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let user1 = 2;
+		let user2 = 3;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+		<Test as Config>::Currency::make_free_balance_be(&user1, amount);
+		<Test as Config>::Currency::make_free_balance_be(&user2, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let cml_id1: CmlId = 5;
+		UserCmlStore::<Test>::insert(user1, cml_id1, ());
+		let mut cml1 = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100));
+		cml1.set_owner(&user1);
+		CmlStore::<Test>::insert(cml_id1, cml1);
+
+		let cml_id2: CmlId = 6;
+		UserCmlStore::<Test>::insert(user2, cml_id2, ());
+		let mut cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100));
+		cml2.set_owner(&user2);
+		CmlStore::<Test>::insert(cml_id2, cml2);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(Cml::start_staking(
+			Origin::signed(user1),
+			cml_id,
+			Some(cml_id1),
+			None
+		));
+		assert_ok!(Cml::start_staking(
+			Origin::signed(user2),
+			cml_id,
+			Some(cml_id2),
+			None
+		));
+
+		assert!(CmlStore::<Test>::get(cml_id1).is_staking());
+		assert!(CmlStore::<Test>::get(cml_id2).is_staking());
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&miner),
+			amount - STAKING_PRICE
+		);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user1), amount);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user2), amount);
+
+		assert_ok!(Cml::stop_mining(Origin::signed(1), cml_id, machine_id));
+
+		assert!(!CmlStore::<Test>::get(cml_id1).is_staking());
+		assert!(!CmlStore::<Test>::get(cml_id2).is_staking());
+
+		assert_eq!(<Test as Config>::Currency::free_balance(&miner), amount);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user1), amount);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user2), amount);
+	})
+}
+
+#[test]
 fn stop_mining_should_fail_if_cml_not_belongs_to_user() {
 	new_test_ext().execute_with(|| {
 		let user1 = 1;
