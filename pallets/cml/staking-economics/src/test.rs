@@ -29,14 +29,14 @@ fn miner_total_staking_price_works() {
 	}
 
 	assert_eq!(
-		TeaStakingEconomics::miner_total_staking_price(&snapshots),
+		TeaStakingEconomics::miner_total_staking_weight(&snapshots),
 		total
 	);
 }
 
 #[test]
 fn miner_total_staking_price_works_if_snapshot_is_empty() {
-	assert_eq!(TeaStakingEconomics::miner_total_staking_price(&vec![]), 0);
+	assert_eq!(TeaStakingEconomics::miner_total_staking_weight(&vec![]), 0);
 }
 
 #[test]
