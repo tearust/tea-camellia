@@ -45,10 +45,6 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 				T::CurrencyOperations::free_balance(target_account) >= T::StakingPrice::get(),
 				Error::<T>::InsufficientFreeBalance
 			);
-			ensure!(
-				T::CurrencyOperations::reserved_balance(from_account) >= T::StakingPrice::get(),
-				Error::<T>::InsufficientReservedBalance
-			);
 		}
 		Ok(())
 	}
@@ -138,6 +134,7 @@ mod tests {
 		TreeProperties, UserCmlStore, CML,
 	};
 	use frame_support::{assert_ok, traits::Currency};
+	use pallet_utils::CurrencyOperations;
 
 	#[test]
 	fn transfer_cml_to_other_works() {
@@ -184,6 +181,50 @@ mod tests {
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&owner),
 				user_origin_balance
+			);
+			assert_eq!(<Test as Config>::Currency::reserved_balance(&owner), 0);
+		})
+	}
+
+	#[test]
+	fn transfer_cml_to_other_works_if_sender_reserved_balance_has_been_slashed() {
+		new_test_ext().execute_with(|| {
+			let user_id = 11;
+			let owner = 22;
+			let user_origin_balance = 100 * 1000;
+			let owner_origin_balance = 100 * 1000;
+			<Test as Config>::Currency::make_free_balance_be(&user_id, user_origin_balance);
+			<Test as Config>::Currency::make_free_balance_be(&owner, owner_origin_balance);
+
+			let cml_id = 1;
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+			UserCmlStore::<Test>::insert(owner, cml_id, ());
+			CmlStore::<Test>::insert(cml_id, cml);
+			assert_ok!(Cml::start_mining(
+				Origin::signed(owner),
+				cml_id,
+				[1u8; 32],
+				b"miner_ip".to_vec()
+			));
+
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner),
+				user_origin_balance - STAKING_PRICE
+			);
+			assert_eq!(
+				<Test as Config>::Currency::reserved_balance(&owner),
+				STAKING_PRICE
+			);
+
+			let slashed_amount = STAKING_PRICE / 2;
+			Utils::slash_reserved(&owner, slashed_amount);
+
+			assert_ok!(Cml::check_transfer_cml_to_other(&owner, &cml_id, &user_id));
+			Cml::transfer_cml_to_other(&owner, &cml_id, &user_id);
+
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&owner),
+				user_origin_balance - slashed_amount
 			);
 			assert_eq!(<Test as Config>::Currency::reserved_balance(&owner), 0);
 		})

@@ -291,6 +291,50 @@ fn stop_staking_with_balance_works() {
 }
 
 #[test]
+fn stop_staking_with_balance_works_if_reserved_balance_has_been_slashed() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+		<Test as Config>::Currency::make_free_balance_be(&2, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_eq!(<Test as Config>::Currency::total_balance(&2), amount);
+		assert_eq!(<Test as Config>::Currency::free_balance(&2), amount);
+		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
+
+		assert_eq!(<Test as Config>::Currency::total_balance(&2), amount);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&2),
+			amount - STAKING_PRICE
+		);
+
+		let slashed_amount = STAKING_PRICE / 2;
+		Utils::slash_reserved(&2, slashed_amount);
+
+		assert_ok!(Cml::stop_staking(Origin::signed(2), cml_id, 1));
+		assert_eq!(
+			<Test as Config>::Currency::total_balance(&2),
+			amount - slashed_amount
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&2),
+			amount - slashed_amount
+		);
+	})
+}
+
+#[test]
 fn stop_staking_with_cml_works() {
 	new_test_ext().execute_with(|| {
 		let amount = 100 * 1000; // Unit * StakingPrice

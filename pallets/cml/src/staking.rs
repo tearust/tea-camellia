@@ -60,7 +60,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 				total_task_point,
 			);
 			let total_staking_point =
-				T::StakingEconomics::miner_total_staking_price(&snapshot_items);
+				T::StakingEconomics::miner_total_staking_weight(&snapshot_items);
 
 			for item in snapshot_items.iter() {
 				let mut reward = T::StakingEconomics::single_staking_reward(

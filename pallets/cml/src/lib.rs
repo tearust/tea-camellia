@@ -238,8 +238,6 @@ pub mod cml {
 
 		/// User account free balance is not enoungh.
 		InsufficientFreeBalance,
-		/// User account reserved balance is not enough.
-		InsufficientReservedBalance,
 		/// The specified machine ID is already mining, that should not be used to start mining again.
 		MinerAlreadyExist,
 		/// The specified machine ID is not found in the machine store, indicates that the specified machin
@@ -666,11 +664,6 @@ pub mod cml {
 					ensure!(staking_item.owner == *who, Error::<T>::InvalidStakingOwner);
 					if let Some(cml_id) = staking_item.cml {
 						Self::check_belongs(&cml_id, who)?;
-					} else {
-						ensure!(
-							T::CurrencyOperations::reserved_balance(who) >= T::StakingPrice::get(),
-							Error::<T>::InsufficientReservedBalance
-						);
 					}
 
 					let (index, staking_cml) = match staking_item.cml {
