@@ -36,7 +36,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Self::check_belongs(cml_id, from_account)?;
 		ensure!(
 			Self::user_credit_amount(from_account).is_zero(),
-			Error::<T>::CannotTransferCmlWithCredit
+			Error::<T>::OperationForbiddenWithCredit
 		);
 
 		let cml = CmlStore::<T>::get(cml_id);

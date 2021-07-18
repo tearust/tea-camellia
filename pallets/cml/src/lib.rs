@@ -244,7 +244,7 @@ pub mod cml {
 		/// ID not existed.
 		NotFoundMiner,
 		/// When user has credit it is forbidden for transfering CML to others.
-		CannotTransferCmlWithCredit,
+		OperationForbiddenWithCredit,
 		/// Specified CML in not valid to operate as a mining tree.
 		InvalidMiner,
 		/// Sepcified miner IP is not a valid format of IPv4.
@@ -695,6 +695,10 @@ pub mod cml {
 					ensure!(
 						AccountRewards::<T>::contains_key(who),
 						Error::<T>::NotFoundRewardAccount
+					);
+					ensure!(
+						GenesisMinerCreditStore::<T>::get(who).is_zero(),
+						Error::<T>::OperationForbiddenWithCredit
 					);
 					Ok(())
 				},
