@@ -1,3 +1,4 @@
+use crate::generator::{cml_type_sub_type_value, generate_individual_seed};
 use crate::param::{
 	Performance, BASE_PERFORMANCE_A, BASE_PERFORMANCE_B, BASE_PERFORMANCE_C, PERFORMANCE_DEVIATION,
 };
@@ -5,9 +6,16 @@ use crate::CmlType;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
-pub fn make_generate_performance_fn(seed: [u8; 32]) -> impl Fn(CmlType) -> Performance {
-	move |cml_type: CmlType| {
-		let mut rng: StdRng = SeedableRng::from_seed(seed);
+const PERFORMANCE_CLASS_VALUE: u8 = 2;
+
+pub fn make_generate_performance_fn(seed: [u8; 32]) -> impl Fn(CmlType, u64) -> Performance {
+	move |cml_type: CmlType, seq_id: u64| {
+		let mut rng: StdRng = SeedableRng::from_seed(generate_individual_seed(
+			seed,
+			PERFORMANCE_CLASS_VALUE,
+			cml_type_sub_type_value(cml_type),
+			seq_id,
+		));
 		let r: u8 = rng.gen();
 		let base_performance = {
 			match cml_type {
@@ -34,17 +42,17 @@ mod tests {
 		let mut total_a: u64 = 0;
 		let mut total_b: u64 = 0;
 		let mut total_c: u64 = 0;
-		for _ in 0..test_sample_count {
+		for i in 0..test_sample_count {
 			let closure = make_generate_performance_fn([1; 32]);
-			total_a += closure(CmlType::A) as u64;
+			total_a += closure(CmlType::A, i) as u64;
 		}
-		for _ in 0..test_sample_count {
+		for i in 0..test_sample_count {
 			let closure = make_generate_performance_fn([1; 32]);
-			total_b += closure(CmlType::B) as u64;
+			total_b += closure(CmlType::B, i) as u64;
 		}
-		for _ in 0..test_sample_count {
+		for i in 0..test_sample_count {
 			let closure = make_generate_performance_fn([1; 32]);
-			total_c += closure(CmlType::C) as u64;
+			total_c += closure(CmlType::C, i) as u64;
 		}
 		println!(
 			"avg performance of seeds a is {} points",
@@ -58,9 +66,9 @@ mod tests {
 			"avg performance of seeds c is {} points",
 			total_c / test_sample_count
 		);
-		for _ in 0..20 {
+		for i in 0..20 {
 			let closure = make_generate_performance_fn([1; 32]);
-			println!("performance seeds b is {}", closure(CmlType::B));
+			println!("performance seeds b is {}", closure(CmlType::B, i));
 		}
 	}
 }

@@ -22,12 +22,11 @@ impl Seed {
 		cml_type: CmlType,
 		cml_id: CmlId,
 		defrost_schedule: DefrostScheduleType,
-		generate_defrost_time: impl Fn() -> BlockNumber,
+		defrost_time: BlockNumber,
 		lifespan: BlockNumber,
 		performance: Performance,
 	) -> Self {
 		let id = cml_id;
-		let defrost_time = generate_defrost_time();
 		Seed {
 			id,
 			cml_type,
@@ -79,86 +78,77 @@ impl Default for GenesisSeeds {
 
 impl GenesisSeeds {
 	pub fn generate(
-		gen_defrost_time_for_team: impl Fn() -> BlockNumber,
-		gen_defrost_time_for_investor: impl Fn() -> BlockNumber,
-		gen_lifespan: impl Fn(CmlType) -> BlockNumber,
-		gen_performance: impl Fn(CmlType) -> Performance,
+		gen_defrost_time: impl Fn(DefrostScheduleType, u64) -> BlockNumber,
+		gen_lifespan: impl Fn(CmlType, u64) -> BlockNumber,
+		gen_performance: impl Fn(CmlType, u64) -> Performance,
 	) -> Self {
-		let mut a_seeds: Vec<Seed> = Vec::new();
 		let mut seq_id: u64 = 0;
-		for i in 0..GENESIS_SEED_A_COUNT {
-			if i < GENESIS_SEED_A_COUNT * TEAM_PERCENTAGE / 100 {
-				a_seeds.push(Seed::generate(
-					CmlType::A,
-					seq_id,
-					DefrostScheduleType::Team,
-					&gen_defrost_time_for_team,
-					gen_lifespan(CmlType::A),
-					gen_performance(CmlType::A),
-				));
-			} else {
-				a_seeds.push(Seed::generate(
-					CmlType::A,
-					seq_id,
-					DefrostScheduleType::Investor,
-					&gen_defrost_time_for_investor,
-					gen_lifespan(CmlType::A),
-					gen_performance(CmlType::A),
-				));
-			}
-			seq_id += 1;
-		}
-		let mut b_seeds: Vec<Seed> = Vec::new();
-		for i in 0..GENESIS_SEED_B_COUNT {
-			if i < GENESIS_SEED_B_COUNT * TEAM_PERCENTAGE / 100 {
-				b_seeds.push(Seed::generate(
-					CmlType::B,
-					seq_id,
-					DefrostScheduleType::Team,
-					&gen_defrost_time_for_team,
-					gen_lifespan(CmlType::B),
-					gen_performance(CmlType::B),
-				));
-			} else {
-				b_seeds.push(Seed::generate(
-					CmlType::B,
-					seq_id,
-					DefrostScheduleType::Investor,
-					&gen_defrost_time_for_investor,
-					gen_lifespan(CmlType::B),
-					gen_performance(CmlType::B),
-				));
-			}
-			seq_id += 1;
-		}
-		let mut c_seeds: Vec<Seed> = Vec::new();
+		let a_seeds = Self::generate_batch_type_seeds(
+			GENESIS_SEED_A_COUNT,
+			CmlType::A,
+			&mut seq_id,
+			&gen_defrost_time,
+			&gen_lifespan,
+			&gen_performance,
+		);
 
-		for i in 0..GENESIS_SEED_C_COUNT {
-			if i < GENESIS_SEED_C_COUNT * TEAM_PERCENTAGE / 100 {
-				c_seeds.push(Seed::generate(
-					CmlType::C,
-					seq_id,
-					DefrostScheduleType::Team,
-					&gen_defrost_time_for_team,
-					gen_lifespan(CmlType::C),
-					gen_performance(CmlType::C),
-				))
-			} else {
-				c_seeds.push(Seed::generate(
-					CmlType::C,
-					seq_id,
-					DefrostScheduleType::Investor,
-					&gen_defrost_time_for_investor,
-					gen_lifespan(CmlType::C),
-					gen_performance(CmlType::C),
-				));
-			}
-			seq_id += 1;
-		}
+		let b_seeds = Self::generate_batch_type_seeds(
+			GENESIS_SEED_B_COUNT,
+			CmlType::B,
+			&mut seq_id,
+			&gen_defrost_time,
+			&gen_lifespan,
+			&gen_performance,
+		);
+
+		let c_seeds = Self::generate_batch_type_seeds(
+			GENESIS_SEED_C_COUNT,
+			CmlType::C,
+			&mut seq_id,
+			&gen_defrost_time,
+			&gen_lifespan,
+			&gen_performance,
+		);
+
 		GenesisSeeds {
 			a_seeds,
 			b_seeds,
 			c_seeds,
 		}
+	}
+
+	fn generate_batch_type_seeds(
+		count: u64,
+		cml_type: CmlType,
+		seq_id: &mut u64,
+		gen_defrost_time: &impl Fn(DefrostScheduleType, u64) -> BlockNumber,
+		gen_lifespan: &impl Fn(CmlType, u64) -> BlockNumber,
+		gen_performance: &impl Fn(CmlType, u64) -> Performance,
+	) -> Vec<Seed> {
+		let mut seeds: Vec<Seed> = Vec::new();
+
+		for i in 0..count {
+			if i < count * TEAM_PERCENTAGE / 100 {
+				seeds.push(Seed::generate(
+					cml_type,
+					*seq_id,
+					DefrostScheduleType::Team,
+					gen_defrost_time(DefrostScheduleType::Team, *seq_id),
+					gen_lifespan(cml_type, *seq_id),
+					gen_performance(cml_type, *seq_id),
+				))
+			} else {
+				seeds.push(Seed::generate(
+					cml_type,
+					*seq_id,
+					DefrostScheduleType::Investor,
+					gen_defrost_time(DefrostScheduleType::Investor, *seq_id),
+					gen_lifespan(cml_type, *seq_id),
+					gen_performance(cml_type, *seq_id),
+				));
+			}
+			*seq_id += 1;
+		}
+		seeds
 	}
 }

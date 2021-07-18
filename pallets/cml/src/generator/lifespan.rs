@@ -1,12 +1,20 @@
+use crate::generator::{cml_type_sub_type_value, generate_individual_seed};
 use crate::param::{BASE_LIFESPAN_A, BASE_LIFESPAN_B, BASE_LIFESPAN_C, DEVIATION};
 use crate::CmlType;
 use node_primitives::BlockNumber;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
-pub fn make_generate_lifespan_fn(seed: [u8; 32]) -> impl Fn(CmlType) -> BlockNumber {
-	move |cml_type: CmlType| {
-		let mut rng: StdRng = SeedableRng::from_seed(seed);
+const LIFESPAN_CLASS_VALUE: u8 = 2;
+
+pub fn make_generate_lifespan_fn(seed: [u8; 32]) -> impl Fn(CmlType, u64) -> BlockNumber {
+	move |cml_type: CmlType, seq_id: u64| {
+		let mut rng: StdRng = SeedableRng::from_seed(generate_individual_seed(
+			seed,
+			LIFESPAN_CLASS_VALUE,
+			cml_type_sub_type_value(cml_type),
+			seq_id,
+		));
 		let r: u8 = rng.gen();
 		let base_lifespan = {
 			match cml_type {
@@ -33,17 +41,17 @@ mod tests {
 		let mut total_a: u64 = 0;
 		let mut total_b: u64 = 0;
 		let mut total_c: u64 = 0;
-		for _ in 0..test_sample_count {
+		for i in 0..test_sample_count {
 			let closure = make_generate_lifespan_fn([1; 32]);
-			total_a += closure(CmlType::A) as u64;
+			total_a += closure(CmlType::A, i) as u64;
 		}
-		for _ in 0..test_sample_count {
+		for i in 0..test_sample_count {
 			let closure = make_generate_lifespan_fn([1; 32]);
-			total_b += closure(CmlType::B) as u64;
+			total_b += closure(CmlType::B, i) as u64;
 		}
-		for _ in 0..test_sample_count {
+		for i in 0..test_sample_count {
 			let closure = make_generate_lifespan_fn([1; 32]);
-			total_c += closure(CmlType::C) as u64;
+			total_c += closure(CmlType::C, i) as u64;
 		}
 		println!(
 			"avg lifespan of seeds a is {} days",
@@ -57,9 +65,9 @@ mod tests {
 			"avg lifespan of seeds c is {} days",
 			total_c / test_sample_count / BLOCKS_IN_A_DAY as u64
 		);
-		for _ in 0..20 {
+		for i in 0..20 {
 			let closure = make_generate_lifespan_fn([1; 32]);
-			println!("lifespan seeds b is {}", closure(CmlType::B));
+			println!("lifespan seeds b is {}", closure(CmlType::B, i));
 		}
 	}
 }
