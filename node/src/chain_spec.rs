@@ -22,7 +22,7 @@ use sp_runtime::{
 use std::collections::HashSet;
 
 const INITIAL_ACCOUNT_BALANCE: Balance = 10000 * DOLLARS;
-const COUPON_ACCOUNT_BALANCE: Balance = 1 * CENTS;
+const COUPON_ACCOUNT_BALANCE: Balance = 1 * DOLLARS;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
