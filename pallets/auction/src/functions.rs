@@ -379,7 +379,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		let essential_balance = Self::essential_bid_balance(price, &auction_item.cml_id);
 		ensure!(
 			T::CurrencyOperations::free_balance(sender) >= essential_balance,
-			Error::<T>::NotEnoughBalance
+			Error::<T>::NotEnoughBalanceForBid
 		);
 
 		let min_price = Self::min_bid_price(&auction_item, sender)?;

@@ -85,7 +85,8 @@ pub mod auction {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		NotEnoughBalance,
+		NotEnoughBalanceForAuction,
+		NotEnoughBalanceForBid,
 		NotEnoughReserveBalance,
 		AuctionNotExist,
 		InvalidBidPrice,
@@ -181,7 +182,7 @@ pub mod auction {
 					ensure!(
 						T::CurrencyOperations::free_balance(&sender)
 							>= T::AuctionPledgeAmount::get() + T::AuctionFeePerWindow::get(),
-						Error::<T>::NotEnoughBalance
+						Error::<T>::NotEnoughBalanceForAuction
 					);
 					if let Some(buy_now_price) = buy_now_price.as_ref() {
 						ensure!(

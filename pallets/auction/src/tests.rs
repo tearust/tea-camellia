@@ -82,14 +82,14 @@ fn put_to_store_should_fail_if_free_balance_lower_than_auction_pledge_amount() {
 		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT - 1);
 		assert_noop!(
 			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true),
-			Error::<Test>::NotEnoughBalance
+			Error::<Test>::NotEnoughBalanceForAuction
 		);
 
 		// essential balance should be (AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW)
 		<Test as Config>::Currency::make_free_balance_be(&1, AUCTION_PLEDGE_AMOUNT);
 		assert_noop!(
 			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true),
-			Error::<Test>::NotEnoughBalance
+			Error::<Test>::NotEnoughBalanceForAuction
 		);
 	})
 }
@@ -540,7 +540,7 @@ fn bid_for_auction_with_insufficient_balance_should_fail() {
 
 		assert_noop!(
 			Auction::bid_for_auction(Origin::signed(1), auction_id, 10),
-			Error::<Test>::NotEnoughBalance
+			Error::<Test>::NotEnoughBalanceForBid
 		);
 	})
 }
@@ -578,7 +578,7 @@ fn bid_mining_cml_should_have_sufficient_free_balance_for_staking() {
 
 		assert_noop!(
 			Auction::bid_for_auction(Origin::signed(user_id), auction_id, starting_price),
-			Error::<Test>::NotEnoughBalance
+			Error::<Test>::NotEnoughBalanceForBid
 		);
 	})
 }
