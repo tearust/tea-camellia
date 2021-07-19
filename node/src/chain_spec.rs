@@ -1,5 +1,5 @@
 use camellia_runtime::{
-	constants::currency::{CENTS, DOLLARS},
+	constants::currency::DOLLARS,
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisCoupons, GenesisSeeds},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
