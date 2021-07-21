@@ -752,7 +752,11 @@ pub mod cml {
 		/// task submit, the real RA task should initiate at an Enclave enviroment and validate by
 		/// other nodes.
 		#[pallet::weight(T::WeightInfo::dummy_ra_task())]
-		pub fn dummy_ra_task(sender: OriginFor<T>, machine_id: MachineId) -> DispatchResult {
+		pub fn dummy_ra_task(
+			sender: OriginFor<T>,
+			machine_id: MachineId,
+			task_point: ServiceTaskPoint,
+		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
 			extrinsic_procedure(
@@ -772,7 +776,7 @@ pub mod cml {
 					Ok(())
 				},
 				|_who| {
-					Self::complete_ra_task(machine_id);
+					Self::complete_ra_task(machine_id, task_point);
 				},
 			)
 		}
@@ -877,5 +881,5 @@ pub trait StakingEconomics<Balance, AccountId> {
 /// Operations about task, tasks usually initiated at an enclave environment.
 pub trait Task {
 	/// Called after a miner has complete a RA task.
-	fn complete_ra_task(machine_id: MachineId);
+	fn complete_ra_task(machine_id: MachineId, task_point: ServiceTaskPoint);
 }

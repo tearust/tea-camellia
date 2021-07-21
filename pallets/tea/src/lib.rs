@@ -272,7 +272,7 @@ pub mod tea {
 					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
 					let target_status =
 						Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
-					T::TaskService::complete_ra_task(tea_id);
+					T::TaskService::complete_ra_task(tea_id, 1);
 					Self::deposit_event(Event::CommitRaResult(
 						sender.clone(),
 						RaResult {
