@@ -9,9 +9,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub fn user_bid_list(who: &T::AccountId) -> Vec<u64> {
-		BidStore::<T>::iter()
-			.filter(|(account_id, _, _)| *who == *account_id)
-			.map(|(_, auction_id, _)| auction_id)
+		BidStore::<T>::iter_prefix(who)
+			.map(|(auction_id, _)| auction_id)
 			.collect()
 	}
 

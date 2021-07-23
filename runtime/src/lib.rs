@@ -1074,6 +1074,10 @@ impl_runtime_apis! {
 			Cml::user_cml_list(who)
 		}
 
+		fn user_credit_list(who: &AccountId) -> Vec<(u64, Balance)> {
+			Cml::user_credit_list(who)
+		}
+
 		fn user_staking_list(who: &AccountId) -> Vec<(u64, u64)> {
 			Cml::user_staking_list(who)
 		}
