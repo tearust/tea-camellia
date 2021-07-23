@@ -63,6 +63,7 @@
       "Staking": "CmlStatusStaking"
     }
   },
+
   "CmlStatusFreshSeed": {
     "fresh_seed": "BlockNumber"
   },
@@ -70,6 +71,7 @@
     "cml_id": "CmlId",
     "staking_index": "StakingIndex"
   },
+
   "MinerStatus": {
     "_enum": [
       "Active",
@@ -97,6 +99,7 @@
     "status": "MinerStatus"
   },
   "performance": "u32",
+  "ServiceTaskPoint": "u32",
   "Seed": {
     "id": "CmlId",
     "cml_type": "CmlType",
@@ -114,11 +117,9 @@
     "machine_id": "Option<MachineId>",
     "fresh_duration": "PhantomData<FreshDuration>"
   },
+
   "AuctionStatus": {
-    "_enum": [
-      "Normal",
-      "Suspended"
-    ]
+    "_enum": ["Normal", "Suspended"]
   },
   "AuctionId": "u64",
   "AuctionItem": {
