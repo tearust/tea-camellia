@@ -136,8 +136,15 @@ pub mod cml {
 	/// credit and mining first).
 	#[pallet::storage]
 	#[pallet::getter(fn miner_credit_store)]
-	pub type GenesisMinerCreditStore<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+	pub type GenesisMinerCreditStore<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		Twox64Concat,
+		CmlId,
+		BalanceOf<T>,
+		ValueQuery,
+	>;
 
 	/// Double map about `CmlType` and `DefrostScheduleType`, value is the rest of CMLs in lucky draw box.
 	#[pallet::storage]
@@ -514,7 +521,7 @@ pub mod cml {
 					let ip = miner_ip.clone();
 					CmlStore::<T>::mutate(cml_id, |cml| {
 						let staking_item = if cml.is_from_genesis() {
-							Self::create_genesis_miner_balance_staking(&sender)
+							Self::create_genesis_miner_balance_staking(&sender, cml.id())
 						} else {
 							Self::create_balance_staking(&sender, T::StakingPrice::get())
 						};
@@ -705,7 +712,7 @@ pub mod cml {
 						Error::<T>::NotFoundRewardAccount
 					);
 					ensure!(
-						GenesisMinerCreditStore::<T>::get(who).is_zero(),
+						GenesisMinerCreditStore::<T>::iter_prefix(who).count() == 0,
 						Error::<T>::OperationForbiddenWithCredit
 					);
 					Ok(())
@@ -720,30 +727,30 @@ pub mod cml {
 
 		/// Pay off all credit of current user about mining genesis CMLs.
 		#[pallet::weight(T::WeightInfo::pay_off_mining_credit())]
-		pub fn pay_off_mining_credit(sender: OriginFor<T>) -> DispatchResult {
+		pub fn pay_off_mining_credit(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
 			extrinsic_procedure(
 				&who,
 				|who| {
 					ensure!(
-						GenesisMinerCreditStore::<T>::contains_key(who),
+						GenesisMinerCreditStore::<T>::contains_key(who, cml_id),
 						Error::<T>::CmlNoNeedToPayOff
 					);
 					ensure!(
 						T::CurrencyOperations::free_balance(who)
-							>= GenesisMinerCreditStore::<T>::get(who),
+							>= GenesisMinerCreditStore::<T>::get(who, cml_id),
 						Error::<T>::InsufficientFreeBalance
 					);
 					Ok(())
 				},
 				|who| {
-					let pay_off_balance = GenesisMinerCreditStore::<T>::get(who);
+					let pay_off_balance = GenesisMinerCreditStore::<T>::get(who, cml_id);
 					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 					if T::CurrencyOperations::reserve(who, pay_off_balance).is_err() {
 						return;
 					}
-					GenesisMinerCreditStore::<T>::remove(who);
+					GenesisMinerCreditStore::<T>::remove(who, cml_id);
 				},
 			)
 		}
@@ -846,7 +853,7 @@ pub trait CmlOperation {
 	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance>;
 
 	/// Get credit amount of the given user.
-	fn user_credit_amount(account_id: &Self::AccountId) -> Self::Balance;
+	fn user_credit_amount(account_id: &Self::AccountId, cml_id: &CmlId) -> Self::Balance;
 
 	/// Add a cml into `CmlStore` and bind the CML with the given user.
 	fn add_cml(

@@ -5,6 +5,7 @@ use crate::{
 	MiningCmlTaskPoints, UserCmlStore,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
+use node_primitives::Balance;
 
 #[test]
 fn start_mining_with_frozen_seed_works() {
@@ -35,7 +36,9 @@ fn start_mining_with_frozen_seed_works() {
 		assert_eq!(cml.staking_slots()[0].amount, Some(STAKING_PRICE));
 		assert_eq!(cml.staking_slots()[0].owner, user_id);
 
-		assert!(!GenesisMinerCreditStore::<Test>::contains_key(&user_id));
+		assert!(!GenesisMinerCreditStore::<Test>::contains_key(
+			&user_id, cml_id
+		));
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user_id),
 			amount - STAKING_PRICE
@@ -70,7 +73,7 @@ fn start_mining_works_with_insufficient_balance() {
 		// if free balance is not enough, will let all staking needed price be debt, with free
 		// balance left as it is.
 		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(&user_id),
+			GenesisMinerCreditStore::<Test>::get(&user_id, cml_id),
 			STAKING_PRICE
 		);
 		assert_eq!(
@@ -105,7 +108,7 @@ fn start_mining_of_multipile_cml_works_with_insufficient_balance() {
 			b"miner_ip".to_vec()
 		));
 		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(&user_id),
+			GenesisMinerCreditStore::<Test>::get(&user_id, cml_id1),
 			STAKING_PRICE
 		);
 
@@ -117,7 +120,12 @@ fn start_mining_of_multipile_cml_works_with_insufficient_balance() {
 			b"miner_ip2".to_vec()
 		));
 		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(&user_id),
+			GenesisMinerCreditStore::<Test>::get(&user_id, cml_id2),
+			STAKING_PRICE
+		);
+
+		assert_eq!(
+			GenesisMinerCreditStore::<Test>::iter_prefix_values(&user_id).sum::<Balance>(),
 			STAKING_PRICE * 2
 		);
 	})
@@ -624,15 +632,18 @@ fn dummy_ra_task_works() {
 
 		assert!(!MiningCmlTaskPoints::<Test>::contains_key(&cml_id));
 
-		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id));
+		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id, 1));
 		assert_eq!(MiningCmlTaskPoints::<Test>::get(&cml_id), 1);
 
-		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id));
+		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id, 1));
 		assert_eq!(MiningCmlTaskPoints::<Test>::get(&cml_id), 2);
+
+		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id, 3));
+		assert_eq!(MiningCmlTaskPoints::<Test>::get(&cml_id), 5);
 
 		// a machine can only have u32::MAX points
 		MiningCmlTaskPoints::<Test>::mutate(&cml_id, |point| *point = u32::MAX);
-		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id));
+		assert_ok!(Cml::dummy_ra_task(Origin::signed(1), machine_id, 1));
 		assert_eq!(MiningCmlTaskPoints::<Test>::get(&cml_id), u32::MAX);
 	})
 }

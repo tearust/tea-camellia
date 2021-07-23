@@ -2,7 +2,7 @@ use crate as pallet_tea;
 use frame_support::parameter_types;
 use frame_system as system;
 use node_primitives::Balance;
-use pallet_cml::{MachineId, Task};
+use pallet_cml::{MachineId, ServiceTaskPoint, Task};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -113,7 +113,7 @@ impl Default for MockTaskService {
 
 impl Task for MockTaskService {
 	/// Called after a miner has complete a RA task.
-	fn complete_ra_task(_machine_id: MachineId) {
+	fn complete_ra_task(_machine_id: MachineId, _task_point: ServiceTaskPoint) {
 		// do nothing here
 	}
 }

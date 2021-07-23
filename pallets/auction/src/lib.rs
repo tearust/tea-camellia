@@ -200,7 +200,7 @@ pub mod auction {
 						Error::<T>::NotAllowToAuction
 					);
 					ensure!(
-						T::CmlOperation::user_credit_amount(sender).is_zero(),
+						T::CmlOperation::user_credit_amount(sender, &cml_id).is_zero(),
 						Error::<T>::AuctionOwnerHasCredit
 					);
 					Ok(())

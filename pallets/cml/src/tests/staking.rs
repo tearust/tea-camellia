@@ -511,7 +511,7 @@ fn withdraw_staking_reward_should_fail_if_user_not_have_reward() {
 fn withdraw_staking_reward_should_fail_if_there_is_credit() {
 	new_test_ext().execute_with(|| {
 		AccountRewards::<Test>::insert(1, 1000);
-		GenesisMinerCreditStore::<Test>::insert(1, 200);
+		GenesisMinerCreditStore::<Test>::insert(1, 1, 200);
 
 		assert_noop!(
 			Cml::withdraw_staking_reward(Origin::signed(1)),
@@ -531,7 +531,8 @@ fn pay_off_mining_credit_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user1, free_balance);
 
 		let credit_balance = 1000;
-		GenesisMinerCreditStore::<Test>::insert(user1, credit_balance);
+		let cml_id = 11;
+		GenesisMinerCreditStore::<Test>::insert(user1, cml_id, credit_balance);
 
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user1),
@@ -539,7 +540,7 @@ fn pay_off_mining_credit_works() {
 		);
 		assert_eq!(<Test as Config>::Currency::reserved_balance(&user1), 0);
 
-		assert_ok!(Cml::pay_off_mining_credit(Origin::signed(user1)));
+		assert_ok!(Cml::pay_off_mining_credit(Origin::signed(user1), cml_id));
 
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user1),
@@ -549,7 +550,9 @@ fn pay_off_mining_credit_works() {
 			<Test as Config>::Currency::reserved_balance(&user1),
 			credit_balance
 		);
-		assert!(!GenesisMinerCreditStore::<Test>::contains_key(&user1));
+		assert!(!GenesisMinerCreditStore::<Test>::contains_key(
+			&user1, cml_id
+		));
 	})
 }
 
@@ -557,10 +560,13 @@ fn pay_off_mining_credit_works() {
 fn pay_off_mining_credit_should_fail_if_there_is_no_credit() {
 	new_test_ext().execute_with(|| {
 		let user1 = 11;
-		assert!(!GenesisMinerCreditStore::<Test>::contains_key(&user1));
+		assert_eq!(
+			GenesisMinerCreditStore::<Test>::iter_prefix(&user1).count(),
+			0
+		);
 
 		assert_noop!(
-			Cml::pay_off_mining_credit(Origin::signed(user1)),
+			Cml::pay_off_mining_credit(Origin::signed(user1), 1),
 			Error::<Test>::CmlNoNeedToPayOff
 		);
 	})
@@ -574,11 +580,12 @@ fn pay_off_mining_credit_should_fail_if_not_enough_balance() {
 		<Test as Config>::Currency::make_free_balance_be(&user1, free_balance);
 
 		let credit_balance = 1000;
-		GenesisMinerCreditStore::<Test>::insert(user1, credit_balance);
+		let cml_id = 22;
+		GenesisMinerCreditStore::<Test>::insert(user1, cml_id, credit_balance);
 
 		assert!(free_balance < credit_balance);
 		assert_noop!(
-			Cml::pay_off_mining_credit(Origin::signed(user1)),
+			Cml::pay_off_mining_credit(Origin::signed(user1), cml_id),
 			Error::<Test>::InsufficientFreeBalance
 		);
 	})
