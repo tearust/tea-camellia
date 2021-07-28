@@ -62,6 +62,7 @@ use constants::{currency::*, time::*};
 pub use pallet_auction;
 /// Import the template pallet.
 pub use pallet_cml;
+pub use pallet_genesis_bank;
 pub use pallet_tea;
 
 /// Digest item type.
@@ -815,6 +816,11 @@ impl pallet_cml::Config for Runtime {
 	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
 }
 
+impl pallet_genesis_bank::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+}
+
 parameter_types! {
 	pub const ChainId: u8 = 1;
 	pub const ProposalLifetime: BlockNumber = 1000;
@@ -911,6 +917,7 @@ construct_runtime!(
 		Auction: pallet_auction::{Pallet, Call, Storage, Event<T>} = 101,
 		Bridge: pallet_bridge::{Pallet, Call, Event<T>} = 102,
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
+		GenesisBank: pallet_genesis_bank::{Pallet, Call, Storage, Event<T>} = 104,
 	}
 );
 
