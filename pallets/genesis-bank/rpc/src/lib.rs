@@ -24,11 +24,11 @@ pub trait GenesisBankApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<Price>;
 
-	#[rpc(name = "cml_userCmlLienList")]
-	fn user_cml_lien_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
+	#[rpc(name = "cml_userCmlLoanList")]
+	fn user_collateral_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
 
 	#[rpc(name = "get_collaterals")]
-	fn bank_owned_cmls(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
+	fn collateral_cmls(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
 }
 
 pub struct GenesisBankApiImpl<C, M> {
@@ -82,7 +82,7 @@ where
 		Ok(Price(result))
 	}
 
-	fn user_cml_lien_list(
+	fn user_collateral_list(
 		&self,
 		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
@@ -93,19 +93,19 @@ where
 			self.client.info().best_hash));
 
 		let result = api
-			.user_cml_lien_list(&at, &who)
+			.user_collateral_list(&at, &who)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}
 
-	fn bank_owned_cmls(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u64>> {
+	fn collateral_cmls(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u64>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
 		let result = api
-			.bank_owned_cmls(&at)
+			.collateral_cmls(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

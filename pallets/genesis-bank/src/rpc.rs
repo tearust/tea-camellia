@@ -9,13 +9,13 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		Self::cml_need_to_pay(&unique_id, &block_height)
 	}
 
-	pub fn user_cml_lien_list(who: &T::AccountId) -> Vec<u64> {
+	pub fn user_collateral_list(who: &T::AccountId) -> Vec<u64> {
 		UserCollateralStore::<T>::iter_prefix(who)
 			.map(|(id, _)| to_cml_id(&id.inner_id).unwrap_or(u64::MAX))
 			.collect()
 	}
 
-	pub fn bank_owned_cmls() -> Vec<u64> {
+	pub fn collateral_cmls() -> Vec<u64> {
 		T::CmlOperation::user_owned_cmls(&OperationAccount::<T>::get())
 			.iter()
 			.filter(|id| {

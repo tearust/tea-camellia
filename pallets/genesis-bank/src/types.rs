@@ -19,7 +19,7 @@ pub struct AssetUniqueId {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct Lien<AccountId, BlockNumber>
+pub struct Loan<AccountId, BlockNumber>
 where
 	AccountId: Default + PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
@@ -28,13 +28,13 @@ where
 	pub owner: AccountId,
 }
 
-impl<AccountId, BlockNumber> Default for Lien<AccountId, BlockNumber>
+impl<AccountId, BlockNumber> Default for Loan<AccountId, BlockNumber>
 where
 	AccountId: Default + PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	fn default() -> Self {
-		Lien {
+		Loan {
 			start_at: BlockNumber::default(),
 			owner: Default::default(),
 		}

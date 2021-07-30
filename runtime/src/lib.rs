@@ -259,16 +259,11 @@ impl pallet_grandpa::Config for Runtime {
 	type KeyOwnerProof =
 		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		GrandpaId,
-	)>>::IdentificationTuple;
+	type KeyOwnerIdentification =
+		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
 
-	type HandleEquivocation = pallet_grandpa::EquivocationHandler<
-		Self::KeyOwnerIdentification,
-		Offences,
-		ReportLongevity,
-	>;
+	type HandleEquivocation =
+		pallet_grandpa::EquivocationHandler<Self::KeyOwnerIdentification, Offences, ReportLongevity>;
 
 	type WeightInfo = (); // not setting because polkadot do not set either, add weight info if needed later
 }
@@ -817,10 +812,10 @@ impl pallet_cml::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LienTermDuration: BlockNumber = 10000;
-	pub const GenesisCmlLienAmount: Balance = 500 * DOLLARS;
-	pub const LendingRates: Balance = 50;
-	pub const LienBillingPeriod: BlockNumber = 1000;
+	pub const LoanTermDuration: BlockNumber = 10000;
+	pub const GenesisCmlLoanAmount: Balance = 500 * DOLLARS;
+	pub const InterestRate: Balance = 50;
+	pub const BillingCycle: BlockNumber = 1000;
 }
 
 impl pallet_genesis_bank::Config for Runtime {
@@ -828,10 +823,10 @@ impl pallet_genesis_bank::Config for Runtime {
 	type Currency = Balances;
 	type CmlOperation = Cml;
 	type CurrencyOperations = Utils;
-	type LienTermDuration = LienTermDuration;
-	type GenesisCmlLienAmount = GenesisCmlLienAmount;
-	type LendingRates = LendingRates;
-	type LienBillingPeriod = LienBillingPeriod;
+	type LoanTermDuration = LoanTermDuration;
+	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
+	type InterestRate = InterestRate;
+	type BillingCycle = BillingCycle;
 }
 
 parameter_types! {
@@ -1130,12 +1125,12 @@ impl_runtime_apis! {
 			GenesisBank::cml_calculate_loan_amount(cml_id, block_height)
 		}
 
-		fn user_cml_lien_list(who: &AccountId) -> Vec<u64> {
-			GenesisBank::user_cml_lien_list(who)
+		fn user_collateral_list(who: &AccountId) -> Vec<u64> {
+			GenesisBank::user_collateral_list(who)
 		}
 
-		fn bank_owned_cmls() -> Vec<u64> {
-			GenesisBank::bank_owned_cmls()
+		fn collateral_cmls() -> Vec<u64> {
+			GenesisBank::collateral_cmls()
 		}
 	}
 

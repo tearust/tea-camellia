@@ -53,18 +53,18 @@ pub mod genesis_bank {
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 		>;
-		/// The max time lien should be pay off.
+		/// The max time loan should be pay off.
 		#[pallet::constant]
-		type LienTermDuration: Get<Self::BlockNumber>;
+		type LoanTermDuration: Get<Self::BlockNumber>;
 		/// The unit amount that a genesis cml can be paid.
 		#[pallet::constant]
-		type GenesisCmlLienAmount: Get<BalanceOf<Self>>;
-		/// Lending rates of one lien period in ten thousand units(‱).
+		type GenesisCmlLoanAmount: Get<BalanceOf<Self>>;
+		/// Interest rates of one loan period in ten thousand units(‱).
 		#[pallet::constant]
-		type LendingRates: Get<BalanceOf<Self>>;
+		type InterestRate: Get<BalanceOf<Self>>;
 		/// Billing cycle of bank to calculate bill.
 		#[pallet::constant]
-		type LienBillingPeriod: Get<Self::BlockNumber>;
+		type BillingCycle: Get<Self::BlockNumber>;
 	}
 
 	#[pallet::pallet]
@@ -81,19 +81,12 @@ pub mod genesis_bank {
 	#[pallet::storage]
 	#[pallet::getter(fn lien_store)]
 	pub type CollateralStore<T: Config> =
-		StorageMap<_, Twox64Concat, AssetUniqueId, Lien<T::AccountId, T::BlockNumber>, ValueQuery>;
+		StorageMap<_, Twox64Concat, AssetUniqueId, Loan<T::AccountId, T::BlockNumber>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_lien_store)]
-	pub type UserCollateralStore<T: Config> = StorageDoubleMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		Twox64Concat,
-		AssetUniqueId,
-		(),
-		ValueQuery,
-	>;
+	pub type UserCollateralStore<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, AssetUniqueId, (), ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -120,29 +113,29 @@ pub mod genesis_bank {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Lien already exists that cannot be pawn again.
-		LienAlreadyExists,
-		/// Bank have not enough free balance to pay the user.
+		/// Loan already exists that cannot be pawn again.
+		LoanAlreadyExists,
+		/// Genesis Bank does not have enough free balance to pay the user.
 		InsufficientBalanceToPay,
-		/// The given asset id not exist in asset store.
-		AssetNotExists,
-		/// Asset not belongs to user.
-		InvalidAssetUser,
-		/// Lien has expired.
-		LienHasExpired,
-		/// User have not enough free balance to redeem asset.
-		InsufficientRedeemBalance,
+		/// The given asset id not exist in collateral store.
+		LoanNotExists,
+		/// Collateral not belongs to user.
+		InvalidBorrower,
+		/// Loan in default
+		LoanInDefault,
+		/// User have not enough free balance to pay off loan.
+		InsufficientRepayBalance,
 		/// Close height should larger equal than current height.
 		InvalidCloseHeight,
 		/// Should pawn cml with frozen seed status.
 		ShouldPawnFrozenSeed,
 		/// Only allowed pawn genesis seed .
 		ShouldPawnGenesisSeed,
-		/// Lien store not empty cannot shutdown.
+		/// Collateral store not empty cannot shutdown.
 		CollateralStoreNotEmpty,
-		/// User lien store not empty cannot shutdown.
+		/// User collateral store not empty cannot shutdown.
 		UserCollateralStoreNotEmpty,
-		/// Asset id convert to cml id with invalid length.
+		/// Loan id convert to cml id with invalid length.
 		ConvertToCmlIdLengthMismatch,
 	}
 
@@ -150,7 +143,7 @@ pub mod genesis_bank {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
 			if Self::is_time_for_collateral_check(n) {
-				Self::try_clean_overdue();
+				Self::try_clean_default_loan();
 			}
 		}
 	}
@@ -194,15 +187,14 @@ pub mod genesis_bank {
 					Ok(())
 				},
 				|_root| {
-					let balance =
-						T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
+					let balance = T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
 					T::CurrencyOperations::slash(&OperationAccount::<T>::get(), balance);
 				},
 			)
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn pawn_asset_to_genesis_bank(
+		pub fn apply_loan_genesis_bank(
 			sender: OriginFor<T>,
 			id: AssetId,
 			asset_type: AssetType,
@@ -218,7 +210,7 @@ pub mod genesis_bank {
 				|who| {
 					ensure!(
 						CollateralStore::<T>::contains_key(&unique_id),
-						Error::<T>::LienAlreadyExists
+						Error::<T>::LoanAlreadyExists
 					);
 					Self::check_before_collateral(&unique_id, who)
 				},
@@ -229,11 +221,7 @@ pub mod genesis_bank {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn redeem_asset(
-			sender: OriginFor<T>,
-			id: AssetId,
-			asset_type: AssetType,
-		) -> DispatchResult {
+		pub fn payoff_loan(sender: OriginFor<T>, id: AssetId, asset_type: AssetType) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let unique_id = AssetUniqueId {
 				asset_type,
@@ -242,8 +230,8 @@ pub mod genesis_bank {
 
 			extrinsic_procedure(
 				&who,
-				|who| Self::check_redeem_asset(&unique_id, who),
-				|who| Self::redeem_asset_inner(&unique_id, who),
+				|who| Self::check_before_payoff_loan(&unique_id, who),
+				|who| Self::payoff_loan_inner(&unique_id, who),
 			)
 		}
 	}
