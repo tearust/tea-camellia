@@ -125,6 +125,11 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		CmlStore::<T>::insert(cml_id, cml);
 		UserCmlStore::<T>::insert(who, cml_id, ());
 	}
+
+	/// Get all user owned cml list.
+	fn user_owned_cmls(who: &Self::AccountId) -> Vec<CmlId> {
+		Self::user_cml_list(who)
+	}
 }
 
 #[cfg(test)]

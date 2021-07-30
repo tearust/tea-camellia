@@ -6,7 +6,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		height % T::LienBillingPeriod::get() == 5u32.into()
 	}
 
-	pub(crate) fn try_clean_expired_lien() {
+	pub(crate) fn try_clean_expired_lien() -> Vec<AssetUniqueId> {
 		let current_height = frame_system::Pallet::<T>::block_number();
 		let expired_ids: Vec<AssetUniqueId> = LienStore::<T>::iter()
 			.filter(|(id, _)| Self::is_lien_expired(id, &current_height))
@@ -16,6 +16,8 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 			})
 			.collect();
 		expired_ids.iter().for_each(|id| LienStore::<T>::remove(id));
+
+		expired_ids
 	}
 
 	pub(crate) fn check_pawn_asset(id: &AssetUniqueId, who: &T::AccountId) -> DispatchResult {
@@ -138,14 +140,119 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		current_height: &T::BlockNumber,
 	) -> BalanceOf<T> {
 		let lien = LienStore::<T>::get(id);
-		let terms: Option<u32> = ((*current_height - lien.start_at) / T::LienBillingPeriod::get())
+		T::GenesisCmlLienAmount::get() + Self::calculate_interest(current_height, &lien.start_at)
+	}
+
+	pub(crate) fn calculate_interest(
+		current_height: &T::BlockNumber,
+		start_at: &T::BlockNumber,
+	) -> BalanceOf<T> {
+		if *current_height < *start_at {
+			return Zero::zero();
+		}
+
+		let terms: Option<u32> = ((*current_height - *start_at) / T::LienBillingPeriod::get())
 			.try_into()
 			.ok();
 
-		let interest =
-			T::GenesisCmlLienAmount::get() * terms.unwrap_or(1u32).into() * T::LendingRates::get()
-				/ 10000u32.into()
-				+ T::LendingRates::get();
-		T::GenesisCmlLienAmount::get() + interest
+		(T::GenesisCmlLienAmount::get() * (terms.unwrap_or(1u32) + 1u32).into() / 10000u32.into())
+			* T::LendingRates::get()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::mock::*;
+	use crate::*;
+	use pallet_cml::CmlId;
+
+	#[test]
+	fn calculate_interest_works() {
+		new_test_ext().execute_with(|| {
+			let unit_interest = GENESIS_CML_LIEN_AMOUNT * LENDING_RATES / 10000;
+			// return unit leading rate if current_height equals to start_at, or difference lower than LienBillingPeriod
+			assert_eq!(GenesisBank::calculate_interest(&0, &0), unit_interest);
+			assert_eq!(
+				GenesisBank::calculate_interest(&10000, &10000),
+				unit_interest
+			);
+			assert_eq!(
+				GenesisBank::calculate_interest(&(LIEN_BILLING_PERIOD as u64 - 1), &0),
+				unit_interest
+			);
+
+			assert_eq!(
+				GenesisBank::calculate_interest(&(LIEN_BILLING_PERIOD as u64), &0),
+				unit_interest * 2
+			);
+			assert_eq!(
+				GenesisBank::calculate_interest(&(2 * LIEN_BILLING_PERIOD as u64 - 1), &0),
+				unit_interest * 2
+			);
+
+			assert_eq!(
+				GenesisBank::calculate_interest(&(2 * LIEN_BILLING_PERIOD as u64), &0),
+				unit_interest * 3
+			);
+		});
+	}
+
+	#[test]
+	fn try_clean_expired_lien_works() {
+		new_test_ext().execute_with(|| {
+			let user1 = 11;
+			let user2 = 22;
+			let id1 = new_id(1);
+			let id2 = new_id(2);
+			let start_height1 = 0;
+			let start_height2 = 1000;
+			LienStore::<Test>::insert(&id1, new_lien(user1, start_height1));
+			LienStore::<Test>::insert(&id2, new_lien(user2, start_height2));
+			UserLienStore::<Test>::insert(user1, &id1, ());
+			UserLienStore::<Test>::insert(user2, &id2, ());
+
+			frame_system::Pallet::<Test>::set_block_number(0);
+			assert_eq!(GenesisBank::try_clean_expired_lien().len(), 0);
+
+			frame_system::Pallet::<Test>::set_block_number(LIEN_TERM_DURATION as u64 - 1);
+			assert_eq!(GenesisBank::try_clean_expired_lien().len(), 0);
+
+			frame_system::Pallet::<Test>::set_block_number(LIEN_TERM_DURATION as u64);
+			assert_eq!(GenesisBank::try_clean_expired_lien().len(), 0);
+
+			frame_system::Pallet::<Test>::set_block_number(LIEN_TERM_DURATION as u64 + 1);
+			let cleaned_ids = GenesisBank::try_clean_expired_lien();
+			assert_eq!(cleaned_ids.len(), 1);
+			assert_eq!(cleaned_ids[0], id1);
+			assert!(!LienStore::<Test>::contains_key(&id1));
+			assert!(!UserLienStore::<Test>::contains_key(&user1, &id1));
+			assert!(LienStore::<Test>::contains_key(&id2));
+			assert!(UserLienStore::<Test>::contains_key(&user2, &id2));
+
+			frame_system::Pallet::<Test>::set_block_number(
+				LIEN_TERM_DURATION as u64 + start_height2,
+			);
+			assert_eq!(GenesisBank::try_clean_expired_lien().len(), 0);
+
+			frame_system::Pallet::<Test>::set_block_number(
+				LIEN_TERM_DURATION as u64 + start_height2 + 1,
+			);
+			let cleaned_ids = GenesisBank::try_clean_expired_lien();
+			assert_eq!(cleaned_ids.len(), 1);
+			assert_eq!(cleaned_ids[0], id2);
+			assert!(!LienStore::<Test>::contains_key(&id2));
+			assert!(!UserLienStore::<Test>::contains_key(&user2, &id2));
+		})
+	}
+
+	fn new_id(cml_id: CmlId) -> AssetUniqueId {
+		AssetUniqueId {
+			asset_type: AssetType::CML,
+			inner_id: from_cml_id(cml_id),
+		}
+	}
+
+	fn new_lien(owner: u64, start_at: u64) -> Lien<u64, u64> {
+		Lien { owner, start_at }
 	}
 }

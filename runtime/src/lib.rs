@@ -816,9 +816,22 @@ impl pallet_cml::Config for Runtime {
 	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+	pub const LienTermDuration: BlockNumber = 10000;
+	pub const GenesisCmlLienAmount: Balance = 500 * DOLLARS;
+	pub const LendingRates: Balance = 50;
+	pub const LienBillingPeriod: BlockNumber = 1000;
+}
+
 impl pallet_genesis_bank::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type CmlOperation = Cml;
+	type CurrencyOperations = Utils;
+	type LienTermDuration = LienTermDuration;
+	type GenesisCmlLienAmount = GenesisCmlLienAmount;
+	type LendingRates = LendingRates;
+	type LienBillingPeriod = LienBillingPeriod;
 }
 
 parameter_types! {
@@ -1109,6 +1122,20 @@ impl_runtime_apis! {
 
 		fn current_auction_list() -> Vec<u64> {
 			Auction::current_auction_list()
+		}
+	}
+
+	impl genesis_bank_runtime_api::GenesisBankApi<Block, AccountId> for Runtime {
+		fn cml_lien_redeem_amount(cml_id: u64, block_height: BlockNumber) -> Balance {
+			GenesisBank::cml_lien_redeem_amount(cml_id, block_height)
+		}
+
+		fn user_cml_lien_list(who: &AccountId) -> Vec<u64> {
+			GenesisBank::user_cml_lien_list(who)
+		}
+
+		fn bank_owned_cmls() -> Vec<u64> {
+			GenesisBank::bank_owned_cmls()
 		}
 	}
 

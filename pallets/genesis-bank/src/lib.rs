@@ -12,6 +12,7 @@ mod mock;
 mod tests;
 
 mod functions;
+mod rpc;
 mod types;
 
 use frame_support::{
@@ -21,7 +22,9 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_cml::{CmlOperation, SeedProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
+use sp_runtime::traits::Zero;
 use sp_std::convert::TryInto;
+use sp_std::prelude::*;
 use types::*;
 
 /// The balance type of this module.

@@ -84,6 +84,7 @@ pallet-cml = {default-features = false, path = '../pallets/cml'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
 auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
 staking-economics = {default-features = false, path = '../pallets/cml/staking-economics'}
+genesis-bank-runtime-api = {default-features = false, path = '../pallets/genesis-bank/runtime-api'}
 
 [features]
 default = ['std']
@@ -178,6 +179,7 @@ std = [
 	'cml-runtime-api/std',
 	'auction-runtime-api/std',
 	'staking-economics/std',
-	'pallet-genesis-bank/std'
+	'pallet-genesis-bank/std',
+	'genesis-bank-runtime-api/std',
 ]
 fast = ['pallet-cml/fast'] # indicate the block duration and epoch will be shorter to test

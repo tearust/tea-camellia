@@ -70,6 +70,8 @@ cml-runtime-api = {path = '../pallets/cml/runtime-api'}
 cml-rpc = {path = '../pallets/cml/rpc'}
 auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
 auction-rpc = {path = '../pallets/auction/rpc'}
+genesis-bank-runtime-api = {path = '../pallets/genesis-bank/runtime-api'}
+genesis-bank-rpc = {path = '../pallets/genesis-bank/rpc'}
 
 [features]
 default = []

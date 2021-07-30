@@ -860,6 +860,9 @@ pub trait CmlOperation {
 		who: &Self::AccountId,
 		cml: CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
 	);
+
+	/// Get all user owned cml list.
+	fn user_owned_cmls(who: &Self::AccountId) -> Vec<CmlId>;
 }
 
 /// Operations to calculate staking rewards.

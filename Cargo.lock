@@ -740,6 +740,7 @@ dependencies = [
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
+ "genesis-bank-runtime-api",
  "hex-literal",
  "node-primitives",
  "pallet-auction",
@@ -2242,6 +2243,34 @@ checksum = "501466ecc8a30d1d3b7fc9229b122b2ce8ed6e9d9223f1138d4babb253e51817"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "genesis-bank-rpc"
+version = "0.1.0"
+dependencies = [
+ "genesis-bank-runtime-api",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "node-primitives",
+ "parity-scale-codec",
+ "rmp-serde",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "genesis-bank-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "node-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-std",
 ]
 
 [[package]]
@@ -8018,6 +8047,8 @@ dependencies = [
  "csv",
  "frame-benchmarking",
  "frame-benchmarking-cli",
+ "genesis-bank-rpc",
+ "genesis-bank-runtime-api",
  "hex-literal",
  "jsonrpc-core",
  "pallet-authority-discovery",

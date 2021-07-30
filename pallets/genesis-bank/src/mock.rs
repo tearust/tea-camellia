@@ -83,7 +83,7 @@ impl pallet_cml::Config for Test {
 }
 
 pub const LIEN_TERM_DURATION: BlockNumber = 10000;
-pub const GENESIS_CML_LIEN_AMOUNT: Balance = 500;
+pub const GENESIS_CML_LIEN_AMOUNT: Balance = 5000000000000;
 pub const LENDING_RATES: Balance = 5;
 pub const LIEN_BILLING_PERIOD: BlockNumber = 1000;
 
