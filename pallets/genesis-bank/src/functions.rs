@@ -1,26 +1,26 @@
 use super::*;
 
 impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
-	pub(crate) fn is_lien_billing_period_end(height: T::BlockNumber) -> bool {
+	pub(crate) fn is_time_for_collateral_check(height: T::BlockNumber) -> bool {
 		// offset with 5 to void overlapping with staking period
 		height % T::LienBillingPeriod::get() == 5u32.into()
 	}
 
-	pub(crate) fn try_clean_expired_lien() -> Vec<AssetUniqueId> {
+	pub(crate) fn try_clean_overdue() -> Vec<AssetUniqueId> {
 		let current_height = frame_system::Pallet::<T>::block_number();
-		let expired_ids: Vec<AssetUniqueId> = LienStore::<T>::iter()
-			.filter(|(id, _)| Self::is_lien_expired(id, &current_height))
+		let expired_ids: Vec<AssetUniqueId> = CollateralStore::<T>::iter()
+			.filter(|(id, _)| Self::is_overdue(id, &current_height))
 			.map(|(id, lien)| {
-				UserLienStore::<T>::remove(&lien.owner, &id);
+				UserCollateralStore::<T>::remove(&lien.owner, &id);
 				id
 			})
 			.collect();
-		expired_ids.iter().for_each(|id| LienStore::<T>::remove(id));
+		expired_ids.iter().for_each(|id| CollateralStore::<T>::remove(id));
 
 		expired_ids
 	}
 
-	pub(crate) fn check_pawn_asset(id: &AssetUniqueId, who: &T::AccountId) -> DispatchResult {
+	pub(crate) fn check_before_collateral(id: &AssetUniqueId, who: &T::AccountId) -> DispatchResult {
 		match id.asset_type {
 			AssetType::CML => {
 				let cml_id = to_cml_id(&id.inner_id).map_err(|e| Error::<T>::from(e))?;
@@ -44,7 +44,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn create_new_lien(id: &AssetUniqueId, who: &T::AccountId) {
+	pub(crate) fn create_new_collateral(id: &AssetUniqueId, who: &T::AccountId) {
 		match id.asset_type {
 			AssetType::CML => {
 				if T::CurrencyOperations::transfer(
@@ -61,14 +61,14 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 
 				let current_height = frame_system::Pallet::<T>::block_number();
 				let cml_id = to_cml_id(&id.inner_id).unwrap();
-				LienStore::<T>::insert(
+				CollateralStore::<T>::insert(
 					id,
 					Lien {
 						start_at: current_height,
 						owner: who.clone(),
 					},
 				);
-				UserLienStore::<T>::insert(who, id, ());
+				UserCollateralStore::<T>::insert(who, id, ());
 				T::CmlOperation::transfer_cml_to_other(who, &cml_id, &OperationAccount::<T>::get());
 			}
 		}
@@ -82,7 +82,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 			AssetType::CML => {
 				let cml_id = to_cml_id(&id.inner_id).map_err(|e| Error::<T>::from(e))?;
 				ensure!(
-					!Self::is_lien_expired(id, &current_height),
+					!Self::is_overdue(id, &current_height),
 					Error::<T>::LienHasExpired
 				);
 				ensure!(
@@ -100,14 +100,14 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn is_lien_expired(id: &AssetUniqueId, current_height: &T::BlockNumber) -> bool {
-		*current_height > LienStore::<T>::get(id).start_at + T::LienTermDuration::get()
+	pub(crate) fn is_overdue(id: &AssetUniqueId, current_height: &T::BlockNumber) -> bool {
+		*current_height > CollateralStore::<T>::get(id).start_at + T::LienTermDuration::get()
 	}
 
 	pub(crate) fn check_belongs(who: &T::AccountId, id: &AssetUniqueId) -> DispatchResult {
-		ensure!(LienStore::<T>::contains_key(id), Error::<T>::AssetNotExists);
+		ensure!(CollateralStore::<T>::contains_key(id), Error::<T>::AssetNotExists);
 		ensure!(
-			UserLienStore::<T>::contains_key(who, id),
+			UserCollateralStore::<T>::contains_key(who, id),
 			Error::<T>::InvalidAssetUser
 		);
 		Ok(())
@@ -139,7 +139,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		id: &AssetUniqueId,
 		current_height: &T::BlockNumber,
 	) -> BalanceOf<T> {
-		let lien = LienStore::<T>::get(id);
+		let lien = CollateralStore::<T>::get(id);
 		T::GenesisCmlLienAmount::get() + Self::calculate_interest(current_height, &lien.start_at)
 	}
 
@@ -198,7 +198,7 @@ mod tests {
 	}
 
 	#[test]
-	fn try_clean_expired_lien_works() {
+	fn try_clean_overdue_works() {
 		new_test_ext().execute_with(|| {
 			let user1 = 11;
 			let user2 = 22;
@@ -206,42 +206,42 @@ mod tests {
 			let id2 = new_id(2);
 			let start_height1 = 0;
 			let start_height2 = 1000;
-			LienStore::<Test>::insert(&id1, new_lien(user1, start_height1));
-			LienStore::<Test>::insert(&id2, new_lien(user2, start_height2));
-			UserLienStore::<Test>::insert(user1, &id1, ());
-			UserLienStore::<Test>::insert(user2, &id2, ());
+			CollateralStore::<Test>::insert(&id1, new_lien(user1, start_height1));
+			CollateralStore::<Test>::insert(&id2, new_lien(user2, start_height2));
+			UserCollateralStore::<Test>::insert(user1, &id1, ());
+			UserCollateralStore::<Test>::insert(user2, &id2, ());
 
 			frame_system::Pallet::<Test>::set_block_number(0);
-			assert_eq!(GenesisBank::try_clean_expired_lien().len(), 0);
+			assert_eq!(GenesisBank::try_clean_overdue().len(), 0);
 
 			frame_system::Pallet::<Test>::set_block_number(LIEN_TERM_DURATION as u64 - 1);
-			assert_eq!(GenesisBank::try_clean_expired_lien().len(), 0);
+			assert_eq!(GenesisBank::try_clean_overdue().len(), 0);
 
 			frame_system::Pallet::<Test>::set_block_number(LIEN_TERM_DURATION as u64);
-			assert_eq!(GenesisBank::try_clean_expired_lien().len(), 0);
+			assert_eq!(GenesisBank::try_clean_overdue().len(), 0);
 
 			frame_system::Pallet::<Test>::set_block_number(LIEN_TERM_DURATION as u64 + 1);
-			let cleaned_ids = GenesisBank::try_clean_expired_lien();
+			let cleaned_ids = GenesisBank::try_clean_overdue();
 			assert_eq!(cleaned_ids.len(), 1);
 			assert_eq!(cleaned_ids[0], id1);
-			assert!(!LienStore::<Test>::contains_key(&id1));
-			assert!(!UserLienStore::<Test>::contains_key(&user1, &id1));
-			assert!(LienStore::<Test>::contains_key(&id2));
-			assert!(UserLienStore::<Test>::contains_key(&user2, &id2));
+			assert!(!CollateralStore::<Test>::contains_key(&id1));
+			assert!(!UserCollateralStore::<Test>::contains_key(&user1, &id1));
+			assert!(CollateralStore::<Test>::contains_key(&id2));
+			assert!(UserCollateralStore::<Test>::contains_key(&user2, &id2));
 
 			frame_system::Pallet::<Test>::set_block_number(
 				LIEN_TERM_DURATION as u64 + start_height2,
 			);
-			assert_eq!(GenesisBank::try_clean_expired_lien().len(), 0);
+			assert_eq!(GenesisBank::try_clean_overdue().len(), 0);
 
 			frame_system::Pallet::<Test>::set_block_number(
 				LIEN_TERM_DURATION as u64 + start_height2 + 1,
 			);
-			let cleaned_ids = GenesisBank::try_clean_expired_lien();
+			let cleaned_ids = GenesisBank::try_clean_overdue();
 			assert_eq!(cleaned_ids.len(), 1);
 			assert_eq!(cleaned_ids[0], id2);
-			assert!(!LienStore::<Test>::contains_key(&id2));
-			assert!(!UserLienStore::<Test>::contains_key(&user2, &id2));
+			assert!(!CollateralStore::<Test>::contains_key(&id2));
+			assert!(!UserCollateralStore::<Test>::contains_key(&user2, &id2));
 		})
 	}
 

@@ -1126,8 +1126,8 @@ impl_runtime_apis! {
 	}
 
 	impl genesis_bank_runtime_api::GenesisBankApi<Block, AccountId> for Runtime {
-		fn cml_lien_redeem_amount(cml_id: u64, block_height: BlockNumber) -> Balance {
-			GenesisBank::cml_lien_redeem_amount(cml_id, block_height)
+		fn cml_calculate_loan_amount(cml_id: u64, block_height: BlockNumber) -> Balance {
+			GenesisBank::cml_calculate_loan_amount(cml_id, block_height)
 		}
 
 		fn user_cml_lien_list(who: &AccountId) -> Vec<u64> {

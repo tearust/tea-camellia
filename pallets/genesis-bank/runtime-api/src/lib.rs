@@ -11,7 +11,7 @@ sp_api::decl_runtime_apis! {
 	where
 		AccountId: Codec,
 	{
-		fn cml_lien_redeem_amount(cml_id: u64, block_height: BlockNumber) -> Balance;
+		fn cml_calculate_loan_amount(cml_id: u64, block_height: BlockNumber) -> Balance;
 
 		fn user_cml_lien_list(who: &AccountId) -> Vec<u64>;
 

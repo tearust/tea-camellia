@@ -80,12 +80,12 @@ pub mod genesis_bank {
 
 	#[pallet::storage]
 	#[pallet::getter(fn lien_store)]
-	pub type LienStore<T: Config> =
+	pub type CollateralStore<T: Config> =
 		StorageMap<_, Twox64Concat, AssetUniqueId, Lien<T::AccountId, T::BlockNumber>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_lien_store)]
-	pub type UserLienStore<T: Config> = StorageDoubleMap<
+	pub type UserCollateralStore<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
 		T::AccountId,
@@ -139,9 +139,9 @@ pub mod genesis_bank {
 		/// Only allowed pawn genesis seed .
 		ShouldPawnGenesisSeed,
 		/// Lien store not empty cannot shutdown.
-		LienStoreNotEmpty,
+		CollateralStoreNotEmpty,
 		/// User lien store not empty cannot shutdown.
-		UserLienStoreNotEmpty,
+		UserCollateralStoreNotEmpty,
 		/// Asset id convert to cml id with invalid length.
 		ConvertToCmlIdLengthMismatch,
 	}
@@ -149,8 +149,8 @@ pub mod genesis_bank {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
-			if Self::is_lien_billing_period_end(n) {
-				Self::try_clean_expired_lien();
+			if Self::is_time_for_collateral_check(n) {
+				Self::try_clean_overdue();
 			}
 		}
 	}
@@ -184,12 +184,12 @@ pub mod genesis_bank {
 				&root,
 				|_root| {
 					ensure!(
-						LienStore::<T>::iter().count() == 0,
-						Error::<T>::LienStoreNotEmpty
+						CollateralStore::<T>::iter().count() == 0,
+						Error::<T>::CollateralStoreNotEmpty
 					);
 					ensure!(
-						UserLienStore::<T>::iter().count() == 0,
-						Error::<T>::UserLienStoreNotEmpty
+						UserCollateralStore::<T>::iter().count() == 0,
+						Error::<T>::UserCollateralStoreNotEmpty
 					);
 					Ok(())
 				},
@@ -217,13 +217,13 @@ pub mod genesis_bank {
 				&who,
 				|who| {
 					ensure!(
-						LienStore::<T>::contains_key(&unique_id),
+						CollateralStore::<T>::contains_key(&unique_id),
 						Error::<T>::LienAlreadyExists
 					);
-					Self::check_pawn_asset(&unique_id, who)
+					Self::check_before_collateral(&unique_id, who)
 				},
 				|who| {
-					Self::create_new_lien(&unique_id, who);
+					Self::create_new_collateral(&unique_id, who);
 				},
 			)
 		}

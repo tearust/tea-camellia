@@ -16,8 +16,8 @@ const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
 pub trait GenesisBankApi<BlockHash, AccountId> {
-	#[rpc(name = "cml_cmlLienRedeemAmount")]
-	fn cml_lien_redeem_amount(
+	#[rpc(name = "cml_calculate_loan_amount")]
+	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
 		block_height: BlockNumber,
@@ -27,7 +27,7 @@ pub trait GenesisBankApi<BlockHash, AccountId> {
 	#[rpc(name = "cml_userCmlLienList")]
 	fn user_cml_lien_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
 
-	#[rpc(name = "cml_bankOwnedCmls")]
+	#[rpc(name = "get_collaterals")]
 	fn bank_owned_cmls(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
 }
 
@@ -65,7 +65,7 @@ where
 	C::Api: genesis_bank_runtime_api::GenesisBankApi<Block, AccountId>,
 	AccountId: Codec,
 {
-	fn cml_lien_redeem_amount(
+	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
 		block_height: BlockNumber,
@@ -77,7 +77,7 @@ where
 			self.client.info().best_hash));
 
 		let result: Balance = api
-			.cml_lien_redeem_amount(&at, cml_id, block_height)
+			.cml_calculate_loan_amount(&at, cml_id, block_height)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
 	}
