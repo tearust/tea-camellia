@@ -323,7 +323,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub fn is_end_of_auction_window(current_height: &T::BlockNumber) -> bool {
-		(*current_height % T::AuctionDealWindowBLock::get()).is_zero()
+		// offset with 3 to void overlapping with staking period
+		*current_height % T::AuctionDealWindowBLock::get() == 3u32
 	}
 
 	pub fn try_complete_auctions() {
