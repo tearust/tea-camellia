@@ -26,9 +26,6 @@ pub trait GenesisBankApi<BlockHash, AccountId> {
 
 	#[rpc(name = "cml_userCmlLoanList")]
 	fn user_collateral_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
-
-	#[rpc(name = "get_collaterals")]
-	fn collateral_cmls(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
 }
 
 pub struct GenesisBankApiImpl<C, M> {
@@ -94,18 +91,6 @@ where
 
 		let result = api
 			.user_collateral_list(&at, &who)
-			.map_err(runtime_error_into_rpc_err)?;
-		Ok(result)
-	}
-
-	fn collateral_cmls(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u64>> {
-		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
-
-		let result = api
-			.collateral_cmls(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

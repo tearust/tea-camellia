@@ -139,6 +139,8 @@ pub mod genesis_bank {
 		UserCollateralStoreNotEmpty,
 		/// Loan id convert to cml id with invalid length.
 		ConvertToCmlIdLengthMismatch,
+		/// Con not apply loan after current height larger equal than the close height.
+		CannotApplyLoanAfterClosed,
 	}
 
 	#[pallet::hooks]

@@ -34,6 +34,12 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		id: &AssetUniqueId,
 		who: &T::AccountId,
 	) -> DispatchResult {
+		let current_height = frame_system::Pallet::<T>::block_number();
+		ensure!(
+			current_height < CloseHeight::<T>::get().unwrap_or(u32::MAX.into()),
+			Error::<T>::CannotApplyLoanAfterClosed
+		);
+
 		match id.asset_type {
 			AssetType::CML => {
 				let cml_id = to_cml_id(&id.inner_id).map_err(|e| Error::<T>::from(e))?;

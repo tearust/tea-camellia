@@ -1133,10 +1133,6 @@ impl_runtime_apis! {
 		fn user_collateral_list(who: &AccountId) -> Vec<u64> {
 			GenesisBank::user_collateral_list(who)
 		}
-
-		fn collateral_cmls() -> Vec<u64> {
-			GenesisBank::collateral_cmls()
-		}
 	}
 
 	impl fg_primitives::GrandpaApi<Block> for Runtime {

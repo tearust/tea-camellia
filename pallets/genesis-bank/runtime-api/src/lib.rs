@@ -14,7 +14,5 @@ sp_api::decl_runtime_apis! {
 		fn cml_calculate_loan_amount(cml_id: u64, block_height: BlockNumber) -> Balance;
 
 		fn user_collateral_list(who: &AccountId) -> Vec<u64>;
-
-		fn collateral_cmls() -> Vec<u64>;
 	}
 }
