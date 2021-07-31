@@ -15,10 +15,7 @@ mod functions;
 mod rpc;
 mod types;
 
-use frame_support::{
-	pallet_prelude::*,
-	traits::{Currency, ExistenceRequirement},
-};
+use frame_support::{pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
 use pallet_cml::{CmlOperation, SeedProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
@@ -122,8 +119,6 @@ pub mod genesis_bank {
 	pub enum Error<T> {
 		/// Loan already exists that cannot be pawn again.
 		LoanAlreadyExists,
-		/// Genesis Bank does not have enough free balance to pay the user.
-		InsufficientBalanceToPay,
 		/// The given asset id not exist in collateral store.
 		LoanNotExists,
 		/// Collateral not belongs to user.
@@ -172,31 +167,6 @@ pub mod genesis_bank {
 				},
 				|_root| {
 					CloseHeight::<T>::set(Some(height));
-				},
-			)
-		}
-
-		#[pallet::weight(195_000_000)]
-		pub fn shutdown_all(sender: OriginFor<T>) -> DispatchResult {
-			let root = ensure_root(sender)?;
-
-			extrinsic_procedure(
-				&root,
-				|_root| {
-					ensure!(
-						CollateralStore::<T>::iter().count() == 0,
-						Error::<T>::CollateralStoreNotEmpty
-					);
-					ensure!(
-						UserCollateralStore::<T>::iter().count() == 0,
-						Error::<T>::UserCollateralStoreNotEmpty
-					);
-					Ok(())
-				},
-				|_root| {
-					let balance =
-						T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
-					T::CurrencyOperations::slash(&OperationAccount::<T>::get(), balance);
 				},
 			)
 		}

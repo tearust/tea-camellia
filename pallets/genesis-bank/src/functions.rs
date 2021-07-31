@@ -11,6 +11,14 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		let expired_ids: Vec<AssetUniqueId> = CollateralStore::<T>::iter()
 			.filter(|(id, _)| Self::is_loan_in_default(id, &current_height))
 			.map(|(id, loan)| {
+				match id.asset_type {
+					AssetType::CML => {
+						if let Ok(cml_id) = to_cml_id(&id.inner_id) {
+							T::CmlOperation::remove_cml(cml_id);
+						}
+					}
+				}
+
 				UserCollateralStore::<T>::remove(&loan.owner, &id);
 				id
 			})
@@ -38,12 +46,6 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 					&cml_id,
 					&OperationAccount::<T>::get(),
 				)?;
-
-				ensure!(
-					T::CurrencyOperations::free_balance(&OperationAccount::<T>::get())
-						>= T::GenesisCmlLoanAmount::get(),
-					Error::<T>::InsufficientBalanceToPay
-				);
 			}
 		}
 		Ok(())
@@ -52,18 +54,6 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 	pub(crate) fn create_new_collateral(id: &AssetUniqueId, who: &T::AccountId) {
 		match id.asset_type {
 			AssetType::CML => {
-				if T::CurrencyOperations::transfer(
-					&OperationAccount::<T>::get(),
-					who,
-					T::GenesisCmlLoanAmount::get(),
-					ExistenceRequirement::AllowDeath,
-				)
-				.is_err()
-				{
-					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-					return;
-				}
-
 				let current_height = frame_system::Pallet::<T>::block_number();
 				let cml_id = to_cml_id(&id.inner_id).unwrap();
 				CollateralStore::<T>::insert(
@@ -75,6 +65,8 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 				);
 				UserCollateralStore::<T>::insert(who, id, ());
 				T::CmlOperation::transfer_cml_to_other(who, &cml_id, &OperationAccount::<T>::get());
+
+				T::CurrencyOperations::deposit_creating(who, T::GenesisCmlLoanAmount::get());
 			}
 		}
 	}
@@ -130,17 +122,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		match id.asset_type {
 			AssetType::CML => {
 				let cml_id = to_cml_id(&id.inner_id).unwrap();
-				if T::CurrencyOperations::transfer(
-					who,
-					&OperationAccount::<T>::get(),
-					Self::cml_need_to_pay(id, &current_height),
-					ExistenceRequirement::AllowDeath,
-				)
-				.is_err()
-				{
-					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-					return;
-				}
+				T::CurrencyOperations::slash(who, Self::cml_need_to_pay(id, &current_height));
 				T::CmlOperation::transfer_cml_to_other(&OperationAccount::<T>::get(), &cml_id, who);
 			}
 		}

@@ -861,6 +861,11 @@ pub trait CmlOperation {
 		cml: CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>,
 	);
 
+	/// Remove cml from `CmlStore` and unbind cml with its owner.
+	/// **Note** this can only be used with cml in seed state, or a cml tree not mining or staking,
+	/// otherwise will lead to some error states.
+	fn remove_cml(cml_id: CmlId);
+
 	/// Get all user owned cml list.
 	fn user_owned_cmls(who: &Self::AccountId) -> Vec<CmlId>;
 }

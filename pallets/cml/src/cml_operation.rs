@@ -126,6 +126,14 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		UserCmlStore::<T>::insert(who, cml_id, ());
 	}
 
+	/// Remove cml from `CmlStore` and unbind cml with its owner.
+	fn remove_cml(cml_id: CmlId) {
+		let cml = CmlStore::<T>::take(cml_id);
+		if let Some(owner) = cml.owner() {
+			UserCmlStore::<T>::remove(owner, cml_id);
+		}
+	}
+
 	/// Get all user owned cml list.
 	fn user_owned_cmls(who: &Self::AccountId) -> Vec<CmlId> {
 		Self::user_cml_list(who)
