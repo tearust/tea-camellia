@@ -85,8 +85,15 @@ pub mod genesis_bank {
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_lien_store)]
-	pub type UserCollateralStore<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, AssetUniqueId, (), ValueQuery>;
+	pub type UserCollateralStore<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		Twox64Concat,
+		AssetUniqueId,
+		(),
+		ValueQuery,
+	>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -187,7 +194,8 @@ pub mod genesis_bank {
 					Ok(())
 				},
 				|_root| {
-					let balance = T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
+					let balance =
+						T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
 					T::CurrencyOperations::slash(&OperationAccount::<T>::get(), balance);
 				},
 			)
@@ -209,7 +217,7 @@ pub mod genesis_bank {
 				&who,
 				|who| {
 					ensure!(
-						!LienStore::<T>::contains_key(&unique_id),
+						!CollateralStore::<T>::contains_key(&unique_id),
 						Error::<T>::LoanAlreadyExists
 					);
 					Self::check_before_collateral(&unique_id, who)
@@ -221,7 +229,11 @@ pub mod genesis_bank {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn payoff_loan(sender: OriginFor<T>, id: AssetId, asset_type: AssetType) -> DispatchResult {
+		pub fn payoff_loan(
+			sender: OriginFor<T>,
+			id: AssetId,
+			asset_type: AssetType,
+		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let unique_id = AssetUniqueId {
 				asset_type,

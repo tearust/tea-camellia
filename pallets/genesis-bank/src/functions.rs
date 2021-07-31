@@ -22,7 +22,10 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		expired_ids
 	}
 
-	pub(crate) fn check_before_collateral(id: &AssetUniqueId, who: &T::AccountId) -> DispatchResult {
+	pub(crate) fn check_before_collateral(
+		id: &AssetUniqueId,
+		who: &T::AccountId,
+	) -> DispatchResult {
 		match id.asset_type {
 			AssetType::CML => {
 				let cml_id = to_cml_id(&id.inner_id).map_err(|e| Error::<T>::from(e))?;
@@ -30,7 +33,11 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 				let cml = T::CmlOperation::cml_by_id(&cml_id)?;
 				ensure!(cml.is_frozen_seed(), Error::<T>::ShouldPawnFrozenSeed);
 				ensure!(cml.is_from_genesis(), Error::<T>::ShouldPawnGenesisSeed);
-				T::CmlOperation::check_transfer_cml_to_other(who, &cml_id, &OperationAccount::<T>::get())?;
+				T::CmlOperation::check_transfer_cml_to_other(
+					who,
+					&cml_id,
+					&OperationAccount::<T>::get(),
+				)?;
 
 				ensure!(
 					T::CurrencyOperations::free_balance(&OperationAccount::<T>::get())
@@ -72,7 +79,10 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		}
 	}
 
-	pub(crate) fn check_before_payoff_loan(id: &AssetUniqueId, who: &T::AccountId) -> DispatchResult {
+	pub(crate) fn check_before_payoff_loan(
+		id: &AssetUniqueId,
+		who: &T::AccountId,
+	) -> DispatchResult {
 		let current_height = frame_system::Pallet::<T>::block_number();
 		Self::check_belongs(who, id)?;
 
@@ -84,10 +94,15 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 					Error::<T>::LoanInDefault
 				);
 				ensure!(
-					T::CurrencyOperations::free_balance(who) >= Self::cml_need_to_pay(id, &current_height),
+					T::CurrencyOperations::free_balance(who)
+						>= Self::cml_need_to_pay(id, &current_height),
 					Error::<T>::InsufficientRepayBalance
 				);
-				T::CmlOperation::check_transfer_cml_to_other(&OperationAccount::<T>::get(), &cml_id, who)?;
+				T::CmlOperation::check_transfer_cml_to_other(
+					&OperationAccount::<T>::get(),
+					&cml_id,
+					who,
+				)?;
 			}
 		}
 		Ok(())
@@ -225,10 +240,14 @@ mod tests {
 			assert!(CollateralStore::<Test>::contains_key(&id2));
 			assert!(UserCollateralStore::<Test>::contains_key(&user2, &id2));
 
-			frame_system::Pallet::<Test>::set_block_number(LOAN_TERM_DURATION as u64 + start_height2);
+			frame_system::Pallet::<Test>::set_block_number(
+				LOAN_TERM_DURATION as u64 + start_height2,
+			);
 			assert_eq!(GenesisBank::try_clean_default_loan().len(), 0);
 
-			frame_system::Pallet::<Test>::set_block_number(LOAN_TERM_DURATION as u64 + start_height2 + 1);
+			frame_system::Pallet::<Test>::set_block_number(
+				LOAN_TERM_DURATION as u64 + start_height2 + 1,
+			);
 			let cleaned_ids = GenesisBank::try_clean_default_loan();
 			assert_eq!(cleaned_ids.len(), 1);
 			assert_eq!(cleaned_ids[0], id2);

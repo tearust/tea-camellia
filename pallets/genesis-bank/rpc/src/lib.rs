@@ -16,7 +16,7 @@ const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
 pub trait GenesisBankApi<BlockHash, AccountId> {
-	#[rpc(name = "cml_calculate_loan_amount")]
+	#[rpc(name = "cml_calculateLoanAmount")]
 	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
