@@ -50,16 +50,19 @@ pub mod genesis_bank {
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 		>;
-		/// The max time loan should be pay off.
+		/// The loan's contract length, before this time the loan has to be paid off or in default
 		#[pallet::constant]
 		type LoanTermDuration: Get<Self::BlockNumber>;
 		/// The unit amount that a genesis cml can be paid.
+		/// This is the appraisal value (in unit) of a seed as a collateral
 		#[pallet::constant]
 		type GenesisCmlLoanAmount: Get<BalanceOf<Self>>;
 		/// Interest rates of one loan period in ten thousand units(‱).
+		/// This number need to be an integer
 		#[pallet::constant]
 		type InterestRate: Get<BalanceOf<Self>>;
 		/// Billing cycle of bank to calculate bill.
+		/// How frequent the bank review all the loan
 		#[pallet::constant]
 		type BillingCycle: Get<Self::BlockNumber>;
 	}
@@ -82,15 +85,8 @@ pub mod genesis_bank {
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_lien_store)]
-	pub type UserCollateralStore<T: Config> = StorageDoubleMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		Twox64Concat,
-		AssetUniqueId,
-		(),
-		ValueQuery,
-	>;
+	pub type UserCollateralStore<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, AssetUniqueId, (), ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -129,17 +125,20 @@ pub mod genesis_bank {
 		InsufficientRepayBalance,
 		/// Close height should larger equal than current height.
 		InvalidCloseHeight,
-		/// Should pawn cml with frozen seed status.
+		/// Only frozen seeds are allowed to be collateral
 		ShouldPawnFrozenSeed,
-		/// Only allowed pawn genesis seed .
+		/// Only genesis seeds are allowed to be collateral
 		ShouldPawnGenesisSeed,
-		/// Collateral store not empty cannot shutdown.
+		/// Collateral store is not empty and bank cannot shutdown.
 		CollateralStoreNotEmpty,
 		/// User collateral store not empty cannot shutdown.
 		UserCollateralStoreNotEmpty,
 		/// Loan id convert to cml id with invalid length.
 		ConvertToCmlIdLengthMismatch,
 		/// Con not apply loan after current height larger equal than the close height.
+		/// Close height is a preset block height that the Genesis Bank will stop operation
+		/// We have such a close time because Genesis bank is supposed to be temporary cold-start
+		/// helper. When newer Defi service tApps are ready, the Genesis Bank should be retired
 		CannotApplyLoanAfterClosed,
 	}
 
@@ -201,11 +200,7 @@ pub mod genesis_bank {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn payoff_loan(
-			sender: OriginFor<T>,
-			id: AssetId,
-			asset_type: AssetType,
-		) -> DispatchResult {
+		pub fn payoff_loan(sender: OriginFor<T>, id: AssetId, asset_type: AssetType) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let unique_id = AssetUniqueId {
 				asset_type,
