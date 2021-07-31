@@ -82,16 +82,16 @@ impl pallet_cml::Config for Test {
 	type WeightInfo = ();
 }
 
-pub const LIEN_TERM_DURATION: BlockNumber = 10000;
-pub const GENESIS_CML_LIEN_AMOUNT: Balance = 5000000000000;
-pub const LENDING_RATES: Balance = 5;
-pub const LIEN_BILLING_PERIOD: BlockNumber = 1000;
+pub const LOAN_TERM_DURATION: BlockNumber = 10000;
+pub const GENESIS_CML_LOAN_AMOUNT: Balance = 5000000000000;
+pub const INTEREST_RATE: Balance = 5;
+pub const LOAN_BILLING_CYCLE: BlockNumber = 1000;
 
 parameter_types! {
-	pub const LienTermDuration: BlockNumber = LIEN_TERM_DURATION;
-	pub const GenesisCmlLienAmount: Balance = GENESIS_CML_LIEN_AMOUNT;
-	pub const LendingRates: Balance = LENDING_RATES;
-	pub const LienBillingPeriod: BlockNumber = LIEN_BILLING_PERIOD;
+	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
+	pub const GenesisCmlLoanAmount: Balance = GENESIS_CML_LOAN_AMOUNT;
+	pub const InterestRate: Balance = INTEREST_RATE;
+	pub const BillingCycle: BlockNumber = LOAN_BILLING_CYCLE;
 }
 
 impl pallet_genesis_bank::Config for Test {
@@ -99,10 +99,10 @@ impl pallet_genesis_bank::Config for Test {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
-	type LienTermDuration = LienTermDuration;
-	type GenesisCmlLienAmount = GenesisCmlLienAmount;
-	type LendingRates = LendingRates;
-	type LienBillingPeriod = LienBillingPeriod;
+	type LoanTermDuration = LoanTermDuration;
+	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
+	type InterestRate = InterestRate;
+	type BillingCycle = BillingCycle;
 }
 
 parameter_types! {

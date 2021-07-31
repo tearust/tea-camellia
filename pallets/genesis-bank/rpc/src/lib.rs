@@ -16,19 +16,19 @@ const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
 pub trait GenesisBankApi<BlockHash, AccountId> {
-	#[rpc(name = "cml_cmlLienRedeemAmount")]
-	fn cml_lien_redeem_amount(
+	#[rpc(name = "cml_calculate_loan_amount")]
+	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
 		block_height: BlockNumber,
 		at: Option<BlockHash>,
 	) -> Result<Price>;
 
-	#[rpc(name = "cml_userCmlLienList")]
-	fn user_cml_lien_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
+	#[rpc(name = "cml_userCmlLoanList")]
+	fn user_collateral_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
 
-	#[rpc(name = "cml_bankOwnedCmls")]
-	fn bank_owned_cmls(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
+	#[rpc(name = "get_collaterals")]
+	fn collateral_cmls(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
 }
 
 pub struct GenesisBankApiImpl<C, M> {
@@ -65,7 +65,7 @@ where
 	C::Api: genesis_bank_runtime_api::GenesisBankApi<Block, AccountId>,
 	AccountId: Codec,
 {
-	fn cml_lien_redeem_amount(
+	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
 		block_height: BlockNumber,
@@ -77,12 +77,12 @@ where
 			self.client.info().best_hash));
 
 		let result: Balance = api
-			.cml_lien_redeem_amount(&at, cml_id, block_height)
+			.cml_calculate_loan_amount(&at, cml_id, block_height)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
 	}
 
-	fn user_cml_lien_list(
+	fn user_collateral_list(
 		&self,
 		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
@@ -93,19 +93,19 @@ where
 			self.client.info().best_hash));
 
 		let result = api
-			.user_cml_lien_list(&at, &who)
+			.user_collateral_list(&at, &who)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}
 
-	fn bank_owned_cmls(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u64>> {
+	fn collateral_cmls(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u64>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
 		let result = api
-			.bank_owned_cmls(&at)
+			.collateral_cmls(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}
