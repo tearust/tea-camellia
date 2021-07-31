@@ -217,7 +217,7 @@ pub mod genesis_bank {
 				&who,
 				|who| {
 					ensure!(
-						LienStore::<T>::contains_key(&unique_id),
+						!LienStore::<T>::contains_key(&unique_id),
 						Error::<T>::LienAlreadyExists
 					);
 					Self::check_pawn_asset(&unique_id, who)

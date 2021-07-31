@@ -150,5 +150,18 @@
     "votes_against": "Vec<AccountId>",
     "status": "enum"
   },
-  "TokenId": "U256"
+  "TokenId": "U256",
+
+  "AssetId": "Bytes",
+  "AssetType": {
+    "_enum": ["CML"]
+  },
+  "AssetUniqueId": {
+    "asset_type": "AssetType",
+    "inner_id": "AssetId"
+  },
+  "Lien": {
+    "start_at": "BlockNumber",
+    "owner": "AccountId"
+  }
 }
