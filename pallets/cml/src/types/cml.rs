@@ -158,8 +158,7 @@ where
 		}
 	}
 
-	#[allow(dead_code)]
-	pub(crate) fn from_dao_seed(intrinsic: Seed, height: BlockNumber) -> Self {
+	pub fn from_dao_seed(intrinsic: Seed, height: BlockNumber) -> Self {
 		CML {
 			intrinsic,
 			status: CmlStatus::FreshSeed(height),

@@ -130,6 +130,9 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 				let cml_id = to_cml_id(&id.inner_id).unwrap();
 				T::CurrencyOperations::slash(who, Self::cml_need_to_pay(id, &current_height));
 				T::CmlOperation::transfer_cml_to_other(&OperationAccount::<T>::get(), &cml_id, who);
+
+				CollateralStore::<T>::remove(id);
+				UserCollateralStore::<T>::remove(who, id);
 			}
 		}
 	}
