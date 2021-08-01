@@ -817,9 +817,14 @@ impl pallet_cml::Config for Runtime {
 }
 
 parameter_types! {
+	/// Borrower has to repay the loan before LoanTermDuration, otherwise in default
 	pub const LoanTermDuration: BlockNumber = 200000;//about 55 hours. good for fast testing
+	/// The appraisal for seed regardless types
 	pub const GenesisCmlLoanAmount: Balance = 500 * DOLLARS;
+	/// Interest in 1/10000 for every BillingCycle
 	pub const InterestRate: Balance = 8;//0.08% interest rate for every 1000 blocks. good for fast testing
+	/// The Genesis Bank calculate interest every BillingCycle. If borrower repay the loan before a billing cycle ends, 
+	/// the interest is calculated to the end of this billing cycle.
 	pub const BillingCycle: BlockNumber = 1000;
 }
 
