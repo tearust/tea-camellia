@@ -817,9 +817,9 @@ impl pallet_cml::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LoanTermDuration: BlockNumber = 10000;
+	pub const LoanTermDuration: BlockNumber = 200000;//about 55 hours. good for fast testing
 	pub const GenesisCmlLoanAmount: Balance = 500 * DOLLARS;
-	pub const InterestRate: Balance = 50;
+	pub const InterestRate: Balance = 8;//0.08% interest rate for every 1000 blocks. good for fast testing
 	pub const BillingCycle: BlockNumber = 1000;
 }
 
