@@ -868,11 +868,19 @@ const AUCTION_WINDOW_BLOCK: BlockNumber = 100;
 #[cfg(not(feature = "fast"))]
 const AUCTION_WINDOW_BLOCK: BlockNumber = 1000;
 parameter_types! {
+	/// Every AuctionDealWindowBLock blocks, the auction window closed. the highest bidder is winner.
+	/// There is a count down in the UI so that the bidder know when the window close
 	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_WINDOW_BLOCK;
+	/// This is Bid Increments. Bidder has to pay MinPriceForBid higher than existing top price to make new bid
 	pub const MinPriceForBid: Balance = 1 * DOLLARS;
+	/// When the auctioneer want to cancel an on going auction, he will need to pay such penalty to
+	/// all involved bidders. Every bidder receives AuctionOwnerPenaltyForEachBid
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
+	/// The escrow deposit from auctioneer. 
 	pub const AuctionPledgeAmount: Balance = 100 * DOLLARS;
+	/// How many bids are allowed for each item. To avoid DDoS attack
 	pub const MaxUsersPerAuction: u64 = 10000;
+	/// Auction fee. Every new auction window, the auctioneer needs to pay such fee if choose to renew to continue to next auction window
 	pub const AuctionFeePerWindow: Balance = 1 * DOLLARS;
 }
 impl pallet_auction::Config for Runtime {
