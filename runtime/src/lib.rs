@@ -796,10 +796,15 @@ const SEED_FRESH_DURATION: u32 = 7 * 24 * 60 * 10;
 const SEED_FRESH_DURATION: u32 = 30 * 10;
 
 parameter_types! {
+	/// Investors need to pay StakingPrice for each staking slots of CML regardless the index number
 	pub const StakingPrice: Balance = 1000 * DOLLARS;
+	/// After SeedsTimeoutHeight, coupon will be expired
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
+	/// Every StakingPeriodLength, DAO will calculate the staking earning and pay to reward balance
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
+	/// Once a seed is defrost, it has to be planted before SeedFreshDuration, otherwise it will die
 	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
+	/// CML cannot have more than StakingSlotsMaxLength slots
 	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
 }
 impl pallet_cml::Config for Runtime {
