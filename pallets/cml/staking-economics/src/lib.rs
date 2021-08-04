@@ -3,7 +3,7 @@
 
 use crate::index::{DOLLARS, STAKING_PRICE_TABLE};
 use node_primitives::{AccountId, Balance};
-use pallet_cml::{ServiceTaskPoint, StakingEconomics, StakingSnapshotItem};
+use pallet_cml::{Performance, ServiceTaskPoint, StakingEconomics, StakingSnapshotItem};
 use sp_runtime::traits::Zero;
 use sp_std::cmp::min;
 use sp_std::prelude::*;
@@ -11,6 +11,8 @@ use sp_std::prelude::*;
 pub mod index;
 #[cfg(test)]
 mod test;
+
+const PERFORMANCE_BASE: Balance = 10000;
 
 pub struct TeaStakingEconomics {}
 
@@ -31,8 +33,9 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		_total_point: ServiceTaskPoint,
+		performance: Performance,
 	) -> Balance {
-		(miner_point as Balance) * DOLLARS
+		(miner_point as Balance) * DOLLARS * (performance as Balance) / PERFORMANCE_BASE
 	}
 
 	/// Calculate all staking weight about the given miner.

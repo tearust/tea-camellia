@@ -57,9 +57,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 			ActiveStakingSnapshot::<T>::iter().collect();
 		for (cml_id, snapshot_items) in snapshots {
 			let miner_task_point = Self::miner_task_point(cml_id);
+			let performance = Self::miner_performance(cml_id);
 			let miner_total_reward = T::StakingEconomics::total_staking_rewards_of_miner(
 				miner_task_point,
 				total_task_point,
+				performance,
 			);
 			let total_staking_point =
 				T::StakingEconomics::miner_total_staking_weight(&snapshot_items);
@@ -88,6 +90,10 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 
 		Self::deposit_event(Event::RewardStatements(reward_statements));
+	}
+
+	fn miner_performance(cml_id: CmlId) -> Performance {
+		CmlStore::<T>::get(cml_id).get_performance()
 	}
 
 	pub(crate) fn try_return_left_staking_reward(
@@ -213,6 +219,7 @@ impl<T: cml::Config> StakingEconomics<BalanceOf<T>, T::AccountId> for cml::Palle
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		_total_point: ServiceTaskPoint,
+		_performance: Performance,
 	) -> BalanceOf<T> {
 		(miner_point * DOLLARS).into()
 	}

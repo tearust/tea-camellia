@@ -16,6 +16,7 @@ mod types;
 mod weights;
 
 pub use cml::*;
+pub use param::*;
 pub use types::*;
 pub use weights::WeightInfo;
 
@@ -882,6 +883,7 @@ pub trait StakingEconomics<Balance, AccountId> {
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		total_point: ServiceTaskPoint,
+		performance: Performance,
 	) -> Balance;
 
 	/// Calculate all staking weight about the given miner.
