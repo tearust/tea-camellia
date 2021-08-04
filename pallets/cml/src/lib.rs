@@ -215,6 +215,8 @@ pub mod cml {
 		/// First paramter is account id of the user, and the second parameter is the staking CML ID,
 		/// the third paramter is current staking index.
 		Staked(T::AccountId, CmlId, StakingIndex),
+		/// Event fired when end of staking window.
+		RewardStatements(Vec<(T::AccountId, CmlId, BalanceOf<T>)>),
 	}
 
 	#[pallet::error]

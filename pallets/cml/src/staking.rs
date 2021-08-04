@@ -51,6 +51,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub(crate) fn calculate_staking() {
 		let total_task_point = Self::service_task_point_total();
 
+		let mut reward_statements = Vec::new();
+
 		let snapshots: Vec<(CmlId, Vec<StakingSnapshotItem<T::AccountId>>)> =
 			ActiveStakingSnapshot::<T>::iter().collect();
 		for (cml_id, snapshot_items) in snapshots {
@@ -68,6 +70,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 					total_staking_point,
 					item,
 				);
+				reward_statements.push((item.owner.clone(), cml_id, reward));
 
 				reward = Self::try_return_left_staking_reward(&item.owner, reward);
 				if reward.is_zero() {
@@ -83,6 +86,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 				}
 			}
 		}
+
+		Self::deposit_event(Event::RewardStatements(reward_statements));
 	}
 
 	pub(crate) fn try_return_left_staking_reward(
