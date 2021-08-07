@@ -2,7 +2,7 @@
 name = "pallet-auction"
 description = "Auction pallet"
 repository = "https://github.com/tearust/tea-camellia"
-license = "Apache-2.0"
+license = "GPL-3.0"
 version = "3.0.0"
 homepage = "https://teaproject.org"
 edition = "2018"
