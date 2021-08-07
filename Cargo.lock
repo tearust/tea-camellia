@@ -741,6 +741,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "genesis-bank-runtime-api",
+ "genesis-exchange-runtime-api",
  "hex-literal",
  "node-primitives",
  "pallet-auction",
@@ -755,6 +756,7 @@ dependencies = [
  "pallet-election-provider-multi-phase",
  "pallet-elections-phragmen",
  "pallet-genesis-bank",
+ "pallet-genesis-exchange",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2265,6 +2267,34 @@ dependencies = [
 
 [[package]]
 name = "genesis-bank-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "node-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
+name = "genesis-exchange-rpc"
+version = "0.1.0"
+dependencies = [
+ "genesis-exchange-runtime-api",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "node-primitives",
+ "parity-scale-codec",
+ "rmp-serde",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "genesis-exchange-runtime-api"
 version = "0.1.0"
 dependencies = [
  "node-primitives",
@@ -4362,6 +4392,31 @@ dependencies = [
  "frame-system",
  "hex",
  "hex-literal",
+ "node-primitives",
+ "pallet-balances",
+ "pallet-cml",
+ "pallet-randomness-collective-flip",
+ "pallet-utils",
+ "parity-scale-codec",
+ "rand 0.7.3",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-genesis-exchange"
+version = "0.0.1"
+dependencies = [
+ "ed25519-dalek",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "log",
  "node-primitives",
  "pallet-balances",
  "pallet-cml",
@@ -8049,6 +8104,8 @@ dependencies = [
  "frame-benchmarking-cli",
  "genesis-bank-rpc",
  "genesis-bank-runtime-api",
+ "genesis-exchange-rpc",
+ "genesis-exchange-runtime-api",
  "hex-literal",
  "jsonrpc-core",
  "pallet-authority-discovery",

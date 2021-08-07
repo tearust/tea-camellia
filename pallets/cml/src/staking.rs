@@ -49,50 +49,30 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn calculate_staking() {
-		let total_task_point = Self::service_task_point_total();
+		let reward_statements = Self::estimate_reward_statements(
+			Self::service_task_point_total,
+			Self::miner_task_point,
+		);
 
-		let mut reward_statements = Vec::new();
+		for (owner, _cml_id, initial_reward) in reward_statements.iter() {
+			let reward = Self::try_return_left_staking_reward(owner, *initial_reward);
+			if reward.is_zero() {
+				continue;
+			}
 
-		let snapshots: Vec<(CmlId, Vec<StakingSnapshotItem<T::AccountId>>)> =
-			ActiveStakingSnapshot::<T>::iter().collect();
-		for (cml_id, snapshot_items) in snapshots {
-			let miner_task_point = Self::miner_task_point(cml_id);
-			let performance = Self::miner_performance(cml_id);
-			let miner_total_reward = T::StakingEconomics::total_staking_rewards_of_miner(
-				miner_task_point,
-				total_task_point,
-				performance,
-			);
-			let total_staking_point =
-				T::StakingEconomics::miner_total_staking_weight(&snapshot_items);
-
-			for item in snapshot_items.iter() {
-				let mut reward = T::StakingEconomics::single_staking_reward(
-					miner_total_reward,
-					total_staking_point,
-					item,
-				);
-				reward_statements.push((item.owner.clone(), cml_id, reward));
-
-				reward = Self::try_return_left_staking_reward(&item.owner, reward);
-				if reward.is_zero() {
-					continue;
-				}
-
-				if AccountRewards::<T>::contains_key(&item.owner) {
-					AccountRewards::<T>::mutate(&item.owner, |balance| {
-						*balance = balance.saturating_add(reward);
-					});
-				} else {
-					AccountRewards::<T>::insert(&item.owner, reward);
-				}
+			if AccountRewards::<T>::contains_key(owner) {
+				AccountRewards::<T>::mutate(owner, |balance| {
+					*balance = balance.saturating_add(reward);
+				});
+			} else {
+				AccountRewards::<T>::insert(owner, reward);
 			}
 		}
 
 		Self::deposit_event(Event::RewardStatements(reward_statements));
 	}
 
-	fn miner_performance(cml_id: CmlId) -> Performance {
+	pub(crate) fn miner_performance(cml_id: CmlId) -> Performance {
 		CmlStore::<T>::get(cml_id).get_performance()
 	}
 

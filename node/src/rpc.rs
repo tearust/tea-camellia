@@ -35,6 +35,7 @@ where
 	C::Api: cml_runtime_api::CmlApi<Block, AccountId>,
 	C::Api: auction_runtime_api::AuctionApi<Block, AccountId>,
 	C::Api: genesis_bank_runtime_api::GenesisBankApi<Block, AccountId>,
+	C::Api: genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId>,
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
 {
@@ -70,6 +71,9 @@ where
 	));
 	io.extend_with(genesis_bank_rpc::GenesisBankApi::to_delegate(
 		genesis_bank_rpc::GenesisBankApiImpl::new(client.clone()),
+	));
+	io.extend_with(genesis_exchange_rpc::GenesisExchangeApi::to_delegate(
+		genesis_exchange_rpc::GenesisExchangeApiImpl::new(client.clone()),
 	));
 
 	io

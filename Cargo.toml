@@ -17,4 +17,7 @@ members = [
 
 	'pallets/genesis-bank/runtime-api',
 	'pallets/genesis-bank/rpc',
+
+	'pallets/genesis-exchange/runtime-api',
+	'pallets/genesis-exchange/rpc'
 ]

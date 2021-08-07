@@ -4,8 +4,8 @@ use camellia_runtime::{
 	pallet_cml::{generator::init_genesis, GenesisCoupons, GenesisSeeds},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisBankConfig, GenesisConfig,
-	GrandpaConfig, ImOnlineConfig, SessionConfig, Signature, StakerStatus, StakingConfig,
-	SudoConfig, SystemConfig, TeaConfig, TechnicalCommitteeConfig, WASM_BINARY,
+	GenesisExchangeConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, Signature, StakerStatus,
+	StakingConfig, SudoConfig, SystemConfig, TeaConfig, TechnicalCommitteeConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use jsonrpc_core::serde_json;
@@ -25,8 +25,12 @@ use std::str::FromStr;
 const INITIAL_ACCOUNT_BALANCE: Balance = 10000 * DOLLARS;
 const COUPON_ACCOUNT_BALANCE: Balance = 1 * DOLLARS;
 
+const INITIAL_EXCHANGE_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
+const INITIAL_EXCHANGE_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
+
 // address derived from [0u8; 32] that the corresponding private key we don't know
 const GENESIS_BANK_OPERATION_ADDRESS: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM";
+const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn38446dhCpsi2mLHiFT";
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -214,12 +218,25 @@ fn testnet_genesis(
 	)>,
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
-	initial_balances: Vec<(AccountId, Balance)>,
+	mut initial_balances: Vec<(AccountId, Balance)>,
 	genesis_coupons: GenesisCoupons<AccountId>,
 	genesis_seeds: GenesisSeeds,
 ) -> GenesisConfig {
 	let genesis_bank_operation_account =
 		AccountId32::from_str(GENESIS_BANK_OPERATION_ADDRESS).unwrap();
+	let genesis_exchange_operation_account =
+		AccountId32::from_str(GENESIS_EXCHANGE_OPERATION_ADDRESS).unwrap();
+
+	initial_balances.push((
+		genesis_exchange_operation_account.clone(),
+		INITIAL_EXCHANGE_TEA_BALANCE,
+	));
+	let competition_users = genesis_coupons
+		.coupons
+		.iter()
+		.map(|coupon| coupon.account.clone())
+		.collect();
+
 	const STASH: Balance = 100 * DOLLARS;
 	let num_endowed_accounts = endowed_accounts.len();
 	GenesisConfig {
@@ -304,6 +321,12 @@ fn testnet_genesis(
 		},
 		pallet_genesis_bank: GenesisBankConfig {
 			operation_account: genesis_bank_operation_account,
+		},
+		pallet_genesis_exchange: GenesisExchangeConfig {
+			operation_account: genesis_exchange_operation_account,
+			operation_usd_amount: INITIAL_EXCHANGE_USD_BALANCE,
+			operation_tea_amount: INITIAL_EXCHANGE_TEA_BALANCE,
+			competition_users,
 		},
 	}
 }

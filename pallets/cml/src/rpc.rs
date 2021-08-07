@@ -33,9 +33,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn current_mining_cml_list() -> Vec<u64> {
-		MinerItemStore::<T>::iter()
-			.map(|(_, miner_item)| miner_item.cml_id)
-			.collect()
+		Self::current_mining_cmls()
 	}
 }
 

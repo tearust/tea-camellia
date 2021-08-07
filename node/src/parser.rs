@@ -116,6 +116,13 @@ fn parse_coupon_amount(value: Option<&str>) -> u32 {
 #[cfg(test)]
 mod tests {
 	use super::parse_coupon_configs;
+	use frame_benchmarking::frame_support::sp_runtime::AccountId32;
+
+	#[test]
+	fn tests() {
+		let acc = AccountId32::new([1; 32]);
+		println!("{}", acc);
+	}
 
 	#[test]
 	fn parse_coupon_configs_works() -> Result<(), String> {

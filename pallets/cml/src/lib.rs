@@ -871,6 +871,19 @@ pub trait CmlOperation {
 
 	/// Get all user owned cml list.
 	fn user_owned_cmls(who: &Self::AccountId) -> Vec<CmlId>;
+
+	/// Estimate reward statements by given total task point and each miner task point calculation
+	/// methods.
+	fn estimate_reward_statements<X, Y>(
+		total_point: X,
+		miner_task_point: Y,
+	) -> Vec<(Self::AccountId, CmlId, Self::Balance)>
+	where
+		X: FnOnce() -> ServiceTaskPoint,
+		Y: Fn(CmlId) -> ServiceTaskPoint;
+
+	/// Get current mining cml list;
+	fn current_mining_cmls() -> Vec<CmlId>;
 }
 
 /// Operations to calculate staking rewards.

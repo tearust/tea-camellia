@@ -828,7 +828,7 @@ parameter_types! {
 	pub const GenesisCmlLoanAmount: Balance = 500 * DOLLARS;
 	/// Interest in 1/10000 for every BillingCycle
 	pub const InterestRate: Balance = 8;//0.08% interest rate for every 1000 blocks. good for fast testing
-	/// The Genesis Bank calculate interest every BillingCycle. If borrower repay the loan before a billing cycle ends, 
+	/// The Genesis Bank calculate interest every BillingCycle. If borrower repay the loan before a billing cycle ends,
 	/// the interest is calculated to the end of this billing cycle.
 	pub const BillingCycle: BlockNumber = 1000;
 }
@@ -842,6 +842,18 @@ impl pallet_genesis_bank::Config for Runtime {
 	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
 	type InterestRate = InterestRate;
 	type BillingCycle = BillingCycle;
+}
+
+parameter_types! {
+	pub const PER: Balance = 7;
+}
+
+impl pallet_genesis_exchange::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type CmlOperation = Cml;
+	type CurrencyOperations = Utils;
+	type PER = PER;
 }
 
 parameter_types! {
@@ -886,7 +898,7 @@ parameter_types! {
 	/// When the auctioneer want to cancel an on going auction, he will need to pay such penalty to
 	/// all involved bidders. Every bidder receives AuctionOwnerPenaltyForEachBid
 	pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
-	/// The escrow deposit from auctioneer. 
+	/// The escrow deposit from auctioneer.
 	pub const AuctionPledgeAmount: Balance = 100 * DOLLARS;
 	/// How many bids are allowed for each item. To avoid DDoS attack
 	pub const MaxUsersPerAuction: u64 = 10000;
@@ -949,6 +961,7 @@ construct_runtime!(
 		Bridge: pallet_bridge::{Pallet, Call, Event<T>} = 102,
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
 		GenesisBank: pallet_genesis_bank::{Pallet, Call, Config<T>, Storage, Event<T>} = 104,
+		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Config<T>, Storage, Event<T>} = 105,
 	}
 );
 
@@ -1150,6 +1163,20 @@ impl_runtime_apis! {
 
 		fn user_collateral_list(who: &AccountId) -> Vec<u64> {
 			GenesisBank::user_collateral_list(who)
+		}
+	}
+
+	impl genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId> for Runtime {
+		fn current_exchange_rate() -> Balance {
+			GenesisExchange::current_exchange_rate()
+		}
+
+		fn estimate_amount(withdraw_amount: Balance, buy_tea: bool) -> Balance {
+			GenesisExchange::estimate_amount(withdraw_amount, buy_tea)
+		}
+
+		fn user_asset_list() -> Vec<(AccountId, Balance)> {
+			GenesisExchange::user_asset_list()
 		}
 	}
 

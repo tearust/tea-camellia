@@ -138,6 +138,50 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 	fn user_owned_cmls(who: &Self::AccountId) -> Vec<CmlId> {
 		Self::user_cml_list(who)
 	}
+
+	fn estimate_reward_statements<X, Y>(
+		total_point: X,
+		miner_task_point: Y,
+	) -> Vec<(Self::AccountId, CmlId, Self::Balance)>
+	where
+		X: FnOnce() -> ServiceTaskPoint,
+		Y: Fn(CmlId) -> ServiceTaskPoint,
+	{
+		let total_task_point = total_point();
+
+		let mut reward_statements = Vec::new();
+
+		let snapshots: Vec<(CmlId, Vec<StakingSnapshotItem<T::AccountId>>)> =
+			ActiveStakingSnapshot::<T>::iter().collect();
+		for (cml_id, snapshot_items) in snapshots {
+			let miner_task_point = miner_task_point(cml_id);
+			let performance = Self::miner_performance(cml_id);
+			let miner_total_reward = T::StakingEconomics::total_staking_rewards_of_miner(
+				miner_task_point,
+				total_task_point,
+				performance,
+			);
+			let total_staking_point =
+				T::StakingEconomics::miner_total_staking_weight(&snapshot_items);
+
+			for item in snapshot_items.iter() {
+				let reward = T::StakingEconomics::single_staking_reward(
+					miner_total_reward,
+					total_staking_point,
+					item,
+				);
+				reward_statements.push((item.owner.clone(), cml_id, reward));
+			}
+		}
+
+		reward_statements
+	}
+
+	fn current_mining_cmls() -> Vec<CmlId> {
+		MinerItemStore::<T>::iter()
+			.map(|(_, miner_item)| miner_item.cml_id)
+			.collect()
+	}
 }
 
 #[cfg(test)]

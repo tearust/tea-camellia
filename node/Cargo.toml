@@ -72,6 +72,8 @@ auction-runtime-api = {default-features = false, path = '../pallets/auction/runt
 auction-rpc = {path = '../pallets/auction/rpc'}
 genesis-bank-runtime-api = {path = '../pallets/genesis-bank/runtime-api'}
 genesis-bank-rpc = {path = '../pallets/genesis-bank/rpc'}
+genesis-exchange-runtime-api = {path = '../pallets/genesis-exchange/runtime-api'}
+genesis-exchange-rpc = {path = '../pallets/genesis-exchange/rpc'}
 
 [features]
 default = []
