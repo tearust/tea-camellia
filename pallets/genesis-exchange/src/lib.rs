@@ -108,7 +108,20 @@ pub mod genesis_exchange {
 	}
 
 	#[pallet::event]
-	pub enum Event<T: Config> {}
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	#[pallet::metadata(T::AccountId = "AccountId")]
+	pub enum Event<T: Config> {
+		/// Event fired after buy tea (from usd) successfully.
+		///
+		/// First parameter is account if of user, the second parameter is the bought TEA amount,
+		/// and the third parameter is USD amount spent.
+		BuyTeaSuccess(T::AccountId, BalanceOf<T>, BalanceOf<T>),
+		/// Event fired after sell tea (to usd) successfully.
+		///
+		/// First parameter is account if of user, the second parameter is the spent TEA amount,
+		/// and the third parameter is USD amount bought.
+		SellTeaSuccess(T::AccountId, BalanceOf<T>, BalanceOf<T>),
+	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]

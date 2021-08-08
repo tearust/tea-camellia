@@ -44,7 +44,14 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 		if let Err(e) = Self::transfer_usd(&exchange_account, who, *withdraw_amount) {
 			error!("transfer usd failed: {:?}", e);
+			return;
 		}
+
+		Self::deposit_event(Event::SellTeaSuccess(
+			who.clone(),
+			need_deposit,
+			*withdraw_amount,
+		))
 	}
 
 	pub(crate) fn check_usd_to_tea(
@@ -91,7 +98,14 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			ExistenceRequirement::AllowDeath,
 		) {
 			error!("transfer balance failed: {:?}", e);
+			return;
 		}
+
+		Self::deposit_event(Event::BuyTeaSuccess(
+			who.clone(),
+			*withdraw_amount,
+			need_deposit,
+		))
 	}
 
 	pub(crate) fn delta_deposit_amount(

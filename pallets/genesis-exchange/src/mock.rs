@@ -1,7 +1,8 @@
 use crate as pallet_genesis_exchange;
-use frame_support::parameter_types;
+use frame_benchmarking::frame_support::pallet_prelude::GenesisBuild;
+use frame_support::{parameter_types, traits::Currency};
 use frame_system as system;
-use node_primitives::{Balance, BlockNumber};
+use node_primitives::Balance;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -118,11 +119,36 @@ impl pallet_utils::Config for Test {
 	type Slash = ();
 }
 
+pub const OPERATION_USD_AMOUNT: Balance = 10_000_000_000;
+pub const OPERATION_TEA_AMOUNT: Balance = 10_000_000_000;
+pub const OPERATION_ACCOUNT: u64 = 100;
+pub const COMPETITION_USERS1: u64 = 101;
+pub const COMPETITION_USERS2: u64 = 102;
+pub const COMPETITION_USERS3: u64 = 103;
+
 // Build genesis storage according to the mock runtime.
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default()
+	let mut t = system::GenesisConfig::default()
 		.build_storage::<Test>()
-		.unwrap()
-		.into()
+		.unwrap();
+
+	pallet_genesis_exchange::GenesisConfig::<Test> {
+		operation_account: OPERATION_ACCOUNT,
+		operation_tea_amount: OPERATION_TEA_AMOUNT,
+		operation_usd_amount: OPERATION_USD_AMOUNT,
+		competition_users: vec![COMPETITION_USERS1, COMPETITION_USERS2, COMPETITION_USERS3],
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	let mut ext = sp_io::TestExternalities::new(t);
+	ext.execute_with(|| {
+		System::set_block_number(1);
+		<Test as pallet_genesis_exchange::Config>::Currency::make_free_balance_be(
+			&OPERATION_ACCOUNT,
+			OPERATION_TEA_AMOUNT,
+		);
+	});
+	ext
 }
