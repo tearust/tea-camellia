@@ -52,13 +52,10 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	}
 
 	fn collect_tea_assets(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
+		let current_exchange_rate = Self::current_exchange_rate();
 		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
 			let tea_amount = T::CurrencyOperations::free_balance(&user);
-			Self::new_or_add_assets(
-				&user,
-				tea_amount * Self::current_exchange_rate(),
-				asset_usd_map,
-			)
+			Self::new_or_add_assets(&user, tea_amount * current_exchange_rate, asset_usd_map)
 		});
 	}
 
@@ -69,9 +66,10 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			|| T::CmlOperation::current_mining_cmls().iter().count() as u32,
 			|_cml_id| 1u32,
 		);
+		let current_exchange_rate = Self::current_exchange_rate();
 		for (user, _, single_block_reward) in cml_reward_statements {
 			let reward_in_tea = Self::estimate_cml_asset_value(single_block_reward);
-			let reward_in_usd = reward_in_tea * Self::current_exchange_rate();
+			let reward_in_usd = reward_in_tea * current_exchange_rate;
 
 			Self::new_or_add_assets(&user, reward_in_usd, asset_usd_map);
 		}

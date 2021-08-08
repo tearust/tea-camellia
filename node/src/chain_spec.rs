@@ -30,6 +30,7 @@ const INITIAL_EXCHANGE_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
 
 // address derived from [0u8; 32] that the corresponding private key we don't know
 const GENESIS_BANK_OPERATION_ADDRESS: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM";
+// address derived from [1u8; 32] that the corresponding private key we don't know
 const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn38446dhCpsi2mLHiFT";
 
 // The URL for the telemetry server.
