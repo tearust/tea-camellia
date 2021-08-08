@@ -146,17 +146,11 @@ pub fn local_testnet_config(
 	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
 ) -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
-	Ok(ChainSpec::from_genesis(
-		// Name
-		"Local Testnet",
-		// ID
-		"local_testnet",
-		ChainType::Local,
-		move || {
-			let genesis_seeds = init_genesis(seed);
-			let endowed_accounts = vec![
+	testnet_config(
+		genesis_coupons,
+		seed,
+		generate_account_balance_list(
+			&vec![
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				get_account_id_from_seed::<sr25519::Public>("Bob"),
 				get_account_id_from_seed::<sr25519::Public>("Charlie"),
@@ -169,12 +163,53 @@ pub fn local_testnet_config(
 				get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
 				get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 				get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-			];
-			let mut initial_balances =
-				generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
+			],
+			INITIAL_ACCOUNT_BALANCE,
+		),
+		vec![
+			authority_keys_from_seed("Alice"),
+			authority_keys_from_seed("Bob"),
+			authority_keys_from_seed("Charlie"),
+			authority_keys_from_seed("Dave"),
+			authority_keys_from_seed("Eve"),
+			authority_keys_from_seed("Ferdie"),
+		],
+	)
+}
+
+pub fn testnet_config(
+	genesis_coupons: GenesisCoupons<AccountId>,
+	seed: [u8; 32],
+	endowed_balances: Vec<(AccountId, Balance)>,
+	initial_authorities: Vec<(
+		AccountId,
+		AccountId,
+		BabeId,
+		GrandpaId,
+		ImOnlineId,
+		AuthorityDiscoveryId,
+	)>,
+) -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+
+	Ok(ChainSpec::from_genesis(
+		// Name
+		"Local Testnet",
+		// ID
+		"local_testnet",
+		ChainType::Local,
+		move || {
+			let mut endowed_balances = endowed_balances.clone();
+			let initial_authorities = initial_authorities.clone();
+
+			let genesis_seeds = init_genesis(seed);
+			let endowed_accounts = endowed_balances
+				.iter()
+				.map(|(account, _)| account.clone())
+				.collect();
 
 			let imported_endowed_accounts = get_unique_accounts(&genesis_coupons);
-			initial_balances.extend(generate_account_balance_list(
+			endowed_balances.extend(generate_account_balance_list(
 				&imported_endowed_accounts,
 				COUPON_ACCOUNT_BALANCE,
 			));
@@ -182,15 +217,12 @@ pub fn local_testnet_config(
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
-				vec![
-					authority_keys_from_seed("Alice"),
-					authority_keys_from_seed("Bob"),
-				],
+				initial_authorities,
 				// Sudo account
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
 				endowed_accounts,
-				initial_balances,
+				endowed_balances,
 				genesis_coupons.clone(),
 				genesis_seeds,
 			)
