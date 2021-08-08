@@ -48,6 +48,14 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 		.public()
 }
 
+pub fn public_from_hex_string<TPublic: Public>(hex_str: &str) -> <TPublic::Pair as Pair>::Public {
+	<TPublic::Pair as Pair>::Public::from_slice(
+		hex::decode(hex_str)
+			.expect(format!("{} failed to decode to hex", hex_str).as_str())
+			.as_slice(),
+	)
+}
+
 type AccountPublic = <Signature as Verify>::Signer;
 
 /// Generate an account ID from seed.
@@ -56,6 +64,13 @@ where
 	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
+}
+
+pub fn get_account_id_from_hex_string<TPublic: Public>(hex_str: &str) -> AccountId
+where
+	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+{
+	AccountPublic::from(public_from_hex_string::<TPublic>(hex_str)).into_account()
 }
 
 /// Helper function to generate stash, controller and session key from seed
@@ -76,6 +91,26 @@ pub fn authority_keys_from_seed(
 		get_from_seed::<GrandpaId>(seed),
 		get_from_seed::<ImOnlineId>(seed),
 		get_from_seed::<AuthorityDiscoveryId>(seed),
+	)
+}
+
+pub fn authority_keys_from_hex_string(
+	hex_str: &str,
+) -> (
+	AccountId,
+	AccountId,
+	BabeId,
+	GrandpaId,
+	ImOnlineId,
+	AuthorityDiscoveryId,
+) {
+	(
+		get_account_id_from_hex_string::<sr25519::Public>(hex_str),
+		get_account_id_from_hex_string::<sr25519::Public>(hex_str),
+		public_from_hex_string::<BabeId>(hex_str),
+		public_from_hex_string::<GrandpaId>(hex_str),
+		public_from_hex_string::<ImOnlineId>(hex_str),
+		public_from_hex_string::<AuthorityDiscoveryId>(hex_str),
 	)
 }
 
@@ -142,30 +177,65 @@ pub fn development_config(
 	))
 }
 
+pub fn canary_testnet_config(
+	genesis_coupons: GenesisCoupons<AccountId>,
+	seed: [u8; 32],
+) -> Result<ChainSpec, String> {
+	const ROOT_PUB_STR: &str = "d28a175da66df33a0b9573d90691bdb75470b11a1b640d3e359dcd1263306b12";
+	const ENDOWED_ACCOUNTS_PUB_STR: [&str; 4] = [
+		ROOT_PUB_STR,
+		"6a2e15ae634749343f528be99b2c652d562d83b29a767250accb7b8f8a897815",
+		"f641ccbee2c683f67bb45ae7108c811dcda078fdb8d1225085200a485dd38433",
+		"ae948264f576389d41bc37f7861253363527233fc4be4995fa923439ba3e465e",
+	];
+
+	let endowed_accounts = ENDOWED_ACCOUNTS_PUB_STR
+		.iter()
+		.map(|v| get_account_id_from_hex_string::<sr25519::Public>(v))
+		.collect();
+	let root_account = get_account_id_from_hex_string::<sr25519::Public>(ROOT_PUB_STR);
+	let initial_authorities = ENDOWED_ACCOUNTS_PUB_STR
+		.iter()
+		.map(|v| authority_keys_from_hex_string(v))
+		.collect();
+
+	testnet_config(
+		genesis_coupons,
+		seed,
+		endowed_accounts,
+		// initial balance only for root account
+		vec![(root_account.clone(), INITIAL_ACCOUNT_BALANCE)],
+		initial_authorities,
+		root_account,
+	)
+}
+
 pub fn local_testnet_config(
 	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
 ) -> Result<ChainSpec, String> {
+	let endowed_accounts = vec![
+		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		get_account_id_from_seed::<sr25519::Public>("Bob"),
+		get_account_id_from_seed::<sr25519::Public>("Charlie"),
+		get_account_id_from_seed::<sr25519::Public>("Dave"),
+		get_account_id_from_seed::<sr25519::Public>("Eve"),
+		get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+		get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+		get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+		get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+		get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+		get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+		get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+	];
+	let endowed_balances =
+		generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
+
 	testnet_config(
 		genesis_coupons,
 		seed,
-		generate_account_balance_list(
-			&vec![
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				get_account_id_from_seed::<sr25519::Public>("Bob"),
-				get_account_id_from_seed::<sr25519::Public>("Charlie"),
-				get_account_id_from_seed::<sr25519::Public>("Dave"),
-				get_account_id_from_seed::<sr25519::Public>("Eve"),
-				get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-			],
-			INITIAL_ACCOUNT_BALANCE,
-		),
+		endowed_accounts,
+		endowed_balances,
 		vec![
 			authority_keys_from_seed("Alice"),
 			authority_keys_from_seed("Bob"),
@@ -174,12 +244,14 @@ pub fn local_testnet_config(
 			authority_keys_from_seed("Eve"),
 			authority_keys_from_seed("Ferdie"),
 		],
+		get_account_id_from_seed::<sr25519::Public>("Alice"),
 	)
 }
 
 pub fn testnet_config(
 	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
+	endowed_accounts: Vec<AccountId>,
 	endowed_balances: Vec<(AccountId, Balance)>,
 	initial_authorities: Vec<(
 		AccountId,
@@ -189,6 +261,7 @@ pub fn testnet_config(
 		ImOnlineId,
 		AuthorityDiscoveryId,
 	)>,
+	root_key: AccountId,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
@@ -201,12 +274,8 @@ pub fn testnet_config(
 		move || {
 			let mut endowed_balances = endowed_balances.clone();
 			let initial_authorities = initial_authorities.clone();
-
-			let genesis_seeds = init_genesis(seed);
-			let endowed_accounts = endowed_balances
-				.iter()
-				.map(|(account, _)| account.clone())
-				.collect();
+			let endowed_accounts = endowed_accounts.clone();
+			let root_key = root_key.clone();
 
 			let imported_endowed_accounts = get_unique_accounts(&genesis_coupons);
 			endowed_balances.extend(generate_account_balance_list(
@@ -214,12 +283,14 @@ pub fn testnet_config(
 				COUPON_ACCOUNT_BALANCE,
 			));
 
+			let genesis_seeds = init_genesis(seed);
+
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
 				initial_authorities,
 				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				root_key,
 				// Pre-funded accounts
 				endowed_accounts,
 				endowed_balances,
