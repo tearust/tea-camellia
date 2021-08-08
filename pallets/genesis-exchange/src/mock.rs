@@ -119,8 +119,10 @@ impl pallet_utils::Config for Test {
 	type Slash = ();
 }
 
-pub const OPERATION_USD_AMOUNT: Balance = 10_000_000_000;
-pub const OPERATION_TEA_AMOUNT: Balance = 10_000_000_000;
+pub const OPERATION_USD_AMOUNT: Balance = 1_000_000 * 10_000_000_000 * 100;
+pub const OPERATION_TEA_AMOUNT: Balance = 1_000_000 * 10_000_000_000 * 100;
+pub const COMPETITION_USER_USD_AMOUNT: Balance = 1000 * 10_000_000_000 * 100;
+
 pub const OPERATION_ACCOUNT: u64 = 100;
 pub const COMPETITION_USERS1: u64 = 101;
 pub const COMPETITION_USERS2: u64 = 102;
@@ -137,7 +139,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		operation_account: OPERATION_ACCOUNT,
 		operation_tea_amount: OPERATION_TEA_AMOUNT,
 		operation_usd_amount: OPERATION_USD_AMOUNT,
-		competition_users: vec![COMPETITION_USERS1, COMPETITION_USERS2, COMPETITION_USERS3],
+		competition_users: vec![COMPETITION_USERS1, COMPETITION_USERS2, COMPETITION_USERS3]
+			.iter()
+			.map(|v| (*v, COMPETITION_USER_USD_AMOUNT))
+			.collect(),
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

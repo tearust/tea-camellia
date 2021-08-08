@@ -28,6 +28,8 @@ const COUPON_ACCOUNT_BALANCE: Balance = 1 * DOLLARS;
 const INITIAL_EXCHANGE_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
 const INITIAL_EXCHANGE_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
 
+const INITIAL_COMPETITION_USER_USD_BALANCE: Balance = 1000 * DOLLARS;
+
 // address derived from [0u8; 32] that the corresponding private key we don't know
 const GENESIS_BANK_OPERATION_ADDRESS: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM";
 // address derived from [1u8; 32] that the corresponding private key we don't know
@@ -235,7 +237,7 @@ fn testnet_genesis(
 	let competition_users = genesis_coupons
 		.coupons
 		.iter()
-		.map(|coupon| coupon.account.clone())
+		.map(|coupon| (coupon.account.clone(), INITIAL_COMPETITION_USER_USD_BALANCE))
 		.collect();
 
 	const STASH: Balance = 100 * DOLLARS;

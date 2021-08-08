@@ -85,7 +85,7 @@ pub mod genesis_exchange {
 		pub operation_account: T::AccountId,
 		pub operation_usd_amount: BalanceOf<T>,
 		pub operation_tea_amount: BalanceOf<T>,
-		pub competition_users: Vec<T::AccountId>,
+		pub competition_users: Vec<(T::AccountId, BalanceOf<T>)>,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
@@ -102,8 +102,16 @@ pub mod genesis_exchange {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			OperationAccount::<T>::set(self.operation_account.clone());
-			USDStore::<T>::insert(self.operation_account.clone(), &self.operation_usd_amount);
 			AMMCurveKCoefficient::<T>::set(self.operation_usd_amount * self.operation_tea_amount);
+
+			USDStore::<T>::insert(self.operation_account.clone(), &self.operation_usd_amount);
+			self.competition_users
+				.iter()
+				.for_each(|(user, balance)| USDStore::<T>::insert(user, balance));
+
+			self.competition_users
+				.iter()
+				.for_each(|(user, _)| CompetitionUsers::<T>::insert(user, ()));
 		}
 	}
 
@@ -132,6 +140,7 @@ pub mod genesis_exchange {
 		UserInsufficientTEA,
 		InvalidDepositAmount,
 		InvalidTransferUSDAmount,
+		WithdrawAmountShouldNotBeZero,
 	}
 
 	#[pallet::hooks]
