@@ -1161,7 +1161,7 @@ impl_runtime_apis! {
 			GenesisBank::cml_calculate_loan_amount(cml_id, block_height)
 		}
 
-		fn user_collateral_list(who: &AccountId) -> Vec<u64> {
+		fn user_collateral_list(who: &AccountId) -> Vec<(u64, BlockNumber)> {
 			GenesisBank::user_collateral_list(who)
 		}
 	}
