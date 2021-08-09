@@ -1,7 +1,7 @@
 version: "3.1"
 services:
   layer1:
-    image: tearust/tea-camellia:fast-0.1.11
+    image: tearust/tea-camellia:fast-0.1.12
     container_name: layer1
     ports:
       - 9944:9944
@@ -9,4 +9,4 @@ services:
       - 30333:30333
     volumes:
       - .layer1:/root/.local
-    command: bash -c "tea-camellia --chain local --genesis-seed tearust-fast-0.1.11 --ws-external --rpc-external --rpc-cors all --bootnodes /ip4/81.70.93.215/tcp/30333/p2p/12D3KooWMYhaBN5Kq2DyAmk7Ao4FSspdP1bC9JdypBUPSQ5JXi9m --bootnodes /ip4/139.198.14.230/tcp/30333/p2p/12D3KooWJyMCoHwmLjcC3XQBZBydsjahWorLw91xcxQsJqrGpzNK"
+    command: bash -c "tea-camellia --chain local --genesis-seed tearust-fast-0.1.12 --ws-external --rpc-external --rpc-cors all --bootnodes /ip4/81.70.93.215/tcp/30333/p2p/12D3KooWMYhaBN5Kq2DyAmk7Ao4FSspdP1bC9JdypBUPSQ5JXi9m --bootnodes /ip4/139.198.14.230/tcp/30333/p2p/12D3KooWJyMCoHwmLjcC3XQBZBydsjahWorLw91xcxQsJqrGpzNK"
