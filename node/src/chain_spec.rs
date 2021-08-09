@@ -23,6 +23,7 @@ use std::collections::HashSet;
 use std::str::FromStr;
 
 const INITIAL_ACCOUNT_BALANCE: Balance = 10000 * DOLLARS;
+const INITIAL_VALIDATOR_BALANCE: Balance = 100 * DOLLARS;
 const COUPON_ACCOUNT_BALANCE: Balance = 1 * DOLLARS;
 
 const INITIAL_EXCHANGE_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
@@ -189,7 +190,7 @@ pub fn canary_testnet_config(
 		"ae948264f576389d41bc37f7861253363527233fc4be4995fa923439ba3e465e",
 	];
 
-	let endowed_accounts = ENDOWED_ACCOUNTS_PUB_STR
+	let endowed_accounts: Vec<AccountId> = ENDOWED_ACCOUNTS_PUB_STR
 		.iter()
 		.map(|v| get_account_id_from_hex_string::<sr25519::Public>(v))
 		.collect();
@@ -198,13 +199,23 @@ pub fn canary_testnet_config(
 		.iter()
 		.map(|v| authority_keys_from_hex_string(v))
 		.collect();
+	let endowed_balances = endowed_accounts
+		.iter()
+		.map(|account| {
+			if account.eq(&root_account) {
+				(account.clone(), INITIAL_ACCOUNT_BALANCE)
+			} else {
+				(account.clone(), INITIAL_VALIDATOR_BALANCE)
+			}
+		})
+		.collect();
 
 	testnet_config(
 		genesis_coupons,
 		seed,
 		endowed_accounts,
 		// initial balance only for root account
-		vec![(root_account.clone(), INITIAL_ACCOUNT_BALANCE)],
+		endowed_balances,
 		initial_authorities,
 		root_account,
 	)
@@ -343,7 +354,6 @@ fn testnet_genesis(
 		.map(|coupon| (coupon.account.clone(), INITIAL_COMPETITION_USER_USD_BALANCE))
 		.collect();
 
-	const STASH: Balance = 100 * DOLLARS;
 	let num_endowed_accounts = endowed_accounts.len();
 	GenesisConfig {
 		frame_system: SystemConfig {
@@ -381,7 +391,14 @@ fn testnet_genesis(
 		pallet_staking: StakingConfig {
 			stakers: initial_authorities
 				.iter()
-				.map(|x| (x.0.clone(), x.1.clone(), STASH, StakerStatus::Validator))
+				.map(|x| {
+					(
+						x.0.clone(),
+						x.1.clone(),
+						INITIAL_VALIDATOR_BALANCE,
+						StakerStatus::Validator,
+					)
+				})
 				.collect(),
 			validator_count: initial_authorities.len() as u32 * 2,
 			minimum_validator_count: initial_authorities.len() as u32,
@@ -396,7 +413,7 @@ fn testnet_genesis(
 				.iter()
 				.take((num_endowed_accounts + 1) / 2)
 				.cloned()
-				.map(|member| (member, STASH))
+				.map(|member| (member, INITIAL_VALIDATOR_BALANCE))
 				.collect(),
 		},
 		pallet_collective_Instance1: CouncilConfig::default(),
