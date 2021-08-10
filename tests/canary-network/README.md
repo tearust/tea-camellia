@@ -29,3 +29,9 @@ Use the following command to clean tea-camellia node database, and restart docke
 ```bash
 ./canary-tools.sh refresh
 ```
+## Run as validator
+To run as a validator, you should have corresponding validator key stored in layer1 local `keystore`, and modify command of "layer1" service in "docker-compose.yaml" as following:
+```
+bash -c "tea-camellia --validator --chain canary --genesis-seed tearust-fast-0.1.13 --rpc-cors all --boot    nodes /ip4/81.70.93.215/tcp/30333/p2p/12D3KooWMYhaBN5Kq2DyAmk7Ao4FSspdP1bC9JdypBUPSQ5JXi9m --bootnodes /ip4/139.198.14.230/tcp/30333/p2    p/12D3KooWJyMCoHwmLjcC3XQBZBydsjahWorLw91xcxQsJqrGpzNK"
+```
+You may notice that we add the `--validator` paramter and removed `--ws-external --rpc-external` paramters here.
