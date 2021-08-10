@@ -52,10 +52,6 @@ impl SubstrateCli for Cli {
 				self.parse_genesis_coupons()?,
 				self.genesis_seed(),
 			)?),
-			"canary" => Box::new(chain_spec::canary_testnet_config(
-				self.parse_genesis_coupons()?,
-				self.genesis_seed(),
-			)?),
 			"" | "local" => Box::new(chain_spec::local_testnet_config(
 				self.parse_genesis_coupons()?,
 				self.genesis_seed(),

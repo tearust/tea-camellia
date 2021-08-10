@@ -8106,7 +8106,6 @@ dependencies = [
  "genesis-bank-runtime-api",
  "genesis-exchange-rpc",
  "genesis-exchange-runtime-api",
- "hex",
  "hex-literal",
  "jsonrpc-core",
  "pallet-authority-discovery",
