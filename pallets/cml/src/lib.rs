@@ -714,10 +714,6 @@ pub mod cml {
 						AccountRewards::<T>::contains_key(who),
 						Error::<T>::NotFoundRewardAccount
 					);
-					ensure!(
-						GenesisMinerCreditStore::<T>::iter_prefix(who).count() == 0,
-						Error::<T>::OperationForbiddenWithCredit
-					);
 					Ok(())
 				},
 				|who| {

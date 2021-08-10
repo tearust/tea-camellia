@@ -508,18 +508,15 @@ fn withdraw_staking_reward_should_fail_if_user_not_have_reward() {
 }
 
 #[test]
-fn withdraw_staking_reward_should_fail_if_there_is_credit() {
+fn withdraw_staking_reward_should_work_if_there_is_credit() {
 	new_test_ext().execute_with(|| {
 		AccountRewards::<Test>::insert(1, 1000);
 		GenesisMinerCreditStore::<Test>::insert(1, 1, 200);
 
-		assert_noop!(
-			Cml::withdraw_staking_reward(Origin::signed(1)),
-			Error::<Test>::OperationForbiddenWithCredit
-		);
+		assert_ok!(Cml::withdraw_staking_reward(Origin::signed(1)));
 
-		assert_eq!(Utils::free_balance(&1), 0);
-		assert!(AccountRewards::<Test>::contains_key(&1));
+		assert_eq!(Utils::free_balance(&1), 1000);
+		assert!(!AccountRewards::<Test>::contains_key(&1));
 	})
 }
 
