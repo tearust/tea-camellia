@@ -13,6 +13,8 @@ sp_api::decl_runtime_apis! {
 	{
 		fn current_exchange_rate() -> Balance;
 
+		fn reverse_exchange_rate() -> Balance;
+
 		fn estimate_amount(withdraw_amount: Balance, buy_tea: bool) -> Balance;
 
 		fn user_asset_list() -> Vec<(AccountId, Balance)>;

@@ -16,8 +16,13 @@ const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
 pub trait GenesisExchangeApi<BlockHash, AccountId> {
+	/// current 1TEA equals how many USD amount.
 	#[rpc(name = "cml_currentExchangeRate")]
 	fn current_exchange_rate(&self, at: Option<BlockHash>) -> Result<Price>;
+
+	/// current 1USD equals how many TEA amount.
+	#[rpc(name = "cml_reverseExchangeRate")]
+	fn reverse_exchange_rate(&self, at: Option<BlockHash>) -> Result<Price>;
 
 	#[rpc(name = "cml_estimateAmount")]
 	fn estimate_amount(
@@ -73,6 +78,18 @@ where
 
 		let result: Balance = api
 			.current_exchange_rate(&at)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(Price(result))
+	}
+
+	fn reverse_exchange_rate(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Price> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result: Balance = api
+			.reverse_exchange_rate(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
 	}

@@ -1176,6 +1176,10 @@ impl_runtime_apis! {
 			GenesisExchange::current_exchange_rate()
 		}
 
+		fn reverse_exchange_rate() -> Balance {
+			GenesisExchange::reverse_exchange_rate()
+		}
+
 		fn estimate_amount(withdraw_amount: Balance, buy_tea: bool) -> Balance {
 			GenesisExchange::estimate_amount(withdraw_amount, buy_tea)
 		}
