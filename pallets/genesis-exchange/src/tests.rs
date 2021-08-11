@@ -48,13 +48,13 @@ fn tea_to_usd_works() {
 fn tea_to_usd_works_if_withdraw_all_remains_usd() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
-		let tea_amount = 1_000_900_000_000_000;
+		let usd_amount = 1_000_900_000_000_000;
 		let deposit_amount = 1_026_587_793_051_634;
 		<Test as Config>::Currency::make_free_balance_be(&user, deposit_amount);
 
 		assert_ok!(GenesisExchange::tea_to_usd(
 			Origin::signed(user),
-			tea_amount
+			usd_amount
 		));
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 0);
 
@@ -63,7 +63,7 @@ fn tea_to_usd_works_if_withdraw_all_remains_usd() {
 		<Test as Config>::Currency::make_free_balance_be(&user, deposit_amount);
 		assert_ok!(GenesisExchange::tea_to_usd(
 			Origin::signed(user),
-			tea_amount
+			usd_amount
 		));
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 0);
 	})
@@ -158,13 +158,13 @@ fn usd_to_tea_works() {
 fn usd_to_tea_works_if_withdraw_all_remains_usd() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
-		let usd_amount = 100090 * 10_000_000_000;
+		let tea_amount = 1_000_900_000_000_000;
 		let deposit_amount = 1_026_587_793_051_634;
 		USDStore::<Test>::insert(user, deposit_amount);
 
 		assert_ok!(GenesisExchange::usd_to_tea(
 			Origin::signed(user),
-			usd_amount
+			tea_amount
 		));
 		assert_eq!(USDStore::<Test>::get(user), 0);
 
@@ -174,7 +174,7 @@ fn usd_to_tea_works_if_withdraw_all_remains_usd() {
 
 		assert_ok!(GenesisExchange::usd_to_tea(
 			Origin::signed(user),
-			usd_amount
+			tea_amount
 		));
 		assert_eq!(USDStore::<Test>::get(user), 0);
 	})
