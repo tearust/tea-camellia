@@ -8108,6 +8108,7 @@ dependencies = [
  "genesis-exchange-runtime-api",
  "hex-literal",
  "jsonrpc-core",
+ "log",
  "pallet-authority-discovery",
  "pallet-im-online",
  "pallet-transaction-payment-rpc",

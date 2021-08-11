@@ -6,7 +6,11 @@ use node_primitives::BlockNumber;
 pub const GENESIS_SEED_A_COUNT: u64 = 10;
 pub const GENESIS_SEED_B_COUNT: u64 = 30;
 pub const GENESIS_SEED_C_COUNT: u64 = 60;
+#[cfg(not(feature = "fast"))]
 pub const TEAM_PERCENTAGE: u64 = 60;
+#[cfg(feature = "fast")]
+pub const TEAM_PERCENTAGE: u64 = 20;
+
 #[cfg(not(feature = "fast"))]
 pub const UNFROZEN_SEEDS_PERCENTAGE_INVESTOR: u32 = 10;
 #[cfg(feature = "fast")]

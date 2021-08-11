@@ -13,11 +13,16 @@ const A_CML_AMOUNT_INDEX: usize = 4;
 const B_CML_AMOUNT_INDEX: usize = 5;
 const C_CML_AMOUNT_INDEX: usize = 6;
 
+const COMPETITION_ADDRESS_INDEX: usize = 2;
+
 impl Cli {
 	pub fn parse_genesis_coupons(&self) -> Result<GenesisCoupons<AccountId>, String> {
 		let coupons = if let Some(path) = self.genesis_coupons_path.as_ref() {
 			let mut rdr = csv::Reader::from_path(path).map_err(|e| e.to_string())?;
 			parse_coupon_configs(&mut rdr)?
+		} else if let Some(path) = self.competition_coupons_path.as_ref() {
+			let mut rdr = csv::Reader::from_path(path).map_err(|e| e.to_string())?;
+			parse_competition_coupon_configs(&mut rdr)?
 		} else {
 			let mut rdr = csv::Reader::from_reader(&include_bytes!("dev.csv")[..]);
 			parse_coupon_configs(&mut rdr)?
@@ -44,6 +49,42 @@ fn seed_from_string(s: &str) -> [u8; 32] {
 		seed[i] = str_bytes[i];
 	}
 	seed
+}
+
+fn parse_competition_coupon_configs<R>(
+	rdr: &mut csv::Reader<R>,
+) -> Result<Vec<CouponConfig<AccountId>>, String>
+where
+	R: std::io::Read,
+{
+	let mut coupons = Vec::new();
+
+	for record in rdr.records() {
+		let record = record.map_err(|e| e.to_string())?;
+		let account = parse_account_address(record.get(COMPETITION_ADDRESS_INDEX))?;
+
+		coupons.push(CouponConfig {
+			account: account.clone(),
+			schedule_type: DefrostScheduleType::Investor,
+			cml_type: CmlType::A,
+			amount: 1,
+		});
+		coupons.push(CouponConfig {
+			account: account.clone(),
+			schedule_type: DefrostScheduleType::Investor,
+			cml_type: CmlType::B,
+			amount: 2,
+		});
+		coupons.push(CouponConfig {
+			account: account.clone(),
+			schedule_type: DefrostScheduleType::Investor,
+			cml_type: CmlType::C,
+			amount: 4,
+		});
+	}
+
+	log::info!("competition coupons: {:?}", coupons);
+	Ok(coupons)
 }
 
 fn parse_coupon_configs<R>(rdr: &mut csv::Reader<R>) -> Result<Vec<CouponConfig<AccountId>>, String>
