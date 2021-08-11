@@ -821,9 +821,14 @@ impl pallet_cml::Config for Runtime {
 	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
 }
 
+#[cfg(not(feature = "fast"))]
+const LOAN_TERM_DURATION: BlockNumber = 200000;
+#[cfg(feature = "fast")]
+const LOAN_TERM_DURATION: BlockNumber = 33000; //about 55 hours. good for fast testing
+
 parameter_types! {
 	/// Borrower has to repay the loan before LoanTermDuration, otherwise in default
-	pub const LoanTermDuration: BlockNumber = 200000;//about 55 hours. good for fast testing
+	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
 	/// The appraisal for seed regardless types
 	pub const GenesisCmlLoanAmount: Balance = 500 * DOLLARS;
 	/// Interest in 1/10000 for every BillingCycle
