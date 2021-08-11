@@ -119,8 +119,8 @@ impl pallet_utils::Config for Test {
 	type Slash = ();
 }
 
-pub const OPERATION_USD_AMOUNT: Balance = 1_000_000 * 10_000_000_000 * 100;
-pub const OPERATION_TEA_AMOUNT: Balance = 1_000_000 * 10_000_000_000 * 100;
+pub const OPERATION_USD_AMOUNT: Balance = 40_000 * 10_000_000_000 * 100;
+pub const OPERATION_TEA_AMOUNT: Balance = 40_000 * 10_000_000_000 * 100;
 pub const COMPETITION_USER_USD_AMOUNT: Balance = 1000 * 10_000_000_000 * 100;
 
 pub const OPERATION_ACCOUNT: u64 = 100;
