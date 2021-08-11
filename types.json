@@ -160,7 +160,7 @@
     "asset_type": "AssetType",
     "inner_id": "AssetId"
   },
-  "Lien": {
+  "Loan": {
     "start_at": "BlockNumber",
     "owner": "AccountId"
   }
