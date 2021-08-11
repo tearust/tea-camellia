@@ -3,12 +3,22 @@ use super::*;
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	/// current 1TEA equals how many USD amount.
 	pub fn current_exchange_rate() -> BalanceOf<T> {
-		let dollar = Self::one_tea_dollar();
+		let tea_dollar = Self::one_tea_dollar();
 
 		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
 		let exchange_remains_tea =
 			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
-		Self::delta_deposit_amount(&dollar, &exchange_remains_tea, &exchange_remains_usd)
+		Self::delta_deposit_amount(&tea_dollar, &exchange_remains_usd, &exchange_remains_tea)
+	}
+
+	/// current 1USD equals how many TEA amount.
+	pub fn reverse_exchange_rate() -> BalanceOf<T> {
+		let tea_dollar = Self::one_tea_dollar();
+
+		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
+		let exchange_remains_tea =
+			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
+		Self::delta_deposit_amount(&tea_dollar, &exchange_remains_tea, &exchange_remains_usd)
 	}
 
 	pub fn estimate_amount(withdraw_amount: BalanceOf<T>, buy_tea: bool) -> BalanceOf<T> {
@@ -213,9 +223,9 @@ mod tests {
 			GenesisExchange::collect_cml_assets(&mut asset_usd_map);
 
 			assert_eq!(asset_usd_map.len(), 3);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 14400014400);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 7200007200);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 7200007200);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 14400360008);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 7200180004);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 7200180004);
 		});
 	}
 
@@ -269,21 +279,21 @@ mod tests {
 				asset_list[0],
 				(
 					COMPETITION_USERS1,
-					COMPETITION_USER_USD_AMOUNT + amount1 + 14400014400
+					COMPETITION_USER_USD_AMOUNT + amount1 + 14400360008
 				)
 			);
 			assert_eq!(
 				asset_list[1],
 				(
 					COMPETITION_USERS3,
-					COMPETITION_USER_USD_AMOUNT + amount3 + 7200007200
+					COMPETITION_USER_USD_AMOUNT + amount3 + 7200180004
 				)
 			);
 			assert_eq!(
 				asset_list[2],
 				(
 					COMPETITION_USERS2,
-					COMPETITION_USER_USD_AMOUNT + amount2 + 7200007200
+					COMPETITION_USER_USD_AMOUNT + amount2 + 7200180004
 				)
 			);
 		})

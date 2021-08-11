@@ -48,8 +48,9 @@ fn tea_to_usd_works() {
 fn tea_to_usd_works_if_withdraw_all_remains_usd() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
-		let tea_amount = 100090 * 10_000_000_000;
-		<Test as Config>::Currency::make_free_balance_be(&user, tea_amount);
+		let tea_amount = 1_000_900_000_000_000;
+		let deposit_amount = 1_026_587_793_051_634;
+		<Test as Config>::Currency::make_free_balance_be(&user, deposit_amount);
 
 		assert_ok!(GenesisExchange::tea_to_usd(
 			Origin::signed(user),
@@ -58,7 +59,8 @@ fn tea_to_usd_works_if_withdraw_all_remains_usd() {
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 0);
 
 		// deposit to exchange again
-		<Test as Config>::Currency::make_free_balance_be(&user, tea_amount);
+		let deposit_amount = 1_080_669_919_155_786;
+		<Test as Config>::Currency::make_free_balance_be(&user, deposit_amount);
 		assert_ok!(GenesisExchange::tea_to_usd(
 			Origin::signed(user),
 			tea_amount
@@ -78,11 +80,11 @@ fn tea_to_usd_should_fail_if_withdraw_amount_larger_than_exchange_really_has() {
 		<Test as Config>::Currency::make_free_balance_be(&user, OPERATION_USD_AMOUNT + 1);
 		assert_noop!(
 			GenesisExchange::tea_to_usd(Origin::signed(user), OPERATION_USD_AMOUNT + 1),
-			Error::<Test>::ExchangeInsufficientTEA
+			Error::<Test>::ExchangeInsufficientUSD
 		);
 		assert_noop!(
 			GenesisExchange::tea_to_usd(Origin::signed(user), OPERATION_USD_AMOUNT),
-			Error::<Test>::ExchangeInsufficientTEA
+			Error::<Test>::ExchangeInsufficientUSD
 		);
 	})
 }
@@ -157,7 +159,8 @@ fn usd_to_tea_works_if_withdraw_all_remains_usd() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 		let usd_amount = 100090 * 10_000_000_000;
-		USDStore::<Test>::insert(user, usd_amount);
+		let deposit_amount = 1_026_587_793_051_634;
+		USDStore::<Test>::insert(user, deposit_amount);
 
 		assert_ok!(GenesisExchange::usd_to_tea(
 			Origin::signed(user),
@@ -166,7 +169,8 @@ fn usd_to_tea_works_if_withdraw_all_remains_usd() {
 		assert_eq!(USDStore::<Test>::get(user), 0);
 
 		// deposit to exchange again
-		USDStore::<Test>::insert(user, usd_amount);
+		let deposit_amount = 1_080_669_919_155_786;
+		USDStore::<Test>::insert(user, deposit_amount);
 
 		assert_ok!(GenesisExchange::usd_to_tea(
 			Origin::signed(user),
@@ -187,11 +191,11 @@ fn usd_to_tea_should_fail_if_withdraw_amount_larger_than_exchange_really_has() {
 		USDStore::<Test>::insert(user, OPERATION_USD_AMOUNT + 1);
 		assert_noop!(
 			GenesisExchange::usd_to_tea(Origin::signed(user), OPERATION_USD_AMOUNT + 1),
-			Error::<Test>::ExchangeInsufficientUSD
+			Error::<Test>::ExchangeInsufficientTEA
 		);
 		assert_noop!(
 			GenesisExchange::usd_to_tea(Origin::signed(user), OPERATION_USD_AMOUNT),
-			Error::<Test>::ExchangeInsufficientUSD
+			Error::<Test>::ExchangeInsufficientTEA
 		);
 	})
 }
@@ -216,5 +220,84 @@ fn usd_to_tea_should_fail_if_user_do_not_have_enough_tea() {
 			GenesisExchange::usd_to_tea(Origin::signed(1), 100),
 			Error::<Test>::UserInsufficientUSD
 		);
+	})
+}
+
+#[test]
+fn tea_to_usd_works_after_large_amount_exchange() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		assert_eq!(GenesisExchange::current_exchange_rate(), 1000025000625);
+		assert_eq!(GenesisExchange::reverse_exchange_rate(), 1000025000625);
+
+		let withdraw_delta = 30_000 * 10_000_000_000 * 100;
+		let deposit_amount = 120_000 * 10_000_000_000 * 100;
+		<Test as Config>::Currency::make_free_balance_be(&user, deposit_amount);
+
+		assert_ok!(GenesisExchange::tea_to_usd(
+			Origin::signed(user),
+			withdraw_delta
+		));
+		assert_eq!(<Test as Config>::Currency::free_balance(&user), 0);
+		assert_eq!(USDStore::<Test>::get(user), withdraw_delta);
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			OPERATION_TEA_AMOUNT + deposit_amount
+		);
+		assert_eq!(
+			USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+			OPERATION_USD_AMOUNT - withdraw_delta
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get())
+				* USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+			AMMCurveKCoefficient::<Test>::get(),
+		);
+
+		assert_eq!(GenesisExchange::current_exchange_rate(), 16001600160016);
+		assert_eq!(GenesisExchange::reverse_exchange_rate(), 62500390627);
+	})
+}
+
+#[test]
+fn usd_to_tea_works_after_large_amount_exchange() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		assert_eq!(GenesisExchange::current_exchange_rate(), 1000025000625);
+		assert_eq!(GenesisExchange::reverse_exchange_rate(), 1000025000625);
+
+		let withdraw_delta = 30_000 * 10_000_000_000 * 100;
+		let deposit_amount = 120_000 * 10_000_000_000 * 100;
+		USDStore::<Test>::insert(user, deposit_amount);
+
+		assert_ok!(GenesisExchange::usd_to_tea(
+			Origin::signed(user),
+			withdraw_delta
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			withdraw_delta
+		);
+		assert_eq!(USDStore::<Test>::get(user), 0);
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			OPERATION_TEA_AMOUNT - withdraw_delta
+		);
+		assert_eq!(
+			USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+			OPERATION_USD_AMOUNT + deposit_amount
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get())
+				* USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+			AMMCurveKCoefficient::<Test>::get(),
+		);
+
+		assert_eq!(GenesisExchange::current_exchange_rate(), 62500390627);
+		assert_eq!(GenesisExchange::reverse_exchange_rate(), 16001600160016);
 	})
 }

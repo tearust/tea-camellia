@@ -8,21 +8,22 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		exchange_remains_tea: &BalanceOf<T>,
 	) -> DispatchResult {
 		ensure!(
-			T::CurrencyOperations::free_balance(who) >= *withdraw_amount,
-			Error::<T>::UserInsufficientTEA
-		);
-		ensure!(
 			!withdraw_amount.is_zero(),
 			Error::<T>::WithdrawAmountShouldNotBeZero
 		);
 		ensure!(
-			*withdraw_amount < *exchange_remains_tea,
-			Error::<T>::ExchangeInsufficientTEA
+			*withdraw_amount < *exchange_remains_usd,
+			Error::<T>::ExchangeInsufficientUSD
 		);
 
 		let need_deposit =
-			Self::delta_deposit_amount(withdraw_amount, exchange_remains_tea, exchange_remains_usd);
+			Self::delta_deposit_amount(withdraw_amount, exchange_remains_usd, exchange_remains_tea);
 		ensure!(!need_deposit.is_zero(), Error::<T>::InvalidDepositAmount);
+
+		ensure!(
+			T::CurrencyOperations::free_balance(who) >= need_deposit,
+			Error::<T>::UserInsufficientTEA
+		);
 
 		Ok(())
 	}
@@ -35,11 +36,11 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	) {
 		let exchange_account = OperationAccount::<T>::get();
 		let need_deposit =
-			Self::delta_deposit_amount(withdraw_amount, exchange_remains_tea, exchange_remains_usd);
+			Self::delta_deposit_amount(withdraw_amount, exchange_remains_usd, exchange_remains_tea);
 		if let Err(e) = T::CurrencyOperations::transfer(
 			who,
 			&exchange_account,
-			*withdraw_amount,
+			need_deposit,
 			ExistenceRequirement::AllowDeath,
 		) {
 			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
@@ -47,7 +48,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return;
 		}
 
-		if let Err(e) = Self::transfer_usd(&exchange_account, who, need_deposit) {
+		if let Err(e) = Self::transfer_usd(&exchange_account, who, *withdraw_amount) {
 			error!("transfer usd failed: {:?}", e);
 			return;
 		}
@@ -66,21 +67,22 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		exchange_remains_tea: &BalanceOf<T>,
 	) -> DispatchResult {
 		ensure!(
-			USDStore::<T>::get(who) >= *withdraw_amount,
-			Error::<T>::UserInsufficientUSD
-		);
-		ensure!(
 			!withdraw_amount.is_zero(),
 			Error::<T>::WithdrawAmountShouldNotBeZero
 		);
 		ensure!(
-			*withdraw_amount < *exchange_remains_usd,
-			Error::<T>::ExchangeInsufficientUSD
+			*withdraw_amount < *exchange_remains_tea,
+			Error::<T>::ExchangeInsufficientTEA
 		);
 
 		let need_deposit =
-			Self::delta_deposit_amount(withdraw_amount, exchange_remains_usd, exchange_remains_tea);
+			Self::delta_deposit_amount(withdraw_amount, exchange_remains_tea, exchange_remains_usd);
 		ensure!(!need_deposit.is_zero(), Error::<T>::InvalidDepositAmount);
+
+		ensure!(
+			USDStore::<T>::get(who) >= need_deposit,
+			Error::<T>::UserInsufficientUSD
+		);
 
 		Ok(())
 	}
@@ -93,9 +95,9 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	) {
 		let exchange_account = OperationAccount::<T>::get();
 		let need_deposit =
-			Self::delta_deposit_amount(withdraw_amount, exchange_remains_usd, exchange_remains_tea);
+			Self::delta_deposit_amount(withdraw_amount, exchange_remains_tea, exchange_remains_usd);
 
-		if let Err(e) = Self::transfer_usd(who, &exchange_account, *withdraw_amount) {
+		if let Err(e) = Self::transfer_usd(who, &exchange_account, need_deposit) {
 			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 			error!("transfer usd failed: {:?}", e);
 			return;
@@ -104,7 +106,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		if let Err(e) = T::CurrencyOperations::transfer(
 			&exchange_account,
 			who,
-			need_deposit,
+			*withdraw_amount,
 			ExistenceRequirement::AllowDeath,
 		) {
 			error!("transfer balance failed: {:?}", e);
@@ -173,13 +175,13 @@ mod tests {
 	#[test]
 	fn delta_deposit_amount_with_large_withdraw_delta_works() {
 		new_test_ext().execute_with(|| {
-			let withdraw_delta = OPERATION_USD_AMOUNT - 100;
+			let withdraw_delta = 30_000 * 10_000_000_000 * 100;
 			let deposit_delta = GenesisExchange::delta_deposit_amount(
 				&withdraw_delta,
 				&OPERATION_USD_AMOUNT,
 				&OPERATION_TEA_AMOUNT,
 			);
-			assert!(withdraw_delta < deposit_delta);
+			assert_eq!(deposit_delta, 120_000 * 10_000_000_000 * 100);
 		})
 	}
 
