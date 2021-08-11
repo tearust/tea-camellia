@@ -96,7 +96,8 @@ pub fn authority_keys_from_seed(
 }
 
 pub fn authority_keys_from_hex_string(
-	hex_str: &str,
+	sr25519_str: &str,
+	ed25519_str: &str,
 ) -> (
 	AccountId,
 	AccountId,
@@ -106,12 +107,12 @@ pub fn authority_keys_from_hex_string(
 	AuthorityDiscoveryId,
 ) {
 	(
-		get_account_id_from_hex_string::<sr25519::Public>(hex_str),
-		get_account_id_from_hex_string::<sr25519::Public>(hex_str),
-		public_from_hex_string::<BabeId>(hex_str),
-		public_from_hex_string::<GrandpaId>(hex_str),
-		public_from_hex_string::<ImOnlineId>(hex_str),
-		public_from_hex_string::<AuthorityDiscoveryId>(hex_str),
+		get_account_id_from_hex_string::<sr25519::Public>(sr25519_str),
+		get_account_id_from_hex_string::<sr25519::Public>(sr25519_str),
+		public_from_hex_string::<BabeId>(sr25519_str),
+		public_from_hex_string::<GrandpaId>(ed25519_str),
+		public_from_hex_string::<ImOnlineId>(sr25519_str),
+		public_from_hex_string::<AuthorityDiscoveryId>(sr25519_str),
 	)
 }
 
@@ -182,22 +183,34 @@ pub fn canary_testnet_config(
 	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
 ) -> Result<ChainSpec, String> {
-	const ROOT_PUB_STR: &str = "d28a175da66df33a0b9573d90691bdb75470b11a1b640d3e359dcd1263306b12";
-	const ENDOWED_ACCOUNTS_PUB_STR: [&str; 4] = [
+	const ROOT_PUB_STR: (&str, &str) = (
+		"d28a175da66df33a0b9573d90691bdb75470b11a1b640d3e359dcd1263306b12",
+		"a19ab5f7e9e57b51e346a462f6178c40bd08810133562b340d7759098786f856",
+	);
+	const ENDOWED_ACCOUNTS_PUB_STR: [(&str, &str); 2] = [
 		ROOT_PUB_STR,
-		"6a2e15ae634749343f528be99b2c652d562d83b29a767250accb7b8f8a897815",
-		"f641ccbee2c683f67bb45ae7108c811dcda078fdb8d1225085200a485dd38433",
-		"ae948264f576389d41bc37f7861253363527233fc4be4995fa923439ba3e465e",
+		(
+			"6a2e15ae634749343f528be99b2c652d562d83b29a767250accb7b8f8a897815",
+			"d8be5951a4ffa51c0c39c5869835dd999435edc7a9afd19784b71a63be77d382",
+		),
+		// (
+		// 	"f641ccbee2c683f67bb45ae7108c811dcda078fdb8d1225085200a485dd38433",
+		// 	"8d103f39de4ae64178f5458f09b63967d8c5632cd966cdf28c5da788c78570fd",
+		// ),
+		// (
+		// 	"ae948264f576389d41bc37f7861253363527233fc4be4995fa923439ba3e465e",
+		// 	"185b7d09bf57d149e9b5ddee0e0ab37109c165ce75f34471725652043fc28569",
+		// ),
 	];
 
 	let endowed_accounts: Vec<AccountId> = ENDOWED_ACCOUNTS_PUB_STR
 		.iter()
-		.map(|v| get_account_id_from_hex_string::<sr25519::Public>(v))
+		.map(|v| get_account_id_from_hex_string::<sr25519::Public>(v.0))
 		.collect();
-	let root_account = get_account_id_from_hex_string::<sr25519::Public>(ROOT_PUB_STR);
+	let root_account = get_account_id_from_hex_string::<sr25519::Public>(ROOT_PUB_STR.0);
 	let initial_authorities = ENDOWED_ACCOUNTS_PUB_STR
 		.iter()
-		.map(|v| authority_keys_from_hex_string(v))
+		.map(|v| authority_keys_from_hex_string(v.0, v.1))
 		.collect();
 	let endowed_balances = endowed_accounts
 		.iter()
