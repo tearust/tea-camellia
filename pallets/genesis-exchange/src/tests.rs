@@ -97,7 +97,7 @@ fn test_to_usd_should_fail_if_withdraw_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
 			GenesisExchange::tea_to_usd(Origin::signed(1), Some(0), None),
-			Error::<Test>::WithdrawAmountShouldNotBeZero
+			Error::<Test>::AmountShouldNotBeZero
 		);
 	})
 }
@@ -211,7 +211,7 @@ fn usd_to_tea_should_fail_if_withdraw_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
 			GenesisExchange::usd_to_tea(Origin::signed(1), Some(0), None),
-			Error::<Test>::WithdrawAmountShouldNotBeZero
+			Error::<Test>::AmountShouldNotBeZero
 		);
 	})
 }

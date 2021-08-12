@@ -138,9 +138,9 @@ pub mod genesis_exchange {
 		ExchangeInsufficientTEA,
 		UserInsufficientUSD,
 		UserInsufficientTEA,
-		InvalidDepositAmount,
+		InvalidCalculationAmount,
 		InvalidTransferUSDAmount,
-		WithdrawAmountShouldNotBeZero,
+		AmountShouldNotBeZero,
 		BuyAndSellAmountShouldNotBothExist,
 		BuyOrSellAmountShouldExist,
 	}
@@ -177,8 +177,12 @@ pub mod genesis_exchange {
 							&exchange_remains_tea,
 						)
 					} else if let Some(sell_tea_amount) = sell_tea_amount.as_ref() {
-						// todo implement me
-						Ok(())
+						Self::check_sell_tea_to_usd(
+							who,
+							sell_tea_amount,
+							&exchange_remains_usd,
+							&exchange_remains_tea,
+						)
 					} else {
 						ensure!(false, Error::<T>::BuyOrSellAmountShouldExist);
 						Ok(())
@@ -193,7 +197,12 @@ pub mod genesis_exchange {
 							&exchange_remains_tea,
 						)
 					} else if let Some(sell_tea_amount) = sell_tea_amount.as_ref() {
-						// todo implement me
+						Self::exchange_sell_tea_to_usd(
+							who,
+							sell_tea_amount,
+							&exchange_remains_usd,
+							&exchange_remains_tea,
+						)
 					}
 				},
 			)
@@ -226,8 +235,12 @@ pub mod genesis_exchange {
 							&exchange_remains_tea,
 						)
 					} else if let Some(sell_usd_amount) = sell_usd_amount.as_ref() {
-						// todo implement me
-						Ok(())
+						Self::check_sell_usd_to_tea(
+							who,
+							sell_usd_amount,
+							&exchange_remains_usd,
+							&exchange_remains_tea,
+						)
 					} else {
 						ensure!(false, Error::<T>::BuyOrSellAmountShouldExist);
 						Ok(())
@@ -242,7 +255,12 @@ pub mod genesis_exchange {
 							&exchange_remains_tea,
 						)
 					} else if let Some(sell_usd_amount) = sell_usd_amount.as_ref() {
-						// todo implement me
+						Self::exchange_sell_usd_to_tea(
+							who,
+							sell_usd_amount,
+							&exchange_remains_usd,
+							&exchange_remains_tea,
+						)
 					}
 				},
 			)

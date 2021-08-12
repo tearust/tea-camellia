@@ -3,25 +3,27 @@ use super::*;
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	pub(crate) fn check_buy_tea_to_usd(
 		who: &T::AccountId,
-		withdraw_amount: &BalanceOf<T>,
+		buy_usd_amount: &BalanceOf<T>,
 		exchange_remains_usd: &BalanceOf<T>,
 		exchange_remains_tea: &BalanceOf<T>,
 	) -> DispatchResult {
+		ensure!(!buy_usd_amount.is_zero(), Error::<T>::AmountShouldNotBeZero);
 		ensure!(
-			!withdraw_amount.is_zero(),
-			Error::<T>::WithdrawAmountShouldNotBeZero
-		);
-		ensure!(
-			*withdraw_amount < *exchange_remains_usd,
+			*buy_usd_amount < *exchange_remains_usd,
 			Error::<T>::ExchangeInsufficientUSD
 		);
 
-		let need_deposit =
-			Self::delta_deposit_amount(withdraw_amount, exchange_remains_usd, exchange_remains_tea);
-		ensure!(!need_deposit.is_zero(), Error::<T>::InvalidDepositAmount);
+		let deposit_tea_amount =
+			Self::delta_deposit_amount(buy_usd_amount, exchange_remains_usd, exchange_remains_tea);
+		// The following error should never happen, otherwise there will be an calculation
+		//	parameter error.
+		ensure!(
+			!deposit_tea_amount.is_zero(),
+			Error::<T>::InvalidCalculationAmount
+		);
 
 		ensure!(
-			T::CurrencyOperations::free_balance(who) >= need_deposit,
+			T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 			Error::<T>::UserInsufficientTEA
 		);
 
@@ -30,17 +32,17 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	pub(crate) fn exchange_buy_tea_to_usd(
 		who: &T::AccountId,
-		withdraw_amount: &BalanceOf<T>,
+		buy_usd_amount: &BalanceOf<T>,
 		exchange_remains_usd: &BalanceOf<T>,
 		exchange_remains_tea: &BalanceOf<T>,
 	) {
 		let exchange_account = OperationAccount::<T>::get();
-		let need_deposit =
-			Self::delta_deposit_amount(withdraw_amount, exchange_remains_usd, exchange_remains_tea);
+		let deposit_tea_amount =
+			Self::delta_deposit_amount(buy_usd_amount, exchange_remains_usd, exchange_remains_tea);
 		if let Err(e) = T::CurrencyOperations::transfer(
 			who,
 			&exchange_account,
-			need_deposit,
+			deposit_tea_amount,
 			ExistenceRequirement::AllowDeath,
 		) {
 			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
@@ -48,39 +50,108 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return;
 		}
 
-		if let Err(e) = Self::transfer_usd(&exchange_account, who, *withdraw_amount) {
+		if let Err(e) = Self::transfer_usd(&exchange_account, who, *buy_usd_amount) {
 			error!("transfer usd failed: {:?}", e);
 			return;
 		}
 
 		Self::deposit_event(Event::SellTeaSuccess(
 			who.clone(),
-			need_deposit,
-			*withdraw_amount,
+			deposit_tea_amount,
+			*buy_usd_amount,
+		))
+	}
+
+	pub(crate) fn check_sell_tea_to_usd(
+		who: &T::AccountId,
+		sell_tea_amount: &BalanceOf<T>,
+		exchange_remains_usd: &BalanceOf<T>,
+		exchange_remains_tea: &BalanceOf<T>,
+	) -> DispatchResult {
+		ensure!(
+			!sell_tea_amount.is_zero(),
+			Error::<T>::AmountShouldNotBeZero
+		);
+		ensure!(
+			*sell_tea_amount < *exchange_remains_tea,
+			Error::<T>::ExchangeInsufficientTEA
+		);
+		ensure!(
+			T::CurrencyOperations::free_balance(who) >= *sell_tea_amount,
+			Error::<T>::UserInsufficientTEA
+		);
+
+		let withdraw_usd_amount =
+			Self::delta_deposit_amount(sell_tea_amount, exchange_remains_tea, exchange_remains_usd);
+		// The following two ensure errors should never happen, otherwise there will be an calculation
+		//	parameter error.
+		ensure!(
+			!withdraw_usd_amount.is_zero(),
+			Error::<T>::InvalidCalculationAmount
+		);
+		ensure!(
+			*exchange_remains_usd >= withdraw_usd_amount,
+			Error::<T>::InvalidCalculationAmount
+		);
+
+		Ok(())
+	}
+
+	pub(crate) fn exchange_sell_tea_to_usd(
+		who: &T::AccountId,
+		sell_tea_amount: &BalanceOf<T>,
+		exchange_remains_usd: &BalanceOf<T>,
+		exchange_remains_tea: &BalanceOf<T>,
+	) {
+		let exchange_account = OperationAccount::<T>::get();
+		let withdraw_usd_amount =
+			Self::delta_deposit_amount(sell_tea_amount, exchange_remains_tea, exchange_remains_usd);
+		if let Err(e) = T::CurrencyOperations::transfer(
+			who,
+			&exchange_account,
+			*sell_tea_amount,
+			ExistenceRequirement::AllowDeath,
+		) {
+			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+			error!("transfer balance failed: {:?}", e);
+			return;
+		}
+
+		if let Err(e) = Self::transfer_usd(&exchange_account, who, withdraw_usd_amount) {
+			error!("transfer usd failed: {:?}", e);
+			return;
+		}
+
+		Self::deposit_event(Event::SellTeaSuccess(
+			who.clone(),
+			withdraw_usd_amount,
+			*sell_tea_amount,
 		))
 	}
 
 	pub(crate) fn check_buy_usd_to_tea(
 		who: &T::AccountId,
-		withdraw_amount: &BalanceOf<T>,
+		buy_tea_amount: &BalanceOf<T>,
 		exchange_remains_usd: &BalanceOf<T>,
 		exchange_remains_tea: &BalanceOf<T>,
 	) -> DispatchResult {
+		ensure!(!buy_tea_amount.is_zero(), Error::<T>::AmountShouldNotBeZero);
 		ensure!(
-			!withdraw_amount.is_zero(),
-			Error::<T>::WithdrawAmountShouldNotBeZero
-		);
-		ensure!(
-			*withdraw_amount < *exchange_remains_tea,
+			*buy_tea_amount < *exchange_remains_tea,
 			Error::<T>::ExchangeInsufficientTEA
 		);
 
-		let need_deposit =
-			Self::delta_deposit_amount(withdraw_amount, exchange_remains_tea, exchange_remains_usd);
-		ensure!(!need_deposit.is_zero(), Error::<T>::InvalidDepositAmount);
+		let deposit_usd_amount =
+			Self::delta_deposit_amount(buy_tea_amount, exchange_remains_tea, exchange_remains_usd);
+		// The following error should never happen, otherwise there will be an calculation
+		//	parameter error.
+		ensure!(
+			!deposit_usd_amount.is_zero(),
+			Error::<T>::InvalidCalculationAmount
+		);
 
 		ensure!(
-			USDStore::<T>::get(who) >= need_deposit,
+			USDStore::<T>::get(who) >= deposit_usd_amount,
 			Error::<T>::UserInsufficientUSD
 		);
 
@@ -89,15 +160,15 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	pub(crate) fn exchange_buy_usd_to_tea(
 		who: &T::AccountId,
-		withdraw_amount: &BalanceOf<T>,
+		buy_tea_amount: &BalanceOf<T>,
 		exchange_remains_usd: &BalanceOf<T>,
 		exchange_remains_tea: &BalanceOf<T>,
 	) {
 		let exchange_account = OperationAccount::<T>::get();
-		let need_deposit =
-			Self::delta_deposit_amount(withdraw_amount, exchange_remains_tea, exchange_remains_usd);
+		let deposit_usd_amount =
+			Self::delta_deposit_amount(buy_tea_amount, exchange_remains_tea, exchange_remains_usd);
 
-		if let Err(e) = Self::transfer_usd(who, &exchange_account, need_deposit) {
+		if let Err(e) = Self::transfer_usd(who, &exchange_account, deposit_usd_amount) {
 			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 			error!("transfer usd failed: {:?}", e);
 			return;
@@ -106,7 +177,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		if let Err(e) = T::CurrencyOperations::transfer(
 			&exchange_account,
 			who,
-			*withdraw_amount,
+			*buy_tea_amount,
 			ExistenceRequirement::AllowDeath,
 		) {
 			error!("transfer balance failed: {:?}", e);
@@ -115,8 +186,76 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 		Self::deposit_event(Event::BuyTeaSuccess(
 			who.clone(),
-			*withdraw_amount,
-			need_deposit,
+			*buy_tea_amount,
+			deposit_usd_amount,
+		))
+	}
+
+	pub(crate) fn check_sell_usd_to_tea(
+		who: &T::AccountId,
+		sell_usd_amount: &BalanceOf<T>,
+		exchange_remains_usd: &BalanceOf<T>,
+		exchange_remains_tea: &BalanceOf<T>,
+	) -> DispatchResult {
+		ensure!(
+			!sell_usd_amount.is_zero(),
+			Error::<T>::AmountShouldNotBeZero
+		);
+		ensure!(
+			*sell_usd_amount < *exchange_remains_usd,
+			Error::<T>::ExchangeInsufficientTEA
+		);
+		ensure!(
+			USDStore::<T>::get(who) >= *sell_usd_amount,
+			Error::<T>::UserInsufficientUSD
+		);
+
+		let withdraw_tea_amount =
+			Self::delta_deposit_amount(sell_usd_amount, exchange_remains_usd, exchange_remains_tea);
+		// The following two errors should never happen, otherwise there will be an calculation
+		//	parameter error.
+		ensure!(
+			!withdraw_tea_amount.is_zero(),
+			Error::<T>::InvalidCalculationAmount
+		);
+		ensure!(
+			*exchange_remains_tea >= withdraw_tea_amount,
+			Error::<T>::InvalidCalculationAmount
+		);
+
+		Ok(())
+	}
+
+	pub(crate) fn exchange_sell_usd_to_tea(
+		who: &T::AccountId,
+		sell_usd_amount: &BalanceOf<T>,
+		exchange_remains_usd: &BalanceOf<T>,
+		exchange_remains_tea: &BalanceOf<T>,
+	) {
+		let exchange_account = OperationAccount::<T>::get();
+		let withdraw_tea_amount =
+			Self::delta_deposit_amount(sell_usd_amount, exchange_remains_usd, exchange_remains_tea);
+
+		if let Err(e) = Self::transfer_usd(who, &exchange_account, *sell_usd_amount) {
+			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+			error!("transfer usd failed: {:?}", e);
+			return;
+		}
+
+		if let Err(e) = T::CurrencyOperations::transfer(
+			&exchange_account,
+			who,
+			withdraw_tea_amount,
+			ExistenceRequirement::AllowDeath,
+		) {
+			error!("transfer balance failed: {:?}", e);
+			return;
+		}
+
+		Self::deposit_event(Event::BuyTeaSuccess(
+			who.clone(),
+			*sell_usd_amount,
+			withdraw_tea_amount,
 		))
 	}
 
