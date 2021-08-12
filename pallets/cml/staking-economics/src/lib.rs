@@ -1,7 +1,7 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::index::{CENTS, STAKING_PRICE_TABLE};
+use crate::index::{DOLLARS, STAKING_PRICE_TABLE};
 use node_primitives::{AccountId, Balance};
 use pallet_cml::{Performance, ServiceTaskPoint, StakingEconomics, StakingSnapshotItem};
 use sp_runtime::traits::Zero;
@@ -25,7 +25,7 @@ impl Default for TeaStakingEconomics {
 impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 	/// Calculate issuance balance with given total task point of current staking window.
 	fn increase_issuance(total_point: ServiceTaskPoint) -> Balance {
-		(total_point as Balance) * CENTS
+		(total_point as Balance) * DOLLARS
 	}
 
 	/// Calculate total staking rewards of the given miner, the staking rewards should split to all staking
@@ -35,7 +35,7 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 		_total_point: ServiceTaskPoint,
 		performance: Performance,
 	) -> Balance {
-		(miner_point as Balance) * CENTS * (performance as Balance) / PERFORMANCE_BASE
+		(miner_point as Balance) * DOLLARS * (performance as Balance) / PERFORMANCE_BASE
 	}
 
 	/// Calculate all staking weight about the given miner.
