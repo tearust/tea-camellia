@@ -38,6 +38,7 @@ type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod auction {
 	use super::*;
+	use pallet_genesis_bank::GenesisBankOperation;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -57,6 +58,12 @@ pub mod auction {
 		>;
 
 		type AuctionOperation: AuctionOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+			BlockNumber = Self::BlockNumber,
+		>;
+
+		type GenesisBankOperation: GenesisBankOperation<
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 			BlockNumber = Self::BlockNumber,
@@ -103,6 +110,7 @@ pub mod auction {
 		NotEnoughBalanceForPenalty,
 		OverTheMaxUsersPerAuctionLimit,
 		BuyNowPriceShouldHigherThanStartingPrice,
+		CmlIsInGenesisLoan,
 	}
 
 	#[pallet::event]
@@ -190,6 +198,10 @@ pub mod auction {
 							Error::<T>::BuyNowPriceShouldHigherThanStartingPrice
 						);
 					}
+					ensure!(
+						!T::GenesisBankOperation::is_cml_in_loan(cml_id),
+						Error::<T>::CmlIsInGenesisLoan
+					);
 
 					let current_height = frame_system::Pallet::<T>::block_number();
 					// check cml status

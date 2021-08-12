@@ -15,6 +15,13 @@ impl<T: genesis_bank::Config> GenesisBankOperation for genesis_bank::Pallet<T> {
 	type BlockNumber = T::BlockNumber;
 	type Balance = BalanceOf<T>;
 
+	fn is_cml_in_loan(cml_id: CmlId) -> bool {
+		CollateralStore::<T>::contains_key(AssetUniqueId {
+			asset_type: AssetType::CML,
+			inner_id: from_cml_id(cml_id),
+		})
+	}
+
 	fn calculate_loan_amount(cml_id: u64, block_height: Self::BlockNumber) -> Self::Balance {
 		let unique_id = AssetUniqueId {
 			asset_type: AssetType::CML,

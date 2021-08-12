@@ -21,6 +21,7 @@ frame-benchmarking = { version = "3.1.0", default-features = false, optional = t
 
 pallet-cml = { path = "../cml", version="3.0.0", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
+pallet-genesis-bank = { path = '../genesis-bank', default-features = false }
 
 [dev-dependencies]
 sp-core = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
@@ -40,6 +41,7 @@ std = [
 	"frame-benchmarking/std",
 	"pallet-cml/std",
     "pallet-utils/std",
+	"pallet-genesis-bank/std"
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",

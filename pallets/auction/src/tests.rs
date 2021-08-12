@@ -7,6 +7,7 @@ use pallet_cml::{
 	CmlId, CmlOperation, CmlStore, CmlType, Config, DefrostScheduleType, Error as CmlError, Seed,
 	SeedProperties, StakingProperties, TreeProperties, UserCmlStore, CML,
 };
+use pallet_genesis_bank::{from_cml_id, AssetType, AssetUniqueId, CollateralStore, Loan};
 use pallet_utils::CurrencyOperations;
 
 #[test]
@@ -90,6 +91,35 @@ fn put_to_store_should_fail_if_free_balance_lower_than_auction_pledge_amount() {
 		assert_noop!(
 			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true),
 			Error::<Test>::NotEnoughBalanceForAuction
+		);
+	})
+}
+
+#[test]
+fn put_to_store_should_fail_if_cml_is_in_loan() {
+	new_test_ext().execute_with(|| {
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW,
+		);
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.defrost(&0);
+		cml.convert_to_tree(&0);
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		CollateralStore::<Test>::insert(
+			AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(cml_id),
+			},
+			Loan::default(),
+		);
+
+		assert_noop!(
+			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true),
+			Error::<Test>::CmlIsInGenesisLoan
 		);
 	})
 }

@@ -240,6 +240,8 @@ pub trait GenesisBankOperation {
 	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
 	type Balance: Clone;
 
+	fn is_cml_in_loan(cml_id: CmlId) -> bool;
+
 	fn calculate_loan_amount(cml_id: u64, block_height: Self::BlockNumber) -> Self::Balance;
 
 	fn user_collaterals(who: &Self::AccountId) -> Vec<(u64, Self::BlockNumber)>;

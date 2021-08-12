@@ -4199,6 +4199,7 @@ dependencies = [
  "node-primitives",
  "pallet-balances",
  "pallet-cml",
+ "pallet-genesis-bank",
  "pallet-utils",
  "parity-scale-codec",
  "serde",
