@@ -141,11 +141,15 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		id: &AssetUniqueId,
 		current_height: &T::BlockNumber,
 	) -> BalanceOf<T> {
+		if !CollateralStore::<T>::contains_key(id) {
+			return Zero::zero();
+		}
+
 		let loan = CollateralStore::<T>::get(id);
 		T::GenesisCmlLoanAmount::get() + Self::calculate_interest(current_height, &loan.start_at)
 	}
 
-	pub(crate) fn calculate_interest(
+	pub fn calculate_interest(
 		current_height: &T::BlockNumber,
 		start_at: &T::BlockNumber,
 	) -> BalanceOf<T> {

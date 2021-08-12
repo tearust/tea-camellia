@@ -8,7 +8,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub fn user_credit_list(who: &T::AccountId) -> Vec<(u64, BalanceOf<T>)> {
-		GenesisMinerCreditStore::<T>::iter_prefix(who).collect()
+		Self::user_credits(who)
 	}
 
 	pub fn user_staking_list(who: &T::AccountId) -> Vec<(u64, u64)> {

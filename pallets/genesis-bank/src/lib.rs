@@ -4,6 +4,7 @@
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
 pub use genesis_bank::*;
+pub use types::*;
 
 #[cfg(test)]
 mod mock;
@@ -17,12 +18,11 @@ mod types;
 
 use frame_support::{pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
-use pallet_cml::{CmlOperation, SeedProperties};
+use pallet_cml::{CmlId, CmlOperation, SeedProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::traits::Zero;
+use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
-use types::*;
 
 /// The balance type of this module.
 pub type BalanceOf<T> =
@@ -85,8 +85,15 @@ pub mod genesis_bank {
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_lien_store)]
-	pub type UserCollateralStore<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, AssetUniqueId, (), ValueQuery>;
+	pub type UserCollateralStore<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		Twox64Concat,
+		AssetUniqueId,
+		(),
+		ValueQuery,
+	>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -200,7 +207,11 @@ pub mod genesis_bank {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn payoff_loan(sender: OriginFor<T>, id: AssetId, asset_type: AssetType) -> DispatchResult {
+		pub fn payoff_loan(
+			sender: OriginFor<T>,
+			id: AssetId,
+			asset_type: AssetType,
+		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let unique_id = AssetUniqueId {
 				asset_type,
@@ -222,4 +233,14 @@ pub mod genesis_bank {
 			}
 		}
 	}
+}
+
+pub trait GenesisBankOperation {
+	type AccountId: PartialEq + Clone;
+	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
+	type Balance: Clone;
+
+	fn calculate_loan_amount(cml_id: u64, block_height: Self::BlockNumber) -> Self::Balance;
+
+	fn user_collaterals(who: &Self::AccountId) -> Vec<(u64, Self::BlockNumber)>;
 }

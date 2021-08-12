@@ -21,9 +21,10 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use log::error;
 use pallet_cml::CmlOperation;
+use pallet_genesis_bank::GenesisBankOperation;
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
-use sp_std::{collections::btree_map::BTreeMap, convert::TryInto, prelude::*};
+use sp_std::{cmp::max, collections::btree_map::BTreeMap, convert::TryInto, prelude::*};
 
 /// The balance type of this module.
 pub type BalanceOf<T> =
@@ -50,6 +51,12 @@ pub mod genesis_exchange {
 		type CurrencyOperations: CurrencyOperations<
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
+		>;
+
+		type GenesisBankOperation: GenesisBankOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+			BlockNumber = Self::BlockNumber,
 		>;
 
 		/// Price-to-Earning Ratio

@@ -2,7 +2,7 @@ use crate as pallet_genesis_exchange;
 use frame_benchmarking::frame_support::pallet_prelude::GenesisBuild;
 use frame_support::{parameter_types, traits::Currency};
 use frame_system as system;
-use node_primitives::Balance;
+use node_primitives::{Balance, BlockNumber};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -23,9 +23,33 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Cml: pallet_cml::{Pallet, Call, Storage, Event<T>},
 		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Storage, Event<T>},
+		GenesisBank: pallet_genesis_bank::{Pallet, Call, Storage, Event<T>},
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
 	}
 );
+
+pub const LOAN_TERM_DURATION: BlockNumber = 10000;
+pub const GENESIS_CML_LOAN_AMOUNT: Balance = 5000000000000;
+pub const INTEREST_RATE: Balance = 5;
+pub const LOAN_BILLING_CYCLE: BlockNumber = 1000;
+
+parameter_types! {
+	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
+	pub const GenesisCmlLoanAmount: Balance = GENESIS_CML_LOAN_AMOUNT;
+	pub const InterestRate: Balance = INTEREST_RATE;
+	pub const BillingCycle: BlockNumber = LOAN_BILLING_CYCLE;
+}
+
+impl pallet_genesis_bank::Config for Test {
+	type Event = Event;
+	type Currency = Balances;
+	type CurrencyOperations = Utils;
+	type CmlOperation = Cml;
+	type LoanTermDuration = LoanTermDuration;
+	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
+	type InterestRate = InterestRate;
+	type BillingCycle = BillingCycle;
+}
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -95,6 +119,7 @@ impl pallet_genesis_exchange::Config for Test {
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
 	type PER = PER;
+	type GenesisBankOperation = GenesisBank;
 }
 
 parameter_types! {

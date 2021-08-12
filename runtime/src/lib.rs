@@ -858,6 +858,7 @@ impl pallet_genesis_exchange::Config for Runtime {
 	type Currency = Balances;
 	type CmlOperation = Cml;
 	type CurrencyOperations = Utils;
+	type GenesisBankOperation = GenesisBank;
 	type PER = PER;
 }
 

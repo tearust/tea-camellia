@@ -1,4 +1,5 @@
 use super::*;
+use sp_runtime::traits::Saturating;
 
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	/// current 1TEA equals how many USD amount.
@@ -45,6 +46,8 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		Self::collect_cml_assets(&mut asset_usd_map);
 		Self::collect_tea_assets(&mut asset_usd_map);
 		Self::collect_usd_assets(&mut asset_usd_map);
+		Self::exclude_genesis_miner_credit(&mut asset_usd_map);
+		Self::exclude_genesis_loan_credit(&mut asset_usd_map);
 
 		let mut total_assets: Vec<(T::AccountId, BalanceOf<T>)> = asset_usd_map
 			.iter()
@@ -58,6 +61,37 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	pub fn one_tea_dollar() -> BalanceOf<T> {
 		u128_to_balance::<T>(10_000_000_000 * 100)
+	}
+
+	fn exclude_genesis_loan_credit(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
+		let current_height = frame_system::Pallet::<T>::block_number();
+		let current_exchange_rate = Self::current_exchange_rate();
+		let one_tea_dollar = Self::one_tea_dollar();
+
+		asset_usd_map.iter_mut().for_each(|(user, amount)| {
+			let mut credit_total: BalanceOf<T> = Zero::zero();
+			for (cml_id, expired_height) in T::GenesisBankOperation::user_collaterals(user) {
+				credit_total =
+					credit_total.saturating_add(T::GenesisBankOperation::calculate_loan_amount(
+						cml_id,
+						max(current_height, expired_height),
+					));
+			}
+			*amount = amount.saturating_sub(credit_total * current_exchange_rate / one_tea_dollar)
+		})
+	}
+
+	fn exclude_genesis_miner_credit(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
+		let current_exchange_rate = Self::current_exchange_rate();
+		let one_tea_dollar = Self::one_tea_dollar();
+
+		asset_usd_map.iter_mut().for_each(|(user, amount)| {
+			let mut credit_total: BalanceOf<T> = Zero::zero();
+			for (_, credit_amount) in T::CmlOperation::user_credits(user) {
+				credit_total = credit_total.saturating_add(credit_amount);
+			}
+			*amount = amount.saturating_sub(credit_total * current_exchange_rate / one_tea_dollar)
+		})
 	}
 
 	fn collect_usd_assets(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
@@ -126,7 +160,120 @@ fn u128_to_balance<T: Config>(amount: u128) -> BalanceOf<T> {
 mod tests {
 	use crate::mock::*;
 	use crate::*;
-	use pallet_cml::{ActiveStakingSnapshot, StakingSnapshotItem};
+	use pallet_cml::{ActiveStakingSnapshot, GenesisMinerCreditStore, StakingSnapshotItem};
+	use pallet_genesis_bank::{
+		from_cml_id, AssetType, AssetUniqueId, CollateralStore, Loan, UserCollateralStore,
+	};
+
+	#[test]
+	fn exclude_genesis_loan_credit_works() {
+		new_test_ext().execute_with(|| {
+			let current_exchange_rate = GenesisExchange::current_exchange_rate();
+			let one_tea_dollar = GenesisExchange::one_tea_dollar();
+
+			let asset1 = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(1),
+			};
+			let asset2 = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(2),
+			};
+			let asset3 = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(3),
+			};
+			let asset4 = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(4),
+			};
+
+			CollateralStore::<Test>::insert(
+				&asset1,
+				Loan {
+					start_at: 0,
+					owner: COMPETITION_USERS2,
+				},
+			);
+			CollateralStore::<Test>::insert(
+				&asset2,
+				Loan {
+					start_at: 0,
+					owner: COMPETITION_USERS2,
+				},
+			);
+			CollateralStore::<Test>::insert(
+				&asset3,
+				Loan {
+					start_at: 0,
+					owner: COMPETITION_USERS2,
+				},
+			);
+			CollateralStore::<Test>::insert(
+				&asset4,
+				Loan {
+					start_at: 0,
+					owner: COMPETITION_USERS3,
+				},
+			);
+
+			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset1, ());
+			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset2, ());
+			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset3, ());
+			UserCollateralStore::<Test>::insert(COMPETITION_USERS3, asset4, ());
+
+			let mut asset_usd_map = BTreeMap::new();
+			asset_usd_map.insert(COMPETITION_USERS1, GENESIS_CML_LOAN_AMOUNT * 10);
+			asset_usd_map.insert(COMPETITION_USERS2, GENESIS_CML_LOAN_AMOUNT * 10);
+			asset_usd_map.insert(COMPETITION_USERS3, GENESIS_CML_LOAN_AMOUNT * 10);
+			GenesisExchange::exclude_genesis_loan_credit(&mut asset_usd_map);
+
+			assert_eq!(
+				asset_usd_map[&COMPETITION_USERS1],
+				GENESIS_CML_LOAN_AMOUNT * 10
+			);
+			assert!(
+				asset_usd_map[&COMPETITION_USERS2]
+					< GENESIS_CML_LOAN_AMOUNT * 7 * current_exchange_rate / one_tea_dollar
+			);
+			assert!(
+				asset_usd_map[&COMPETITION_USERS3]
+					< GENESIS_CML_LOAN_AMOUNT * 9 * current_exchange_rate / one_tea_dollar
+			);
+		})
+	}
+
+	#[test]
+	fn exclude_genesis_miner_credit_works() {
+		new_test_ext().execute_with(|| {
+			let current_exchange_rate = GenesisExchange::current_exchange_rate();
+			let one_tea_dollar = GenesisExchange::one_tea_dollar();
+
+			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS1, 1, STAKING_PRICE);
+			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS2, 2, STAKING_PRICE);
+			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS2, 3, STAKING_PRICE);
+			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS3, 4, STAKING_PRICE);
+
+			let mut asset_usd_map = BTreeMap::new();
+			asset_usd_map.insert(COMPETITION_USERS1, STAKING_PRICE * 10);
+			asset_usd_map.insert(COMPETITION_USERS2, STAKING_PRICE * 10);
+			asset_usd_map.insert(COMPETITION_USERS3, STAKING_PRICE * 10);
+			GenesisExchange::exclude_genesis_miner_credit(&mut asset_usd_map);
+
+			assert_eq!(
+				asset_usd_map[&COMPETITION_USERS1],
+				STAKING_PRICE * 10 - STAKING_PRICE * current_exchange_rate / one_tea_dollar
+			);
+			assert_eq!(
+				asset_usd_map[&COMPETITION_USERS2],
+				STAKING_PRICE * 10 - STAKING_PRICE * 2 * current_exchange_rate / one_tea_dollar
+			);
+			assert_eq!(
+				asset_usd_map[&COMPETITION_USERS3],
+				STAKING_PRICE * 10 - STAKING_PRICE * current_exchange_rate / one_tea_dollar
+			);
+		})
+	}
 
 	#[test]
 	fn collect_usd_assets_works() {

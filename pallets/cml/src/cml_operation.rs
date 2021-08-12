@@ -116,6 +116,10 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		GenesisMinerCreditStore::<T>::get(account_id, cml_id)
 	}
 
+	fn user_credits(who: &Self::AccountId) -> Vec<(CmlId, Self::Balance)> {
+		GenesisMinerCreditStore::<T>::iter_prefix(who).collect()
+	}
+
 	/// Add a cml into `CmlStore` and bind the CML with the given user.
 	fn add_cml(
 		who: &Self::AccountId,

@@ -854,6 +854,8 @@ pub trait CmlOperation {
 	/// Get credit amount of the given user.
 	fn user_credit_amount(account_id: &Self::AccountId, cml_id: &CmlId) -> Self::Balance;
 
+	fn user_credits(account_id: &Self::AccountId) -> Vec<(CmlId, Self::Balance)>;
+
 	/// Add a cml into `CmlStore` and bind the CML with the given user.
 	fn add_cml(
 		who: &Self::AccountId,

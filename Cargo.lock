@@ -4420,6 +4420,7 @@ dependencies = [
  "node-primitives",
  "pallet-balances",
  "pallet-cml",
+ "pallet-genesis-bank",
  "pallet-randomness-collective-flip",
  "pallet-utils",
  "parity-scale-codec",
