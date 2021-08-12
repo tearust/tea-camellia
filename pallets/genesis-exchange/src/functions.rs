@@ -73,16 +73,15 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			Error::<T>::AmountShouldNotBeZero
 		);
 		ensure!(
-			*sell_tea_amount < *exchange_remains_tea,
-			Error::<T>::ExchangeInsufficientTEA
-		);
-		ensure!(
 			T::CurrencyOperations::free_balance(who) >= *sell_tea_amount,
 			Error::<T>::UserInsufficientTEA
 		);
 
-		let withdraw_usd_amount =
-			Self::delta_deposit_amount(sell_tea_amount, exchange_remains_tea, exchange_remains_usd);
+		let withdraw_usd_amount = Self::delta_withdraw_amount(
+			sell_tea_amount,
+			exchange_remains_tea,
+			exchange_remains_usd,
+		);
 		// The following two ensure errors should never happen, otherwise there will be an calculation
 		//	parameter error.
 		ensure!(
@@ -104,8 +103,11 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		exchange_remains_tea: &BalanceOf<T>,
 	) {
 		let exchange_account = OperationAccount::<T>::get();
-		let withdraw_usd_amount =
-			Self::delta_deposit_amount(sell_tea_amount, exchange_remains_tea, exchange_remains_usd);
+		let withdraw_usd_amount = Self::delta_withdraw_amount(
+			sell_tea_amount,
+			exchange_remains_tea,
+			exchange_remains_usd,
+		);
 		if let Err(e) = T::CurrencyOperations::transfer(
 			who,
 			&exchange_account,
@@ -202,16 +204,15 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			Error::<T>::AmountShouldNotBeZero
 		);
 		ensure!(
-			*sell_usd_amount < *exchange_remains_usd,
-			Error::<T>::ExchangeInsufficientTEA
-		);
-		ensure!(
 			USDStore::<T>::get(who) >= *sell_usd_amount,
 			Error::<T>::UserInsufficientUSD
 		);
 
-		let withdraw_tea_amount =
-			Self::delta_deposit_amount(sell_usd_amount, exchange_remains_usd, exchange_remains_tea);
+		let withdraw_tea_amount = Self::delta_withdraw_amount(
+			sell_usd_amount,
+			exchange_remains_usd,
+			exchange_remains_tea,
+		);
 		// The following two errors should never happen, otherwise there will be an calculation
 		//	parameter error.
 		ensure!(
@@ -233,8 +234,11 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		exchange_remains_tea: &BalanceOf<T>,
 	) {
 		let exchange_account = OperationAccount::<T>::get();
-		let withdraw_tea_amount =
-			Self::delta_deposit_amount(sell_usd_amount, exchange_remains_usd, exchange_remains_tea);
+		let withdraw_tea_amount = Self::delta_withdraw_amount(
+			sell_usd_amount,
+			exchange_remains_usd,
+			exchange_remains_tea,
+		);
 
 		if let Err(e) = Self::transfer_usd(who, &exchange_account, *sell_usd_amount) {
 			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
@@ -269,6 +273,14 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		}
 
 		AMMCurveKCoefficient::<T>::get() / (*withdraw_total - *withdraw_delta) - *deposit_total
+	}
+
+	pub(crate) fn delta_withdraw_amount(
+		deposit_delta: &BalanceOf<T>,
+		deposit_total: &BalanceOf<T>,
+		withdraw_total: &BalanceOf<T>,
+	) -> BalanceOf<T> {
+		*withdraw_total - AMMCurveKCoefficient::<T>::get() / (*deposit_total + *deposit_delta)
 	}
 
 	pub(crate) fn transfer_usd(
@@ -347,6 +359,44 @@ mod tests {
 	fn delta_deposit_amount_return_zero_if_withdraw_delta_is_zero() {
 		new_test_ext().execute_with(|| {
 			let deposit_delta = GenesisExchange::delta_deposit_amount(
+				&0,
+				&OPERATION_USD_AMOUNT,
+				&OPERATION_TEA_AMOUNT,
+			);
+			assert!(deposit_delta.is_zero());
+		})
+	}
+
+	#[test]
+	fn delta_withdraw_amount_with_small_withdraw_delta_works() {
+		new_test_ext().execute_with(|| {
+			let deposit_delta = 100;
+			let withdraw_delta = GenesisExchange::delta_withdraw_amount(
+				&deposit_delta,
+				&OPERATION_USD_AMOUNT,
+				&OPERATION_TEA_AMOUNT,
+			);
+			assert_eq!(deposit_delta, withdraw_delta);
+		})
+	}
+
+	#[test]
+	fn delta_withdraw_amount_with_large_withdraw_delta_works() {
+		new_test_ext().execute_with(|| {
+			let deposit_delta = 120_000 * 10_000_000_000 * 100;
+			let withdraw_delta = GenesisExchange::delta_withdraw_amount(
+				&deposit_delta,
+				&OPERATION_USD_AMOUNT,
+				&OPERATION_TEA_AMOUNT,
+			);
+			assert_eq!(withdraw_delta, 30_000 * 10_000_000_000 * 100);
+		})
+	}
+
+	#[test]
+	fn delta_withdraw_amount_return_zero_if_deposit_delta_is_zero() {
+		new_test_ext().execute_with(|| {
+			let deposit_delta = GenesisExchange::delta_withdraw_amount(
 				&0,
 				&OPERATION_USD_AMOUNT,
 				&OPERATION_TEA_AMOUNT,

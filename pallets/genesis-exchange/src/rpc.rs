@@ -8,17 +8,17 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
 		let exchange_remains_tea =
 			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
-		Self::delta_deposit_amount(&tea_dollar, &exchange_remains_usd, &exchange_remains_tea)
+		Self::delta_withdraw_amount(&tea_dollar, &exchange_remains_tea, &exchange_remains_usd)
 	}
 
 	/// current 1USD equals how many TEA amount.
 	pub fn reverse_exchange_rate() -> BalanceOf<T> {
-		let tea_dollar = Self::one_tea_dollar();
+		let usd_dollar = Self::one_tea_dollar();
 
 		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
 		let exchange_remains_tea =
 			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
-		Self::delta_deposit_amount(&tea_dollar, &exchange_remains_tea, &exchange_remains_usd)
+		Self::delta_withdraw_amount(&usd_dollar, &exchange_remains_usd, &exchange_remains_tea)
 	}
 
 	pub fn estimate_amount(withdraw_amount: BalanceOf<T>, buy_tea: bool) -> BalanceOf<T> {
@@ -168,16 +168,16 @@ mod tests {
 
 			let amount1 = 100;
 			let amount2 = 200;
-			let amount3 = 200;
+			let amount3 = 300;
 			<Test as Config>::Currency::make_free_balance_be(&COMPETITION_USERS1, amount1);
 			<Test as Config>::Currency::make_free_balance_be(&COMPETITION_USERS2, amount2);
 			<Test as Config>::Currency::make_free_balance_be(&COMPETITION_USERS3, amount3);
 
 			GenesisExchange::collect_tea_assets(&mut asset_usd_map);
 			assert_eq!(asset_usd_map.len(), 3);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS1], amount1);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS2], amount2);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS3], amount3);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 99);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 199);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 299);
 		})
 	}
 
@@ -223,9 +223,9 @@ mod tests {
 			GenesisExchange::collect_cml_assets(&mut asset_usd_map);
 
 			assert_eq!(asset_usd_map.len(), 3);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 14400360008);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 7200180004);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 7200180004);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 14399640008);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 7199820004);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 7199820004);
 		});
 	}
 
@@ -235,7 +235,7 @@ mod tests {
 			// prepare tea balance
 			let amount1 = 100;
 			let amount2 = 200;
-			let amount3 = 200;
+			let amount3 = 300;
 			<Test as Config>::Currency::make_free_balance_be(&COMPETITION_USERS1, amount1);
 			<Test as Config>::Currency::make_free_balance_be(&COMPETITION_USERS2, amount2);
 			<Test as Config>::Currency::make_free_balance_be(&COMPETITION_USERS3, amount3);
@@ -279,21 +279,21 @@ mod tests {
 				asset_list[0],
 				(
 					COMPETITION_USERS1,
-					COMPETITION_USER_USD_AMOUNT + amount1 + 14400360008
+					COMPETITION_USER_USD_AMOUNT + 99 + 14399640008
 				)
 			);
 			assert_eq!(
 				asset_list[1],
 				(
 					COMPETITION_USERS3,
-					COMPETITION_USER_USD_AMOUNT + amount3 + 7200180004
+					COMPETITION_USER_USD_AMOUNT + 299 + 7199820004
 				)
 			);
 			assert_eq!(
 				asset_list[2],
 				(
 					COMPETITION_USERS2,
-					COMPETITION_USER_USD_AMOUNT + amount2 + 7200180004
+					COMPETITION_USER_USD_AMOUNT + 199 + 7199820004
 				)
 			);
 		})
