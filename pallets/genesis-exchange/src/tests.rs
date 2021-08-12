@@ -24,7 +24,8 @@ fn tea_to_usd_works() {
 		let withdraw_amount = 100;
 		assert_ok!(GenesisExchange::tea_to_usd(
 			Origin::signed(user),
-			withdraw_amount
+			Some(withdraw_amount),
+			None
 		));
 
 		assert_eq!(
@@ -54,7 +55,8 @@ fn tea_to_usd_works_if_withdraw_all_remains_usd() {
 
 		assert_ok!(GenesisExchange::tea_to_usd(
 			Origin::signed(user),
-			usd_amount
+			Some(usd_amount),
+			None
 		));
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 0);
 
@@ -63,7 +65,8 @@ fn tea_to_usd_works_if_withdraw_all_remains_usd() {
 		<Test as Config>::Currency::make_free_balance_be(&user, deposit_amount);
 		assert_ok!(GenesisExchange::tea_to_usd(
 			Origin::signed(user),
-			usd_amount
+			Some(usd_amount),
+			None
 		));
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 0);
 	})
@@ -79,11 +82,11 @@ fn tea_to_usd_should_fail_if_withdraw_amount_larger_than_exchange_really_has() {
 		);
 		<Test as Config>::Currency::make_free_balance_be(&user, OPERATION_USD_AMOUNT + 1);
 		assert_noop!(
-			GenesisExchange::tea_to_usd(Origin::signed(user), OPERATION_USD_AMOUNT + 1),
+			GenesisExchange::tea_to_usd(Origin::signed(user), Some(OPERATION_USD_AMOUNT + 1), None),
 			Error::<Test>::ExchangeInsufficientUSD
 		);
 		assert_noop!(
-			GenesisExchange::tea_to_usd(Origin::signed(user), OPERATION_USD_AMOUNT),
+			GenesisExchange::tea_to_usd(Origin::signed(user), Some(OPERATION_USD_AMOUNT), None),
 			Error::<Test>::ExchangeInsufficientUSD
 		);
 	})
@@ -93,7 +96,7 @@ fn tea_to_usd_should_fail_if_withdraw_amount_larger_than_exchange_really_has() {
 fn test_to_usd_should_fail_if_withdraw_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			GenesisExchange::tea_to_usd(Origin::signed(1), 0),
+			GenesisExchange::tea_to_usd(Origin::signed(1), Some(0), None),
 			Error::<Test>::WithdrawAmountShouldNotBeZero
 		);
 	})
@@ -106,7 +109,7 @@ fn test_to_usd_should_fail_if_user_do_not_have_enough_tea() {
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 0);
 
 		assert_noop!(
-			GenesisExchange::tea_to_usd(Origin::signed(1), 100),
+			GenesisExchange::tea_to_usd(Origin::signed(1), Some(100), None),
 			Error::<Test>::UserInsufficientTEA
 		);
 	})
@@ -134,7 +137,8 @@ fn usd_to_tea_works() {
 		let withdraw_amount = 100;
 		assert_ok!(GenesisExchange::usd_to_tea(
 			Origin::signed(user),
-			withdraw_amount
+			Some(withdraw_amount),
+			None
 		));
 
 		assert_eq!(
@@ -164,7 +168,8 @@ fn usd_to_tea_works_if_withdraw_all_remains_usd() {
 
 		assert_ok!(GenesisExchange::usd_to_tea(
 			Origin::signed(user),
-			tea_amount
+			Some(tea_amount),
+			None
 		));
 		assert_eq!(USDStore::<Test>::get(user), 0);
 
@@ -174,7 +179,8 @@ fn usd_to_tea_works_if_withdraw_all_remains_usd() {
 
 		assert_ok!(GenesisExchange::usd_to_tea(
 			Origin::signed(user),
-			tea_amount
+			Some(tea_amount),
+			None
 		));
 		assert_eq!(USDStore::<Test>::get(user), 0);
 	})
@@ -190,11 +196,11 @@ fn usd_to_tea_should_fail_if_withdraw_amount_larger_than_exchange_really_has() {
 		);
 		USDStore::<Test>::insert(user, OPERATION_USD_AMOUNT + 1);
 		assert_noop!(
-			GenesisExchange::usd_to_tea(Origin::signed(user), OPERATION_USD_AMOUNT + 1),
+			GenesisExchange::usd_to_tea(Origin::signed(user), Some(OPERATION_USD_AMOUNT + 1), None),
 			Error::<Test>::ExchangeInsufficientTEA
 		);
 		assert_noop!(
-			GenesisExchange::usd_to_tea(Origin::signed(user), OPERATION_USD_AMOUNT),
+			GenesisExchange::usd_to_tea(Origin::signed(user), Some(OPERATION_USD_AMOUNT), None),
 			Error::<Test>::ExchangeInsufficientTEA
 		);
 	})
@@ -204,7 +210,7 @@ fn usd_to_tea_should_fail_if_withdraw_amount_larger_than_exchange_really_has() {
 fn usd_to_tea_should_fail_if_withdraw_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			GenesisExchange::usd_to_tea(Origin::signed(1), 0),
+			GenesisExchange::usd_to_tea(Origin::signed(1), Some(0), None),
 			Error::<Test>::WithdrawAmountShouldNotBeZero
 		);
 	})
@@ -217,7 +223,7 @@ fn usd_to_tea_should_fail_if_user_do_not_have_enough_tea() {
 		assert_eq!(USDStore::<Test>::get(user), 0);
 
 		assert_noop!(
-			GenesisExchange::usd_to_tea(Origin::signed(1), 100),
+			GenesisExchange::usd_to_tea(Origin::signed(1), Some(100), None),
 			Error::<Test>::UserInsufficientUSD
 		);
 	})
@@ -237,7 +243,8 @@ fn tea_to_usd_works_after_large_amount_exchange() {
 
 		assert_ok!(GenesisExchange::tea_to_usd(
 			Origin::signed(user),
-			withdraw_delta
+			Some(withdraw_delta),
+			None
 		));
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 0);
 		assert_eq!(USDStore::<Test>::get(user), withdraw_delta);
@@ -275,7 +282,8 @@ fn usd_to_tea_works_after_large_amount_exchange() {
 
 		assert_ok!(GenesisExchange::usd_to_tea(
 			Origin::signed(user),
-			withdraw_delta
+			Some(withdraw_delta),
+			None
 		));
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user),

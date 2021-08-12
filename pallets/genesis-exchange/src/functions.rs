@@ -1,7 +1,7 @@
 use super::*;
 
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
-	pub(crate) fn check_tea_to_usd(
+	pub(crate) fn check_buy_tea_to_usd(
 		who: &T::AccountId,
 		withdraw_amount: &BalanceOf<T>,
 		exchange_remains_usd: &BalanceOf<T>,
@@ -28,7 +28,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn exchange_tea_to_usd(
+	pub(crate) fn exchange_buy_tea_to_usd(
 		who: &T::AccountId,
 		withdraw_amount: &BalanceOf<T>,
 		exchange_remains_usd: &BalanceOf<T>,
@@ -60,7 +60,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		))
 	}
 
-	pub(crate) fn check_usd_to_tea(
+	pub(crate) fn check_buy_usd_to_tea(
 		who: &T::AccountId,
 		withdraw_amount: &BalanceOf<T>,
 		exchange_remains_usd: &BalanceOf<T>,
@@ -87,7 +87,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn exchange_usd_to_tea(
+	pub(crate) fn exchange_buy_usd_to_tea(
 		who: &T::AccountId,
 		withdraw_amount: &BalanceOf<T>,
 		exchange_remains_usd: &BalanceOf<T>,

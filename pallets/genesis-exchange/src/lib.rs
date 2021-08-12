@@ -141,6 +141,8 @@ pub mod genesis_exchange {
 		InvalidDepositAmount,
 		InvalidTransferUSDAmount,
 		WithdrawAmountShouldNotBeZero,
+		BuyAndSellAmountShouldNotBothExist,
+		BuyOrSellAmountShouldExist,
 	}
 
 	#[pallet::hooks]
@@ -149,7 +151,11 @@ pub mod genesis_exchange {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000_000)]
-		pub fn tea_to_usd(sender: OriginFor<T>, withdraw_amount: BalanceOf<T>) -> DispatchResult {
+		pub fn tea_to_usd(
+			sender: OriginFor<T>,
+			buy_usd_amount: Option<BalanceOf<T>>,
+			sell_tea_amount: Option<BalanceOf<T>>,
+		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
 			let exchange_remains_tea =
@@ -158,26 +164,47 @@ pub mod genesis_exchange {
 			extrinsic_procedure(
 				&who,
 				|who| {
-					Self::check_tea_to_usd(
-						who,
-						&withdraw_amount,
-						&exchange_remains_usd,
-						&exchange_remains_tea,
-					)
+					ensure!(
+						!(buy_usd_amount.is_some() && sell_tea_amount.is_some()),
+						Error::<T>::BuyAndSellAmountShouldNotBothExist
+					);
+
+					if let Some(buy_usd_amount) = buy_usd_amount.as_ref() {
+						Self::check_buy_tea_to_usd(
+							who,
+							buy_usd_amount,
+							&exchange_remains_usd,
+							&exchange_remains_tea,
+						)
+					} else if let Some(sell_tea_amount) = sell_tea_amount.as_ref() {
+						// todo implement me
+						Ok(())
+					} else {
+						ensure!(false, Error::<T>::BuyOrSellAmountShouldExist);
+						Ok(())
+					}
 				},
 				|who| {
-					Self::exchange_tea_to_usd(
-						who,
-						&withdraw_amount,
-						&exchange_remains_usd,
-						&exchange_remains_tea,
-					)
+					if let Some(buy_usd_amount) = buy_usd_amount.as_ref() {
+						Self::exchange_buy_tea_to_usd(
+							who,
+							buy_usd_amount,
+							&exchange_remains_usd,
+							&exchange_remains_tea,
+						)
+					} else if let Some(sell_tea_amount) = sell_tea_amount.as_ref() {
+						// todo implement me
+					}
 				},
 			)
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn usd_to_tea(sender: OriginFor<T>, withdraw_amount: BalanceOf<T>) -> DispatchResult {
+		pub fn usd_to_tea(
+			sender: OriginFor<T>,
+			buy_tea_amount: Option<BalanceOf<T>>,
+			sell_usd_amount: Option<BalanceOf<T>>,
+		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
 			let exchange_remains_tea =
@@ -186,20 +213,37 @@ pub mod genesis_exchange {
 			extrinsic_procedure(
 				&who,
 				|who| {
-					Self::check_usd_to_tea(
-						who,
-						&withdraw_amount,
-						&exchange_remains_usd,
-						&exchange_remains_tea,
-					)
+					ensure!(
+						!(buy_tea_amount.is_some() && sell_usd_amount.is_some()),
+						Error::<T>::BuyAndSellAmountShouldNotBothExist
+					);
+
+					if let Some(buy_tea_amount) = buy_tea_amount.as_ref() {
+						Self::check_buy_usd_to_tea(
+							who,
+							buy_tea_amount,
+							&exchange_remains_usd,
+							&exchange_remains_tea,
+						)
+					} else if let Some(sell_usd_amount) = sell_usd_amount.as_ref() {
+						// todo implement me
+						Ok(())
+					} else {
+						ensure!(false, Error::<T>::BuyOrSellAmountShouldExist);
+						Ok(())
+					}
 				},
 				|who| {
-					Self::exchange_usd_to_tea(
-						who,
-						&withdraw_amount,
-						&exchange_remains_usd,
-						&exchange_remains_tea,
-					)
+					if let Some(buy_tea_amount) = buy_tea_amount.as_ref() {
+						Self::exchange_buy_usd_to_tea(
+							who,
+							buy_tea_amount,
+							&exchange_remains_usd,
+							&exchange_remains_tea,
+						)
+					} else if let Some(sell_usd_amount) = sell_usd_amount.as_ref() {
+						// todo implement me
+					}
 				},
 			)
 		}
