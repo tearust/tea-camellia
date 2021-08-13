@@ -33,13 +33,13 @@ pub trait GenesisExchangeApi<BlockHash, AccountId> {
 	) -> Result<Price>;
 
 	/// each of list items contains the following field:
-	/// 1. account_id
-	/// 2. cml asset
-	/// 3. tea asset
-	/// 4. usd asset
-	/// 5. genesis miner credit
-	/// 6. genesis loan credit
-	/// 7. total asset
+	/// 1. Account
+	/// 2. Projected  7 day mining income (USD)
+	/// 3. TEA Account balance (in USD)
+	/// 4. USD account balance
+	/// 5. Genesis stake debt
+	/// 6. genesis loan
+	/// 7. Total account value
 	#[rpc(name = "cml_userAssetList")]
 	fn user_asset_list(
 		&self,
@@ -123,13 +123,13 @@ where
 	}
 
 	/// each of list items contains the following field:
-	/// 1. account_id
-	/// 2. cml asset
-	/// 3. tea asset
-	/// 4. usd asset
-	/// 5. genesis miner credit
-	/// 6. genesis loan credit
-	/// 7. total asset
+	/// 1. Account
+	/// 2. Projected  7 day mining income (USD)
+	/// 3. TEA Account balance (in USD)
+	/// 4. USD account balance
+	/// 5. Genesis stake debt
+	/// 6. genesis loan
+	/// 7. Total account value
 	fn user_asset_list(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
