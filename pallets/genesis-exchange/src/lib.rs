@@ -23,7 +23,7 @@ use log::error;
 use pallet_cml::CmlOperation;
 use pallet_genesis_bank::GenesisBankOperation;
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
+use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating, Zero};
 use sp_std::{cmp::max, collections::btree_map::BTreeMap, convert::TryInto, prelude::*};
 
 /// The balance type of this module.
@@ -62,6 +62,15 @@ pub mod genesis_exchange {
 		/// Price-to-Earning Ratio
 		#[pallet::constant]
 		type PER: Get<BalanceOf<Self>>;
+
+		/// Length of a USD interest calculation.
+		#[pallet::constant]
+		type InterestPeriodLength: Get<Self::BlockNumber>;
+
+		/// Interest rates of one interest period in ten thousand units(‱).
+		/// This number need to be an integer
+		#[pallet::constant]
+		type USDInterestRate: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -153,7 +162,13 @@ pub mod genesis_exchange {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_finalize(n: BlockNumberFor<T>) {
+			if Self::is_interest_period_end(n) {
+				Self::accumulate_usd_interest();
+			}
+		}
+	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {

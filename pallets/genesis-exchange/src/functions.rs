@@ -1,6 +1,20 @@
 use super::*;
 
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
+	pub(crate) fn is_interest_period_end(height: T::BlockNumber) -> bool {
+		// offset with `InterestPeriodLength` - 1 to void overlapping with staking period
+		height % T::InterestPeriodLength::get() == T::InterestPeriodLength::get() - 1u32.into()
+	}
+
+	pub(crate) fn accumulate_usd_interest() {
+		USDStore::<T>::iter().for_each(|(user, _)| {
+			USDStore::<T>::mutate(user, |balance| {
+				*balance =
+					balance.saturating_add(*balance * T::USDInterestRate::get() / 10000u32.into());
+			});
+		});
+	}
+
 	pub(crate) fn check_buy_tea_to_usd(
 		who: &T::AccountId,
 		buy_usd_amount: &BalanceOf<T>,
@@ -459,6 +473,28 @@ mod tests {
 
 			assert_eq!(USDStore::<Test>::get(user1), user1_amount);
 			assert_eq!(USDStore::<Test>::get(user2), 0);
+		})
+	}
+
+	#[test]
+	fn accumulate_usd_interest_works() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let user2 = 2;
+			let user3 = 3;
+			USDStore::<Test>::insert(user1, 10000000);
+			USDStore::<Test>::insert(user2, 20000000);
+			USDStore::<Test>::insert(user3, 30000000);
+
+			GenesisExchange::accumulate_usd_interest();
+			assert_eq!(USDStore::<Test>::get(user1), 10005000);
+			assert_eq!(USDStore::<Test>::get(user2), 20010000);
+			assert_eq!(USDStore::<Test>::get(user3), 30015000);
+
+			GenesisExchange::accumulate_usd_interest();
+			assert_eq!(USDStore::<Test>::get(user1), 10010002);
+			assert_eq!(USDStore::<Test>::get(user2), 20020005);
+			assert_eq!(USDStore::<Test>::get(user3), 30030007);
 		})
 	}
 }

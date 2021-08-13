@@ -30,13 +30,13 @@ frame_support::construct_runtime!(
 
 pub const LOAN_TERM_DURATION: BlockNumber = 10000;
 pub const GENESIS_CML_LOAN_AMOUNT: Balance = 5000000000000;
-pub const INTEREST_RATE: Balance = 5;
+pub const GENESIS_BANK_INTEREST_RATE: Balance = 5;
 pub const LOAN_BILLING_CYCLE: BlockNumber = 1000;
 
 parameter_types! {
 	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
 	pub const GenesisCmlLoanAmount: Balance = GENESIS_CML_LOAN_AMOUNT;
-	pub const InterestRate: Balance = INTEREST_RATE;
+	pub const InterestRate: Balance = GENESIS_BANK_INTEREST_RATE;
 	pub const BillingCycle: BlockNumber = LOAN_BILLING_CYCLE;
 }
 
@@ -108,9 +108,13 @@ impl pallet_cml::Config for Test {
 }
 
 pub const PER_RATE: Balance = 5;
+pub const USD_INTEREST_RATE: Balance = 5;
+pub const INTEREST_PERIOD_LENGTH: BlockNumber = 1000;
 
 parameter_types! {
 	pub const PER: Balance = PER_RATE;
+	pub const USDInterestRate: Balance = USD_INTEREST_RATE;
+	pub const InterestPeriodLength: BlockNumber = INTEREST_PERIOD_LENGTH;
 }
 
 impl pallet_genesis_exchange::Config for Test {
@@ -120,6 +124,8 @@ impl pallet_genesis_exchange::Config for Test {
 	type CmlOperation = Cml;
 	type PER = PER;
 	type GenesisBankOperation = GenesisBank;
+	type USDInterestRate = USDInterestRate;
+	type InterestPeriodLength = InterestPeriodLength;
 }
 
 parameter_types! {

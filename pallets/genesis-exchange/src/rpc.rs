@@ -1,5 +1,4 @@
 use super::*;
-use sp_runtime::traits::Saturating;
 
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	/// current 1TEA equals how many USD amount.
