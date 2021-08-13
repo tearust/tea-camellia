@@ -32,8 +32,19 @@ pub trait GenesisExchangeApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<Price>;
 
+	/// each of list items contains the following field:
+	/// 1. account_id
+	/// 2. cml asset
+	/// 3. tea asset
+	/// 4. usd asset
+	/// 5. genesis miner credit
+	/// 6. genesis loan credit
+	/// 7. total asset
 	#[rpc(name = "cml_userAssetList")]
-	fn user_asset_list(&self, at: Option<BlockHash>) -> Result<Vec<(AccountId, Price)>>;
+	fn user_asset_list(
+		&self,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price)>>;
 }
 
 pub struct GenesisExchangeApiImpl<C, M> {
@@ -111,21 +122,46 @@ where
 		Ok(Price(result))
 	}
 
+	/// each of list items contains the following field:
+	/// 1. account_id
+	/// 2. cml asset
+	/// 3. tea asset
+	/// 4. usd asset
+	/// 5. genesis miner credit
+	/// 6. genesis loan credit
+	/// 7. total asset
 	fn user_asset_list(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<(AccountId, Price)>> {
+	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let result: Vec<(AccountId, Balance)> = api
-			.user_asset_list(&at)
+		let result: Vec<(
+			AccountId,
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+		)> = api.user_asset_list(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result
 			.iter()
-			.map(|(account_id, balance)| (account_id.clone(), Price(*balance)))
+			.map(|(account_id, cml, tea, usd, miner_credit, loan, total)| {
+				(
+					account_id.clone(),
+					Price(*cml),
+					Price(*tea),
+					Price(*usd),
+					Price(*miner_credit),
+					Price(*loan),
+					Price(*total),
+				)
+			})
 			.collect())
 	}
 }

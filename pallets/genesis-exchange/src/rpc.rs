@@ -41,20 +41,57 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		}
 	}
 
-	pub fn user_asset_list() -> Vec<(T::AccountId, BalanceOf<T>)> {
-		let mut asset_usd_map = BTreeMap::new();
-		Self::collect_cml_assets(&mut asset_usd_map);
-		Self::collect_tea_assets(&mut asset_usd_map);
-		Self::collect_usd_assets(&mut asset_usd_map);
-		Self::exclude_genesis_miner_credit(&mut asset_usd_map);
-		Self::exclude_genesis_loan_credit(&mut asset_usd_map);
+	/// each of list items contains the following field:
+	/// 1. account_id
+	/// 2. cml asset
+	/// 3. tea asset
+	/// 4. usd asset
+	/// 5. genesis miner credit
+	/// 6. genesis loan credit
+	/// 7. total asset
+	pub fn user_asset_list() -> Vec<(
+		T::AccountId,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+	)> {
+		// let mut asset_usd_map = BTreeMap::new();
+		let cml_assets = Self::collect_cml_assets();
+		let tea_assets = Self::collect_tea_assets();
+		let usd_assets = Self::collect_usd_assets();
+		let genesis_miner_credits = Self::collect_genesis_miner_credit();
+		let genesis_loan_credits = Self::collect_genesis_loan_credit();
 
-		let mut total_assets: Vec<(T::AccountId, BalanceOf<T>)> = asset_usd_map
-			.iter()
-			.filter(|(user, _)| CompetitionUsers::<T>::contains_key(user))
-			.map(|(user, reward)| (user.clone(), *reward))
-			.collect();
-		total_assets.sort_by(|(_, a), (_, b)| a.cmp(b));
+		let mut total_assets = Vec::new();
+		for (user, _) in CompetitionUsers::<T>::iter() {
+			let cml = Self::amount_from_map(&user, &cml_assets);
+			let tea = Self::amount_from_map(&user, &tea_assets);
+			let usd = Self::amount_from_map(&user, &usd_assets);
+			let miner_credit = Self::amount_from_map(&user, &genesis_miner_credits);
+			let loan_credit = Self::amount_from_map(&user, &genesis_loan_credits);
+			let mut total: BalanceOf<T> = Zero::zero();
+			total = total
+				.saturating_add(cml)
+				.saturating_add(tea)
+				.saturating_add(usd)
+				.saturating_sub(miner_credit)
+				.saturating_sub(loan_credit);
+
+			total_assets.push((
+				user.clone(),
+				cml,
+				tea,
+				usd,
+				miner_credit,
+				loan_credit,
+				total,
+			));
+		}
+
+		total_assets.sort_by(|(_, _, _, _, _, _, a), (_, _, _, _, _, _, b)| a.cmp(b));
 		total_assets.reverse();
 		total_assets
 	}
@@ -63,43 +100,51 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		u128_to_balance::<T>(10_000_000_000 * 100)
 	}
 
-	fn exclude_genesis_loan_credit(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
+	fn collect_genesis_loan_credit() -> BTreeMap<T::AccountId, BalanceOf<T>> {
+		let mut asset_usd_map = BTreeMap::new();
 		let current_height = frame_system::Pallet::<T>::block_number();
 		let current_exchange_rate = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 
-		asset_usd_map.iter_mut().for_each(|(user, amount)| {
+		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
 			let mut credit_total: BalanceOf<T> = Zero::zero();
-			for (cml_id, expired_height) in T::GenesisBankOperation::user_collaterals(user) {
+			for (cml_id, expired_height) in T::GenesisBankOperation::user_collaterals(&user) {
 				credit_total =
 					credit_total.saturating_add(T::GenesisBankOperation::calculate_loan_amount(
 						cml_id,
 						max(current_height, expired_height),
 					));
 			}
-			*amount = amount.saturating_sub(credit_total * current_exchange_rate / one_tea_dollar)
-		})
+			asset_usd_map.insert(user, credit_total * current_exchange_rate / one_tea_dollar);
+		});
+		asset_usd_map
 	}
 
-	fn exclude_genesis_miner_credit(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
+	fn collect_genesis_miner_credit() -> BTreeMap<T::AccountId, BalanceOf<T>> {
+		let mut asset_usd_map = BTreeMap::new();
 		let current_exchange_rate = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 
-		asset_usd_map.iter_mut().for_each(|(user, amount)| {
+		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
 			let mut credit_total: BalanceOf<T> = Zero::zero();
-			for (_, credit_amount) in T::CmlOperation::user_credits(user) {
+			for (_, credit_amount) in T::CmlOperation::user_credits(&user) {
 				credit_total = credit_total.saturating_add(credit_amount);
 			}
-			*amount = amount.saturating_sub(credit_total * current_exchange_rate / one_tea_dollar)
-		})
+			asset_usd_map.insert(user, credit_total * current_exchange_rate / one_tea_dollar);
+		});
+		asset_usd_map
 	}
 
-	fn collect_usd_assets(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
+	fn collect_usd_assets() -> BTreeMap<T::AccountId, BalanceOf<T>> {
+		let mut asset_usd_map = BTreeMap::new();
 		USDStore::<T>::iter()
-			.for_each(|(user, amount)| Self::new_or_add_assets(&user, amount, asset_usd_map))
+			.filter(|(user, _)| CompetitionUsers::<T>::contains_key(user))
+			.for_each(|(user, amount)| Self::new_or_add_assets(&user, amount, &mut asset_usd_map));
+		asset_usd_map
 	}
 
-	fn collect_tea_assets(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
+	fn collect_tea_assets() -> BTreeMap<T::AccountId, BalanceOf<T>> {
+		let mut asset_usd_map = BTreeMap::new();
 		let current_exchange_rate = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 
@@ -108,12 +153,14 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			Self::new_or_add_assets(
 				&user,
 				tea_amount * current_exchange_rate / one_tea_dollar,
-				asset_usd_map,
+				&mut asset_usd_map,
 			)
 		});
+		asset_usd_map
 	}
 
-	fn collect_cml_assets(asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>) {
+	fn collect_cml_assets() -> BTreeMap<T::AccountId, BalanceOf<T>> {
+		let mut asset_usd_map = BTreeMap::new();
 		// calculate reward statement of current block, we assume each mining cml will get the
 		// mining change equally, and each mining task point are same.
 		let cml_reward_statements = T::CmlOperation::estimate_reward_statements(
@@ -123,11 +170,16 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let current_exchange_rate = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 		for (user, _, single_block_reward) in cml_reward_statements {
+			if !CompetitionUsers::<T>::contains_key(&user) {
+				continue;
+			}
+
 			let reward_in_tea = Self::estimate_cml_asset_value(single_block_reward);
 			let reward_in_usd = reward_in_tea * current_exchange_rate / one_tea_dollar;
 
-			Self::new_or_add_assets(&user, reward_in_usd, asset_usd_map);
+			Self::new_or_add_assets(&user, reward_in_usd, &mut asset_usd_map);
 		}
+		asset_usd_map
 	}
 
 	fn new_or_add_assets(
@@ -139,6 +191,17 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			asset_usd_map.insert(user.clone(), old + amount);
 		} else {
 			asset_usd_map.insert(user.clone(), amount);
+		}
+	}
+
+	fn amount_from_map(
+		user: &T::AccountId,
+		map: &BTreeMap<T::AccountId, BalanceOf<T>>,
+	) -> BalanceOf<T> {
+		if map.contains_key(user) {
+			map[user]
+		} else {
+			Zero::zero()
 		}
 	}
 
@@ -168,9 +231,6 @@ mod tests {
 	#[test]
 	fn exclude_genesis_loan_credit_works() {
 		new_test_ext().execute_with(|| {
-			let current_exchange_rate = GenesisExchange::current_exchange_rate();
-			let one_tea_dollar = GenesisExchange::one_tea_dollar();
-
 			let asset1 = AssetUniqueId {
 				asset_type: AssetType::CML,
 				inner_id: from_cml_id(1),
@@ -222,24 +282,11 @@ mod tests {
 			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset3, ());
 			UserCollateralStore::<Test>::insert(COMPETITION_USERS3, asset4, ());
 
-			let mut asset_usd_map = BTreeMap::new();
-			asset_usd_map.insert(COMPETITION_USERS1, GENESIS_CML_LOAN_AMOUNT * 10);
-			asset_usd_map.insert(COMPETITION_USERS2, GENESIS_CML_LOAN_AMOUNT * 10);
-			asset_usd_map.insert(COMPETITION_USERS3, GENESIS_CML_LOAN_AMOUNT * 10);
-			GenesisExchange::exclude_genesis_loan_credit(&mut asset_usd_map);
+			let asset_usd_map = GenesisExchange::collect_genesis_loan_credit();
 
-			assert_eq!(
-				asset_usd_map[&COMPETITION_USERS1],
-				GENESIS_CML_LOAN_AMOUNT * 10
-			);
-			assert!(
-				asset_usd_map[&COMPETITION_USERS2]
-					< GENESIS_CML_LOAN_AMOUNT * 7 * current_exchange_rate / one_tea_dollar
-			);
-			assert!(
-				asset_usd_map[&COMPETITION_USERS3]
-					< GENESIS_CML_LOAN_AMOUNT * 9 * current_exchange_rate / one_tea_dollar
-			);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 0);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 15082122946926);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 5027374315642);
 		})
 	}
 
@@ -254,23 +301,19 @@ mod tests {
 			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS2, 3, STAKING_PRICE);
 			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS3, 4, STAKING_PRICE);
 
-			let mut asset_usd_map = BTreeMap::new();
-			asset_usd_map.insert(COMPETITION_USERS1, STAKING_PRICE * 10);
-			asset_usd_map.insert(COMPETITION_USERS2, STAKING_PRICE * 10);
-			asset_usd_map.insert(COMPETITION_USERS3, STAKING_PRICE * 10);
-			GenesisExchange::exclude_genesis_miner_credit(&mut asset_usd_map);
+			let asset_usd_map = GenesisExchange::collect_genesis_miner_credit();
 
 			assert_eq!(
 				asset_usd_map[&COMPETITION_USERS1],
-				STAKING_PRICE * 10 - STAKING_PRICE * current_exchange_rate / one_tea_dollar
+				STAKING_PRICE * current_exchange_rate / one_tea_dollar
 			);
 			assert_eq!(
 				asset_usd_map[&COMPETITION_USERS2],
-				STAKING_PRICE * 10 - STAKING_PRICE * 2 * current_exchange_rate / one_tea_dollar
+				STAKING_PRICE * 2 * current_exchange_rate / one_tea_dollar
 			);
 			assert_eq!(
 				asset_usd_map[&COMPETITION_USERS3],
-				STAKING_PRICE * 10 - STAKING_PRICE * current_exchange_rate / one_tea_dollar
+				STAKING_PRICE * current_exchange_rate / one_tea_dollar
 			);
 		})
 	}
@@ -278,15 +321,9 @@ mod tests {
 	#[test]
 	fn collect_usd_assets_works() {
 		new_test_ext().execute_with(|| {
-			let mut asset_usd_map = BTreeMap::new();
-			GenesisExchange::collect_usd_assets(&mut asset_usd_map);
+			let asset_usd_map = GenesisExchange::collect_usd_assets();
 
-			assert_eq!(asset_usd_map.len(), 4);
-
-			assert_eq!(
-				USDStore::<Test>::get(OPERATION_ACCOUNT),
-				OPERATION_USD_AMOUNT
-			);
+			assert_eq!(asset_usd_map.len(), 3);
 			assert_eq!(
 				USDStore::<Test>::get(COMPETITION_USERS1),
 				COMPETITION_USER_USD_AMOUNT
@@ -305,9 +342,7 @@ mod tests {
 	#[test]
 	fn collect_tea_assets_works() {
 		new_test_ext().execute_with(|| {
-			let mut asset_usd_map = BTreeMap::new();
-
-			GenesisExchange::collect_tea_assets(&mut asset_usd_map);
+			let asset_usd_map = GenesisExchange::collect_tea_assets();
 			assert_eq!(asset_usd_map.len(), 3);
 			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 0);
 			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 0);
@@ -320,7 +355,7 @@ mod tests {
 			<Test as Config>::Currency::make_free_balance_be(&COMPETITION_USERS2, amount2);
 			<Test as Config>::Currency::make_free_balance_be(&COMPETITION_USERS3, amount3);
 
-			GenesisExchange::collect_tea_assets(&mut asset_usd_map);
+			let asset_usd_map = GenesisExchange::collect_tea_assets();
 			assert_eq!(asset_usd_map.len(), 3);
 			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 99);
 			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 199);
@@ -331,8 +366,6 @@ mod tests {
 	#[test]
 	fn collect_cml_assets_works() {
 		new_test_ext().execute_with(|| {
-			let mut asset_usd_map = BTreeMap::new();
-
 			let cml_id1 = 1;
 			ActiveStakingSnapshot::<Test>::insert(
 				cml_id1,
@@ -367,7 +400,7 @@ mod tests {
 				],
 			);
 
-			GenesisExchange::collect_cml_assets(&mut asset_usd_map);
+			let asset_usd_map = GenesisExchange::collect_cml_assets();
 
 			assert_eq!(asset_usd_map.len(), 3);
 			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 14399640008);
@@ -419,6 +452,65 @@ mod tests {
 				],
 			);
 
+			// prepare genesis miner credit
+			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS1, 1, STAKING_PRICE);
+			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS2, 2, STAKING_PRICE);
+			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS2, 3, STAKING_PRICE);
+			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS3, 4, STAKING_PRICE);
+
+			// prepare genesis loan
+			let asset1 = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(1),
+			};
+			let asset2 = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(2),
+			};
+			let asset3 = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(3),
+			};
+			let asset4 = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(4),
+			};
+			CollateralStore::<Test>::insert(
+				&asset1,
+				Loan {
+					start_at: 0,
+					owner: COMPETITION_USERS2,
+				},
+			);
+			CollateralStore::<Test>::insert(
+				&asset2,
+				Loan {
+					start_at: 0,
+					owner: COMPETITION_USERS2,
+				},
+			);
+			CollateralStore::<Test>::insert(
+				&asset3,
+				Loan {
+					start_at: 0,
+					owner: COMPETITION_USERS2,
+				},
+			);
+			CollateralStore::<Test>::insert(
+				&asset4,
+				Loan {
+					start_at: 0,
+					owner: COMPETITION_USERS3,
+				},
+			);
+			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset1, ());
+			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset2, ());
+			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset3, ());
+			UserCollateralStore::<Test>::insert(COMPETITION_USERS3, asset4, ());
+
+			let current_exchange_rate = GenesisExchange::current_exchange_rate();
+			let one_tea_dollar = GenesisExchange::one_tea_dollar();
+
 			let asset_list = GenesisExchange::user_asset_list();
 			assert_eq!(asset_list.len(), 3);
 			// asset list is reverse order with total USD amount
@@ -426,21 +518,41 @@ mod tests {
 				asset_list[0],
 				(
 					COMPETITION_USERS1,
+					14399640008,
+					99,
+					COMPETITION_USER_USD_AMOUNT,
+					STAKING_PRICE * current_exchange_rate / one_tea_dollar,
+					0,
 					COMPETITION_USER_USD_AMOUNT + 99 + 14399640008
+						- STAKING_PRICE * current_exchange_rate / one_tea_dollar
 				)
 			);
 			assert_eq!(
 				asset_list[1],
 				(
 					COMPETITION_USERS3,
+					7199820004,
+					299,
+					COMPETITION_USER_USD_AMOUNT,
+					STAKING_PRICE * current_exchange_rate / one_tea_dollar,
+					5027374315642,
 					COMPETITION_USER_USD_AMOUNT + 299 + 7199820004
+						- STAKING_PRICE * current_exchange_rate / one_tea_dollar
+						- 5027374315642
 				)
 			);
 			assert_eq!(
 				asset_list[2],
 				(
 					COMPETITION_USERS2,
+					7199820004,
+					199,
+					COMPETITION_USER_USD_AMOUNT,
+					STAKING_PRICE * 2 * current_exchange_rate / one_tea_dollar,
+					15082122946926,
 					COMPETITION_USER_USD_AMOUNT + 199 + 7199820004
+						- STAKING_PRICE * 2 * current_exchange_rate / one_tea_dollar
+						- 15082122946926
 				)
 			);
 		})
