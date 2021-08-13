@@ -143,6 +143,10 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Self::user_cml_list(who)
 	}
 
+	/// Estimate reward according to total task point and miner task point
+	///
+	/// Both `total_point` and `miner_task_point` returns points in milli-unit, that means
+	///  each 1000 milli-points will be treated as 1 task point in reward calculation.
 	fn estimate_reward_statements<X, Y>(
 		total_point: X,
 		miner_task_point: Y,

@@ -872,6 +872,9 @@ pub trait CmlOperation {
 
 	/// Estimate reward statements by given total task point and each miner task point calculation
 	/// methods.
+	///
+	/// Both `total_point` and `miner_task_point` returns points in milli-unit, that means
+	///  each 1000 milli-points will be treated as 1 task point in reward calculation.
 	fn estimate_reward_statements<X, Y>(
 		total_point: X,
 		miner_task_point: Y,

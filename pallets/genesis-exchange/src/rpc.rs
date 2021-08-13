@@ -1,5 +1,7 @@
 use super::*;
 
+const TASK_POINT_BASE: u32 = 1000;
+
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	/// current 1TEA equals how many USD amount.
 	pub fn current_exchange_rate() -> BalanceOf<T> {
@@ -162,9 +164,16 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let mut asset_usd_map = BTreeMap::new();
 		// calculate reward statement of current block, we assume each mining cml will get the
 		// mining change equally, and each mining task point are same.
+		let mining_cmls_count = T::CmlOperation::current_mining_cmls().iter().count() as u32;
 		let cml_reward_statements = T::CmlOperation::estimate_reward_statements(
-			|| T::CmlOperation::current_mining_cmls().iter().count() as u32,
-			|_cml_id| 1u32,
+			|| mining_cmls_count,
+			|_cml_id| {
+				if mining_cmls_count == 0 {
+					TASK_POINT_BASE
+				} else {
+					TASK_POINT_BASE / mining_cmls_count
+				}
+			},
 		);
 		let current_exchange_rate = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();

@@ -12,6 +12,7 @@ pub mod index;
 #[cfg(test)]
 mod test;
 
+const TASK_POINT_BASE: Balance = 1000;
 const PERFORMANCE_BASE: Balance = 10000;
 
 pub struct TeaStakingEconomics {}
@@ -35,7 +36,9 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 		_total_point: ServiceTaskPoint,
 		performance: Performance,
 	) -> Balance {
-		(miner_point as Balance) * DOLLARS * (performance as Balance) / PERFORMANCE_BASE
+		(miner_point as Balance) * DOLLARS * (performance as Balance)
+			/ TASK_POINT_BASE
+			/ PERFORMANCE_BASE
 	}
 
 	/// Calculate all staking weight about the given miner.

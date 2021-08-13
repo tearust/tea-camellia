@@ -1,5 +1,7 @@
 use super::*;
 
+const TASK_POINT_BASE: ServiceTaskPoint = 1000;
+
 impl<T: cml::Config> cml::Pallet<T> {
 	pub(crate) fn is_staking_period_start(height: T::BlockNumber) -> bool {
 		height % T::StakingPeriodLength::get() == 1u32.into()
@@ -130,11 +132,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 		for (_, point) in MiningCmlTaskPoints::<T>::iter() {
 			total = total.saturating_add(point);
 		}
-		total
+		total * TASK_POINT_BASE
 	}
 
 	pub(crate) fn miner_task_point(cml_id: CmlId) -> ServiceTaskPoint {
-		MiningCmlTaskPoints::<T>::get(cml_id)
+		MiningCmlTaskPoints::<T>::get(cml_id) * TASK_POINT_BASE
 	}
 
 	pub(crate) fn check_miner_first_staking(
