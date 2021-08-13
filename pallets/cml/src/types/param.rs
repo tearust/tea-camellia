@@ -46,7 +46,7 @@ pub const BLOCKS_IN_HALF_DAY: u32 = 72;
 ///The base value of life span of a Camellia. The actually value will be a random deviation on this base value
 pub const BASE_LIFESPAN_A: BlockNumber = 24 * BLOCKS_IN_A_MONTH;
 pub const BASE_LIFESPAN_B: BlockNumber = 24 * BLOCKS_IN_A_MONTH;
-pub const BASE_LIFESPAN_C: BlockNumber = 12 * BLOCKS_IN_A_MONTH;
+pub const BASE_LIFESPAN_C: BlockNumber = 24 * BLOCKS_IN_A_MONTH;
 
 ///the random deviation in percentage. for the lifespan of an Camellia
 pub const DEVIATION: u8 = 10; //This means a deviation between +5% and -5% for an individual camellia lifespan
