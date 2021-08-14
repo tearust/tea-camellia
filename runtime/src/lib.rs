@@ -851,7 +851,7 @@ impl pallet_genesis_bank::Config for Runtime {
 
 parameter_types! {
 	pub const PER: Balance = 7;
-	pub const USDInterestRate: Balance = 5;
+	pub const USDInterestRate: Balance = 50;
 	pub const InterestPeriodLength: BlockNumber = 1000;
 }
 
