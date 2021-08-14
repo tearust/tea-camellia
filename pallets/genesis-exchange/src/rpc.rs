@@ -1,6 +1,7 @@
 use super::*;
 
 const TASK_POINT_BASE: u32 = 1000;
+const TOLERANCE_PRECISION: u32 = 10000;
 
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	/// Returns
@@ -27,6 +28,29 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let reverse_rate =
 			Self::delta_withdraw_amount(&usd_dollar, &exchange_remains_usd, &exchange_remains_tea);
 
+		if Self::subtract_abs(
+			AMMCurveKCoefficient::<T>::get(),
+			exchange_remains_usd * exchange_remains_tea,
+		) > TOLERANCE_PRECISION.into()
+		{
+			log::warn!(
+				"exchange production error: expect is {:?}, actual is: {:?}",
+				AMMCurveKCoefficient::<T>::get(),
+				exchange_remains_usd * exchange_remains_tea,
+			);
+		}
+		if Self::subtract_abs(tea_rate * reverse_rate, tea_dollar * usd_dollar)
+			> TOLERANCE_PRECISION.into()
+		{
+			log::warn!(
+				"exchange rate error: tea_rate is {:?}, reverse_rate is: {:?}, expect production is: {:?}, actual is :{:?}",
+				tea_rate,
+				reverse_rate,
+				tea_rate * usd_dollar,
+				tea_rate * reverse_rate
+			);
+		}
+
 		(
 			tea_rate,
 			reverse_rate,
@@ -34,6 +58,14 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			exchange_remains_tea,
 			exchange_remains_usd * exchange_remains_tea,
 		)
+	}
+
+	fn subtract_abs(a: BalanceOf<T>, b: BalanceOf<T>) -> BalanceOf<T> {
+		if a >= b {
+			a - b
+		} else {
+			b - a
+		}
 	}
 
 	pub fn estimate_amount(withdraw_amount: BalanceOf<T>, buy_tea: bool) -> BalanceOf<T> {
