@@ -608,7 +608,7 @@ fn bid_mining_cml_should_have_sufficient_free_balance_for_staking() {
 
 		assert_noop!(
 			Auction::bid_for_auction(Origin::signed(user_id), auction_id, starting_price),
-			Error::<Test>::NotEnoughBalanceForBid
+			Error::<Test>::NotEnoughBalanceForBidAndFirstStakingSlot
 		);
 	})
 }

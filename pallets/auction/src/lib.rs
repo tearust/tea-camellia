@@ -94,6 +94,7 @@ pub mod auction {
 	pub enum Error<T> {
 		NotEnoughBalanceForAuction,
 		NotEnoughBalanceForBid,
+		NotEnoughBalanceForBidAndFirstStakingSlot,
 		NotEnoughReserveBalance,
 		AuctionNotExist,
 		InvalidBidPrice,

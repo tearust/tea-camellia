@@ -17,7 +17,7 @@ impl<T: auction::Config> AuctionOperation for auction::Pallet<T> {
 	fn create_new_bid(sender: &Self::AccountId, auction_id: &AuctionId, price: Self::Balance) {
 		let auction_item = AuctionStore::<T>::get(auction_id);
 
-		let essential_balance = Self::essential_bid_balance(price, &auction_item.cml_id);
+		let (essential_balance, _) = Self::essential_bid_balance(price, &auction_item.cml_id);
 		// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 		if T::CurrencyOperations::reserve(&sender, essential_balance).is_err() {
 			return;
@@ -282,7 +282,8 @@ impl<T: auction::Config> auction::Pallet<T> {
 		target: &T::AccountId,
 	) {
 		let bid_item = BidStore::<T>::get(&target, &auction_item.id);
-		let essential_balance = Self::essential_bid_balance(bid_item.price, &auction_item.cml_id);
+		let (essential_balance, _) =
+			Self::essential_bid_balance(bid_item.price, &auction_item.cml_id);
 		T::CurrencyOperations::unreserve(target, essential_balance);
 
 		if T::CmlOperation::check_transfer_cml_to_other(
@@ -377,10 +378,14 @@ impl<T: auction::Config> auction::Pallet<T> {
 		let auction_item = AuctionStore::<T>::get(auction_id);
 
 		// validate balance
-		let essential_balance = Self::essential_bid_balance(price, &auction_item.cml_id);
+		let (essential_balance, deposit_staking) =
+			Self::essential_bid_balance(price, &auction_item.cml_id);
 		ensure!(
 			T::CurrencyOperations::free_balance(sender) >= essential_balance,
-			Error::<T>::NotEnoughBalanceForBid
+			match deposit_staking {
+				true => Error::<T>::NotEnoughBalanceForBidAndFirstStakingSlot,
+				false => Error::<T>::NotEnoughBalanceForBid,
+			}
 		);
 
 		let min_price = Self::min_bid_price(&auction_item, sender)?;
@@ -400,11 +405,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(())
 	}
 
-	fn essential_bid_balance(price: BalanceOf<T>, cml_id: &CmlId) -> BalanceOf<T> {
+	fn essential_bid_balance(price: BalanceOf<T>, cml_id: &CmlId) -> (BalanceOf<T>, bool) {
 		let deposit_price = T::CmlOperation::cml_deposit_price(cml_id);
 		match deposit_price {
-			Some(p) => price.saturating_add(p),
-			None => price,
+			Some(p) => (price.saturating_add(p), true),
+			None => (price, false),
 		}
 	}
 
