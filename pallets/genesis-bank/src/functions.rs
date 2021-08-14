@@ -27,6 +27,16 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 			.iter()
 			.for_each(|id| CollateralStore::<T>::remove(id));
 
+		let expired_cmls = expired_ids
+			.iter()
+			.map(|id| match id.asset_type {
+				AssetType::CML => to_cml_id(&id.inner_id).ok(),
+			})
+			.filter(|id| id.is_some())
+			.map(|id| id.unwrap())
+			.collect();
+		Self::deposit_event(Event::BurnedCmlList(expired_cmls));
+
 		expired_ids
 	}
 

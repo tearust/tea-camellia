@@ -115,7 +115,10 @@ pub mod genesis_bank {
 	}
 
 	#[pallet::event]
-	pub enum Event<T: Config> {}
+	#[pallet::generate_deposit(pub fn deposit_event)]
+	pub enum Event<T: Config> {
+		BurnedCmlList(Vec<CmlId>),
+	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]
