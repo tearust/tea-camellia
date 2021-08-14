@@ -110,7 +110,7 @@ pub mod auction {
 		NotEnoughBalanceForPenalty,
 		OverTheMaxUsersPerAuctionLimit,
 		BuyNowPriceShouldHigherThanStartingPrice,
-		CmlIsInGenesisLoan,
+		CannotSellACollateral,
 	}
 
 	#[pallet::event]
@@ -200,7 +200,7 @@ pub mod auction {
 					}
 					ensure!(
 						!T::GenesisBankOperation::is_cml_in_loan(cml_id),
-						Error::<T>::CmlIsInGenesisLoan
+						Error::<T>::CannotSellACollateral
 					);
 
 					let current_height = frame_system::Pallet::<T>::block_number();

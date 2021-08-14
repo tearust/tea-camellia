@@ -119,7 +119,7 @@ fn put_to_store_should_fail_if_cml_is_in_loan() {
 
 		assert_noop!(
 			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true),
-			Error::<Test>::CmlIsInGenesisLoan
+			Error::<Test>::CannotSellACollateral
 		);
 	})
 }
