@@ -23,4 +23,5 @@ jobs:
         override: true
         target: wasm32-unknown-unknown
     - run: cargo build --verbose
+    - run: cargo clean
     - run: cargo test --verbose
