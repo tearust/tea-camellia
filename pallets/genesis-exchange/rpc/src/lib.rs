@@ -16,13 +16,17 @@ const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
 pub trait GenesisExchangeApi<BlockHash, AccountId> {
-	/// current 1TEA equals how many USD amount.
+	/// Returns
+	/// 1. current 1TEA equals how many USD amount
+	/// 2. current 1USD equals how many TEA amount
+	/// 3. exchange remains USD
+	/// 4. exchange remains TEA
+	/// 5. product of  exchange remains USD and exchange remains TEA
 	#[rpc(name = "cml_currentExchangeRate")]
-	fn current_exchange_rate(&self, at: Option<BlockHash>) -> Result<Price>;
-
-	/// current 1USD equals how many TEA amount.
-	#[rpc(name = "cml_reverseExchangeRate")]
-	fn reverse_exchange_rate(&self, at: Option<BlockHash>) -> Result<Price>;
+	fn current_exchange_rate(
+		&self,
+		at: Option<BlockHash>,
+	) -> Result<(Price, Price, Price, Price, Price)>;
 
 	#[rpc(name = "cml_estimateAmount")]
 	fn estimate_amount(
@@ -81,28 +85,25 @@ where
 	C::Api: genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId>,
 	AccountId: Codec + Clone,
 {
-	fn current_exchange_rate(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Price> {
+	fn current_exchange_rate(
+		&self,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<(Price, Price, Price, Price, Price)> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let result: Balance = api
+		let result: (Balance, Balance, Balance, Balance, Balance) = api
 			.current_exchange_rate(&at)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(Price(result))
-	}
-
-	fn reverse_exchange_rate(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Price> {
-		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
-
-		let result: Balance = api
-			.reverse_exchange_rate(&at)
-			.map_err(runtime_error_into_rpc_err)?;
-		Ok(Price(result))
+		Ok((
+			Price(result.0),
+			Price(result.1),
+			Price(result.2),
+			Price(result.3),
+			Price(result.4),
+		))
 	}
 
 	fn estimate_amount(

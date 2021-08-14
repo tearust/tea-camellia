@@ -3,24 +3,37 @@ use super::*;
 const TASK_POINT_BASE: u32 = 1000;
 
 impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
-	/// current 1TEA equals how many USD amount.
-	pub fn current_exchange_rate() -> BalanceOf<T> {
+	/// Returns
+	/// 1. current 1TEA equals how many USD amount
+	/// 2. current 1USD equals how many TEA amount
+	/// 3. exchange remains USD
+	/// 4. exchange remains TEA
+	/// 5. product of  exchange remains USD and exchange remains TEA
+	pub fn current_exchange_rate() -> (
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+	) {
 		let tea_dollar = Self::one_tea_dollar();
-
-		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
-		let exchange_remains_tea =
-			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
-		Self::delta_withdraw_amount(&tea_dollar, &exchange_remains_tea, &exchange_remains_usd)
-	}
-
-	/// current 1USD equals how many TEA amount.
-	pub fn reverse_exchange_rate() -> BalanceOf<T> {
 		let usd_dollar = Self::one_tea_dollar();
 
 		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
 		let exchange_remains_tea =
 			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
-		Self::delta_withdraw_amount(&usd_dollar, &exchange_remains_usd, &exchange_remains_tea)
+		let tea_rate =
+			Self::delta_withdraw_amount(&tea_dollar, &exchange_remains_tea, &exchange_remains_usd);
+		let reverse_rate =
+			Self::delta_withdraw_amount(&usd_dollar, &exchange_remains_usd, &exchange_remains_tea);
+
+		(
+			tea_rate,
+			reverse_rate,
+			exchange_remains_usd,
+			exchange_remains_tea,
+			exchange_remains_usd * exchange_remains_tea,
+		)
 	}
 
 	pub fn estimate_amount(withdraw_amount: BalanceOf<T>, buy_tea: bool) -> BalanceOf<T> {
@@ -104,7 +117,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	fn collect_genesis_loan_credit() -> BTreeMap<T::AccountId, BalanceOf<T>> {
 		let mut asset_usd_map = BTreeMap::new();
 		let current_height = frame_system::Pallet::<T>::block_number();
-		let current_exchange_rate = Self::current_exchange_rate();
+		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 
 		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
@@ -123,7 +136,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	fn collect_genesis_miner_credit() -> BTreeMap<T::AccountId, BalanceOf<T>> {
 		let mut asset_usd_map = BTreeMap::new();
-		let current_exchange_rate = Self::current_exchange_rate();
+		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 
 		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
@@ -146,7 +159,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	fn collect_tea_assets() -> BTreeMap<T::AccountId, BalanceOf<T>> {
 		let mut asset_usd_map = BTreeMap::new();
-		let current_exchange_rate = Self::current_exchange_rate();
+		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 
 		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
@@ -175,7 +188,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 				}
 			},
 		);
-		let current_exchange_rate = Self::current_exchange_rate();
+		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 		for (user, _, single_block_reward) in cml_reward_statements {
 			if !CompetitionUsers::<T>::contains_key(&user) {
@@ -237,7 +250,23 @@ mod tests {
 	};
 
 	#[test]
-	fn exclude_genesis_loan_credit_works() {
+	fn current_exchange_rate_works() {
+		new_test_ext().execute_with(|| {
+			let (current_exchange_rate, _, _, _, _) = GenesisExchange::current_exchange_rate();
+			assert_eq!(current_exchange_rate, 999975000625);
+		})
+	}
+
+	#[test]
+	fn reverse_exchange_rate_works() {
+		new_test_ext().execute_with(|| {
+			let (_, reverse_rate, _, _, _) = GenesisExchange::current_exchange_rate();
+			assert_eq!(reverse_rate, 999975000625);
+		})
+	}
+
+	#[test]
+	fn collect_genesis_loan_credit_works() {
 		new_test_ext().execute_with(|| {
 			let asset1 = AssetUniqueId {
 				asset_type: AssetType::CML,
@@ -299,9 +328,9 @@ mod tests {
 	}
 
 	#[test]
-	fn exclude_genesis_miner_credit_works() {
+	fn collect_genesis_miner_credit_works() {
 		new_test_ext().execute_with(|| {
-			let current_exchange_rate = GenesisExchange::current_exchange_rate();
+			let (current_exchange_rate, _, _, _, _) = GenesisExchange::current_exchange_rate();
 			let one_tea_dollar = GenesisExchange::one_tea_dollar();
 
 			GenesisMinerCreditStore::<Test>::insert(COMPETITION_USERS1, 1, STAKING_PRICE);
@@ -516,7 +545,7 @@ mod tests {
 			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset3, ());
 			UserCollateralStore::<Test>::insert(COMPETITION_USERS3, asset4, ());
 
-			let current_exchange_rate = GenesisExchange::current_exchange_rate();
+			let (current_exchange_rate, _, _, _, _) = GenesisExchange::current_exchange_rate();
 			let one_tea_dollar = GenesisExchange::one_tea_dollar();
 
 			let asset_list = GenesisExchange::user_asset_list();

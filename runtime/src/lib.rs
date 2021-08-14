@@ -1178,12 +1178,20 @@ impl_runtime_apis! {
 	}
 
 	impl genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId> for Runtime {
-		fn current_exchange_rate() -> Balance {
+		/// Returns
+		/// 1. current 1TEA equals how many USD amount
+		/// 2. current 1USD equals how many TEA amount
+		/// 3. exchange remains USD
+		/// 4. exchange remains TEA
+		/// 5. product of  exchange remains USD and exchange remains TEA
+		fn current_exchange_rate() -> (
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+		) {
 			GenesisExchange::current_exchange_rate()
-		}
-
-		fn reverse_exchange_rate() -> Balance {
-			GenesisExchange::reverse_exchange_rate()
 		}
 
 		fn estimate_amount(withdraw_amount: Balance, buy_tea: bool) -> Balance {

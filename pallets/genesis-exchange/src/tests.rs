@@ -495,8 +495,10 @@ fn buy_tea_to_usd_works_after_large_amount_exchange() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 
-		assert_eq!(GenesisExchange::current_exchange_rate(), 999975000625);
-		assert_eq!(GenesisExchange::reverse_exchange_rate(), 999975000625);
+		let (current_exchange_rate, reverse_rate, _, _, _) =
+			GenesisExchange::current_exchange_rate();
+		assert_eq!(current_exchange_rate, 999975000625);
+		assert_eq!(reverse_rate, 999975000625);
 
 		let buy_usd_amount = 30_000 * 10_000_000_000 * 100;
 		let user_tea_amount = 120_000 * 10_000_000_000 * 100;
@@ -524,8 +526,10 @@ fn buy_tea_to_usd_works_after_large_amount_exchange() {
 			AMMCurveKCoefficient::<Test>::get(),
 		);
 
-		assert_eq!(GenesisExchange::current_exchange_rate(), 62499609378);
-		assert_eq!(GenesisExchange::reverse_exchange_rate(), 15998400159985);
+		let (current_exchange_rate, reverse_rate, _, _, _) =
+			GenesisExchange::current_exchange_rate();
+		assert_eq!(current_exchange_rate, 62499609378);
+		assert_eq!(reverse_rate, 15998400159985);
 	})
 }
 
@@ -534,8 +538,10 @@ fn sell_tea_to_usd_works_after_large_amount_exchange() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 
-		assert_eq!(GenesisExchange::current_exchange_rate(), 999975000625);
-		assert_eq!(GenesisExchange::reverse_exchange_rate(), 999975000625);
+		let (current_exchange_rate, reverse_rate, _, _, _) =
+			GenesisExchange::current_exchange_rate();
+		assert_eq!(current_exchange_rate, 999975000625);
+		assert_eq!(reverse_rate, 999975000625);
 
 		let withdraw_usd_amount = 30_000 * 10_000_000_000 * 100;
 		let user_tea_amount = 120_000 * 10_000_000_000 * 100;
@@ -563,8 +569,10 @@ fn sell_tea_to_usd_works_after_large_amount_exchange() {
 			AMMCurveKCoefficient::<Test>::get(),
 		);
 
-		assert_eq!(GenesisExchange::current_exchange_rate(), 62499609378);
-		assert_eq!(GenesisExchange::reverse_exchange_rate(), 15998400159985);
+		let (current_exchange_rate, reverse_rate, _, _, _) =
+			GenesisExchange::current_exchange_rate();
+		assert_eq!(current_exchange_rate, 62499609378);
+		assert_eq!(reverse_rate, 15998400159985);
 	})
 }
 
@@ -573,8 +581,10 @@ fn buy_usd_to_tea_works_after_large_amount_exchange() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 
-		assert_eq!(GenesisExchange::current_exchange_rate(), 999975000625);
-		assert_eq!(GenesisExchange::reverse_exchange_rate(), 999975000625);
+		let (current_exchange_rate, reverse_rate, _, _, _) =
+			GenesisExchange::current_exchange_rate();
+		assert_eq!(current_exchange_rate, 999975000625);
+		assert_eq!(reverse_rate, 999975000625);
 
 		let buy_tea_amount = 30_000 * 10_000_000_000 * 100;
 		let deposit_amount = 120_000 * 10_000_000_000 * 100;
@@ -605,8 +615,10 @@ fn buy_usd_to_tea_works_after_large_amount_exchange() {
 			AMMCurveKCoefficient::<Test>::get(),
 		);
 
-		assert_eq!(GenesisExchange::current_exchange_rate(), 15998400159985);
-		assert_eq!(GenesisExchange::reverse_exchange_rate(), 62499609378);
+		let (current_exchange_rate, reverse_rate, _, _, _) =
+			GenesisExchange::current_exchange_rate();
+		assert_eq!(current_exchange_rate, 15998400159985);
+		assert_eq!(reverse_rate, 62499609378);
 	})
 }
 
@@ -615,8 +627,10 @@ fn sell_usd_to_tea_works_after_large_amount_exchange() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 
-		assert_eq!(GenesisExchange::current_exchange_rate(), 999975000625);
-		assert_eq!(GenesisExchange::reverse_exchange_rate(), 999975000625);
+		let (current_exchange_rate, reverse_rate, _, _, _) =
+			GenesisExchange::current_exchange_rate();
+		assert_eq!(current_exchange_rate, 999975000625);
+		assert_eq!(reverse_rate, 999975000625);
 
 		let withdraw_delta = 30_000 * 10_000_000_000 * 100;
 		let user_usd_amount = 120_000 * 10_000_000_000 * 100;
@@ -647,7 +661,9 @@ fn sell_usd_to_tea_works_after_large_amount_exchange() {
 			AMMCurveKCoefficient::<Test>::get(),
 		);
 
-		assert_eq!(GenesisExchange::current_exchange_rate(), 15998400159985);
-		assert_eq!(GenesisExchange::reverse_exchange_rate(), 62499609378);
+		let (current_exchange_rate, reverse_rate, _, _, _) =
+			GenesisExchange::current_exchange_rate();
+		assert_eq!(current_exchange_rate, 15998400159985);
+		assert_eq!(reverse_rate, 62499609378);
 	})
 }
