@@ -5,6 +5,7 @@ use camellia_runtime::{
 };
 use sp_core::crypto::AccountId32;
 use std::cmp::min;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
 const DEFROST_SCHEDULE_TYPE_INDEX: usize = 2;
@@ -83,8 +84,9 @@ where
 		});
 	}
 
-	log::info!("competition coupons: {:?}", coupons);
-	Ok(coupons)
+	let result = remove_redundant_coupons(coupons);
+	log::info!("competition coupons: {:?}", result);
+	Ok(result)
 }
 
 fn parse_coupon_configs<R>(rdr: &mut csv::Reader<R>) -> Result<Vec<CouponConfig<AccountId>>, String>
@@ -129,7 +131,15 @@ where
 		}
 	}
 
-	Ok(coupons)
+	Ok(remove_redundant_coupons(coupons))
+}
+
+fn remove_redundant_coupons(source: Vec<CouponConfig<AccountId>>) -> Vec<CouponConfig<AccountId>> {
+	let mut map = HashMap::new();
+	for item in source {
+		map.insert(item.account.clone(), item);
+	}
+	map.into_iter().map(|(_, v)| v).collect()
 }
 
 fn parse_defrost_schedule_type(value: Option<&str>) -> Result<DefrostScheduleType, String> {
