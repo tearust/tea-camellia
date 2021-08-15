@@ -59,10 +59,15 @@ where
 	R: std::io::Read,
 {
 	let mut coupons = Vec::new();
+	let mut coupon_accounts = HashSet::new();
 
 	for record in rdr.records() {
 		let record = record.map_err(|e| e.to_string())?;
 		let account = parse_account_address(record.get(COMPETITION_ADDRESS_INDEX))?;
+		if coupon_accounts.contains(&account) {
+			continue;
+		}
+		coupon_accounts.insert(account.clone());
 
 		coupons.push(CouponConfig {
 			account: account.clone(),
@@ -84,9 +89,8 @@ where
 		});
 	}
 
-	let result = remove_redundant_coupons(coupons);
-	log::info!("competition coupons: {:?}", result);
-	Ok(result)
+	log::info!("competition coupons: {:?}", coupons);
+	Ok(coupons)
 }
 
 fn parse_coupon_configs<R>(rdr: &mut csv::Reader<R>) -> Result<Vec<CouponConfig<AccountId>>, String>
@@ -94,11 +98,16 @@ where
 	R: std::io::Read,
 {
 	let mut coupons = Vec::new();
+	let mut coupon_accounts = HashSet::new();
 
 	for record in rdr.records() {
 		let record = record.map_err(|e| e.to_string())?;
 		let schedule_type = parse_defrost_schedule_type(record.get(DEFROST_SCHEDULE_TYPE_INDEX))?;
 		let account = parse_account_address(record.get(ACCOUNT_ADDRESS_INDEX))?;
+		if coupon_accounts.contains(&account) {
+			continue;
+		}
+		coupon_accounts.insert(account.clone());
 
 		let a_amount = parse_coupon_amount(record.get(A_CML_AMOUNT_INDEX));
 		if a_amount > 0 {
@@ -131,15 +140,7 @@ where
 		}
 	}
 
-	Ok(remove_redundant_coupons(coupons))
-}
-
-fn remove_redundant_coupons(source: Vec<CouponConfig<AccountId>>) -> Vec<CouponConfig<AccountId>> {
-	let mut map = HashMap::new();
-	for item in source {
-		map.insert(item.account.clone(), item);
-	}
-	map.into_iter().map(|(_, v)| v).collect()
+	Ok(coupons)
 }
 
 fn parse_defrost_schedule_type(value: Option<&str>) -> Result<DefrostScheduleType, String> {
