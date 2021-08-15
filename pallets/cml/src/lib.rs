@@ -678,7 +678,6 @@ pub mod cml {
 					if let Some(cml_id) = staking_item.cml {
 						Self::check_belongs(&cml_id, who)?;
 					}
-					// check could not unstake first slot
 
 					let (index, staking_cml) = match staking_item.cml {
 						Some(cml_id) => (None, Some(CmlStore::<T>::get(cml_id))),

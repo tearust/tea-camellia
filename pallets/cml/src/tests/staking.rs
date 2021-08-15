@@ -511,6 +511,70 @@ fn stop_first_slot_staking_should_fail() {
 }
 
 #[test]
+fn stop_staking_should_fail_if_staking_to_cml_not_exist() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Cml::stop_staking(Origin::signed(1), 1, 1),
+			Error::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn stop_staking_should_fail_if_staking_index_larger_than_staking_slots() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+		<Test as Config>::Currency::make_free_balance_be(&2, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
+
+		assert_noop!(
+			Cml::stop_staking(Origin::signed(2), cml_id, 2),
+			Error::<Test>::InvalidStakingIndex
+		);
+	})
+}
+
+#[test]
+fn stop_staking_should_fail_if_staking_not_belongs_to_user() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+		<Test as Config>::Currency::make_free_balance_be(&2, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
+
+		assert_noop!(
+			Cml::stop_staking(Origin::signed(3), cml_id, 1),
+			Error::<Test>::InvalidStakingOwner
+		);
+	})
+}
+
+#[test]
 fn withdraw_staking_reward_works() {
 	new_test_ext().execute_with(|| {
 		let amount = 100;
