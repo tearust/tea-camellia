@@ -480,6 +480,37 @@ fn stop_staking_works_with_mixed_staking_items() {
 }
 
 #[test]
+fn stop_first_slot_staking_should_fail() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+		<Test as Config>::Currency::make_free_balance_be(&2, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
+
+		assert_noop!(
+			Cml::stop_staking(Origin::signed(1), cml_id, 0),
+			Error::<Test>::CannotUnstakeTheFirstSlot
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&1),
+			amount - STAKING_PRICE
+		);
+	})
+}
+
+#[test]
 fn withdraw_staking_reward_works() {
 	new_test_ext().execute_with(|| {
 		let amount = 100;

@@ -262,6 +262,8 @@ pub mod cml {
 
 		/// Specified staking index is over than the max length of current staking slots.
 		InvalidStakingIndex,
+		/// The first staking slot cannot be unstake, if do want to unstake it please stop mining instead.
+		CannotUnstakeTheFirstSlot,
 		/// User is not the owner of specified CML.
 		InvalidStakingOwner,
 		/// User has no reward of staking that can't to withdraw the reward.
@@ -655,6 +657,10 @@ pub mod cml {
 			extrinsic_procedure_with_weight(
 				&who,
 				|who| {
+					ensure!(
+						!staking_index.is_zero(),
+						Error::<T>::CannotUnstakeTheFirstSlot
+					);
 					ensure!(
 						CmlStore::<T>::contains_key(staking_to),
 						Error::<T>::NotFoundCML
