@@ -22,6 +22,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Cml: pallet_cml::{Pallet, Call, Storage, Event<T>},
+		Auction: pallet_auction::{Pallet, Call, Storage, Event<T>},
 		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Storage, Event<T>},
 		GenesisBank: pallet_genesis_bank::{Pallet, Call, Storage, Event<T>},
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
@@ -45,6 +46,7 @@ impl pallet_genesis_bank::Config for Test {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
+	type AuctionOperation = Auction;
 	type LoanTermDuration = LoanTermDuration;
 	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
 	type InterestRate = InterestRate;
@@ -104,6 +106,38 @@ impl pallet_cml::Config for Test {
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
+	type WeightInfo = ();
+}
+
+pub const AUCTION_DEAL_WINDOW_BLOCK: BlockNumber = 50;
+pub const MIN_PRICE_FOR_BID: Balance = 1;
+pub const AUCTION_PLEDGE_AMOUNT: Balance = 100;
+pub const AUCTION_OWNER_PENALTY_FOR_EACH_BID: Balance = 1;
+pub const MAX_USERS_PER_AUCTION: u64 = 100;
+pub const AUCTION_FEE_PER_WINDOW: Balance = 1;
+
+parameter_types! {
+	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_DEAL_WINDOW_BLOCK;
+	pub const MinPriceForBid: Balance = MIN_PRICE_FOR_BID;
+	pub const AuctionOwnerPenaltyForEachBid: Balance = AUCTION_OWNER_PENALTY_FOR_EACH_BID;
+	pub const AuctionPledgeAmount: Balance = AUCTION_PLEDGE_AMOUNT;
+	pub const MaxUsersPerAuction: u64 = MAX_USERS_PER_AUCTION;
+	pub const AuctionFeePerWindow: Balance = AUCTION_FEE_PER_WINDOW;
+}
+
+impl pallet_auction::Config for Test {
+	type Event = Event;
+	type Currency = Balances;
+	type AuctionDealWindowBLock = AuctionDealWindowBLock;
+	type MinPriceForBid = MinPriceForBid;
+	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
+	type CurrencyOperations = Utils;
+	type CmlOperation = Cml;
+	type AuctionOperation = Auction;
+	type GenesisBankOperation = GenesisBank;
+	type AuctionPledgeAmount = AuctionPledgeAmount;
+	type MaxUsersPerAuction = MaxUsersPerAuction;
+	type AuctionFeePerWindow = AuctionFeePerWindow;
 	type WeightInfo = ();
 }
 

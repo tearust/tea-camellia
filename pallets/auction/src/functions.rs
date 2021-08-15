@@ -5,13 +5,13 @@ impl<T: auction::Config> AuctionOperation for auction::Pallet<T> {
 	type Balance = BalanceOf<T>;
 	type BlockNumber = T::BlockNumber;
 
-	fn add_auction_to_storage(
-		auction_item: AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
-	) {
-		let (_, next_window) = Self::get_window_block();
-		Self::insert_into_end_block_store(next_window, auction_item.id);
-
-		AuctionStore::<T>::insert(auction_item.id, auction_item);
+	fn is_cml_in_auction(cml_id: u64) -> bool {
+		for (_, item) in AuctionStore::<T>::iter() {
+			if item.cml_id == cml_id {
+				return true;
+			}
+		}
+		false
 	}
 
 	fn create_new_bid(sender: &Self::AccountId, auction_id: &AuctionId, price: Self::Balance) {
@@ -59,6 +59,15 @@ impl<T: auction::Config> AuctionOperation for auction::Pallet<T> {
 }
 
 impl<T: auction::Config> auction::Pallet<T> {
+	pub(crate) fn add_auction_to_storage(
+		auction_item: AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+	) {
+		let (_, next_window) = Self::get_window_block();
+		Self::insert_into_end_block_store(next_window, auction_item.id);
+
+		AuctionStore::<T>::insert(auction_item.id, auction_item);
+	}
+
 	pub fn next_auction_id() -> AuctionId {
 		LastAuctionId::<T>::mutate(|id| {
 			if *id < u64::MAX {

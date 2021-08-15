@@ -1,4 +1,5 @@
 use crate as pallet_genesis_bank;
+use auction_interface::AuctionOperation;
 use frame_support::parameter_types;
 use frame_system as system;
 use node_primitives::{Balance, BlockNumber};
@@ -10,6 +11,37 @@ use sp_runtime::{
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+pub const IN_AUCTION_CML_ID: u64 = 99;
+
+pub struct AuctionOperationMock {}
+
+impl Default for AuctionOperationMock {
+	fn default() -> Self {
+		AuctionOperationMock {}
+	}
+}
+
+impl AuctionOperation for AuctionOperationMock {
+	type AccountId = u64;
+	type Balance = Balance;
+	type BlockNumber = u64;
+
+	fn is_cml_in_auction(cml_id: u64) -> bool {
+		cml_id == IN_AUCTION_CML_ID
+	}
+
+	fn create_new_bid(_sender: &Self::AccountId, _auction_id: &u64, _price: Self::Balance) {
+		todo!()
+	}
+
+	fn update_current_winner(_auction_id: &u64, _bid_user: &Self::AccountId) {
+		todo!()
+	}
+
+	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber) {
+		todo!()
+	}
+}
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -99,6 +131,7 @@ impl pallet_genesis_bank::Config for Test {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
+	type AuctionOperation = AuctionOperationMock;
 	type LoanTermDuration = LoanTermDuration;
 	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
 	type InterestRate = InterestRate;

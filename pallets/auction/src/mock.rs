@@ -132,6 +132,7 @@ impl pallet_genesis_bank::Config for Test {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type CmlOperation = Cml;
+	type AuctionOperation = Auction;
 	type LoanTermDuration = LoanTermDuration;
 	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
 	type InterestRate = InterestRate;

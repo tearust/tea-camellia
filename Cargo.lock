@@ -399,6 +399,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "auction-interface"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "auction-rpc"
 version = "0.1.0"
 dependencies = [
@@ -2245,6 +2254,15 @@ checksum = "501466ecc8a30d1d3b7fc9229b122b2ce8ed6e9d9223f1138d4babb253e51817"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "genesis-bank-interface"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -4192,9 +4210,11 @@ dependencies = [
 name = "pallet-auction"
 version = "3.0.0"
 dependencies = [
+ "auction-interface",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "genesis-bank-interface",
  "log",
  "node-primitives",
  "pallet-balances",
@@ -4387,10 +4407,12 @@ dependencies = [
 name = "pallet-genesis-bank"
 version = "0.0.1"
 dependencies = [
+ "auction-interface",
  "ed25519-dalek",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "genesis-bank-interface",
  "hex",
  "hex-literal",
  "node-primitives",
@@ -4415,10 +4437,12 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "genesis-bank-interface",
  "hex",
  "hex-literal",
  "log",
  "node-primitives",
+ "pallet-auction",
  "pallet-balances",
  "pallet-cml",
  "pallet-genesis-bank",

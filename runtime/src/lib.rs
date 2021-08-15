@@ -843,6 +843,7 @@ impl pallet_genesis_bank::Config for Runtime {
 	type Currency = Balances;
 	type CmlOperation = Cml;
 	type CurrencyOperations = Utils;
+	type AuctionOperation = Auction;
 	type LoanTermDuration = LoanTermDuration;
 	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
 	type InterestRate = InterestRate;

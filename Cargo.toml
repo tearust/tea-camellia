@@ -14,9 +14,11 @@ members = [
 
 	'pallets/auction/runtime-api',
 	'pallets/auction/rpc',
+	'pallets/auction/interface',
 
 	'pallets/genesis-bank/runtime-api',
 	'pallets/genesis-bank/rpc',
+	'pallets/genesis-bank/interface',
 
 	'pallets/genesis-exchange/runtime-api',
 	'pallets/genesis-exchange/rpc'

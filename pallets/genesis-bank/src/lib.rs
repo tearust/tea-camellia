@@ -16,11 +16,13 @@ mod functions;
 mod rpc;
 mod types;
 
+use auction_interface::AuctionOperation;
 use frame_support::{pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
+use genesis_bank_interface::GenesisBankOperation;
 use pallet_cml::{CmlId, CmlOperation, SeedProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
+use sp_runtime::traits::Zero;
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
 
@@ -49,6 +51,12 @@ pub mod genesis_bank {
 		type CurrencyOperations: CurrencyOperations<
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
+		>;
+		/// Auction operation trait defined in auction interface.
+		type AuctionOperation: AuctionOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+			BlockNumber = Self::BlockNumber,
 		>;
 		/// The loan's contract length, before this time the loan has to be paid off or in default
 		#[pallet::constant]
@@ -139,6 +147,8 @@ pub mod genesis_bank {
 		ShouldPawnFrozenSeed,
 		/// Only genesis seeds are allowed to be collateral
 		ShouldPawnGenesisSeed,
+		/// Not allowed to spawn a cml if it is in auction.
+		CannotPawnWhenCmlIsInAuction,
 		/// Collateral store is not empty and bank cannot shutdown.
 		CollateralStoreNotEmpty,
 		/// User collateral store not empty cannot shutdown.
@@ -236,16 +246,4 @@ pub mod genesis_bank {
 			}
 		}
 	}
-}
-
-pub trait GenesisBankOperation {
-	type AccountId: PartialEq + Clone;
-	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
-	type Balance: Clone;
-
-	fn is_cml_in_loan(cml_id: CmlId) -> bool;
-
-	fn calculate_loan_amount(cml_id: u64, block_height: Self::BlockNumber) -> Self::Balance;
-
-	fn user_collaterals(who: &Self::AccountId) -> Vec<(u64, Self::BlockNumber)>;
 }

@@ -30,6 +30,7 @@ sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 hex = {default-features = false, optional = true, version = '0.4.3'}
 
+genesis-bank-interface = { path = "../genesis-bank/interface", default-features = false }
 pallet-cml = { path = "../cml", version="3.0.0", default-features = false }
 pallet-genesis-bank = { path = "../genesis-bank", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
@@ -41,6 +42,7 @@ ed25519-dalek = "1.0.0"
 rand = '0.7.2'
 node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+pallet-auction = { path = "../auction" }
 
 [features]
 default = ['std']
@@ -59,6 +61,7 @@ std = [
 	'frame-benchmarking/std',
 	'pallet-cml/std',
 	'pallet-utils/std',
-	'pallet-genesis-bank/std'
+	'pallet-genesis-bank/std',
+	'genesis-bank-interface/std',
 ]
 try-runtime = ['frame-support/try-runtime']

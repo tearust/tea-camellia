@@ -62,6 +62,10 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 					&cml_id,
 					&OperationAccount::<T>::get(),
 				)?;
+				ensure!(
+					!T::AuctionOperation::is_cml_in_auction(cml_id),
+					Error::<T>::CannotPawnWhenCmlIsInAuction
+				);
 			}
 		}
 		Ok(())

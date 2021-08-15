@@ -29,6 +29,8 @@ sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 hex = {default-features = false, optional = true, version = '0.4.3'}
 
+genesis-bank-interface = { path = "./interface", default-features = false }
+auction-interface = { path = "../auction/interface", default-features = false }
 pallet-cml = { path = "../cml", version="3.0.0", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
 
@@ -57,5 +59,7 @@ std = [
 	'frame-benchmarking/std',
 	'pallet-cml/std',
 	'pallet-utils/std',
+	'genesis-bank-interface/std',
+	'auction-interface/std',
 ]
 try-runtime = ['frame-support/try-runtime']

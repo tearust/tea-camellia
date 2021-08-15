@@ -41,6 +41,27 @@ fn apply_loan_genesis_bank_works() {
 }
 
 #[test]
+fn apply_loan_genesis_bank_should_fail_if_cml_in_auction() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(IN_AUCTION_CML_ID, 100));
+		Cml::add_cml(&user, cml);
+
+		let current_height = 100;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		assert_noop!(
+			GenesisBank::apply_loan_genesis_bank(
+				Origin::signed(user),
+				from_cml_id(IN_AUCTION_CML_ID),
+				AssetType::CML
+			),
+			Error::<Test>::CannotPawnWhenCmlIsInAuction
+		);
+	})
+}
+
+#[test]
 fn apply_load_failed_if_load_already_exist() {
 	new_test_ext().execute_with(|| {
 		let user = 1;

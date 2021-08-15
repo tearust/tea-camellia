@@ -3,10 +3,12 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
+use auction_interface::AuctionOperation;
 use frame_support::ensure;
 use frame_support::pallet_prelude::*;
 use frame_support::traits::{Currency, ExistenceRequirement::AllowDeath, Get, ReservableCurrency};
 use frame_system::{ensure_signed, pallet_prelude::*};
+use genesis_bank_interface::GenesisBankOperation;
 use log::{info, warn};
 use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
 use pallet_utils::{extrinsic_procedure, extrinsic_procedure_with_weight, CurrencyOperations};
@@ -38,7 +40,6 @@ type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod auction {
 	use super::*;
-	use pallet_genesis_bank::GenesisBankOperation;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -334,21 +335,4 @@ pub mod auction {
 			)
 		}
 	}
-}
-
-pub trait AuctionOperation {
-	type AccountId: Default;
-	type Balance: Default;
-	type BlockNumber: Default;
-
-	fn add_auction_to_storage(
-		auction_item: AuctionItem<Self::AccountId, Self::Balance, Self::BlockNumber>,
-	);
-
-	fn create_new_bid(sender: &Self::AccountId, auction_id: &AuctionId, price: Self::Balance);
-
-	fn update_current_winner(auction_id: &AuctionId, bid_user: &Self::AccountId);
-
-	// return current block window number and next.
-	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber);
 }
