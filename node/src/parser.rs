@@ -5,7 +5,7 @@ use camellia_runtime::{
 };
 use sp_core::crypto::AccountId32;
 use std::cmp::min;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::str::FromStr;
 
 const DEFROST_SCHEDULE_TYPE_INDEX: usize = 2;
