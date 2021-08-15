@@ -7,12 +7,14 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	}
 
 	pub(crate) fn accumulate_usd_interest() {
-		USDStore::<T>::iter().for_each(|(user, _)| {
-			USDStore::<T>::mutate(user, |balance| {
-				*balance =
-					balance.saturating_add(*balance * T::USDInterestRate::get() / 10000u32.into());
+		USDStore::<T>::iter()
+			.filter(|(user, _)| !user.eq(OperationAccount::<T>::get()))
+			.for_each(|(user, _)| {
+				USDStore::<T>::mutate(user, |balance| {
+					*balance = balance
+						.saturating_add(*balance * T::USDInterestRate::get() / 10000u32.into());
+				});
 			});
-		});
 	}
 
 	pub(crate) fn check_buy_tea_to_usd(
