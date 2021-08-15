@@ -85,12 +85,45 @@ impl<T: cml::Config> cml::Pallet<T> {
 		dead_cmls
 	}
 
+	pub(crate) fn stop_mining_inner(who: &T::AccountId, cml_id: CmlId, machine_id: &MachineId) {
+		CmlStore::<T>::mutate(cml_id, |cml| {
+			let staking_slots_length = cml.staking_slots().len();
+			// user reverse order iterator to avoid staking index adjustments
+			for i in (1..staking_slots_length).rev() {
+				if let Some(staking_item) = cml.staking_slots().get(i) {
+					Self::unstake(
+						&staking_item.owner.clone(),
+						cml,
+						i as u32,
+						T::StakingPrice::get(),
+					);
+				}
+			}
+
+			// unstake the first slot
+			let unstake_amount = if GenesisMinerCreditStore::<T>::contains_key(who, cml_id) {
+				let cml_credit = GenesisMinerCreditStore::<T>::take(who, cml_id);
+				T::StakingPrice::get().saturating_sub(cml_credit)
+			} else {
+				T::StakingPrice::get()
+			};
+			Self::unstake(who, cml, 0, unstake_amount);
+
+			cml.stop_mining();
+		});
+		MinerItemStore::<T>::remove(machine_id);
+	}
+
 	fn clean_cml_related(
 		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 	) {
 		// clean mining related
 		if let Some(machine_id) = cml.machine_id() {
-			MinerItemStore::<T>::remove(machine_id);
+			Self::stop_mining_inner(
+				cml.owner().unwrap_or(&Default::default()),
+				cml.id(),
+				machine_id,
+			);
 		}
 		// clean staking related
 		if let Some((cml_id, staking_index)) = cml.staking_index() {
@@ -243,6 +276,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		who: &T::AccountId,
 		staking_to: &mut CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 		staking_index: StakingIndex,
+		unstake_balance: BalanceOf<T>,
 	) -> bool {
 		if let Some(staking_item) = staking_to.staking_slots().get(staking_index as usize) {
 			let (index, is_balance_staking) = match staking_item.cml {
@@ -251,7 +285,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 					false,
 				),
 				None => {
-					T::CurrencyOperations::unreserve(&who, T::StakingPrice::get());
+					T::CurrencyOperations::unreserve(&who, unstake_balance);
 					(
 						staking_to.unstake::<CML<
 							T::AccountId,

@@ -569,19 +569,8 @@ pub mod cml {
 					);
 					Ok(())
 				},
-				|_sender| {
-					CmlStore::<T>::mutate(cml_id, |cml| {
-						let staking_slots_length = cml.staking_slots().len();
-						// user reverse order iterator to avoid staking index adjustments
-						for i in (0..staking_slots_length).rev() {
-							if let Some(staking_item) = cml.staking_slots().get(i) {
-								Self::unstake(&staking_item.owner.clone(), cml, i as u32);
-							}
-						}
-
-						cml.stop_mining();
-					});
-					MinerItemStore::<T>::remove(machine_id);
+				|sender| {
+					Self::stop_mining_inner(sender, cml_id, &machine_id);
 				},
 			)
 		}
@@ -683,6 +672,7 @@ pub mod cml {
 					if let Some(cml_id) = staking_item.cml {
 						Self::check_belongs(&cml_id, who)?;
 					}
+					// check could not unstake first slot
 
 					let (index, staking_cml) = match staking_item.cml {
 						Some(cml_id) => (None, Some(CmlStore::<T>::get(cml_id))),
@@ -694,7 +684,7 @@ pub mod cml {
 					Ok(())
 				},
 				|who| match CmlStore::<T>::mutate(staking_to, |cml| {
-					Self::unstake(who, cml, staking_index)
+					Self::unstake(who, cml, staking_index, T::StakingPrice::get())
 				}) {
 					true => None,
 					false => Some(T::WeightInfo::stop_cml_staking(staking_index)),
