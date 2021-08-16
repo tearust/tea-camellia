@@ -187,6 +187,10 @@ pub mod auction {
 			extrinsic_procedure(
 				&sender,
 				|sender| {
+					ensure!(
+						!T::GenesisBankOperation::is_cml_in_loan(cml_id),
+						Error::<T>::CannotSellACollateral
+					);
 					let cml_item = T::CmlOperation::cml_by_id(&cml_id)?;
 					T::CmlOperation::check_belongs(&cml_id, &sender)?;
 					ensure!(
@@ -200,10 +204,6 @@ pub mod auction {
 							Error::<T>::BuyNowPriceShouldHigherThanStartingPrice
 						);
 					}
-					ensure!(
-						!T::GenesisBankOperation::is_cml_in_loan(cml_id),
-						Error::<T>::CannotSellACollateral
-					);
 
 					let current_height = frame_system::Pallet::<T>::block_number();
 					// check cml status
