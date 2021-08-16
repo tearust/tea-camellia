@@ -656,6 +656,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "bounding-curve-interface"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "bounding-curve-rpc"
+version = "0.1.0"
+dependencies = [
+ "bounding-curve-runtime-api",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "node-primitives",
+ "parity-scale-codec",
+ "rmp-serde",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "bounding-curve-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "node-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "bs58"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -740,6 +777,7 @@ name = "camellia-runtime"
 version = "0.0.1"
 dependencies = [
  "auction-runtime-api",
+ "bounding-curve-runtime-api",
  "chainbridge",
  "cml-runtime-api",
  "frame-benchmarking",
@@ -758,6 +796,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
+ "pallet-bounding-curve",
  "pallet-bridge",
  "pallet-cml",
  "pallet-collective",
@@ -4291,6 +4330,30 @@ dependencies = [
  "frame-system",
  "log",
  "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-bounding-curve"
+version = "0.0.1"
+dependencies = [
+ "bounding-curve-interface",
+ "ed25519-dalek",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "node-primitives",
+ "pallet-balances",
+ "pallet-randomness-collective-flip",
+ "pallet-utils",
+ "parity-scale-codec",
+ "rand 0.7.3",
+ "serde",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -8122,6 +8185,8 @@ version = "0.0.1"
 dependencies = [
  "auction-rpc",
  "auction-runtime-api",
+ "bounding-curve-rpc",
+ "bounding-curve-runtime-api",
  "camellia-runtime",
  "cml-rpc",
  "cml-runtime-api",
