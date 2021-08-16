@@ -21,6 +21,8 @@ pub trait SeedProperties<BlockNumber> {
 	/// CML identity.
 	fn id(&self) -> CmlId;
 
+	fn lifespan(&self) -> BlockNumber;
+
 	/// Return `true` if CML is frozen seed or fresh seed, or `false` otherwise.
 	fn is_seed(&self) -> bool;
 
@@ -137,7 +139,9 @@ pub trait MiningProperties<AccountId, BlockNumber, Balance> {
 
 	fn machine_id(&self) -> Option<&MachineId>;
 
-	fn get_performance(&self) -> param::Performance;
+	fn get_peak_performance(&self) -> param::Performance;
+
+	fn calculate_performance(&self, age_percentage: u32) -> param::Performance;
 
 	fn swap_first_slot(&mut self, staking_item: StakingItem<AccountId, Balance>);
 

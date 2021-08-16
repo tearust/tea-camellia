@@ -197,6 +197,10 @@ where
 		self.intrinsic.id
 	}
 
+	fn lifespan(&self) -> BlockNumber {
+		self.intrinsic.lifespan.into()
+	}
+
 	/// Return `true` if CML is frozen seed or fresh seed.
 	fn is_seed(&self) -> bool {
 		self.is_frozen_seed() || self.is_fresh_seed()
@@ -556,8 +560,24 @@ where
 		self.machine_id.as_ref()
 	}
 
-	fn get_performance(&self) -> Performance {
+	fn get_peak_performance(&self) -> Performance {
 		self.intrinsic.performance
+	}
+
+	fn calculate_performance(&self, age_percentage: u32) -> Performance {
+		let base = self.intrinsic.performance;
+		match age_percentage {
+			0..=9 => base * 30 / 100,
+			10..=19 => base * 60 / 100,
+			20..=29 => base * 90 / 100,
+			30..=49 => base,
+			50..=59 => base * 90 / 100,
+			60..=69 => base * 70 / 100,
+			70..=79 => base * 50 / 100,
+			80..=89 => base * 30 / 100,
+			90..=99 => base * 10 / 100,
+			_ => 0,
+		}
 	}
 
 	fn swap_first_slot(&mut self, staking_item: StakingItem<AccountId, Balance>) {

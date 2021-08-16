@@ -31,7 +31,7 @@ use pallet_utils::{
 	extrinsic_procedure, extrinsic_procedure_with_weight, CommonUtils, CurrencyOperations,
 };
 use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
-use sp_std::prelude::*;
+use sp_std::{convert::TryInto, prelude::*};
 
 /// The balance type of this module.
 pub type BalanceOf<T> =

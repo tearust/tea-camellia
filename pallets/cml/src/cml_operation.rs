@@ -155,6 +155,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		X: FnOnce() -> ServiceTaskPoint,
 		Y: Fn(CmlId) -> ServiceTaskPoint,
 	{
+		let current_height = frame_system::Pallet::<T>::block_number();
 		let total_task_point = total_point();
 
 		let mut reward_statements = Vec::new();
@@ -163,7 +164,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			ActiveStakingSnapshot::<T>::iter().collect();
 		for (cml_id, snapshot_items) in snapshots {
 			let miner_task_point = miner_task_point(cml_id);
-			let performance = Self::miner_performance(cml_id);
+			let (performance, _) = Self::miner_performance(cml_id, &current_height);
 			let miner_total_reward = T::StakingEconomics::total_staking_rewards_of_miner(
 				miner_task_point,
 				total_task_point,

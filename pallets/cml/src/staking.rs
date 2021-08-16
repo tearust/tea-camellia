@@ -74,8 +74,24 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Self::deposit_event(Event::RewardStatements(reward_statements));
 	}
 
-	pub(crate) fn miner_performance(cml_id: CmlId) -> Performance {
-		CmlStore::<T>::get(cml_id).get_performance()
+	/// return a pair of values, first is current performance calculated by given block height,
+	/// the second is the peak performance.
+	pub(crate) fn miner_performance(
+		cml_id: CmlId,
+		block_height: &T::BlockNumber,
+	) -> (Performance, Performance) {
+		let cml = CmlStore::<T>::get(cml_id);
+		let age_percentage = if cml.lifespan().is_zero() {
+			100u32.into()
+		} else {
+			(*block_height - *cml.get_plant_at().unwrap_or(&Zero::zero())) * 100u32.into()
+				/ cml.lifespan()
+		};
+
+		(
+			cml.calculate_performance(age_percentage.try_into().unwrap_or(0)),
+			cml.get_peak_performance(),
+		)
 	}
 
 	pub(crate) fn try_return_left_staking_reward(
