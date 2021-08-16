@@ -66,11 +66,6 @@ pub mod genesis_exchange {
 		/// Length of a USD interest calculation.
 		#[pallet::constant]
 		type InterestPeriodLength: Get<Self::BlockNumber>;
-
-		/// Interest rates of one interest period in ten thousand units(‱).
-		/// This number need to be an integer
-		#[pallet::constant]
-		type USDInterestRate: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -85,6 +80,12 @@ pub mod genesis_exchange {
 	#[pallet::storage]
 	#[pallet::getter(fn amm_curve_k_coefficient)]
 	pub type AMMCurveKCoefficient<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	/// Interest rates of one interest period in ten thousand units(‱).
+	/// This number need to be an integer
+	#[pallet::storage]
+	#[pallet::getter(fn usd_interest_rate)]
+	pub type USDInterestRate<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn usd_store)]
@@ -128,6 +129,9 @@ pub mod genesis_exchange {
 			self.competition_users
 				.iter()
 				.for_each(|(user, _)| CompetitionUsers::<T>::insert(user, ()));
+
+			// initialize USD interest rate
+			USDInterestRate::<T>::set(1500u32.into());
 		}
 	}
 
@@ -159,6 +163,9 @@ pub mod genesis_exchange {
 		AmountShouldNotBeZero,
 		BuyAndSellAmountShouldNotBothExist,
 		BuyOrSellAmountShouldExist,
+		/// USD interest rate should larger than competitions count, otherwise the rate of each one
+		/// will be zero.
+		USDInterestRateShouldLargerThanCompetitionsCount,
 	}
 
 	#[pallet::hooks]
@@ -172,6 +179,25 @@ pub mod genesis_exchange {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(195_000_000)]
+		pub fn update_usd_interest_rate(
+			sender: OriginFor<T>,
+			rate: BalanceOf<T>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+			extrinsic_procedure(
+				&root,
+				|_root| {
+					ensure!(
+						rate >= ((USDStore::<T>::iter().count() - 1) as u32).into(),
+						Error::<T>::USDInterestRateShouldLargerThanCompetitionsCount
+					);
+					Ok(())
+				},
+				|_root| USDInterestRate::<T>::set(rate),
+			)
+		}
+
 		#[pallet::weight(195_000_000)]
 		pub fn tea_to_usd(
 			sender: OriginFor<T>,

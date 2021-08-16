@@ -142,12 +142,10 @@ impl pallet_auction::Config for Test {
 }
 
 pub const PER_RATE: Balance = 5;
-pub const USD_INTEREST_RATE: Balance = 5;
 pub const INTEREST_PERIOD_LENGTH: BlockNumber = 1000;
 
 parameter_types! {
 	pub const PER: Balance = PER_RATE;
-	pub const USDInterestRate: Balance = USD_INTEREST_RATE;
 	pub const InterestPeriodLength: BlockNumber = INTEREST_PERIOD_LENGTH;
 }
 
@@ -158,7 +156,6 @@ impl pallet_genesis_exchange::Config for Test {
 	type CmlOperation = Cml;
 	type PER = PER;
 	type GenesisBankOperation = GenesisBank;
-	type USDInterestRate = USDInterestRate;
 	type InterestPeriodLength = InterestPeriodLength;
 }
 
