@@ -67,6 +67,7 @@ parameter_types! {
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedFreshDuration: u32 = SEED_ROTTEN_DURATION;
 	pub const StakingSlotsMaxLength: u32 = 1024;
+	pub const StopMiningPunishment: Balance = 100;
 }
 
 impl pallet_cml::Config for Test {
@@ -81,6 +82,7 @@ impl pallet_cml::Config for Test {
 	// todo replace value with StakingEconomics later
 	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
+	type StopMiningPunishment = StopMiningPunishment;
 	type WeightInfo = ();
 }
 
