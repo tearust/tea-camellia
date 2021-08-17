@@ -3,10 +3,10 @@
 use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_std::vec::Vec;
 
-pub trait BoundingCurveFunctions {
-	type Balance: Default;
+pub trait BuyBoundingCurve<Balance> {
+	fn buy(amount: Balance, total_supply: Balance) -> Balance;
+}
 
-	fn buy_curve(&self, total_supply: Self::Balance) -> Self::Balance;
-
-	fn sell_curve(&self, total_supply: Self::Balance) -> Self::Balance;
+pub trait SellBoundingCurve<Balance> {
+	fn sell(amount: Balance, total_supply: Balance) -> Balance;
 }

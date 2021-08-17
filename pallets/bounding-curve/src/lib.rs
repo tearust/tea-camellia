@@ -16,11 +16,14 @@ mod functions;
 mod rpc;
 mod types;
 
-use bounding_curve_interface::BoundingCurveFunctions;
-use frame_support::{pallet_prelude::*, traits::Currency};
+use bounding_curve_interface::{BuyBoundingCurve, SellBoundingCurve};
+use frame_support::{
+	pallet_prelude::*,
+	traits::{Currency, ExistenceRequirement},
+};
 use frame_system::pallet_prelude::*;
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::traits::Zero;
+use sp_runtime::traits::{CheckedSub, Saturating, Zero};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
 
@@ -46,6 +49,9 @@ pub mod bounding_curve {
 		>;
 		#[pallet::constant]
 		type TAppNameMaxLength: Get<u32>;
+
+		type LinearBuyCurve: BuyBoundingCurve<BalanceOf<Self>>;
+		type LinearSellCurve: SellBoundingCurve<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -72,7 +78,19 @@ pub mod bounding_curve {
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_bounding_curve)]
 	pub type TAppBoundingCurve<T: Config> =
-		StorageMap<_, Twox64Concat, TAppId, (BoundingCurveType, BoundingCurveType)>;
+		StorageMap<_, Twox64Concat, TAppId, TAppItem, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn tapp_names)]
+	pub type TAppNames<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, TAppId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn last_cml_id)]
+	pub type LastTAppId<T: Config> = StorageValue<_, TAppId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn operation_account)]
+	pub type OperationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub fn deposit_event)]
@@ -82,6 +100,10 @@ pub mod bounding_curve {
 	#[pallet::error]
 	pub enum Error<T> {
 		TAppNameIsTooLong,
+		TAppNameAlreadyExist,
+		InsufficientFreeBalance,
+		InsufficientTAppToken,
+		TAppIdNotExist,
 	}
 
 	#[pallet::hooks]
@@ -96,8 +118,8 @@ pub mod bounding_curve {
 			sender: OriginFor<T>,
 			tapp_name: Vec<u8>,
 			init_fund: BalanceOf<T>,
-			buy_curve: BoundingCurveType,
-			sell_curve: BoundingCurveType,
+			buy_curve: BuyCurveType,
+			sell_curve: SellCurveType,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
@@ -108,10 +130,29 @@ pub mod bounding_curve {
 						tapp_name.len() <= T::TAppNameMaxLength::get() as usize,
 						Error::<T>::TAppNameIsTooLong
 					);
+					ensure!(
+						!TAppNames::<T>::contains_key(&tapp_name),
+						Error::<T>::TAppNameAlreadyExist
+					);
+					ensure!(
+						T::CurrencyOperations::free_balance(who) >= init_fund,
+						Error::<T>::InsufficientFreeBalance,
+					);
 					Ok(())
 				},
 				|who| {
-					// todo implement me
+					let id = Self::next_id();
+					TAppNames::<T>::insert(&tapp_name, id);
+					TAppBoundingCurve::<T>::insert(
+						id,
+						TAppItem {
+							id,
+							name: tapp_name.clone(),
+							buy_curve: buy_curve.clone(),
+							sell_curve: sell_curve.clone(),
+						},
+					);
+					Self::buy_token_inner(who, id, init_fund)
 				},
 			)
 		}
@@ -126,9 +167,19 @@ pub mod bounding_curve {
 
 			extrinsic_procedure(
 				&who,
-				|who| Ok(()),
 				|who| {
-					// todo implement me
+					ensure!(
+						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						T::CurrencyOperations::free_balance(who) >= amount,
+						Error::<T>::InsufficientFreeBalance,
+					);
+					Ok(())
+				},
+				|who| {
+					Self::buy_token_inner(who, tapp_id, amount);
 				},
 			)
 		}
@@ -143,9 +194,19 @@ pub mod bounding_curve {
 
 			extrinsic_procedure(
 				&who,
-				|who| Ok(()),
 				|who| {
-					// todo implement me
+					ensure!(
+						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						AccountTable::<T>::get(who, tapp_id) >= amount,
+						Error::<T>::InsufficientTAppToken,
+					);
+					Ok(())
+				},
+				|who| {
+					Self::sell_token_inner(who, tapp_id, amount);
 				},
 			)
 		}

@@ -656,6 +656,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bounding-curve-impl"
+version = "0.1.0"
+dependencies = [
+ "bounding-curve-interface",
+ "node-primitives",
+ "rand 0.7.3",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "bounding-curve-interface"
 version = "0.1.0"
 dependencies = [
@@ -4338,6 +4349,7 @@ dependencies = [
 name = "pallet-bounding-curve"
 version = "0.0.1"
 dependencies = [
+ "bounding-curve-impl",
  "bounding-curve-interface",
  "ed25519-dalek",
  "frame-benchmarking",
@@ -4345,6 +4357,7 @@ dependencies = [
  "frame-system",
  "hex",
  "hex-literal",
+ "log",
  "node-primitives",
  "pallet-balances",
  "pallet-randomness-collective-flip",

@@ -26,4 +26,5 @@ members = [
 	'pallets/bounding-curve/runtime-api',
 	'pallets/bounding-curve/rpc',
 	'pallets/bounding-curve/interface',
+	'pallets/bounding-curve/curve-impl',
 ]

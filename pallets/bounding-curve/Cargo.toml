@@ -14,6 +14,7 @@ targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
 # external dependencies
+log = "0.4.8"
 codec = {default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0'}
 
 # Substrate dependencies
@@ -39,6 +40,7 @@ ed25519-dalek = "1.0.0"
 rand = '0.7.2'
 node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
+bounding-curve-impl = { path = "./curve-impl" }
 
 [features]
 default = ['std']
