@@ -806,6 +806,8 @@ parameter_types! {
 	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
 	/// CML cannot have more than StakingSlotsMaxLength slots
 	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
+	/// Punishment amount need to pay for each staking account when stop mining.
+	pub const StopMiningPunishment: Balance = 100 * DOLLARS;
 }
 impl pallet_cml::Config for Runtime {
 	type Event = Event;
@@ -819,6 +821,7 @@ impl pallet_cml::Config for Runtime {
 	type StakingEconomics = staking_economics::TeaStakingEconomics;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
+	type StopMiningPunishment = StopMiningPunishment;
 }
 
 #[cfg(not(feature = "fast"))]

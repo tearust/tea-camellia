@@ -114,6 +114,40 @@ impl<T: cml::Config> cml::Pallet<T> {
 		MinerItemStore::<T>::remove(machine_id);
 	}
 
+	pub(crate) fn customer_staking_length(
+		owner: &T::AccountId,
+		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+	) -> u32 {
+		let mut length = 0;
+		for staking_item in cml.staking_slots() {
+			if staking_item.owner.eq(owner) {
+				continue;
+			}
+			length += 1;
+		}
+
+		length
+	}
+
+	pub(crate) fn pay_for_miner_customer(owner: &T::AccountId, cml_id: CmlId) {
+		let cml = CmlStore::<T>::get(cml_id);
+		for staking_item in cml.staking_slots() {
+			if staking_item.owner.eq(owner) {
+				continue;
+			}
+			if let Err(e) = T::CurrencyOperations::transfer(
+				owner,
+				&staking_item.owner,
+				T::StopMiningPunishment::get(),
+				ExistenceRequirement::AllowDeath,
+			) {
+				// see https://github.com/tearust/tea-camellia/issues/13
+				log::error!("pay for miner failed: {:?}", e);
+				return;
+			}
+		}
+	}
+
 	fn clean_cml_related(
 		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
 	) {

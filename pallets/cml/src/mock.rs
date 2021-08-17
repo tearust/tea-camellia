@@ -67,6 +67,7 @@ pub const STAKING_PERIOD_LENGTH: u32 = 100;
 pub const STAKING_PRICE: Balance = 1000;
 pub const SEED_FRESH_DURATION: u32 = 7 * 30 * 24 * 60 * 10;
 pub const STAKING_SLOTS_MAX_LENGTH: u32 = 100;
+pub const STOP_MINING_PUNISHMENT: Balance = 100;
 
 parameter_types! {
 	pub const MinRaPassedThreshold: u32 = 3;
@@ -75,6 +76,7 @@ parameter_types! {
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
 	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
+	pub const StopMiningPunishment: Balance = STOP_MINING_PUNISHMENT;
 }
 
 impl pallet_cml::Config for Test {
@@ -88,6 +90,7 @@ impl pallet_cml::Config for Test {
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
+	type StopMiningPunishment = StopMiningPunishment;
 	type WeightInfo = ();
 }
 
