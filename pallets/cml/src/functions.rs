@@ -2,10 +2,15 @@ use super::*;
 
 impl<T: cml::Config> cml::Pallet<T> {
 	pub fn next_id() -> CmlId {
-		let cid = LastCmlId::<T>::get();
-		LastCmlId::<T>::mutate(|id| *id += 1);
+		LastCmlId::<T>::mutate(|id| {
+			if *id < u64::MAX {
+				*id += 1;
+			} else {
+				*id = 1;
+			}
 
-		cid
+			*id
+		})
 	}
 
 	pub fn check_seed_validity(cml_id: CmlId, height: &T::BlockNumber) -> DispatchResult {
