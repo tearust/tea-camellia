@@ -24,7 +24,7 @@ use frame_support::{
 	dispatch::DispatchResult,
 	ensure,
 	pallet_prelude::*,
-	traits::{Currency, Get},
+	traits::{Currency, ExistenceRequirement, Get},
 };
 use frame_system::pallet_prelude::*;
 use pallet_utils::{
@@ -85,6 +85,10 @@ pub mod cml {
 		/// larger than `StakingSlotsMaxLength`.
 		#[pallet::constant]
 		type StakingSlotsMaxLength: Get<StakingIndex>;
+
+		/// Punishment amount need to pay for each staking account when stop mining.
+		#[pallet::constant]
+		type StopMiningPunishment: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -311,6 +315,8 @@ pub mod cml {
 		CmlIsNotStaking,
 		/// Some status that can't convert to another status.
 		CmlInvalidStatusConversion,
+		/// Not enough free balance to pay for each of the staking accounts.
+		InsufficientFreeBalanceToPayForPunishment,
 	}
 
 	#[pallet::hooks]
@@ -569,9 +575,16 @@ pub mod cml {
 						MinerItemStore::<T>::contains_key(machine_id),
 						Error::<T>::NotFoundMiner
 					);
+					ensure!(
+						T::CurrencyOperations::free_balance(sender)
+							>= T::StopMiningPunishment::get()
+								* Self::customer_staking_length(sender, &cml).into(),
+						Error::<T>::InsufficientFreeBalanceToPayForPunishment,
+					);
 					Ok(())
 				},
 				|sender| {
+					Self::pay_for_miner_customer(sender, cml_id);
 					Self::stop_mining_inner(sender, cml_id, &machine_id);
 				},
 			)

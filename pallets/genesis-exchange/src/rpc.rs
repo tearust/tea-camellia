@@ -222,10 +222,12 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let one_tea_dollar = Self::one_tea_dollar();
 
 		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
-			let tea_amount = T::CurrencyOperations::free_balance(&user);
+			let tea_free_amount = T::CurrencyOperations::free_balance(&user);
+			let tea_reserved_amount = T::CurrencyOperations::reserved_balance(&user);
 			Self::new_or_add_assets(
 				&user,
-				tea_amount * current_exchange_rate / one_tea_dollar,
+				(tea_free_amount.saturating_add(tea_reserved_amount)) * current_exchange_rate
+					/ one_tea_dollar,
 				&mut asset_usd_map,
 			)
 		});
