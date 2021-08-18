@@ -2,7 +2,7 @@ use crate as pallet_bounding_curve;
 use bounding_curve_impl::linear::{LinearBuyCurve, LinearSellCurve};
 use frame_support::parameter_types;
 use frame_system as system;
-use node_primitives::{Balance, BlockNumber};
+use node_primitives::Balance;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,

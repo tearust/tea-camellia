@@ -1,5 +1,4 @@
 use codec::{Decode, Encode};
-use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 

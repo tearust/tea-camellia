@@ -661,7 +661,6 @@ version = "0.1.0"
 dependencies = [
  "bounding-curve-interface",
  "node-primitives",
- "rand 0.7.3",
  "sp-runtime",
  "sp-std",
 ]
@@ -788,6 +787,7 @@ name = "camellia-runtime"
 version = "0.0.1"
 dependencies = [
  "auction-runtime-api",
+ "bounding-curve-impl",
  "bounding-curve-runtime-api",
  "chainbridge",
  "cml-runtime-api",

@@ -2,7 +2,7 @@ use bounding_curve_runtime_api::BoundingCurveApi as BoundingCurveRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-use node_primitives::{Balance, BlockNumber};
+use node_primitives::Balance;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};

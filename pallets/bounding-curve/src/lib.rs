@@ -24,8 +24,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::traits::{CheckedSub, Saturating, Zero};
-use sp_std::convert::TryInto;
-use sp_std::prelude::*;
+use sp_std::{collections::btree_set::BTreeSet, convert::TryInto, prelude::*};
 
 /// The balance type of this module.
 pub type BalanceOf<T> =
@@ -94,7 +93,15 @@ pub mod bounding_curve {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub fn deposit_event)]
-	pub enum Event<T: Config> {}
+	pub enum Event<T: Config> {
+		TAppCreated(TAppId, Vec<u8>, T::AccountId),
+
+		TokenBought(TAppId, T::AccountId, BalanceOf<T>),
+
+		TokenSold(TAppId, T::AccountId, BalanceOf<T>),
+
+		TAppExpense(TAppId, T::AccountId, BalanceOf<T>),
+	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]
@@ -103,12 +110,14 @@ pub mod bounding_curve {
 		TAppNameAlreadyExist,
 		InsufficientFreeBalance,
 		InsufficientTAppToken,
+		InsufficientTotalSupply,
 		TAppIdNotExist,
+		TAppInsufficientFreeBalance,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_finalize(n: BlockNumberFor<T>) {}
+		fn on_finalize(_n: BlockNumberFor<T>) {}
 	}
 
 	#[pallet::call]
@@ -152,7 +161,9 @@ pub mod bounding_curve {
 							sell_curve: sell_curve.clone(),
 						},
 					);
-					Self::buy_token_inner(who, id, init_fund)
+					Self::buy_token_inner(who, id, init_fund);
+
+					Self::deposit_event(Event::TAppCreated(id, tapp_name.clone(), who.clone()));
 				},
 			)
 		}
@@ -179,7 +190,8 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|who| {
-					Self::buy_token_inner(who, tapp_id, amount);
+					let bought_amount = Self::buy_token_inner(who, tapp_id, amount);
+					Self::deposit_event(Event::TokenBought(tapp_id, who.clone(), bought_amount))
 				},
 			)
 		}
@@ -203,10 +215,15 @@ pub mod bounding_curve {
 						AccountTable::<T>::get(who, tapp_id) >= amount,
 						Error::<T>::InsufficientTAppToken,
 					);
+					ensure!(
+						TotalSupplyTable::<T>::get(tapp_id) >= amount,
+						Error::<T>::InsufficientTotalSupply
+					);
 					Ok(())
 				},
 				|who| {
-					Self::sell_token_inner(who, tapp_id, amount);
+					let sold_amount = Self::sell_token_inner(who, tapp_id, amount);
+					Self::deposit_event(Event::TokenSold(tapp_id, who.clone(), sold_amount))
 				},
 			)
 		}
@@ -221,9 +238,31 @@ pub mod bounding_curve {
 
 			extrinsic_procedure(
 				&who,
-				|who| Ok(()),
 				|who| {
-					// todo implement me
+					ensure!(
+						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						T::CurrencyOperations::free_balance(who) >= amount,
+						Error::<T>::InsufficientFreeBalance,
+					);
+					Ok(())
+				},
+				|who| {
+					if let Err(e) = T::CurrencyOperations::transfer(
+						who,
+						&OperationAccount::<T>::get(),
+						amount,
+						ExistenceRequirement::AllowDeath,
+					) {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("transfer free balance failed: {:?}", e);
+						return;
+					}
+
+					let distributing_amount = Self::calculate_buy_amount(tapp_id, amount);
+					Self::distribute_to_investors(tapp_id, distributing_amount);
 				},
 			)
 		}
@@ -238,9 +277,40 @@ pub mod bounding_curve {
 
 			extrinsic_procedure(
 				&who,
-				|who| Ok(()),
+				|_who| {
+					ensure!(
+						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						T::CurrencyOperations::free_balance(&OperationAccount::<T>::get())
+							>= amount,
+						Error::<T>::TAppInsufficientFreeBalance,
+					);
+
+					let collecting_amount = Self::calculate_sell_amount(tapp_id, amount);
+					ensure!(
+						TotalSupplyTable::<T>::get(tapp_id) > collecting_amount,
+						Error::<T>::InsufficientTotalSupply
+					);
+					Ok(())
+				},
 				|who| {
-					// todo implement me
+					if let Err(e) = T::CurrencyOperations::transfer(
+						&OperationAccount::<T>::get(),
+						who,
+						amount,
+						ExistenceRequirement::AllowDeath,
+					) {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("transfer free balance failed: {:?}", e);
+						return;
+					}
+
+					let collecting_amount = Self::calculate_sell_amount(tapp_id, amount);
+					Self::collect_with_investors(tapp_id, collecting_amount);
+
+					Self::deposit_event(Event::TAppExpense(tapp_id, who.clone(), amount));
 				},
 			)
 		}

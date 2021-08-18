@@ -1,5 +1,6 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use bounding_curve_interface::{BuyBoundingCurve, SellBoundingCurve};
-use node_primitives::Balance;
-use sp_runtime::traits::Zero;
+use sp_runtime::traits::AtLeast32BitUnsigned;
 
 pub mod linear;

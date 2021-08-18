@@ -1,15 +1,13 @@
 use crate::*;
-use bounding_curve_interface::SellBoundingCurve;
 
 pub struct LinearBuyCurve {}
 
 impl<Balance> BuyBoundingCurve<Balance> for LinearBuyCurve
 where
-	Balance: Zero,
+	Balance: AtLeast32BitUnsigned,
 {
 	fn buy(amount: Balance, total_supply: Balance) -> Balance {
-		// todo implement me
-		Zero::zero()
+		total_supply + amount
 	}
 }
 
@@ -23,11 +21,10 @@ pub struct LinearSellCurve {}
 
 impl<Balance> SellBoundingCurve<Balance> for LinearSellCurve
 where
-	Balance: Zero,
+	Balance: AtLeast32BitUnsigned,
 {
 	fn sell(amount: Balance, total_supply: Balance) -> Balance {
-		// todo implement me
-		Zero::zero()
+		total_supply - amount
 	}
 }
 
