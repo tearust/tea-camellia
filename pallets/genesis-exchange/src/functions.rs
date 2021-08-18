@@ -74,10 +74,13 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return;
 		}
 
-		Self::deposit_event(Event::SellTeaSuccess(
+		let (tea_rate, usd_rate, _, _, _) = Self::current_exchange_rate();
+		Self::deposit_event(Event::ExchangeSuccess(
 			who.clone(),
 			deposit_tea_amount,
 			*buy_usd_amount,
+			tea_rate,
+			usd_rate,
 		))
 	}
 
@@ -143,10 +146,13 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return;
 		}
 
-		Self::deposit_event(Event::SellTeaSuccess(
+		let (tea_rate, usd_rate, _, _, _) = Self::current_exchange_rate();
+		Self::deposit_event(Event::ExchangeSuccess(
 			who.clone(),
-			withdraw_usd_amount,
 			*sell_tea_amount,
+			withdraw_usd_amount,
+			tea_rate,
+			usd_rate,
 		))
 	}
 
@@ -205,10 +211,13 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return;
 		}
 
-		Self::deposit_event(Event::BuyTeaSuccess(
+		let (tea_rate, usd_rate, _, _, _) = Self::current_exchange_rate();
+		Self::deposit_event(Event::ExchangeSuccess(
 			who.clone(),
 			*buy_tea_amount,
 			deposit_usd_amount,
+			tea_rate,
+			usd_rate,
 		))
 	}
 
@@ -275,10 +284,13 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return;
 		}
 
-		Self::deposit_event(Event::BuyTeaSuccess(
+		let (tea_rate, usd_rate, _, _, _) = Self::current_exchange_rate();
+		Self::deposit_event(Event::ExchangeSuccess(
 			who.clone(),
-			*sell_usd_amount,
 			withdraw_tea_amount,
+			*sell_usd_amount,
+			tea_rate,
+			usd_rate,
 		))
 	}
 

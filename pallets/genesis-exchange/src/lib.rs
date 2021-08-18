@@ -141,14 +141,19 @@ pub mod genesis_exchange {
 	pub enum Event<T: Config> {
 		/// Event fired after buy tea (from usd) successfully.
 		///
-		/// First parameter is account if of user, the second parameter is the bought TEA amount,
-		/// and the third parameter is USD amount spent.
-		BuyTeaSuccess(T::AccountId, BalanceOf<T>, BalanceOf<T>),
-		/// Event fired after sell tea (to usd) successfully.
-		///
-		/// First parameter is account if of user, the second parameter is the spent TEA amount,
-		/// and the third parameter is USD amount bought.
-		SellTeaSuccess(T::AccountId, BalanceOf<T>, BalanceOf<T>),
+		/// Event parameters:
+		/// 1. Account id
+		/// 2. Exchange TEA amount
+		/// 3. Exchange USD amount
+		/// 4. current 1TEA equals how many USD amount
+		/// 5. current 1USD equals how many TEA amount
+		ExchangeSuccess(
+			T::AccountId,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+		),
 	}
 
 	// Errors inform users that something went wrong.
