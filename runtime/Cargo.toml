@@ -80,6 +80,7 @@ pallet-bridge = {default-features = false, path = '../pallets/bridge'}
 pallet-utils = {default-features = false, path = '../pallets/utils'}
 pallet-genesis-bank = {default-features = false, path = '../pallets/genesis-bank'}
 pallet-genesis-exchange = {default-features = false, path = '../pallets/genesis-exchange'}
+pallet-bounding-curve = {default-features = false, path = '../pallets/bounding-curve'}
 
 pallet-cml = {default-features = false, path = '../pallets/cml'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
@@ -87,6 +88,8 @@ auction-runtime-api = {default-features = false, path = '../pallets/auction/runt
 staking-economics = {default-features = false, path = '../pallets/cml/staking-economics'}
 genesis-bank-runtime-api = {default-features = false, path = '../pallets/genesis-bank/runtime-api'}
 genesis-exchange-runtime-api = {default-features = false, path = '../pallets/genesis-exchange/runtime-api'}
+bounding-curve-runtime-api = {default-features = false, path = '../pallets/bounding-curve/runtime-api'}
+bounding-curve-impl = {default-features = false, path = "../pallets/bounding-curve/curve-impl"}
 
 [features]
 default = ['std']
@@ -185,5 +188,8 @@ std = [
 	'genesis-bank-runtime-api/std',
 	'pallet-genesis-exchange/std',
 	'genesis-exchange-runtime-api/std',
+	'pallet-bounding-curve/std',
+	'bounding-curve-runtime-api/std',
+	'bounding-curve-impl/std',
 ]
 fast = ['pallet-cml/fast'] # indicate the block duration and epoch will be shorter to test

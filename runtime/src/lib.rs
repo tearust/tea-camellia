@@ -59,6 +59,7 @@ pub mod constants;
 mod weights;
 use constants::{currency::*, time::*};
 
+use bounding_curve_impl::linear::{LinearBuyCurve, LinearSellCurve};
 pub use pallet_auction;
 /// Import the template pallet.
 pub use pallet_cml;
@@ -869,6 +870,19 @@ impl pallet_genesis_exchange::Config for Runtime {
 }
 
 parameter_types! {
+	pub const TAppNameMaxLength: u32 = 20;
+}
+
+impl pallet_bounding_curve::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type CurrencyOperations = Utils;
+	type TAppNameMaxLength = TAppNameMaxLength;
+	type LinearBuyCurve = LinearBuyCurve;
+	type LinearSellCurve = LinearSellCurve;
+}
+
+parameter_types! {
 	pub const ChainId: u8 = 1;
 	pub const ProposalLifetime: BlockNumber = 1000;
 }
@@ -975,6 +989,7 @@ construct_runtime!(
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
 		GenesisBank: pallet_genesis_bank::{Pallet, Call, Config<T>, Storage, Event<T>} = 104,
 		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Config<T>, Storage, Event<T>} = 105,
+		BoundingCurve: pallet_bounding_curve::{Pallet, Call, Storage, Event<T>} = 106,
 	}
 );
 
@@ -1206,6 +1221,20 @@ impl_runtime_apis! {
 
 		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance)> {
 			GenesisExchange::user_asset_list()
+		}
+	}
+
+	impl bounding_curve_runtime_api::BoundingCurveApi<Block, AccountId> for Runtime {
+		fn query_price(tapp_id: u64) -> (Balance, Balance) {
+			BoundingCurve::query_price(tapp_id)
+		}
+
+		fn estimate_buy(tapp_id: u64, amount: Balance) -> Balance {
+			BoundingCurve::estimate_buy(tapp_id, amount)
+		}
+
+		fn estimate_sell(tapp_id: u64, amount: Balance) -> Balance {
+			BoundingCurve::estimate_sell(tapp_id, amount)
 		}
 	}
 
