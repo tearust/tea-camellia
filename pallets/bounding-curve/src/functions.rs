@@ -184,21 +184,31 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		after_buy_pool_balance - current_pool_balance
 	}
 
-	// pub(crate) fn calculate_buy_reverse_amount(
-	// 	tapp_id: TAppId,
-	// 	tea_amount: BalanceOf<T>,
-	// ) -> BalanceOf<T> {
-	// 	let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
-	// 	let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-	// 	match tapp_item.buy_curve {
-	// 		CurveType::Linear => {
-	// 			T::LinearCurve::pool_balance_reverse(total_supply, tea_amount, false)
-	// 		}
-	// 		CurveType::SquareRoot => {
-	// 			T::SquareRootCurve::pool_balance_reverse(total_supply, tea_amount, false)
-	// 		}
-	// 	}
-	// }
+	pub(crate) fn calculate_given_increase_tea_how_much_token_mint(
+		tapp_id: TAppId,
+		tea_amount: BalanceOf<T>,
+	) -> BalanceOf<T> {
+		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		let current_buy_area_tea_amount = match tapp_item.buy_curve {
+			CurveType::Linear => {
+				T::LinearCurve::pool_balance(total_supply)
+			}
+			CurveType::SquareRoot => {
+				T::SquareRootCurve::pool_balance(total_supply)
+			}
+		};
+		let after_increase_tea_amount = current_buy_area_tea_amount + tea_amount;
+		let after_increase_total_supply = match tapp_item.buy_curve {
+			CurveType::Linear => {
+				T::LinearCurve::pool_balance_reverse(after_increase_tea_amount)
+			}
+			CurveType::SquareRoot => {
+				T::SquareRootCurve::pool_balance_reverse(after_increase_tea_amount)
+			}
+		};
+		after_increase_total_supply - current_buy_area_tea_amount
+	}
 
 	/// If user want to sell tapp_amount of tapp_id token, how many T token seller receive after sale
 	pub(crate) fn calculate_sell_amount(

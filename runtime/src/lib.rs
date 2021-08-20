@@ -1229,12 +1229,20 @@ impl_runtime_apis! {
 			BoundingCurve::query_price(tapp_id)
 		}
 
-		fn estimate_required_tea_when_buy(tapp_id: u64, amount: Balance) -> Balance {
-			BoundingCurve::estimate_required_tea_when_buy(tapp_id, amount)
+		fn estimate_required_tea_when_buy(tapp_id: u64, token_amount: Balance) -> Balance {
+			BoundingCurve::estimate_required_tea_when_buy(tapp_id, token_amount)
 		}
 
-		fn estimate_receive_tea_when_sell(tapp_id: u64, amount: Balance) -> Balance {
-			BoundingCurve::estimate_receive_tea_when_sell(tapp_id, amount)
+		fn estimate_receive_tea_when_sell(tapp_id: u64, token_amount: Balance) -> Balance {
+			BoundingCurve::estimate_receive_tea_when_sell(tapp_id, token_amount)
+		}
+
+		fn estimate_receive_token_when_buy(tapp_id: u64, tea_amount: Balance) -> Balance {
+			BoundingCurve::estimate_receive_token_when_buy(tapp_id, tea_amount)
+		}
+
+		fn estimate_required_token_when_sell(tapp_id: u64, tea_amount: Balance) -> Balance {
+			BoundingCurve::estimate_required_token_when_sell(tapp_id, tea_amount)
 		}
 	}
 

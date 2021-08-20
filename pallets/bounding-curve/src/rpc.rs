@@ -23,6 +23,13 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		Self::calculate_sell_amount(tapp_id, tapp_amount)
 	}
 
+	pub fn estimate_receive_token_when_buy(tapp_id: TAppId, tea_amount: BalanceOf<T>) -> BalanceOf<T> {
+		Self::calculate_given_increase_tea_how_much_token_mint(tapp_id, tea_amount)
+	}
+
+	pub fn estimate_required_token_when_sell(tapp_id: TAppId, tea_amount: BalanceOf<T>) -> BalanceOf<T> {
+		Self::calculate_given_received_tea_how_much_seller_give_away(tapp_id, tea_amount)
+	}
 	fn one_tea_dollar() -> BalanceOf<T> {
 		u128_to_balance::<T>(10_000_000_000 * 100)
 	}
