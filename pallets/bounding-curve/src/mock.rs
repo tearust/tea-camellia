@@ -1,5 +1,6 @@
 use crate as pallet_bounding_curve;
-use bounding_curve_impl::linear::{LinearBuyCurve, LinearSellCurve};
+use bounding_curve_impl::linear::LinearCurve;
+use bounding_curve_impl::square_root::SquareRootCurve;
 use frame_support::parameter_types;
 use frame_system as system;
 use node_primitives::Balance;
@@ -68,8 +69,8 @@ impl pallet_bounding_curve::Config for Test {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type TAppNameMaxLength = TAppNameMaxLength;
-	type LinearBuyCurve = LinearBuyCurve;
-	type LinearSellCurve = LinearSellCurve;
+	type LinearCurve = LinearCurve;
+	type SquareRootCurve = SquareRootCurve;
 }
 
 parameter_types! {

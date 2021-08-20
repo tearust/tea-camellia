@@ -1,9 +1,9 @@
 use crate::*;
 
-/// y = ax + b
-pub struct LinearCurve {}
+/// y = k√x + b
+pub struct SquareRootCurve {}
 
-impl<Balance> BoundingCurve<Balance> for LinearCurve
+impl<Balance> BoundingCurve<Balance> for SquareRootCurve
 where
 	Balance: AtLeast32BitUnsigned + Default,
 {
@@ -24,8 +24,8 @@ where
 	}
 }
 
-impl Default for LinearCurve {
+impl Default for SquareRootCurve {
 	fn default() -> Self {
-		LinearCurve {}
+		SquareRootCurve {}
 	}
 }

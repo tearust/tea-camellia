@@ -4,31 +4,32 @@ use sp_std::prelude::*;
 
 pub type TAppId = u64;
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub enum BuyCurveType {
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+pub enum CurveType {
 	Linear,
+	SquareRoot,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub enum SellCurveType {
-	Linear,
-}
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct TAppItem {
+pub struct TAppItem<AccountId> {
 	pub id: TAppId,
 	pub name: Vec<u8>,
-	pub buy_curve: BuyCurveType,
-	pub sell_curve: SellCurveType,
+	pub owner: AccountId,
+	pub buy_curve: CurveType,
+	pub sell_curve: CurveType,
 }
 
-impl Default for TAppItem {
+impl<AccountId> Default for TAppItem<AccountId>
+where
+	AccountId: Default,
+{
 	fn default() -> Self {
 		TAppItem {
 			id: 0,
 			name: vec![],
-			buy_curve: BuyCurveType::Linear,
-			sell_curve: SellCurveType::Linear,
+			owner: Default::default(),
+			buy_curve: CurveType::Linear,
+			sell_curve: CurveType::Linear,
 		}
 	}
 }
