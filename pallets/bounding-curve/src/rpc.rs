@@ -15,11 +15,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		(buy_price, sell_price)
 	}
 
-	pub fn estimate_buy(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {
+	pub fn estimate_required_tea_when_buy(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {
 		Self::calculate_buy_amount(tapp_id, tapp_amount)
 	}
 
-	pub fn estimate_sell(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {
+	pub fn estimate_receive_tea_when_sell(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {
 		Self::calculate_sell_amount(tapp_id, tapp_amount)
 	}
 

@@ -20,10 +20,10 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	fn query_price(&self, tapp_id: u64, at: Option<BlockHash>) -> Result<(Price, Price)>;
 
 	#[rpc(name = "bounding_estimateBuy")]
-	fn estimate_buy(&self, tapp_id: u64, amount: Balance, at: Option<BlockHash>) -> Result<Price>;
+	fn estimate_required_tea_when_buy(&self, tapp_id: u64, amount: Balance, at: Option<BlockHash>) -> Result<Price>;
 
 	#[rpc(name = "bounding_estimateSell")]
-	fn estimate_sell(&self, tapp_id: u64, amount: Balance, at: Option<BlockHash>) -> Result<Price>;
+	fn estimate_receive_tea_when_sell(&self, tapp_id: u64, amount: Balance, at: Option<BlockHash>) -> Result<Price>;
 }
 
 pub struct BoundingCurveApiImpl<C, M> {
@@ -76,7 +76,7 @@ where
 		Ok((Price(buy), Price(sell)))
 	}
 
-	fn estimate_buy(
+	fn estimate_required_tea_when_buy(
 		&self,
 		tapp_id: u64,
 		amount: Balance,
@@ -88,12 +88,12 @@ where
 			self.client.info().best_hash));
 
 		let result: Balance = api
-			.estimate_buy(&at, tapp_id, amount)
+			.estimate_required_tea_when_buy(&at, tapp_id, amount)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
 	}
 
-	fn estimate_sell(
+	fn estimate_receive_tea_when_sell(
 		&self,
 		tapp_id: u64,
 		amount: Balance,
@@ -105,7 +105,7 @@ where
 			self.client.info().best_hash));
 
 		let result: Balance = api
-			.estimate_sell(&at, tapp_id, amount)
+			.estimate_receive_tea_when_sell(&at, tapp_id, amount)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
 	}
