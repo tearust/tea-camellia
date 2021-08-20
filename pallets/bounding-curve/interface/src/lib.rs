@@ -9,9 +9,14 @@ where
 	/// calculate current price by given `total_supply`
 	fn buy_price(total_supply: Balance) -> Balance;
 
+	/// calculate current T price by given total_supply
 	fn sell_price(total_supply: Balance) -> Balance;
 
-	fn pool_balance(x: Balance, delta_x: Balance, negative: bool) -> Balance;
+	/// This is the calculus function of this curve
+	/// it calculates the area of a given x
+	/// This area is the T in the pool
+	fn pool_balance(x: Balance) -> Balance;
 
-	fn pool_balance_reverse(x: Balance, tea_amount: Balance, negative: bool) -> Balance;
+	/// given the area (tea token) calculate how much x (tapp token) change
+	fn pool_balance_reverse(x: Balance) -> Balance;
 }

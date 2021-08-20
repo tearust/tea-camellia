@@ -169,7 +169,7 @@ pub mod bounding_curve {
 						Error::<T>::OperationAmountCanNotBeZero
 					);
 					let deposit_tea_amount =
-						Self::estimate_buy_amount(buy_curve, 0u32.into(), init_fund);
+						Self::calculate_increase_amount_from_curve_total_supply(buy_curve, 0u32.into(), init_fund);
 					ensure!(
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
@@ -215,7 +215,7 @@ pub mod bounding_curve {
 						!tapp_amount.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-					let deposit_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount, true);
+					let deposit_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount);
 					ensure!(
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
@@ -223,11 +223,11 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|who| {
-					let bought_tea_amount = Self::buy_token_inner(who, tapp_id, tapp_amount);
+					let deposit_tea_amount = Self::buy_token_inner(who, tapp_id, tapp_amount);
 					Self::deposit_event(Event::TokenBought(
 						tapp_id,
 						who.clone(),
-						bought_tea_amount,
+						deposit_tea_amount,
 					));
 				},
 			)
@@ -297,7 +297,7 @@ pub mod bounding_curve {
 				},
 				|who| {
 					let deposit_tapp_amount =
-						Self::calculate_buy_reverse_amount(tapp_id, tea_amount);
+						Self::calculate_buy_amount(tapp_id, tea_amount);
 					Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount);
 					Self::distribute_to_investors(tapp_id, deposit_tapp_amount);
 				},
@@ -338,7 +338,7 @@ pub mod bounding_curve {
 				},
 				|who| {
 					let withdraw_tapp_amount =
-						Self::calculate_sell_reverse_amount(tapp_id, tea_amount);
+						Self::calculate_given_received_tea_how_much_seller_give_away(tapp_id, tea_amount);
 
 					if let Err(e) = T::CurrencyOperations::transfer(
 						&OperationAccount::<T>::get(),

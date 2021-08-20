@@ -16,7 +16,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	}
 
 	pub fn estimate_buy(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {
-		Self::calculate_buy_amount(tapp_id, tapp_amount, true)
+		Self::calculate_buy_amount(tapp_id, tapp_amount)
 	}
 
 	pub fn estimate_sell(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {

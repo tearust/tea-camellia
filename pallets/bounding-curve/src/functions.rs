@@ -18,8 +18,8 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
-		let deposit_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount, true);
-		let reserved_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount, false);
+		let deposit_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount);
+		let reserved_tea_amount = Self::calculate_reserve_amount(tapp_id, tapp_amount);
 
 		if let Err(e) = T::CurrencyOperations::transfer(
 			who,
@@ -152,75 +152,104 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	pub(crate) fn calculate_buy_amount(
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
-		buy_curve: bool,
 	) -> BalanceOf<T> {
 		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-
-		Self::estimate_buy_amount(
-			match buy_curve {
-				true => tapp_item.buy_curve,
-				false => tapp_item.sell_curve,
-			},
-			total_supply,
-			tapp_amount,
-		)
+		Self::calculate_increase_amount_from_curve_total_supply(tapp_item.buy_curve, total_supply, tapp_amount)
 	}
 
-	pub(crate) fn estimate_buy_amount(
+	pub(crate) fn calculate_reserve_amount(
+		tapp_id: TAppId,
+		tapp_amount: BalanceOf<T>,
+	) -> BalanceOf<T> {
+		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		Self::calculate_increase_amount_from_curve_total_supply(tapp_item.sell_curve, total_supply, tapp_amount)
+	}
+
+	pub(crate) fn calculate_increase_amount_from_curve_total_supply(
 		curve_type: CurveType,
 		total_supply: BalanceOf<T>,
 		tapp_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
-		match curve_type {
-			CurveType::Linear => T::LinearCurve::pool_balance(total_supply, tapp_amount, false),
-			CurveType::SquareRoot => T::LinearCurve::pool_balance(total_supply, tapp_amount, false),
-		}
+		let current_pool_balance = match curve_type {
+			CurveType::Linear => T::LinearCurve::pool_balance(total_supply),
+			CurveType::SquareRoot => T::SquareRootCurve::pool_balance(total_supply),
+		};
+
+		let after_buy_pool_balance = match curve_type {
+			CurveType::Linear => T::LinearCurve::pool_balance(total_supply + tapp_amount),
+			CurveType::SquareRoot => T::SquareRootCurve::pool_balance(total_supply + tapp_amount),
+		};
+		after_buy_pool_balance - current_pool_balance
 	}
 
-	pub(crate) fn calculate_buy_reverse_amount(
-		tapp_id: TAppId,
-		tea_amount: BalanceOf<T>,
-	) -> BalanceOf<T> {
-		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
-		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		match tapp_item.buy_curve {
-			CurveType::Linear => {
-				T::LinearCurve::pool_balance_reverse(total_supply, tea_amount, false)
-			}
-			CurveType::SquareRoot => {
-				T::SquareRootCurve::pool_balance_reverse(total_supply, tea_amount, false)
-			}
-		}
-	}
+	// pub(crate) fn calculate_buy_reverse_amount(
+	// 	tapp_id: TAppId,
+	// 	tea_amount: BalanceOf<T>,
+	// ) -> BalanceOf<T> {
+	// 	let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+	// 	let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+	// 	match tapp_item.buy_curve {
+	// 		CurveType::Linear => {
+	// 			T::LinearCurve::pool_balance_reverse(total_supply, tea_amount, false)
+	// 		}
+	// 		CurveType::SquareRoot => {
+	// 			T::SquareRootCurve::pool_balance_reverse(total_supply, tea_amount, false)
+	// 		}
+	// 	}
+	// }
 
+	/// If user want to sell tapp_amount of tapp_id token, how many T token seller receive after sale
 	pub(crate) fn calculate_sell_amount(
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
 		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		match tapp_item.sell_curve {
-			CurveType::Linear => T::LinearCurve::pool_balance(total_supply, tapp_amount, true),
-			CurveType::SquareRoot => {
-				T::SquareRootCurve::pool_balance(total_supply, tapp_amount, true)
-			}
+		if tapp_amount > total_supply {
+			todo!("make this a meaningful return error");
+			log::error!("Sell amount more than total supply");	
 		}
+
+		let current_pool_balance = match tapp_item.sell_curve {
+			CurveType::Linear => T::LinearCurve::pool_balance(total_supply),
+			CurveType::SquareRoot => T::SquareRootCurve::pool_balance(total_supply),
+		};
+		let after_sell_pool_balance = match tapp_item.sell_curve {
+			CurveType::Linear => T::LinearCurve::pool_balance(total_supply - tapp_amount),
+			CurveType::SquareRoot => T::SquareRootCurve::pool_balance(total_supply - tapp_amount),
+		};
+		current_pool_balance - after_sell_pool_balance 
 	}
 
-	pub(crate) fn calculate_sell_reverse_amount(
+	/// calcualte given seller receive tea_amount of TEA, how much of tapp token this seller will give away
+	pub(crate) fn calculate_given_received_tea_how_much_seller_give_away(
 		tapp_id: TAppId,
 		tea_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
 		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		match tapp_item.sell_curve {
+		let current_reserve_pool_tea = match tapp_item.sell_curve {
 			CurveType::Linear => {
-				T::LinearCurve::pool_balance_reverse(total_supply, tea_amount, true)
+				T::LinearCurve::pool_balance(total_supply)
 			}
 			CurveType::SquareRoot => {
-				T::SquareRootCurve::pool_balance_reverse(total_supply, tea_amount, true)
+				T::SquareRootCurve::pool_balance(total_supply)
 			}
+		};
+		if tea_amount > current_reserve_pool_tea {
+			todo!("make this a meaningful return error");
+			log::error!("Sell amount more than total reserved pool tea token");	
 		}
+		let after_sell_tapp_token = match tapp_item.sell_curve {
+			CurveType::Linear => {
+				T::LinearCurve::pool_balance_reverse(current_reserve_pool_tea - tea_amount)
+			}
+			CurveType::SquareRoot => {
+				T::SquareRootCurve::pool_balance_reverse(current_reserve_pool_tea - tea_amount)
+			}
+		};
+		total_supply - after_sell_tapp_token
 	}
 }

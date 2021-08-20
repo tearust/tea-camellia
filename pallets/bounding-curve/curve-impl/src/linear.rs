@@ -15,11 +15,12 @@ where
 		todo!()
 	}
 
-	fn pool_balance(x: Balance, delta_x: Balance, negative: bool) -> Balance {
+	// fn pool_balance(x: Balance, delta_x: Balance, negative: bool) -> Balance {
+	fn pool_balance(x: Balance) -> Balance{
 		todo!()
 	}
 
-	fn pool_balance_reverse(x: Balance, tea_amount: Balance, negative: bool) -> Balance {
+	fn pool_balance_reverse(x: Balance) -> Balance {
 		todo!()
 	}
 }
