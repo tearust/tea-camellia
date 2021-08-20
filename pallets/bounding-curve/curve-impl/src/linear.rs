@@ -1,7 +1,10 @@
 use crate::*;
 
-/// y = ax + b
-pub struct LinearCurve {}
+/// y = ax/100 + b/100
+pub struct LinearCurve {
+	a: u32,
+	b: i32,
+}
 
 impl<Balance> BoundingCurve<Balance> for LinearCurve
 where
@@ -27,6 +30,8 @@ where
 
 impl Default for LinearCurve {
 	fn default() -> Self {
-		LinearCurve {}
+		LinearCurve {
+			a: 100u32, b: 0i32
+		}
 	}
 }

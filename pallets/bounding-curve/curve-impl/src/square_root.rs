@@ -1,7 +1,10 @@
 use crate::*;
 
-/// y = k√x + b
-pub struct SquareRootCurve {}
+/// y = k√x/100 + b/100
+pub struct SquareRootCurve {
+	k: u32,
+	b: i32,
+}
 
 impl<Balance> BoundingCurve<Balance> for SquareRootCurve
 where
@@ -26,6 +29,9 @@ where
 
 impl Default for SquareRootCurve {
 	fn default() -> Self {
-		SquareRootCurve {}
+		SquareRootCurve {
+			k: 100u32,
+			b: 0i32,
+		}
 	}
 }
