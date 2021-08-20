@@ -2,20 +2,25 @@ use super::*;
 
 impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	pub fn query_price(tapp_id: TAppId) -> (BalanceOf<T>, BalanceOf<T>) {
-		let one_tea_dollar = Self::one_tea_dollar();
-		let one_tapp_dollar = Self::one_tea_dollar();
-		(
-			Self::estimate_buy(tapp_id, one_tea_dollar),
-			Self::estimate_sell(tapp_id, one_tapp_dollar),
-		)
+		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		let buy_price = match tapp_item.buy_curve {
+			CurveType::Linear => T::LinearCurve::buy_price(total_supply),
+			CurveType::SquareRoot => T::SquareRootCurve::buy_price(total_supply),
+		};
+		let sell_price = match tapp_item.sell_curve {
+			CurveType::Linear => T::LinearCurve::sell_price(total_supply),
+			CurveType::SquareRoot => T::LinearCurve::sell_price(total_supply),
+		};
+		(buy_price, sell_price)
 	}
 
-	pub fn estimate_buy(tapp_id: TAppId, amount: BalanceOf<T>) -> BalanceOf<T> {
-		Self::calculate_buy_amount(tapp_id, amount)
+	pub fn estimate_buy(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {
+		Self::calculate_buy_amount(tapp_id, tapp_amount, true)
 	}
 
-	pub fn estimate_sell(tapp_id: TAppId, amount: BalanceOf<T>) -> BalanceOf<T> {
-		Self::calculate_buy_amount(tapp_id, amount)
+	pub fn estimate_sell(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {
+		Self::calculate_sell_amount(tapp_id, tapp_amount)
 	}
 
 	fn one_tea_dollar() -> BalanceOf<T> {

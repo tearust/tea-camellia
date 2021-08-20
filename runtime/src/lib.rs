@@ -6,6 +6,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+use bounding_curve_impl::{linear::LinearCurve, square_root::SquareRootCurve};
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
@@ -59,7 +60,6 @@ pub mod constants;
 mod weights;
 use constants::{currency::*, time::*};
 
-use bounding_curve_impl::linear::{LinearBuyCurve, LinearSellCurve};
 pub use pallet_auction;
 /// Import the template pallet.
 pub use pallet_cml;
@@ -878,8 +878,8 @@ impl pallet_bounding_curve::Config for Runtime {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type TAppNameMaxLength = TAppNameMaxLength;
-	type LinearBuyCurve = LinearBuyCurve;
-	type LinearSellCurve = LinearSellCurve;
+	type LinearCurve = LinearCurve;
+	type SquareRootCurve = SquareRootCurve;
 }
 
 parameter_types! {
