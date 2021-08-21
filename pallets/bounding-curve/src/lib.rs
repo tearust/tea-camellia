@@ -16,7 +16,7 @@ mod functions;
 mod rpc;
 mod types;
 
-use bounding_curve_interface::BoundingCurve;
+use bounding_curve_interface::BoundingCurveInterface;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement},
@@ -24,7 +24,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::traits::{CheckedSub, Saturating, Zero};
-use sp_std::{collections::btree_set::BTreeSet, convert::TryInto, prelude::*};
+use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 
 /// The balance type of this module.
 pub type BalanceOf<T> =
@@ -49,8 +49,8 @@ pub mod bounding_curve {
 		#[pallet::constant]
 		type TAppNameMaxLength: Get<u32>;
 
-		type LinearCurve: BoundingCurve<BalanceOf<Self>>;
-		type SquareRootCurve: BoundingCurve<BalanceOf<Self>>;
+		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
+		type SquareRootCurve: BoundingCurveInterface<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -91,10 +91,6 @@ pub mod bounding_curve {
 	#[pallet::getter(fn operation_account)]
 	pub type OperationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn temporary_account)]
-	pub type TemporaryAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -130,8 +126,10 @@ pub mod bounding_curve {
 		TAppNameAlreadyExist,
 		InsufficientFreeBalance,
 		InsufficientTAppToken,
+		/// Sell amount more than total supply
 		InsufficientTotalSupply,
 		TAppIdNotExist,
+		/// Sell amount more than total reserved pool tea token
 		TAppInsufficientFreeBalance,
 		OperationAmountCanNotBeZero,
 	}
@@ -169,7 +167,11 @@ pub mod bounding_curve {
 						Error::<T>::OperationAmountCanNotBeZero
 					);
 					let deposit_tea_amount =
-						Self::calculate_increase_amount_from_curve_total_supply(buy_curve, 0u32.into(), init_fund);
+						Self::calculate_increase_amount_from_curve_total_supply(
+							buy_curve,
+							0u32.into(),
+							init_fund,
+						);
 					ensure!(
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
@@ -256,11 +258,7 @@ pub mod bounding_curve {
 						!tapp_amount.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-					let deposit_tea_amount = Self::calculate_sell_amount(tapp_id, tapp_amount);
-					ensure!(
-						TotalSupplyTable::<T>::get(tapp_id) >= deposit_tea_amount,
-						Error::<T>::InsufficientTotalSupply
-					);
+					let _ = Self::calculate_sell_amount(tapp_id, tapp_amount)?;
 					Ok(())
 				},
 				|who| {
@@ -296,8 +294,7 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|who| {
-					let deposit_tapp_amount =
-						Self::calculate_buy_amount(tapp_id, tea_amount);
+					let deposit_tapp_amount = Self::calculate_buy_amount(tapp_id, tea_amount);
 					Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount);
 					Self::distribute_to_investors(tapp_id, deposit_tapp_amount);
 				},
@@ -320,39 +317,48 @@ pub mod bounding_curve {
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
-						T::CurrencyOperations::free_balance(&OperationAccount::<T>::get())
-							>= tea_amount,
-						Error::<T>::TAppInsufficientFreeBalance,
-					);
-					ensure!(
 						!tea_amount.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
 
-					let collecting_amount = Self::calculate_sell_amount(tapp_id, tea_amount);
+					let withdraw_tapp_amount =
+						Self::calculate_given_received_tea_how_much_seller_give_away(
+							tapp_id, tea_amount,
+						)?;
 					ensure!(
-						TotalSupplyTable::<T>::get(tapp_id) > collecting_amount,
+						TotalSupplyTable::<T>::get(tapp_id) > withdraw_tapp_amount,
 						Error::<T>::InsufficientTotalSupply
 					);
 					Ok(())
 				},
 				|who| {
-					let withdraw_tapp_amount =
-						Self::calculate_given_received_tea_how_much_seller_give_away(tapp_id, tea_amount);
-
-					if let Err(e) = T::CurrencyOperations::transfer(
-						&OperationAccount::<T>::get(),
-						who,
-						tea_amount,
-						ExistenceRequirement::AllowDeath,
+					match Self::calculate_given_received_tea_how_much_seller_give_away(
+						tapp_id, tea_amount,
 					) {
-						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-						log::error!("transfer free balance failed: {:?}", e);
-						return;
-					}
-					Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
+						Ok(withdraw_tapp_amount) => {
+							if let Err(e) = T::CurrencyOperations::transfer(
+								&OperationAccount::<T>::get(),
+								who,
+								tea_amount,
+								ExistenceRequirement::AllowDeath,
+							) {
+								// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+								log::error!("transfer free balance failed: {:?}", e);
+								return;
+							}
+							Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
 
-					Self::deposit_event(Event::TAppExpense(tapp_id, who.clone(), tea_amount));
+							Self::deposit_event(Event::TAppExpense(
+								tapp_id,
+								who.clone(),
+								tea_amount,
+							));
+						}
+						Err(e) => {
+							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+							log::error!("calculation failed: {:?}", e);
+						}
+					}
 				},
 			)
 		}

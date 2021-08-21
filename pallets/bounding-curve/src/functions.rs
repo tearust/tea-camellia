@@ -81,30 +81,39 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			log::error!("{}", e);
 			return Zero::zero();
 		}
-		let deposit_tea_amount = Self::calculate_sell_amount(tapp_id, tapp_amount);
-		if let Err(e) = T::CurrencyOperations::transfer(
-			&OperationAccount::<T>::get(),
-			who,
-			deposit_tea_amount,
-			ExistenceRequirement::AllowDeath,
-		) {
-			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-			log::error!("transfer free balance failed: {:?}", e);
-			return Zero::zero();
-		}
 
-		TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
-			*amount = amount.saturating_sub(tapp_amount);
-		});
+		match Self::calculate_sell_amount(tapp_id, tapp_amount) {
+			Ok(deposit_tea_amount) => {
+				if let Err(e) = T::CurrencyOperations::transfer(
+					&OperationAccount::<T>::get(),
+					who,
+					deposit_tea_amount,
+					ExistenceRequirement::AllowDeath,
+				) {
+					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+					log::error!("transfer free balance failed: {:?}", e);
+					return Zero::zero();
+				}
 
-		if AccountTable::<T>::get(who, tapp_id).is_zero() {
-			AccountTable::<T>::remove(who, tapp_id);
-		}
-		if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
-			TotalSupplyTable::<T>::remove(tapp_id);
-		}
+				TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
+					*amount = amount.saturating_sub(tapp_amount);
+				});
 
-		deposit_tea_amount
+				if AccountTable::<T>::get(who, tapp_id).is_zero() {
+					AccountTable::<T>::remove(who, tapp_id);
+				}
+				if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
+					TotalSupplyTable::<T>::remove(tapp_id);
+				}
+
+				deposit_tea_amount
+			}
+			Err(e) => {
+				// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+				log::error!("calculating sell amount failed: {:?}", e);
+				return Zero::zero();
+			}
+		}
 	}
 
 	pub(crate) fn distribute_to_investors(tapp_id: TAppId, distributing_amount: BalanceOf<T>) {
@@ -149,13 +158,14 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		(investors, total_amount)
 	}
 
-	pub(crate) fn calculate_buy_amount(
-		tapp_id: TAppId,
-		tapp_amount: BalanceOf<T>,
-	) -> BalanceOf<T> {
+	pub(crate) fn calculate_buy_amount(tapp_id: TAppId, tapp_amount: BalanceOf<T>) -> BalanceOf<T> {
 		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		Self::calculate_increase_amount_from_curve_total_supply(tapp_item.buy_curve, total_supply, tapp_amount)
+		Self::calculate_increase_amount_from_curve_total_supply(
+			tapp_item.buy_curve,
+			total_supply,
+			tapp_amount,
+		)
 	}
 
 	pub(crate) fn calculate_reserve_amount(
@@ -164,7 +174,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	) -> BalanceOf<T> {
 		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		Self::calculate_increase_amount_from_curve_total_supply(tapp_item.sell_curve, total_supply, tapp_amount)
+		Self::calculate_increase_amount_from_curve_total_supply(
+			tapp_item.sell_curve,
+			total_supply,
+			tapp_amount,
+		)
 	}
 
 	pub(crate) fn calculate_increase_amount_from_curve_total_supply(
@@ -173,13 +187,15 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		tapp_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
 		let current_pool_balance = match curve_type {
-			CurveType::Linear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::SquareRoot => T::SquareRootCurve::pool_balance(total_supply),
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot => T::SquareRootCurve::pool_balance(total_supply),
 		};
 
 		let after_buy_pool_balance = match curve_type {
-			CurveType::Linear => T::LinearCurve::pool_balance(total_supply + tapp_amount),
-			CurveType::SquareRoot => T::SquareRootCurve::pool_balance(total_supply + tapp_amount),
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply + tapp_amount),
+			CurveType::UnsignedSquareRoot => {
+				T::SquareRootCurve::pool_balance(total_supply + tapp_amount)
+			}
 		};
 		after_buy_pool_balance - current_pool_balance
 	}
@@ -191,19 +207,15 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_buy_area_tea_amount = match tapp_item.buy_curve {
-			CurveType::Linear => {
-				T::LinearCurve::pool_balance(total_supply)
-			}
-			CurveType::SquareRoot => {
-				T::SquareRootCurve::pool_balance(total_supply)
-			}
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot => T::SquareRootCurve::pool_balance(total_supply),
 		};
 		let after_increase_tea_amount = current_buy_area_tea_amount + tea_amount;
 		let after_increase_total_supply = match tapp_item.buy_curve {
-			CurveType::Linear => {
+			CurveType::UnsignedLinear => {
 				T::LinearCurve::pool_balance_reverse(after_increase_tea_amount)
 			}
-			CurveType::SquareRoot => {
+			CurveType::UnsignedSquareRoot => {
 				T::SquareRootCurve::pool_balance_reverse(after_increase_tea_amount)
 			}
 		};
@@ -214,52 +226,62 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	pub(crate) fn calculate_sell_amount(
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
-	) -> BalanceOf<T> {
+	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		if tapp_amount > total_supply {
-			todo!("make this a meaningful return error");
-			log::error!("Sell amount more than total supply");	
+			return Err(Error::<T>::InsufficientTotalSupply.into());
 		}
 
 		let current_pool_balance = match tapp_item.sell_curve {
-			CurveType::Linear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::SquareRoot => T::SquareRootCurve::pool_balance(total_supply),
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot => T::SquareRootCurve::pool_balance(total_supply),
 		};
 		let after_sell_pool_balance = match tapp_item.sell_curve {
-			CurveType::Linear => T::LinearCurve::pool_balance(total_supply - tapp_amount),
-			CurveType::SquareRoot => T::SquareRootCurve::pool_balance(total_supply - tapp_amount),
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply - tapp_amount),
+			CurveType::UnsignedSquareRoot => {
+				T::SquareRootCurve::pool_balance(total_supply - tapp_amount)
+			}
 		};
-		current_pool_balance - after_sell_pool_balance 
+		Ok(current_pool_balance - after_sell_pool_balance)
 	}
 
 	/// calcualte given seller receive tea_amount of TEA, how much of tapp token this seller will give away
 	pub(crate) fn calculate_given_received_tea_how_much_seller_give_away(
 		tapp_id: TAppId,
 		tea_amount: BalanceOf<T>,
-	) -> BalanceOf<T> {
+	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_reserve_pool_tea = match tapp_item.sell_curve {
-			CurveType::Linear => {
-				T::LinearCurve::pool_balance(total_supply)
-			}
-			CurveType::SquareRoot => {
-				T::SquareRootCurve::pool_balance(total_supply)
-			}
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot => T::SquareRootCurve::pool_balance(total_supply),
 		};
 		if tea_amount > current_reserve_pool_tea {
-			todo!("make this a meaningful return error");
-			log::error!("Sell amount more than total reserved pool tea token");	
+			return Err(Error::<T>::TAppInsufficientFreeBalance.into());
 		}
 		let after_sell_tapp_token = match tapp_item.sell_curve {
-			CurveType::Linear => {
+			CurveType::UnsignedLinear => {
 				T::LinearCurve::pool_balance_reverse(current_reserve_pool_tea - tea_amount)
 			}
-			CurveType::SquareRoot => {
+			CurveType::UnsignedSquareRoot => {
 				T::SquareRootCurve::pool_balance_reverse(current_reserve_pool_tea - tea_amount)
 			}
 		};
-		total_supply - after_sell_tapp_token
+		Ok(total_supply - after_sell_tapp_token)
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::mock::*;
+	use frame_support::assert_ok;
+
+	const CENTS: node_primitives::Balance = 10_000_000_000;
+	const DOLLARS: node_primitives::Balance = 100 * CENTS;
+
+	fn calculate_buy_amount_works() {
+		new_test_ext().execute_with(|| {})
 	}
 }

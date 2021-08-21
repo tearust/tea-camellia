@@ -660,6 +660,7 @@ name = "bounding-curve-impl"
 version = "0.1.0"
 dependencies = [
  "bounding-curve-interface",
+ "frame-support",
  "node-primitives",
  "sp-runtime",
  "sp-std",

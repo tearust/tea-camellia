@@ -9,6 +9,7 @@ edition = "2018"
 sp-std = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-runtime = { version = "3.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+frame-support = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 bounding-curve-interface = {default-features = false, path = "../interface" }
 
@@ -18,6 +19,7 @@ std = [
     "sp-std/std",
     "sp-runtime/std",
     "node-primitives/std",
+    "frame-support/std",
     "bounding-curve-interface/std",
 ]
 

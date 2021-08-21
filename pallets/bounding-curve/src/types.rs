@@ -6,8 +6,8 @@ pub type TAppId = u64;
 
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
 pub enum CurveType {
-	Linear,
-	SquareRoot,
+	UnsignedLinear,
+	UnsignedSquareRoot,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
@@ -28,8 +28,8 @@ where
 			id: 0,
 			name: vec![],
 			owner: Default::default(),
-			buy_curve: CurveType::Linear,
-			sell_curve: CurveType::Linear,
+			buy_curve: CurveType::UnsignedLinear,
+			sell_curve: CurveType::UnsignedLinear,
 		}
 	}
 }

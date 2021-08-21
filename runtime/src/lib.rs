@@ -6,7 +6,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use bounding_curve_impl::{linear::LinearCurve, square_root::SquareRootCurve};
+use bounding_curve_impl::{linear::UnsignedLinearCurve, square_root::UnsignedSquareRoot};
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
@@ -878,8 +878,8 @@ impl pallet_bounding_curve::Config for Runtime {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type TAppNameMaxLength = TAppNameMaxLength;
-	type LinearCurve = LinearCurve;
-	type SquareRootCurve = SquareRootCurve;
+	type LinearCurve = UnsignedLinearCurve;
+	type SquareRootCurve = UnsignedSquareRoot;
 }
 
 parameter_types! {
