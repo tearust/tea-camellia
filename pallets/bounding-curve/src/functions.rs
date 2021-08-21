@@ -1,5 +1,7 @@
 use super::*;
 
+pub(crate) const CALCULATION_PRECISION: u32 = 100000000;
+
 impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	pub fn next_id() -> TAppId {
 		LastTAppId::<T>::mutate(|id| {
@@ -98,13 +100,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 				TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
 					*amount = amount.saturating_sub(tapp_amount);
 				});
-
-				if AccountTable::<T>::get(who, tapp_id).is_zero() {
-					AccountTable::<T>::remove(who, tapp_id);
-				}
-				if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
-					TotalSupplyTable::<T>::remove(tapp_id);
-				}
+				Self::try_clean_tapp_related(who, tapp_id);
 
 				deposit_tea_amount
 			}
@@ -116,8 +112,33 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		}
 	}
 
+	pub fn try_clean_tapp_related(who: &T::AccountId, tapp_id: TAppId) {
+		if AccountTable::<T>::get(who, tapp_id).is_zero() {
+			AccountTable::<T>::remove(who, tapp_id);
+		}
+		if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
+			TotalSupplyTable::<T>::remove(tapp_id);
+			let item = TAppBoundingCurve::<T>::take(tapp_id);
+			TAppNames::<T>::remove(item.name);
+		}
+	}
+
 	pub(crate) fn distribute_to_investors(tapp_id: TAppId, distributing_amount: BalanceOf<T>) {
+		// todo replace total amount with total supply later if calculation result is correct
 		let (investors, total_amount) = Self::tapp_investors(tapp_id);
+		if !approximately_equals::<T>(
+			total_amount,
+			TotalSupplyTable::<T>::get(tapp_id),
+			CALCULATION_PRECISION.into(),
+		) {
+			log::error!(
+				"distributing calculate total amount error: calculated result is: {:?}, \
+				total supply is {:?}",
+				total_amount,
+				TotalSupplyTable::<T>::get(tapp_id)
+			);
+		}
+
 		investors.iter().for_each(|account| {
 			AccountTable::<T>::mutate(account, tapp_id, |user_amount| {
 				*user_amount =
@@ -131,7 +152,21 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	}
 
 	pub(crate) fn collect_with_investors(tapp_id: TAppId, collecting_amount: BalanceOf<T>) {
+		// todo replace total amount with total supply later if calculation result is correct
 		let (investors, total_amount) = Self::tapp_investors(tapp_id);
+		if !approximately_equals::<T>(
+			total_amount,
+			TotalSupplyTable::<T>::get(tapp_id),
+			CALCULATION_PRECISION.into(),
+		) {
+			log::error!(
+				"collecting calculate total amount error: calculated result is: {:?}, \
+				total supply is {:?}",
+				total_amount,
+				TotalSupplyTable::<T>::get(tapp_id)
+			);
+		}
+
 		investors.iter().for_each(|account| {
 			AccountTable::<T>::mutate(account, tapp_id, |user_amount| {
 				*user_amount =
@@ -306,4 +341,15 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		};
 		Ok(total_supply - after_sell_tapp_token)
 	}
+}
+
+pub fn approximately_equals<T>(a: BalanceOf<T>, b: BalanceOf<T>, precision: BalanceOf<T>) -> bool
+where
+	T: bounding_curve::Config,
+{
+	let abs = match a >= b {
+		true => a - b,
+		false => b - a,
+	};
+	abs <= precision
 }
