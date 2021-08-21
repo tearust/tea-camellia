@@ -46,11 +46,23 @@ pub mod bounding_curve {
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 		>;
+
 		#[pallet::constant]
 		type TAppNameMaxLength: Get<u32>;
 
+		#[pallet::constant]
+		type TAppDetailMaxLength: Get<u32>;
+
+		#[pallet::constant]
+		type TAppLinkMaxLength: Get<u32>;
+
 		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
-		type SquareRootCurve: BoundingCurveInterface<BalanceOf<Self>>;
+
+		#[allow(non_camel_case_types)]
+		type UnsignedSquareRoot_1000_0: BoundingCurveInterface<BalanceOf<Self>>;
+
+		#[allow(non_camel_case_types)]
+		type UnsignedSquareRoot_700_0: BoundingCurveInterface<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -123,6 +135,8 @@ pub mod bounding_curve {
 	#[pallet::error]
 	pub enum Error<T> {
 		TAppNameIsTooLong,
+		TAppDetailIsTooLong,
+		TAppLinkIsTooLong,
 		TAppNameAlreadyExist,
 		InsufficientFreeBalance,
 		InsufficientTAppToken,
@@ -146,10 +160,12 @@ pub mod bounding_curve {
 			sender: OriginFor<T>,
 			tapp_name: Vec<u8>,
 			init_fund: BalanceOf<T>,
-			buy_curve: CurveType,
-			sell_curve: CurveType,
+			detail: Vec<u8>,
+			link: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
+			let buy_curve = CurveType::UnsignedSquareRoot_1000_0;
+			let sell_curve = CurveType::UnsignedSquareRoot_700_0;
 
 			extrinsic_procedure(
 				&who,
@@ -157,6 +173,14 @@ pub mod bounding_curve {
 					ensure!(
 						tapp_name.len() <= T::TAppNameMaxLength::get() as usize,
 						Error::<T>::TAppNameIsTooLong
+					);
+					ensure!(
+						detail.len() <= T::TAppDetailMaxLength::get() as usize,
+						Error::<T>::TAppDetailIsTooLong
+					);
+					ensure!(
+						link.len() <= T::TAppLinkMaxLength::get() as usize,
+						Error::<T>::TAppLinkIsTooLong
 					);
 					ensure!(
 						!TAppNames::<T>::contains_key(&tapp_name),
@@ -189,6 +213,8 @@ pub mod bounding_curve {
 							owner: who.clone(),
 							buy_curve,
 							sell_curve,
+							detail: detail.clone(),
+							link: link.clone(),
 						},
 					);
 					Self::buy_token_inner(who, id, init_fund);

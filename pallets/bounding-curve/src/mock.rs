@@ -59,9 +59,13 @@ impl system::Config for Test {
 }
 
 pub const TAPP_NAME_MAX_LENGTH: u32 = 20;
+pub const TAPP_DETAIL_MAX_LENGTH: u32 = 120;
+pub const TAPP_LINK_MAX_LENGTH: u32 = 100;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
+	pub const TAppDetailMaxLength: u32 = TAPP_DETAIL_MAX_LENGTH;
+	pub const TAppLinkMaxLength: u32 = TAPP_LINK_MAX_LENGTH;
 }
 
 impl pallet_bounding_curve::Config for Test {
@@ -69,8 +73,11 @@ impl pallet_bounding_curve::Config for Test {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type TAppNameMaxLength = TAppNameMaxLength;
+	type TAppDetailMaxLength = TAppDetailMaxLength;
+	type TAppLinkMaxLength = TAppLinkMaxLength;
 	type LinearCurve = UnsignedLinearCurve<Balance, 100, 0>;
-	type SquareRootCurve = UnsignedSquareRoot<Balance, 1000, 100>;
+	type UnsignedSquareRoot_1000_0 = UnsignedSquareRoot<Balance, 1000, 0>;
+	type UnsignedSquareRoot_700_0 = UnsignedSquareRoot<Balance, 700, 0>;
 }
 
 parameter_types! {

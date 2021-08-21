@@ -20,16 +20,50 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	fn query_price(&self, tapp_id: u64, at: Option<BlockHash>) -> Result<(Price, Price)>;
 
 	#[rpc(name = "bounding_estimateTeaRequiredToBuyGivenToken")]
-	fn estimate_required_tea_when_buy(&self, tapp_id: u64, token_amount: Balance, at: Option<BlockHash>) -> Result<Price>;
+	fn estimate_required_tea_when_buy(
+		&self,
+		tapp_id: u64,
+		token_amount: Balance,
+		at: Option<BlockHash>,
+	) -> Result<Price>;
 
 	#[rpc(name = "bounding_estimateReceivedTeaBySellGivenToken")]
-	fn estimate_receive_tea_when_sell(&self, tapp_id: u64, token_amount: Balance, at: Option<BlockHash>) -> Result<Price>;
+	fn estimate_receive_tea_when_sell(
+		&self,
+		tapp_id: u64,
+		token_amount: Balance,
+		at: Option<BlockHash>,
+	) -> Result<Price>;
 
 	#[rpc(name = "bounding_estimateHowMuchTokenBoughtByGivenTea")]
-	fn estimate_receive_token_when_buy(&self, tapp_id: u64, tea_amount: Balance, at: Option<BlockHash>) -> Result<Price>;
+	fn estimate_receive_token_when_buy(
+		&self,
+		tapp_id: u64,
+		tea_amount: Balance,
+		at: Option<BlockHash>,
+	) -> Result<Price>;
 
 	#[rpc(name = "bounding_estimateHowMuchTokenToSellByGivenTea")]
-	fn estimate_required_token_when_sell(&self, tapp_id: u64, tea_amount: Balance, at: Option<BlockHash>) -> Result<Price>;
+	fn estimate_required_token_when_sell(
+		&self,
+		tapp_id: u64,
+		tea_amount: Balance,
+		at: Option<BlockHash>,
+	) -> Result<Price>;
+
+	/// Returned item fields:
+	/// - TApp Name
+	/// - TApp Id
+	/// - Total supply
+	/// - Token buy price
+	/// - Token sell price
+	/// - Detail
+	/// - Link
+	#[rpc(name = "bounding_listTApps")]
+	fn list_tapps(
+		&self,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(Vec<u8>, u64, Price, Price, Price, Vec<u8>, Vec<u8>)>>;
 }
 
 pub struct BoundingCurveApiImpl<C, M> {
@@ -122,7 +156,6 @@ where
 		tea_amount: Balance,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Price> {
-		// todo!();
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
@@ -140,7 +173,6 @@ where
 		tea_amount: Balance,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Price> {
-		// todo!();
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
@@ -150,5 +182,34 @@ where
 			.estimate_required_token_when_sell(&at, tapp_id, tea_amount)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
+	}
+
+	fn list_tapps(
+		&self,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<(Vec<u8>, u64, Price, Price, Price, Vec<u8>, Vec<u8>)>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result: Vec<(Vec<u8>, u64, Balance, Balance, Balance, Vec<u8>, Vec<u8>)> =
+			api.list_tapps(&at).map_err(runtime_error_into_rpc_err)?;
+		Ok(result
+			.iter()
+			.map(
+				|(name, id, total_supply, buy_price, sell_price, detail, link)| {
+					(
+						name.clone(),
+						*id,
+						Price(*total_supply),
+						Price(*buy_price),
+						Price(*sell_price),
+						detail.clone(),
+						link.clone(),
+					)
+				},
+			)
+			.collect())
 	}
 }

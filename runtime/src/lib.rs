@@ -871,6 +871,8 @@ impl pallet_genesis_exchange::Config for Runtime {
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = 20;
+	pub const TAppDetailMaxLength: u32 = 120;
+	pub const TAppLinkMaxLength: u32 = 100;
 }
 
 impl pallet_bounding_curve::Config for Runtime {
@@ -878,8 +880,11 @@ impl pallet_bounding_curve::Config for Runtime {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type TAppNameMaxLength = TAppNameMaxLength;
-	type LinearCurve = UnsignedLinearCurve;
-	type SquareRootCurve = UnsignedSquareRoot;
+	type TAppDetailMaxLength = TAppDetailMaxLength;
+	type TAppLinkMaxLength = TAppLinkMaxLength;
+	type LinearCurve = UnsignedLinearCurve<Balance, 16, 0>;
+	type UnsignedSquareRoot_1000_0 = UnsignedSquareRoot<Balance, 1000, 0>;
+	type UnsignedSquareRoot_700_0 = UnsignedSquareRoot<Balance, 700, 0>;
 }
 
 parameter_types! {
@@ -1243,6 +1248,18 @@ impl_runtime_apis! {
 
 		fn estimate_required_token_when_sell(tapp_id: u64, tea_amount: Balance) -> Balance {
 			BoundingCurve::estimate_required_token_when_sell(tapp_id, tea_amount)
+		}
+
+		fn list_tapps() -> Vec<(
+			Vec<u8>,
+			u64,
+			Balance,
+			Balance,
+			Balance,
+			Vec<u8>,
+			Vec<u8>,
+		)> {
+			BoundingCurve::list_tapps()
 		}
 	}
 

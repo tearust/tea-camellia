@@ -188,13 +188,21 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	) -> BalanceOf<T> {
 		let current_pool_balance = match curve_type {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot => T::SquareRootCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::pool_balance(total_supply)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::pool_balance(total_supply)
+			}
 		};
 
 		let after_buy_pool_balance = match curve_type {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply + tapp_amount),
-			CurveType::UnsignedSquareRoot => {
-				T::SquareRootCurve::pool_balance(total_supply + tapp_amount)
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::pool_balance(total_supply + tapp_amount)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::pool_balance(total_supply + tapp_amount)
 			}
 		};
 		after_buy_pool_balance - current_pool_balance
@@ -208,15 +216,23 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_buy_area_tea_amount = match tapp_item.buy_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot => T::SquareRootCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::pool_balance(total_supply)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::pool_balance(total_supply)
+			}
 		};
 		let after_increase_tea_amount = current_buy_area_tea_amount + tea_amount;
 		let after_increase_total_supply = match tapp_item.buy_curve {
 			CurveType::UnsignedLinear => {
 				T::LinearCurve::pool_balance_reverse(after_increase_tea_amount)
 			}
-			CurveType::UnsignedSquareRoot => {
-				T::SquareRootCurve::pool_balance_reverse(after_increase_tea_amount)
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::pool_balance_reverse(after_increase_tea_amount)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::pool_balance_reverse(after_increase_tea_amount)
 			}
 		};
 		after_increase_total_supply - current_buy_area_tea_amount
@@ -235,12 +251,20 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 
 		let current_pool_balance = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot => T::SquareRootCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::pool_balance(total_supply)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::pool_balance(total_supply)
+			}
 		};
 		let after_sell_pool_balance = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply - tapp_amount),
-			CurveType::UnsignedSquareRoot => {
-				T::SquareRootCurve::pool_balance(total_supply - tapp_amount)
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::pool_balance(total_supply - tapp_amount)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::pool_balance(total_supply - tapp_amount)
 			}
 		};
 		Ok(current_pool_balance - after_sell_pool_balance)
@@ -255,7 +279,12 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_reserve_pool_tea = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot => T::SquareRootCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::pool_balance(total_supply)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::pool_balance(total_supply)
+			}
 		};
 		if tea_amount > current_reserve_pool_tea {
 			return Err(Error::<T>::TAppInsufficientFreeBalance.into());
@@ -264,24 +293,17 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			CurveType::UnsignedLinear => {
 				T::LinearCurve::pool_balance_reverse(current_reserve_pool_tea - tea_amount)
 			}
-			CurveType::UnsignedSquareRoot => {
-				T::SquareRootCurve::pool_balance_reverse(current_reserve_pool_tea - tea_amount)
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::pool_balance_reverse(
+					current_reserve_pool_tea - tea_amount,
+				)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::pool_balance_reverse(
+					current_reserve_pool_tea - tea_amount,
+				)
 			}
 		};
 		Ok(total_supply - after_sell_tapp_token)
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use crate::mock::*;
-	use frame_support::assert_ok;
-
-	const CENTS: node_primitives::Balance = 10_000_000_000;
-	const DOLLARS: node_primitives::Balance = 100 * CENTS;
-
-	fn calculate_buy_amount_works() {
-		new_test_ext().execute_with(|| {})
 	}
 }

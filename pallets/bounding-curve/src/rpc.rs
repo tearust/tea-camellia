@@ -6,11 +6,21 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let buy_price = match tapp_item.buy_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::buy_price(total_supply),
-			CurveType::UnsignedSquareRoot => T::SquareRootCurve::buy_price(total_supply),
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::buy_price(total_supply)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::buy_price(total_supply)
+			}
 		};
 		let sell_price = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::sell_price(total_supply),
-			CurveType::UnsignedSquareRoot => T::LinearCurve::sell_price(total_supply),
+			CurveType::UnsignedSquareRoot_1000_0 => {
+				T::UnsignedSquareRoot_1000_0::sell_price(total_supply)
+			}
+			CurveType::UnsignedSquareRoot_700_0 => {
+				T::UnsignedSquareRoot_700_0::sell_price(total_supply)
+			}
 		};
 		(buy_price, sell_price)
 	}
@@ -54,6 +64,41 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			}
 		}
 	}
+
+	/// Returned item fields:
+	/// - TApp Name
+	/// - TApp Id
+	/// - Total supply
+	/// - Token buy price
+	/// - Token sell price
+	/// - Detail
+	/// - Link
+	pub fn list_tapps() -> Vec<(
+		Vec<u8>,
+		TAppId,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		Vec<u8>,
+		Vec<u8>,
+	)> {
+		TAppBoundingCurve::<T>::iter()
+			.map(|(id, item)| {
+				let (buy_price, sell_price) = Self::query_price(id);
+				let total_supply = TotalSupplyTable::<T>::get(id);
+
+				(
+					item.name,
+					id,
+					total_supply,
+					buy_price,
+					sell_price,
+					item.detail,
+					item.link,
+				)
+			})
+			.collect()
+	}
 }
 
 #[cfg(test)]
@@ -74,23 +119,23 @@ mod tests {
 				Origin::signed(1),
 				b"test".to_vec(),
 				DOLLARS,
-				CurveType::UnsignedLinear,
-				CurveType::UnsignedLinear,
+				vec![],
+				vec![],
 			));
 			let (buy_price, sell_price) = BoundingCurve::query_price(1);
-			assert_eq!(buy_price, DOLLARS);
-			assert_eq!(sell_price, DOLLARS);
+			assert_eq!(buy_price, 10000000);
+			assert_eq!(sell_price, 142857142857142857);
 
 			assert_ok!(BoundingCurve::create_new_tapp(
 				Origin::signed(1),
 				b"test2".to_vec(),
 				CENTS,
-				CurveType::UnsignedLinear,
-				CurveType::UnsignedLinear,
+				vec![],
+				vec![],
 			));
 			let (buy_price, sell_price) = BoundingCurve::query_price(2);
-			assert_eq!(buy_price, CENTS);
-			assert_eq!(sell_price, DOLLARS * 100);
+			assert_eq!(buy_price, 1000000);
+			assert_eq!(sell_price, 1428571428571428571);
 		})
 	}
 }
