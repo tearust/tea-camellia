@@ -44,7 +44,7 @@ where
 		x.clone() * x.clone() * A.into() / 100u32.into() / 2u32.into()
 	}
 
-	fn pool_balance_reverse(_area: Balance) -> Balance {
+	fn pool_balance_reverse(_area: Balance, _precision: Balance) -> Balance {
 		todo!()
 	}
 }

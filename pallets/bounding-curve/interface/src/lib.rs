@@ -18,5 +18,5 @@ where
 	fn pool_balance(x: Balance) -> Balance;
 
 	/// given the area (tea token) calculate how much x (tapp token) change
-	fn pool_balance_reverse(area: Balance) -> Balance;
+	fn pool_balance_reverse(area: Balance, precision: Balance) -> Balance;
 }
