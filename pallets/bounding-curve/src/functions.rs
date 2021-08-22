@@ -224,20 +224,20 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	) -> BalanceOf<T> {
 		let current_pool_balance = match curve_type {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_1000_0 => {
+			CurveType::UnsignedSquareRoot_1000 => {
 				T::UnsignedSquareRoot_1000::pool_balance(total_supply)
 			}
-			CurveType::UnsignedSquareRoot_700_0 => {
+			CurveType::UnsignedSquareRoot_700 => {
 				T::UnsignedSquareRoot_700::pool_balance(total_supply)
 			}
 		};
 
 		let after_buy_pool_balance = match curve_type {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply + tapp_amount),
-			CurveType::UnsignedSquareRoot_1000_0 => {
+			CurveType::UnsignedSquareRoot_1000 => {
 				T::UnsignedSquareRoot_1000::pool_balance(total_supply + tapp_amount)
 			}
-			CurveType::UnsignedSquareRoot_700_0 => {
+			CurveType::UnsignedSquareRoot_700 => {
 				T::UnsignedSquareRoot_700::pool_balance(total_supply + tapp_amount)
 			}
 		};
@@ -252,10 +252,10 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_buy_area_tea_amount = match tapp_item.buy_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_1000_0 => {
+			CurveType::UnsignedSquareRoot_1000 => {
 				T::UnsignedSquareRoot_1000::pool_balance(total_supply)
 			}
-			CurveType::UnsignedSquareRoot_700_0 => {
+			CurveType::UnsignedSquareRoot_700 => {
 				T::UnsignedSquareRoot_700::pool_balance(total_supply)
 			}
 		};
@@ -265,13 +265,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 				after_increase_tea_amount,
 				T::PoolBalanceReversePrecision::get(),
 			),
-			CurveType::UnsignedSquareRoot_1000_0 => {
-				T::UnsignedSquareRoot_1000::pool_balance_reverse(
-					after_increase_tea_amount,
-					T::PoolBalanceReversePrecision::get(),
-				)
-			}
-			CurveType::UnsignedSquareRoot_700_0 => T::UnsignedSquareRoot_700::pool_balance_reverse(
+			CurveType::UnsignedSquareRoot_1000 => T::UnsignedSquareRoot_1000::pool_balance_reverse(
+				after_increase_tea_amount,
+				T::PoolBalanceReversePrecision::get(),
+			),
+			CurveType::UnsignedSquareRoot_700 => T::UnsignedSquareRoot_700::pool_balance_reverse(
 				after_increase_tea_amount,
 				T::PoolBalanceReversePrecision::get(),
 			),
@@ -292,19 +290,19 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 
 		let current_pool_balance = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_1000_0 => {
+			CurveType::UnsignedSquareRoot_1000 => {
 				T::UnsignedSquareRoot_1000::pool_balance(total_supply)
 			}
-			CurveType::UnsignedSquareRoot_700_0 => {
+			CurveType::UnsignedSquareRoot_700 => {
 				T::UnsignedSquareRoot_700::pool_balance(total_supply)
 			}
 		};
 		let after_sell_pool_balance = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply - tapp_amount),
-			CurveType::UnsignedSquareRoot_1000_0 => {
+			CurveType::UnsignedSquareRoot_1000 => {
 				T::UnsignedSquareRoot_1000::pool_balance(total_supply - tapp_amount)
 			}
-			CurveType::UnsignedSquareRoot_700_0 => {
+			CurveType::UnsignedSquareRoot_700 => {
 				T::UnsignedSquareRoot_700::pool_balance(total_supply - tapp_amount)
 			}
 		};
@@ -320,10 +318,10 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_reserve_pool_tea = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_1000_0 => {
+			CurveType::UnsignedSquareRoot_1000 => {
 				T::UnsignedSquareRoot_1000::pool_balance(total_supply)
 			}
-			CurveType::UnsignedSquareRoot_700_0 => {
+			CurveType::UnsignedSquareRoot_700 => {
 				T::UnsignedSquareRoot_700::pool_balance(total_supply)
 			}
 		};
@@ -335,13 +333,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 				current_reserve_pool_tea - tea_amount,
 				T::PoolBalanceReversePrecision::get(),
 			),
-			CurveType::UnsignedSquareRoot_1000_0 => {
-				T::UnsignedSquareRoot_1000::pool_balance_reverse(
-					current_reserve_pool_tea - tea_amount,
-					T::PoolBalanceReversePrecision::get(),
-				)
-			}
-			CurveType::UnsignedSquareRoot_700_0 => T::UnsignedSquareRoot_700::pool_balance_reverse(
+			CurveType::UnsignedSquareRoot_1000 => T::UnsignedSquareRoot_1000::pool_balance_reverse(
+				current_reserve_pool_tea - tea_amount,
+				T::PoolBalanceReversePrecision::get(),
+			),
+			CurveType::UnsignedSquareRoot_700 => T::UnsignedSquareRoot_700::pool_balance_reverse(
 				current_reserve_pool_tea - tea_amount,
 				T::PoolBalanceReversePrecision::get(),
 			),
@@ -388,4 +384,65 @@ where
 		false => b - a,
 	};
 	abs <= precision
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::mock::*;
+	use crate::*;
+
+	const CENTS: node_primitives::Balance = 10_000_000_000;
+	const DOLLARS: node_primitives::Balance = 100 * CENTS;
+
+	#[test]
+	fn allocate_buy_tea_amount_works() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let user2 = 2;
+			let tapp_id = 1;
+			<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
+			TAppBoundingCurve::<Test>::insert(
+				tapp_id,
+				TAppItem {
+					id: tapp_id,
+					owner: user2,
+					buy_curve: CurveType::UnsignedSquareRoot_1000,
+					sell_curve: CurveType::UnsignedSquareRoot_700,
+					..Default::default()
+				},
+			);
+
+			let deposit_amount = BoundingCurve::allocate_buy_tea_amount(&user1, 1, 100);
+			assert_eq!(deposit_amount, 6666);
+			assert_eq!(<Test as Config>::Currency::free_balance(&user2), 2000);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&user1),
+				DOLLARS - 6666
+			);
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				4666
+			);
+		})
+	}
+
+	#[test]
+	fn calculate_sell_amount_works() {
+		new_test_ext().execute_with(|| {
+			let tapp_id = 1;
+			TotalSupplyTable::<Test>::insert(tapp_id, 100);
+			TAppBoundingCurve::<Test>::insert(
+				tapp_id,
+				TAppItem {
+					id: tapp_id,
+					buy_curve: CurveType::UnsignedSquareRoot_1000,
+					sell_curve: CurveType::UnsignedSquareRoot_700,
+					..Default::default()
+				},
+			);
+
+			let amount = BoundingCurve::calculate_sell_amount(tapp_id, 90);
+			assert_eq!(amount.unwrap(), 4666 - 140);
+		})
+	}
 }

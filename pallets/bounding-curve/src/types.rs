@@ -8,9 +8,9 @@ pub type TAppId = u64;
 pub enum CurveType {
 	UnsignedLinear,
 	#[allow(non_camel_case_types)]
-	UnsignedSquareRoot_1000_0,
+	UnsignedSquareRoot_1000,
 	#[allow(non_camel_case_types)]
-	UnsignedSquareRoot_700_0,
+	UnsignedSquareRoot_700,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]

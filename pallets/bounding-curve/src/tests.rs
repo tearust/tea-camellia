@@ -35,8 +35,8 @@ fn create_new_tapp_works() {
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBoundingCurve::<Test>::get(tapp_id);
 		assert_eq!(tapp_item.id, tapp_id);
-		assert_eq!(tapp_item.buy_curve, CurveType::UnsignedSquareRoot_1000_0);
-		assert_eq!(tapp_item.sell_curve, CurveType::UnsignedSquareRoot_700_0);
+		assert_eq!(tapp_item.buy_curve, CurveType::UnsignedSquareRoot_1000);
+		assert_eq!(tapp_item.sell_curve, CurveType::UnsignedSquareRoot_700);
 		assert_eq!(tapp_item.owner, user);
 		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);

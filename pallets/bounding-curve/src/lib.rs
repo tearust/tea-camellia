@@ -181,8 +181,8 @@ pub mod bounding_curve {
 			link: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			let buy_curve = CurveType::UnsignedSquareRoot_1000_0;
-			let sell_curve = CurveType::UnsignedSquareRoot_700_0;
+			let buy_curve = CurveType::UnsignedSquareRoot_1000;
+			let sell_curve = CurveType::UnsignedSquareRoot_700;
 
 			extrinsic_procedure(
 				&who,
