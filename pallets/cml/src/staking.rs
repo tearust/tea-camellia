@@ -84,8 +84,13 @@ impl<T: cml::Config> cml::Pallet<T> {
 		let age_percentage = if cml.lifespan().is_zero() {
 			100u32.into()
 		} else {
-			(*block_height - *cml.get_plant_at().unwrap_or(&Zero::zero())) * 100u32.into()
-				/ cml.lifespan()
+			if let Some(plant_at_block) = cml.get_plant_at() {
+				(*block_height - *plant_at_block) * 100u32.into()
+					/ cml.lifespan()
+			}
+			else{
+				0u32.into()
+			}
 		};
 
 		(
