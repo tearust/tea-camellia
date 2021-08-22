@@ -62,6 +62,9 @@ pub mod bounding_curve {
 		#[pallet::constant]
 		type TAppLinkMaxLength: Get<u32>;
 
+		#[pallet::constant]
+		type PoolBalanceReversePrecision: Get<BalanceOf<Self>>;
+
 		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]

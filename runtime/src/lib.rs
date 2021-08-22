@@ -875,6 +875,7 @@ parameter_types! {
 	pub const TAppLinkMaxLength: u32 = 100;
 	pub const TAppTickerMinLength: u32 = 3;
 	pub const TAppTickerMaxLength: u32 = 6;
+	pub const PoolBalanceReversePrecision: Balance = 1000;
 }
 
 impl pallet_bounding_curve::Config for Runtime {
@@ -886,6 +887,7 @@ impl pallet_bounding_curve::Config for Runtime {
 	type TAppTickerMaxLength = TAppTickerMaxLength;
 	type TAppDetailMaxLength = TAppDetailMaxLength;
 	type TAppLinkMaxLength = TAppLinkMaxLength;
+	type PoolBalanceReversePrecision = PoolBalanceReversePrecision;
 	type LinearCurve = UnsignedLinearCurve<Balance, 16>;
 	type UnsignedSquareRoot_1000 = UnsignedSquareRoot<Balance, 1000>;
 	type UnsignedSquareRoot_700 = UnsignedSquareRoot<Balance, 700>;

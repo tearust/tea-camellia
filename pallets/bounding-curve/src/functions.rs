@@ -261,15 +261,20 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		};
 		let after_increase_tea_amount = current_buy_area_tea_amount + tea_amount;
 		let after_increase_total_supply = match tapp_item.buy_curve {
-			CurveType::UnsignedLinear => {
-				T::LinearCurve::pool_balance_reverse(after_increase_tea_amount)
-			}
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance_reverse(
+				after_increase_tea_amount,
+				T::PoolBalanceReversePrecision::get(),
+			),
 			CurveType::UnsignedSquareRoot_1000_0 => {
-				T::UnsignedSquareRoot_1000::pool_balance_reverse(after_increase_tea_amount)
+				T::UnsignedSquareRoot_1000::pool_balance_reverse(
+					after_increase_tea_amount,
+					T::PoolBalanceReversePrecision::get(),
+				)
 			}
-			CurveType::UnsignedSquareRoot_700_0 => {
-				T::UnsignedSquareRoot_700::pool_balance_reverse(after_increase_tea_amount)
-			}
+			CurveType::UnsignedSquareRoot_700_0 => T::UnsignedSquareRoot_700::pool_balance_reverse(
+				after_increase_tea_amount,
+				T::PoolBalanceReversePrecision::get(),
+			),
 		};
 		after_increase_total_supply - current_buy_area_tea_amount
 	}
@@ -326,16 +331,19 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			return Err(Error::<T>::TAppInsufficientFreeBalance.into());
 		}
 		let after_sell_tapp_token = match tapp_item.sell_curve {
-			CurveType::UnsignedLinear => {
-				T::LinearCurve::pool_balance_reverse(current_reserve_pool_tea - tea_amount)
-			}
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance_reverse(
+				current_reserve_pool_tea - tea_amount,
+				T::PoolBalanceReversePrecision::get(),
+			),
 			CurveType::UnsignedSquareRoot_1000_0 => {
 				T::UnsignedSquareRoot_1000::pool_balance_reverse(
 					current_reserve_pool_tea - tea_amount,
+					T::PoolBalanceReversePrecision::get(),
 				)
 			}
 			CurveType::UnsignedSquareRoot_700_0 => T::UnsignedSquareRoot_700::pool_balance_reverse(
 				current_reserve_pool_tea - tea_amount,
+				T::PoolBalanceReversePrecision::get(),
 			),
 		};
 		Ok(total_supply - after_sell_tapp_token)
