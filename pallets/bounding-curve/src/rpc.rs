@@ -7,19 +7,19 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		let buy_price = match tapp_item.buy_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::buy_price(total_supply),
 			CurveType::UnsignedSquareRoot_1000_0 => {
-				T::UnsignedSquareRoot_1000_0::buy_price(total_supply)
+				T::UnsignedSquareRoot_1000::buy_price(total_supply)
 			}
 			CurveType::UnsignedSquareRoot_700_0 => {
-				T::UnsignedSquareRoot_700_0::buy_price(total_supply)
+				T::UnsignedSquareRoot_700::buy_price(total_supply)
 			}
 		};
 		let sell_price = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::sell_price(total_supply),
 			CurveType::UnsignedSquareRoot_1000_0 => {
-				T::UnsignedSquareRoot_1000_0::sell_price(total_supply)
+				T::UnsignedSquareRoot_1000::sell_price(total_supply)
 			}
 			CurveType::UnsignedSquareRoot_700_0 => {
-				T::UnsignedSquareRoot_700_0::sell_price(total_supply)
+				T::UnsignedSquareRoot_700::sell_price(total_supply)
 			}
 		};
 		(buy_price, sell_price)

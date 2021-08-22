@@ -81,9 +81,9 @@ impl pallet_bounding_curve::Config for Test {
 	type TAppTickerMaxLength = TAppTickerMaxLength;
 	type TAppDetailMaxLength = TAppDetailMaxLength;
 	type TAppLinkMaxLength = TAppLinkMaxLength;
-	type LinearCurve = UnsignedLinearCurve<Balance, 100, 0>;
-	type UnsignedSquareRoot_1000_0 = UnsignedSquareRoot<Balance, 1000, 0>;
-	type UnsignedSquareRoot_700_0 = UnsignedSquareRoot<Balance, 700, 0>;
+	type LinearCurve = UnsignedLinearCurve<Balance, 100>;
+	type UnsignedSquareRoot_1000 = UnsignedSquareRoot<Balance, 1000>;
+	type UnsignedSquareRoot_700 = UnsignedSquareRoot<Balance, 700>;
 }
 
 parameter_types! {

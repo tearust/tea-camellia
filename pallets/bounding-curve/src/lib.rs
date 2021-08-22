@@ -65,10 +65,10 @@ pub mod bounding_curve {
 		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_1000_0: BoundingCurveInterface<BalanceOf<Self>>;
+		type UnsignedSquareRoot_1000: BoundingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_700_0: BoundingCurveInterface<BalanceOf<Self>>;
+		type UnsignedSquareRoot_700: BoundingCurveInterface<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
