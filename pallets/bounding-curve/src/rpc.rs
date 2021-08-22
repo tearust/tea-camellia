@@ -68,6 +68,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	/// Returned item fields:
 	/// - TApp Name
 	/// - TApp Id
+	/// - TApp Ticker
 	/// - Total supply
 	/// - Token buy price
 	/// - Token sell price
@@ -76,6 +77,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	pub fn list_tapps() -> Vec<(
 		Vec<u8>,
 		TAppId,
+		Vec<u8>,
 		BalanceOf<T>,
 		BalanceOf<T>,
 		BalanceOf<T>,
@@ -90,8 +92,46 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 				(
 					item.name,
 					id,
+					item.ticker,
 					total_supply,
 					buy_price,
+					sell_price,
+					item.detail,
+					item.link,
+				)
+			})
+			.collect()
+	}
+
+	/// Returned item fields:
+	/// - TApp Name
+	/// - TApp Id
+	/// - TApp Ticker
+	/// - User holding tokens
+	/// - Token sell price
+	/// - Detail
+	/// - Link
+	pub fn list_user_assets(
+		who: &T::AccountId,
+	) -> Vec<(
+		Vec<u8>,
+		TAppId,
+		Vec<u8>,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		Vec<u8>,
+		Vec<u8>,
+	)> {
+		AccountTable::<T>::iter_prefix(who)
+			.map(|(id, amount)| {
+				let (_, sell_price) = Self::query_price(id);
+				let item = TAppBoundingCurve::<T>::get(id);
+
+				(
+					item.name,
+					id,
+					item.ticker,
+					amount,
 					sell_price,
 					item.detail,
 					item.link,
@@ -118,6 +158,7 @@ mod tests {
 			assert_ok!(BoundingCurve::create_new_tapp(
 				Origin::signed(1),
 				b"test".to_vec(),
+				b"test".to_vec(),
 				DOLLARS,
 				vec![],
 				vec![],
@@ -128,6 +169,7 @@ mod tests {
 
 			assert_ok!(BoundingCurve::create_new_tapp(
 				Origin::signed(1),
+				b"test2".to_vec(),
 				b"test2".to_vec(),
 				CENTS,
 				vec![],

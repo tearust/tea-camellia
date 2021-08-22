@@ -120,6 +120,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			TotalSupplyTable::<T>::remove(tapp_id);
 			let item = TAppBoundingCurve::<T>::take(tapp_id);
 			TAppNames::<T>::remove(item.name);
+			TAppTickers::<T>::remove(item.ticker);
 		}
 	}
 
@@ -340,6 +341,35 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			}
 		};
 		Ok(total_supply - after_sell_tapp_token)
+	}
+
+	pub(crate) fn check_tapp_fields_length(
+		tapp_name: &Vec<u8>,
+		ticker: &Vec<u8>,
+		detail: &Vec<u8>,
+		link: &Vec<u8>,
+	) -> DispatchResult {
+		ensure!(
+			tapp_name.len() <= T::TAppNameMaxLength::get() as usize,
+			Error::<T>::TAppNameIsTooLong
+		);
+		ensure!(
+			ticker.len() <= T::TAppTickerMaxLength::get() as usize,
+			Error::<T>::TAppTickerIsTooLong
+		);
+		ensure!(
+			ticker.len() >= T::TAppTickerMinLength::get() as usize,
+			Error::<T>::TAppTickerIsTooShort
+		);
+		ensure!(
+			detail.len() <= T::TAppDetailMaxLength::get() as usize,
+			Error::<T>::TAppDetailIsTooLong
+		);
+		ensure!(
+			link.len() <= T::TAppLinkMaxLength::get() as usize,
+			Error::<T>::TAppLinkIsTooLong
+		);
+		Ok(())
 	}
 }
 

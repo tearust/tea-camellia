@@ -63,7 +63,14 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	fn list_tapps(
 		&self,
 		at: Option<BlockHash>,
-	) -> Result<Vec<(Vec<u8>, u64, Price, Price, Price, Vec<u8>, Vec<u8>)>>;
+	) -> Result<Vec<(Vec<u8>, u64, Vec<u8>, Price, Price, Price, Vec<u8>, Vec<u8>)>>;
+
+	#[rpc(name = "bounding_listUserAssets")]
+	fn list_user_assets(
+		&self,
+		who: AccountId,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(Vec<u8>, u64, Vec<u8>, Price, Price, Vec<u8>, Vec<u8>)>>;
 }
 
 pub struct BoundingCurveApiImpl<C, M> {
@@ -187,21 +194,30 @@ where
 	fn list_tapps(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<(Vec<u8>, u64, Price, Price, Price, Vec<u8>, Vec<u8>)>> {
+	) -> Result<Vec<(Vec<u8>, u64, Vec<u8>, Price, Price, Price, Vec<u8>, Vec<u8>)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let result: Vec<(Vec<u8>, u64, Balance, Balance, Balance, Vec<u8>, Vec<u8>)> =
-			api.list_tapps(&at).map_err(runtime_error_into_rpc_err)?;
+		let result: Vec<(
+			Vec<u8>,
+			u64,
+			Vec<u8>,
+			Balance,
+			Balance,
+			Balance,
+			Vec<u8>,
+			Vec<u8>,
+		)> = api.list_tapps(&at).map_err(runtime_error_into_rpc_err)?;
 		Ok(result
 			.iter()
 			.map(
-				|(name, id, total_supply, buy_price, sell_price, detail, link)| {
+				|(name, id, ticker, total_supply, buy_price, sell_price, detail, link)| {
 					(
 						name.clone(),
 						*id,
+						ticker.clone(),
 						Price(*total_supply),
 						Price(*buy_price),
 						Price(*sell_price),
@@ -210,6 +226,35 @@ where
 					)
 				},
 			)
+			.collect())
+	}
+
+	fn list_user_assets(
+		&self,
+		who: AccountId,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<(Vec<u8>, u64, Vec<u8>, Price, Price, Vec<u8>, Vec<u8>)>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result: Vec<(Vec<u8>, u64, Vec<u8>, Balance, Balance, Vec<u8>, Vec<u8>)> = api
+			.list_user_assets(&at, who)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result
+			.iter()
+			.map(|(name, id, ticker, amount, sell_price, detail, link)| {
+				(
+					name.clone(),
+					*id,
+					ticker.clone(),
+					Price(*amount),
+					Price(*sell_price),
+					detail.clone(),
+					link.clone(),
+				)
+			})
 			.collect())
 	}
 }

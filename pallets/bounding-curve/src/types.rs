@@ -17,6 +17,7 @@ pub enum CurveType {
 pub struct TAppItem<AccountId> {
 	pub id: TAppId,
 	pub name: Vec<u8>,
+	pub ticker: Vec<u8>,
 	pub owner: AccountId,
 	pub buy_curve: CurveType,
 	pub sell_curve: CurveType,
@@ -32,6 +33,7 @@ where
 		TAppItem {
 			id: 0,
 			name: vec![],
+			ticker: vec![],
 			owner: Default::default(),
 			buy_curve: CurveType::UnsignedLinear,
 			sell_curve: CurveType::UnsignedLinear,

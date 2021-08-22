@@ -873,6 +873,8 @@ parameter_types! {
 	pub const TAppNameMaxLength: u32 = 20;
 	pub const TAppDetailMaxLength: u32 = 120;
 	pub const TAppLinkMaxLength: u32 = 100;
+	pub const TAppTickerMinLength: u32 = 3;
+	pub const TAppTickerMaxLength: u32 = 6;
 }
 
 impl pallet_bounding_curve::Config for Runtime {
@@ -880,6 +882,8 @@ impl pallet_bounding_curve::Config for Runtime {
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
 	type TAppNameMaxLength = TAppNameMaxLength;
+	type TAppTickerMinLength = TAppTickerMinLength;
+	type TAppTickerMaxLength = TAppTickerMaxLength;
 	type TAppDetailMaxLength = TAppDetailMaxLength;
 	type TAppLinkMaxLength = TAppLinkMaxLength;
 	type LinearCurve = UnsignedLinearCurve<Balance, 16, 0>;
@@ -1253,6 +1257,7 @@ impl_runtime_apis! {
 		fn list_tapps() -> Vec<(
 			Vec<u8>,
 			u64,
+			Vec<u8>,
 			Balance,
 			Balance,
 			Balance,
@@ -1260,6 +1265,18 @@ impl_runtime_apis! {
 			Vec<u8>,
 		)> {
 			BoundingCurve::list_tapps()
+		}
+
+		fn list_user_assets(who: AccountId) -> Vec<(
+			Vec<u8>,
+			u64,
+			Vec<u8>,
+			Balance,
+			Balance,
+			Vec<u8>,
+			Vec<u8>,
+		)> {
+			BoundingCurve::list_user_assets(&who)
 		}
 	}
 

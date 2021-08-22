@@ -51,6 +51,12 @@ pub mod bounding_curve {
 		type TAppNameMaxLength: Get<u32>;
 
 		#[pallet::constant]
+		type TAppTickerMaxLength: Get<u32>;
+
+		#[pallet::constant]
+		type TAppTickerMinLength: Get<u32>;
+
+		#[pallet::constant]
 		type TAppDetailMaxLength: Get<u32>;
 
 		#[pallet::constant]
@@ -96,6 +102,10 @@ pub mod bounding_curve {
 	pub type TAppNames<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, TAppId, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn tapp_tickers)]
+	pub type TAppTickers<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, TAppId, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn last_cml_id)]
 	pub type LastTAppId<T: Config> = StorageValue<_, TAppId, ValueQuery>;
 
@@ -135,9 +145,12 @@ pub mod bounding_curve {
 	#[pallet::error]
 	pub enum Error<T> {
 		TAppNameIsTooLong,
+		TAppTickerIsTooLong,
+		TAppTickerIsTooShort,
 		TAppDetailIsTooLong,
 		TAppLinkIsTooLong,
 		TAppNameAlreadyExist,
+		TAppTickerAlreadyExist,
 		InsufficientFreeBalance,
 		InsufficientTAppToken,
 		/// Sell amount more than total supply
@@ -159,6 +172,7 @@ pub mod bounding_curve {
 		pub fn create_new_tapp(
 			sender: OriginFor<T>,
 			tapp_name: Vec<u8>,
+			ticker: Vec<u8>,
 			init_fund: BalanceOf<T>,
 			detail: Vec<u8>,
 			link: Vec<u8>,
@@ -170,21 +184,14 @@ pub mod bounding_curve {
 			extrinsic_procedure(
 				&who,
 				|who| {
-					ensure!(
-						tapp_name.len() <= T::TAppNameMaxLength::get() as usize,
-						Error::<T>::TAppNameIsTooLong
-					);
-					ensure!(
-						detail.len() <= T::TAppDetailMaxLength::get() as usize,
-						Error::<T>::TAppDetailIsTooLong
-					);
-					ensure!(
-						link.len() <= T::TAppLinkMaxLength::get() as usize,
-						Error::<T>::TAppLinkIsTooLong
-					);
+					Self::check_tapp_fields_length(&tapp_name, &ticker, &detail, &link)?;
 					ensure!(
 						!TAppNames::<T>::contains_key(&tapp_name),
 						Error::<T>::TAppNameAlreadyExist
+					);
+					ensure!(
+						!TAppTickers::<T>::contains_key(&ticker),
+						Error::<T>::TAppTickerAlreadyExist
 					);
 					ensure!(
 						!init_fund.is_zero(),
@@ -205,11 +212,13 @@ pub mod bounding_curve {
 				|who| {
 					let id = Self::next_id();
 					TAppNames::<T>::insert(&tapp_name, id);
+					TAppTickers::<T>::insert(&ticker, id);
 					TAppBoundingCurve::<T>::insert(
 						id,
 						TAppItem {
 							id,
 							name: tapp_name.clone(),
+							ticker: ticker.clone(),
 							owner: who.clone(),
 							buy_curve,
 							sell_curve,

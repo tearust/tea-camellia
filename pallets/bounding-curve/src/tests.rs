@@ -11,6 +11,7 @@ fn create_new_tapp_works() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 		let tapp_name = "test name";
+		let ticker = "tea";
 		let detail = "test detail";
 		let link = "https://teaproject.org";
 		let init_fund = 1000;
@@ -19,6 +20,7 @@ fn create_new_tapp_works() {
 		assert_ok!(BoundingCurve::create_new_tapp(
 			Origin::signed(user),
 			tapp_name.as_bytes().to_vec(),
+			ticker.as_bytes().to_vec(),
 			init_fund,
 			detail.as_bytes().to_vec(),
 			link.as_bytes().to_vec(),
@@ -30,12 +32,14 @@ fn create_new_tapp_works() {
 		assert_eq!(AccountTable::<Test>::get(user, tapp_id), init_fund);
 		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
 		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
+		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBoundingCurve::<Test>::get(tapp_id);
 		assert_eq!(tapp_item.id, tapp_id);
 		assert_eq!(tapp_item.buy_curve, CurveType::UnsignedSquareRoot_1000_0);
 		assert_eq!(tapp_item.sell_curve, CurveType::UnsignedSquareRoot_700_0);
 		assert_eq!(tapp_item.owner, user);
 		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
+		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
 		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
 		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99855334);
@@ -54,6 +58,7 @@ fn buy_token_works() {
 		assert_ok!(BoundingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
+			b"tea".to_vec(),
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
@@ -84,6 +89,7 @@ fn sell_token_works() {
 		assert_ok!(BoundingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
+			b"tea".to_vec(),
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
@@ -120,9 +126,11 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 
 		let name = b"test name".to_vec();
+		let ticker = b"tea".to_vec();
 		assert_ok!(BoundingCurve::create_new_tapp(
 			Origin::signed(owner),
 			name.clone(),
+			ticker.clone(),
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
@@ -139,6 +147,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		assert!(!TotalSupplyTable::<Test>::contains_key(tapp_id));
 		assert!(!TAppBoundingCurve::<Test>::contains_key(tapp_id));
 		assert!(!TAppNames::<Test>::contains_key(name));
+		assert!(!TAppTickers::<Test>::contains_key(ticker));
 		assert_eq!(<Test as Config>::Currency::free_balance(&owner), DOLLARS);
 	})
 }
@@ -161,6 +170,7 @@ fn consume_works() {
 		assert_ok!(BoundingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
+			b"tea".to_vec(),
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
