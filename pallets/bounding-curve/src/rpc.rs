@@ -21,7 +21,13 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
-		Self::calculate_buy_amount(tapp_id, tapp_amount)
+		match Self::calculate_buy_amount(tapp_id, tapp_amount) {
+			Ok(result) => result,
+			Err(e) => {
+				log::error!("calculation failed: {:?}", e);
+				Zero::zero()
+			}
+		}
 	}
 
 	pub fn estimate_receive_tea_when_sell(
@@ -31,7 +37,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		match Self::calculate_sell_amount(tapp_id, tapp_amount) {
 			Ok(balance) => balance,
 			Err(e) => {
-				log::error!("calculate failed: {:?}", e);
+				log::error!("calculation failed: {:?}", e);
 				Zero::zero()
 			}
 		}
@@ -41,7 +47,13 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tea_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
-		Self::calculate_given_increase_tea_how_much_token_mint(tapp_id, tea_amount)
+		match Self::calculate_given_increase_tea_how_much_token_mint(tapp_id, tea_amount) {
+			Ok(result) => result,
+			Err(e) => {
+				log::error!("calculation failed: {:?}", e);
+				Zero::zero()
+			}
+		}
 	}
 
 	pub fn estimate_required_token_when_sell(

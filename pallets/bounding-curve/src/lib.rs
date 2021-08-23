@@ -23,7 +23,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::traits::{CheckedSub, Saturating, Zero};
+use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating, Zero};
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 
 /// The balance type of this module.
@@ -164,6 +164,8 @@ pub mod bounding_curve {
 		OperationAmountCanNotBeZero,
 		BuyTeaAmountCanNotBeZero,
 		SellTeaAmountCanNotBeZero,
+		SubtractionOverflow,
+		AddOverflow,
 	}
 
 	#[pallet::hooks]
@@ -207,7 +209,7 @@ pub mod bounding_curve {
 							buy_curve,
 							0u32.into(),
 							init_fund,
-						);
+						)?;
 					ensure!(
 						!deposit_tea_amount.is_zero(),
 						Error::<T>::BuyTeaAmountCanNotBeZero
@@ -261,7 +263,7 @@ pub mod bounding_curve {
 						!tapp_amount.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-					let deposit_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount);
+					let deposit_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount)?;
 					ensure!(
 						!deposit_tea_amount.is_zero(),
 						Error::<T>::BuyTeaAmountCanNotBeZero
@@ -343,10 +345,28 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|who| {
-					let deposit_tapp_amount =
-						Self::calculate_given_increase_tea_how_much_token_mint(tapp_id, tea_amount);
-					Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount);
-					Self::distribute_to_investors(tapp_id, deposit_tapp_amount);
+					match Self::calculate_given_increase_tea_how_much_token_mint(
+						tapp_id, tea_amount,
+					) {
+						Ok(deposit_tapp_amount) => {
+							if let Err(e) =
+								Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount)
+							{
+								// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+								log::error!("allocate buy tea amount failed: {:?}", e);
+								return;
+							}
+							Self::distribute_to_investors(tapp_id, deposit_tapp_amount);
+						}
+						Err(e) => {
+							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+							log::error!(
+								"calculate given increase tea how much token mint failed: {:?}",
+								e
+							);
+							return;
+						}
+					}
 				},
 			)
 		}
