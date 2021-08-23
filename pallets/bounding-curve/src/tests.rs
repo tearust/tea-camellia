@@ -57,7 +57,7 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 			Origin::signed(user),
 			tapp_name.as_bytes().to_vec(),
 			b"tea".to_vec(),
-			1000,
+			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
 		));
@@ -67,7 +67,7 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 				Origin::signed(user),
 				tapp_name.as_bytes().to_vec(),
 				b"tea".to_vec(),
-				1000,
+				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
 			),
@@ -87,7 +87,7 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 			Origin::signed(user),
 			b"test name".to_vec(),
 			ticker.to_vec(),
-			1000,
+			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
 		));
@@ -97,7 +97,7 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 				Origin::signed(user),
 				b"test name2".to_vec(),
 				ticker.to_vec(),
-				1000,
+				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
 			),
@@ -117,7 +117,7 @@ fn create_new_tapp_should_fail_if_name_is_too_long() {
 				Origin::signed(user),
 				b"test name".to_vec(),
 				[1; TAPP_TICKER_MAX_LENGTH as usize + 1].to_vec(),
-				1000,
+				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
 			),
@@ -137,7 +137,7 @@ fn create_new_tapp_should_fail_if_name_is_too_short() {
 				Origin::signed(user),
 				b"test name".to_vec(),
 				[1; TAPP_TICKER_MIN_LENGTH as usize - 1].to_vec(),
-				1000,
+				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
 			),
@@ -157,7 +157,7 @@ fn create_new_tapp_should_fail_if_detail_is_too_long() {
 				Origin::signed(user),
 				b"test name".to_vec(),
 				b"tea".to_vec(),
-				1000,
+				1_000_000,
 				[1; TAPP_DETAIL_MAX_LENGTH as usize + 1].to_vec(),
 				b"https://teaproject.org".to_vec(),
 			),
@@ -177,7 +177,7 @@ fn create_new_tapp_should_fail_if_link_is_too_long() {
 				Origin::signed(user),
 				b"test name".to_vec(),
 				b"tea".to_vec(),
-				1000,
+				1_000_000,
 				b"test detail".to_vec(),
 				[1; TAPP_LINK_MAX_LENGTH as usize + 1].to_vec(),
 			),
@@ -207,6 +207,26 @@ fn create_new_tapp_should_fail_if_free_balance_is_not_enough() {
 }
 
 #[test]
+fn create_new_tapp_should_fail_if_tapp_amount_is_too_low() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 0);
+
+		assert_noop!(
+			BoundingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+			),
+			Error::<Test>::BuyTeaAmountCanNotBeZero,
+		);
+	})
+}
+
+#[test]
 fn create_new_tapp_should_fail_if_ticker_is_too_long() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
@@ -217,7 +237,7 @@ fn create_new_tapp_should_fail_if_ticker_is_too_long() {
 				Origin::signed(user),
 				[1; TAPP_NAME_MAX_LENGTH as usize + 1].to_vec(),
 				b"tea".to_vec(),
-				1000,
+				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
 			),
@@ -231,7 +251,7 @@ fn buy_token_works() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1000;
+		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
@@ -265,7 +285,7 @@ fn buy_token_should_fail_if_tapp_is_not_exist() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 1000,),
+			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 1_000_000,),
 			Error::<Test>::TAppIdNotExist
 		);
 	})
@@ -276,7 +296,7 @@ fn buy_token_should_fail_if_tapp_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1000;
+		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
@@ -298,11 +318,37 @@ fn buy_token_should_fail_if_tapp_amount_is_zero() {
 }
 
 #[test]
+fn buy_token_should_fail_if_tapp_amount_is_too_low() {
+	new_test_ext().execute_with(|| {
+		let owner = 1;
+		let user = 2;
+		let tapp_amount = 1_000_000;
+		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
+
+		assert_ok!(BoundingCurve::create_new_tapp(
+			Origin::signed(owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			tapp_amount,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+		));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 1000),
+			Error::<Test>::BuyTeaAmountCanNotBeZero
+		);
+	})
+}
+
+#[test]
 fn buy_token_should_fail_if_free_balance_is_not_enough() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1000;
+		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, 0);
 
@@ -368,7 +414,7 @@ fn sell_token_works() {
 fn sell_token_works_when_total_balance_reduce_to_zero() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
-		let tapp_amount = 1000;
+		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 
 		let name = b"test name".to_vec();
@@ -402,7 +448,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 fn sell_token_should_fail_if_tapp_not_exist() {
 	new_test_ext().execute_with(|| {
 		let user = 2;
-		let tapp_amount = 1000;
+		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
 		assert_noop!(
@@ -417,7 +463,7 @@ fn sell_token_should_fail_if_tapp_amount_is_not_enough() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1000;
+		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
@@ -443,7 +489,7 @@ fn sell_token_should_fail_if_tapp_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1000;
+		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
@@ -465,10 +511,36 @@ fn sell_token_should_fail_if_tapp_amount_is_zero() {
 }
 
 #[test]
+fn sell_token_should_fail_if_tapp_amount_is_too_low() {
+	new_test_ext().execute_with(|| {
+		let owner = 1;
+		let user = 2;
+		let tapp_amount = 1_000_000;
+		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
+
+		assert_ok!(BoundingCurve::create_new_tapp(
+			Origin::signed(owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			tapp_amount,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+		));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BoundingCurve::sell_token(Origin::signed(owner), tapp_id, 1000),
+			Error::<Test>::SellTeaAmountCanNotBeZero
+		);
+	})
+}
+
+#[test]
 fn sell_token_should_fail_if_tapp_total_supply_is_not_enough() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
-		let tapp_amount = 1000;
+		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 
 		assert_ok!(BoundingCurve::create_new_tapp(
@@ -497,9 +569,9 @@ fn consume_works() {
 		let user2 = 2;
 		let user3 = 3;
 		let user4 = 4;
-		let tapp_amount1 = 1000;
-		let tapp_amount2 = 2000;
-		let tapp_amount3 = 4000;
+		let tapp_amount1 = 1_000_000;
+		let tapp_amount2 = 2_000_000;
+		let tapp_amount3 = 4_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
@@ -535,15 +607,16 @@ fn consume_works() {
 			tapp_id,
 			10000
 		));
-		assert_eq!(
+		assert!(approximately_equals::<Test>(
 			<Test as Config>::Currency::free_balance(&user4),
 			DOLLARS - 10000,
-		);
-		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 4033233);
-		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 8066467);
-		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 16132935);
+			1,
+		));
+		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 4358558);
+		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 8717116);
+		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 17434232);
 		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 28232637)
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 30509907)
 	})
 }
 
@@ -565,7 +638,7 @@ fn consume_should_fail_if_consume_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		let user1 = 1;
 		let user2 = 2;
-		let tapp_amount1 = 1000;
+		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 
@@ -591,7 +664,7 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 	new_test_ext().execute_with(|| {
 		let user1 = 1;
 		let user2 = 2;
-		let tapp_amount1 = 1000;
+		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, 0);
 
@@ -606,7 +679,7 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::consume(Origin::signed(user2), tapp_id, 1000),
+			BoundingCurve::consume(Origin::signed(user2), tapp_id, 1_000_000),
 			Error::<Test>::InsufficientFreeBalance
 		);
 	})
@@ -690,7 +763,7 @@ fn expense_should_fail_if_expense_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		let user1 = 1;
 		let user2 = 2;
-		let tapp_amount1 = 1000;
+		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
 		assert_ok!(BoundingCurve::create_new_tapp(
@@ -715,7 +788,7 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 	new_test_ext().execute_with(|| {
 		let user1 = 1;
 		let user2 = 2;
-		let tapp_amount1 = 1000;
+		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
 		assert_ok!(BoundingCurve::create_new_tapp(

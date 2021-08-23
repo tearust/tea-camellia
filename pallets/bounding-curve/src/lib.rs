@@ -162,6 +162,8 @@ pub mod bounding_curve {
 		/// Sell amount more than total reserved pool tea token
 		TAppInsufficientFreeBalance,
 		OperationAmountCanNotBeZero,
+		BuyTeaAmountCanNotBeZero,
+		SellTeaAmountCanNotBeZero,
 	}
 
 	#[pallet::hooks]
@@ -206,6 +208,10 @@ pub mod bounding_curve {
 							0u32.into(),
 							init_fund,
 						);
+					ensure!(
+						!deposit_tea_amount.is_zero(),
+						Error::<T>::BuyTeaAmountCanNotBeZero
+					);
 					ensure!(
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
@@ -257,6 +263,10 @@ pub mod bounding_curve {
 					);
 					let deposit_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount);
 					ensure!(
+						!deposit_tea_amount.is_zero(),
+						Error::<T>::BuyTeaAmountCanNotBeZero
+					);
+					ensure!(
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
 					);
@@ -296,7 +306,8 @@ pub mod bounding_curve {
 						!tapp_amount.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-					let _ = Self::calculate_sell_amount(tapp_id, tapp_amount)?;
+					let tea_amount = Self::calculate_sell_amount(tapp_id, tapp_amount)?;
+					ensure!(!tea_amount.is_zero(), Error::<T>::SellTeaAmountCanNotBeZero);
 					Ok(())
 				},
 				|who| {
