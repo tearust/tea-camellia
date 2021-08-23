@@ -1,11 +1,12 @@
-use crate::square_root::k1000::K1000_STEP100_AREA_LIST;
-use crate::square_root::k700::K700_STEP100_AREA_LIST;
+use crate::square_root::k10::K10_STEP100_AREA_LIST;
+use crate::square_root::k7::K7_STEP100_AREA_LIST;
 use crate::*;
 
-mod k1000;
-mod k700;
+mod k10;
+mod k7;
 
 const AREA_LIST_LENGTH: usize = 1000;
+const K_BASE_POINT: u32 = 100000000u32;
 
 /// Implement equation: `y = k√x`
 ///
@@ -41,7 +42,7 @@ where
 			Zero::zero()
 		} else {
 			x_n.clone() - x_n.clone() * 2u32.into() / 3u32.into()
-				+ area.clone() * 100u32.into() / K.into() / x_n.integer_sqrt()
+				+ area.clone() * K_BASE_POINT.into() / K.into() / x_n.integer_sqrt()
 		};
 
 		if approximately_equals(x_n, result.clone(), precision.clone()) {
@@ -72,8 +73,8 @@ where
 		};
 
 		match K {
-			1000 => select_fn(&K1000_STEP100_AREA_LIST),
-			700 => select_fn(&K700_STEP100_AREA_LIST),
+			1000 => select_fn(&K10_STEP100_AREA_LIST),
+			700 => select_fn(&K7_STEP100_AREA_LIST),
 			_ => (Self::pool_balance(One::one()), One::one()),
 		}
 	}
@@ -84,7 +85,7 @@ where
 	Balance: AtLeast32BitUnsigned + Default + Clone + Debug,
 {
 	fn buy_price(total_supply: Balance) -> Balance {
-		total_supply.integer_sqrt() * K.into() / 100u32.into()
+		total_supply.integer_sqrt() * K.into() / K_BASE_POINT.into()
 	}
 
 	fn sell_price(total_supply: Balance) -> Balance {
@@ -96,7 +97,7 @@ where
 	}
 
 	fn pool_balance(x: Balance) -> Balance {
-		x.integer_sqrt() * x.clone() * K.into() * 2u32.into() / 100u32.into() / 3u32.into()
+		x.integer_sqrt() * x.clone() * K.into() * 2u32.into() / K_BASE_POINT.into() / 3u32.into()
 	}
 
 	fn pool_balance_reverse(area: Balance, precision: Balance) -> Balance {
@@ -144,277 +145,212 @@ mod tests {
 	#[test]
 	fn pool_balance_works() {
 		#[allow(non_camel_case_types)]
-		type RootSquare_100 = UnsignedSquareRoot<Balance, 100>; // y = √x
+		type RootSquare_10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::pool_balance(0),
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(0),
 			0
 		);
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::pool_balance(100),
-			666
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(100000),
+			2
 		);
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::pool_balance(DOLLARS),
-			666666666666666666
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(1000000),
+			66
 		);
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
-			666666666666666666666
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(10000000),
+			2108
+		);
+		assert_eq!(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(100000000),
+			66666
+		);
+		assert_eq!(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(DOLLARS),
+			66666666666
+		);
+		assert_eq!(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
+			66666666666666
 		);
 
 		#[allow(non_camel_case_types)]
-		type RootSquare_1000 = UnsignedSquareRoot<Balance, 1000>; // y = 10√x
+		type RootSquare_7 = UnsignedSquareRoot<Balance, 7>; // y = 7√x
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance(0),
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(0),
 			0
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance(1),
-			6
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(1000000),
+			46
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance(10),
-			200
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(10000000),
+			1475
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance(100),
-			6666
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(100000000),
+			46666
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance(DOLLARS),
-			6666666666666666666
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(DOLLARS),
+			46666666666
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
-			6666666666666666666666
-		);
-
-		#[allow(non_camel_case_types)]
-		type RootSquare_700 = UnsignedSquareRoot<Balance, 700>; // y = 7√x
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance(0),
-			0
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance(1),
-			4
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance(10),
-			140
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance(100),
-			4666
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance(DOLLARS),
-			4666666666666666666
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
-			4666666666666666666666
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
+			46666666666666
 		);
 	}
 
 	#[test]
 	fn pool_balance_reverse_works() {
 		#[allow(non_camel_case_types)]
-		type RootSquare_100 = UnsignedSquareRoot<Balance, 100>; // y = √x
+		type RootSquare_10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::pool_balance_reverse(0, 1),
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance_reverse(0, 1),
 			0
 		);
+		assert!(approximately_equals(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance_reverse(66, 1),
+			1000000,
+			7000
+		));
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::pool_balance_reverse(666, 1),
-			100
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance_reverse(2108, 1),
+			10000000
 		);
-		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
-				666666666666666666,
-				1
+		assert!(approximately_equals(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance_reverse(66666, 100000),
+			100000000,
+			6000
+		));
+		assert!(approximately_equals(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
+				66666666666,
+				100000
 			),
-			DOLLARS
-		);
-		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
-				666666666666666666666,
-				1
+			DOLLARS,
+			20000
+		));
+		assert!(approximately_equals(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
+				66666666666666,
+				100000
 			),
-			100 * DOLLARS
-		);
+			100 * DOLLARS,
+			35000
+		));
 
 		#[allow(non_camel_case_types)]
-		type RootSquare_1000 = UnsignedSquareRoot<Balance, 1000>; // y = 10√x
+		type RootSquare_7 = UnsignedSquareRoot<Balance, 7>; // y = 7√x
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance_reverse(0, 1),
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance_reverse(0, 1),
 			0
 		);
-		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance_reverse(6, 1),
-			1
-		);
-		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance_reverse(200, 1),
-			10
-		);
-		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance_reverse(6666, 1),
-			100
-		);
-		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
-				6666666666666666666,
-				1
+		assert!(approximately_equals(
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance_reverse(46, 1),
+			1000000,
+			10000,
+		));
+		assert!(approximately_equals(
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance_reverse(1475, 100000),
+			10000000,
+			3000
+		));
+		assert!(approximately_equals(
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance_reverse(46666, 100000),
+			100000000,
+			5500
+		));
+		assert!(approximately_equals(
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
+				46666666666,
+				100000
 			),
-			DOLLARS
-		);
-		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
-				6666666666666666666666,
-				1
+			DOLLARS,
+			20000
+		));
+		assert!(approximately_equals(
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
+				46666666666666,
+				100000
 			),
-			100 * DOLLARS
-		);
-
-		#[allow(non_camel_case_types)]
-		type RootSquare_700 = UnsignedSquareRoot<Balance, 700>; // y = 7√x
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance_reverse(0, 1),
-			0
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance_reverse(140, 1),
-			10
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance_reverse(4666, 1),
-			100
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
-				4666666666666666666,
-				1
-			),
-			DOLLARS
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::pool_balance_reverse(
-				4666666666666666666666,
-				1
-			),
-			100 * DOLLARS
-		);
+			100 * DOLLARS,
+			35000
+		));
 	}
 
 	#[test]
 	fn buy_and_sell_price_works() {
 		#[allow(non_camel_case_types)]
-		type RootSquare_100 = UnsignedSquareRoot<Balance, 100>; // y = x
+		type RootSquare_10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::buy_price(0),
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(0),
 			0
 		);
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::sell_price(0),
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::sell_price(0),
 			0
 		);
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			1000000
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
+			0
 		);
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
-			DOLLARS * 1000000
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
+			0
 		);
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
-			10000000
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
+			1
 		);
 		assert_eq!(
-			<RootSquare_100 as BoundingCurveInterface<Balance>>::sell_price(100 * DOLLARS),
-			DOLLARS * 100000
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::sell_price(100 * DOLLARS),
+			DOLLARS * DOLLARS
+		);
+		assert_eq!(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(10000 * DOLLARS),
+			10
+		);
+		assert_eq!(
+			<RootSquare_10 as BoundingCurveInterface<Balance>>::sell_price(10000 * DOLLARS),
+			DOLLARS * DOLLARS / 10
 		);
 
 		#[allow(non_camel_case_types)]
-		type RootSquare_1 = UnsignedSquareRoot<Balance, 1>; // y = x/100
+		type RootSquare_7 = UnsignedSquareRoot<Balance, 7>; // y = 7√x
 		assert_eq!(
-			<RootSquare_1 as BoundingCurveInterface<Balance>>::buy_price(0),
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(0),
 			0
 		);
 		assert_eq!(
-			<RootSquare_1 as BoundingCurveInterface<Balance>>::sell_price(0),
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::sell_price(0),
 			0
 		);
 		assert_eq!(
-			<RootSquare_1 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			10000
-		);
-		assert_eq!(
-			<RootSquare_1 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
-			DOLLARS * 100000000
-		);
-		assert_eq!(
-			<RootSquare_1 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
-			100000
-		);
-		assert_eq!(
-			<RootSquare_1 as BoundingCurveInterface<Balance>>::sell_price(100 * DOLLARS),
-			DOLLARS * 10000000
-		);
-
-		#[allow(non_camel_case_types)]
-		type RootSquare_1000 = UnsignedSquareRoot<Balance, 1000>; // y = 10√x
-		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::buy_price(0),
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
 			0
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::sell_price(0),
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
 			0
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			10000000
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(1000 * DOLLARS),
+			2
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
-			DOLLARS * 100000
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::sell_price(1000 * DOLLARS),
+			DOLLARS * DOLLARS / 2
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
-			100000000
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(10000 * DOLLARS),
+			7
 		);
 		assert_eq!(
-			<RootSquare_1000 as BoundingCurveInterface<Balance>>::sell_price(100 * DOLLARS),
-			DOLLARS * 10000
-		);
-
-		#[allow(non_camel_case_types)]
-		type RootSquare_700 = UnsignedSquareRoot<Balance, 700>; // y = 7√x
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::buy_price(0),
-			0
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::sell_price(0),
-			0
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			7000000
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
-			142857142857142857
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
-			70000000
-		);
-		assert_eq!(
-			<RootSquare_700 as BoundingCurveInterface<Balance>>::sell_price(100 * DOLLARS),
-			14285714285714285
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::sell_price(10000 * DOLLARS),
+			DOLLARS * DOLLARS / 7
 		);
 	}
 }

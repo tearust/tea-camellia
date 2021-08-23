@@ -63,7 +63,7 @@ pub const TAPP_TICKER_MAX_LENGTH: u32 = 6;
 pub const TAPP_TICKER_MIN_LENGTH: u32 = 3;
 pub const TAPP_DETAIL_MAX_LENGTH: u32 = 120;
 pub const TAPP_LINK_MAX_LENGTH: u32 = 100;
-pub const POOL_BALANCE_REVERSE_PRECISION: Balance = 10;
+pub const POOL_BALANCE_REVERSE_PRECISION: Balance = 100000;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
@@ -84,8 +84,8 @@ impl pallet_bounding_curve::Config for Test {
 	type TAppDetailMaxLength = TAppDetailMaxLength;
 	type TAppLinkMaxLength = TAppLinkMaxLength;
 	type LinearCurve = UnsignedLinearCurve<Balance, 100>;
-	type UnsignedSquareRoot_1000 = UnsignedSquareRoot<Balance, 1000>;
-	type UnsignedSquareRoot_700 = UnsignedSquareRoot<Balance, 700>;
+	type UnsignedSquareRoot_10 = UnsignedSquareRoot<Balance, 10>;
+	type UnsignedSquareRoot_7 = UnsignedSquareRoot<Balance, 7>;
 	type PoolBalanceReversePrecision = PoolBalanceReversePrecision;
 }
 

@@ -68,10 +68,10 @@ pub mod bounding_curve {
 		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_1000: BoundingCurveInterface<BalanceOf<Self>>;
+		type UnsignedSquareRoot_10: BoundingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_700: BoundingCurveInterface<BalanceOf<Self>>;
+		type UnsignedSquareRoot_7: BoundingCurveInterface<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -181,8 +181,8 @@ pub mod bounding_curve {
 			link: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			let buy_curve = CurveType::UnsignedSquareRoot_1000;
-			let sell_curve = CurveType::UnsignedSquareRoot_700;
+			let buy_curve = CurveType::UnsignedSquareRoot_10;
+			let sell_curve = CurveType::UnsignedSquareRoot_7;
 
 			extrinsic_procedure(
 				&who,
@@ -332,7 +332,8 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|who| {
-					let deposit_tapp_amount = Self::calculate_buy_amount(tapp_id, tea_amount);
+					let deposit_tapp_amount =
+						Self::calculate_given_increase_tea_how_much_token_mint(tapp_id, tea_amount);
 					Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount);
 					Self::distribute_to_investors(tapp_id, deposit_tapp_amount);
 				},
