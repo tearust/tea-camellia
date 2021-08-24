@@ -7,10 +7,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 			.collect()
 	}
 
-	pub fn user_credit_list(who: &T::AccountId) -> Vec<(u64, BalanceOf<T>)> {
-		Self::user_credits(who)
-	}
-
 	pub fn user_staking_list(who: &T::AccountId) -> Vec<(u64, u64)> {
 		let mut result = Vec::new();
 		for (_, miner_item) in MinerItemStore::<T>::iter() {

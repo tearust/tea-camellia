@@ -56,15 +56,10 @@ impl<T: cml::Config> cml::Pallet<T> {
 			Self::miner_task_point,
 		);
 
-		for (owner, _cml_id, initial_reward) in reward_statements.iter() {
-			let reward = Self::try_return_left_staking_reward(owner, *initial_reward);
-			if reward.is_zero() {
-				continue;
-			}
-
+		for (owner, _cml_id, reward) in reward_statements.iter() {
 			if AccountRewards::<T>::contains_key(owner) {
 				AccountRewards::<T>::mutate(owner, |balance| {
-					*balance = balance.saturating_add(reward);
+					*balance = balance.saturating_add(*reward);
 				});
 			} else {
 				AccountRewards::<T>::insert(owner, reward);
@@ -85,10 +80,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 			100u32.into()
 		} else {
 			if let Some(plant_at_block) = cml.get_plant_at() {
-				(*block_height - *plant_at_block) * 100u32.into()
-					/ cml.lifespan()
-			}
-			else{
+				(*block_height - *plant_at_block) * 100u32.into() / cml.lifespan()
+			} else {
 				0u32.into()
 			}
 		};
@@ -97,55 +90,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 			cml.calculate_performance(age_percentage.try_into().unwrap_or(0)),
 			cml.get_peak_performance(),
 		)
-	}
-
-	pub(crate) fn try_return_left_staking_reward(
-		owner: &T::AccountId,
-		initial_reward: BalanceOf<T>,
-	) -> BalanceOf<T> {
-		let mut reward = initial_reward;
-		while let Some(cml_id) = Self::first_credit_cml(owner) {
-			reward = Self::pay_single_mining_credit(owner, cml_id, reward);
-			if reward.is_zero() {
-				break;
-			}
-		}
-		reward
-	}
-
-	pub(crate) fn pay_single_mining_credit(
-		owner: &T::AccountId,
-		cml_id: CmlId,
-		initial_reward: BalanceOf<T>,
-	) -> BalanceOf<T> {
-		let mut reward = initial_reward;
-
-		let credit = GenesisMinerCreditStore::<T>::get(&owner, cml_id);
-		let should_reserved = if credit > reward {
-			GenesisMinerCreditStore::<T>::insert(&owner, cml_id, credit.saturating_sub(reward));
-			let reserved = reward;
-			reward = BalanceOf::<T>::zero();
-			reserved
-		} else {
-			GenesisMinerCreditStore::<T>::remove(&owner, cml_id);
-			reward = reward.saturating_sub(credit);
-			credit
-		};
-
-		T::CurrencyOperations::deposit_creating(&owner, should_reserved);
-		if T::CurrencyOperations::reserve(&owner, should_reserved).is_err() {
-			// should never happen, set reward to zero just in case
-			reward = BalanceOf::<T>::zero();
-		}
-
-		reward
-	}
-
-	pub(crate) fn first_credit_cml(owner: &T::AccountId) -> Option<CmlId> {
-		GenesisMinerCreditStore::<T>::iter_prefix(owner)
-			.take(1)
-			.next()
-			.map(|(id, _)| id)
 	}
 
 	pub(crate) fn service_task_point_total() -> ServiceTaskPoint {
@@ -160,38 +104,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 		MiningCmlTaskPoints::<T>::get(cml_id) * TASK_POINT_BASE
 	}
 
-	pub(crate) fn check_miner_first_staking(
-		who: &T::AccountId,
-		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
-	) -> DispatchResult {
-		if !cml.is_from_genesis() {
-			Self::check_balance_staking(who)?;
-		}
+	pub(crate) fn check_miner_first_staking(who: &T::AccountId) -> DispatchResult {
+		Self::check_balance_staking(who)?;
 		Ok(())
-	}
-
-	pub(crate) fn create_genesis_miner_balance_staking(
-		who: &T::AccountId,
-		cml_id: CmlId,
-	) -> Result<StakingItem<T::AccountId, BalanceOf<T>>, DispatchError> {
-		let free_balance = T::CurrencyOperations::free_balance(who);
-		let (actual_staking, credit_amount) = if free_balance < T::StakingPrice::get() {
-			(Zero::zero(), Some(T::StakingPrice::get()))
-		} else {
-			(T::StakingPrice::get(), None)
-		};
-
-		let result = Self::create_balance_staking(who, actual_staking)?;
-		if let Some(credit_amount) = credit_amount {
-			if !GenesisMinerCreditStore::<T>::contains_key(who, cml_id) {
-				GenesisMinerCreditStore::<T>::insert(who, cml_id, credit_amount);
-			} else {
-				GenesisMinerCreditStore::<T>::mutate(who, cml_id, |amount| {
-					*amount = amount.saturating_add(credit_amount);
-				});
-			}
-		}
-		Ok(result)
 	}
 
 	pub(crate) fn create_balance_staking(
@@ -249,11 +164,9 @@ mod tests {
 	use crate::mock::*;
 	use crate::tests::new_genesis_seed;
 	use crate::{
-		AccountRewards, ActiveStakingSnapshot, CmlStore, CmlType, Config, GenesisMinerCreditStore,
-		MinerItem, MinerItemStore, MinerStatus, StakingCategory, StakingItem, StakingProperties,
-		StakingSnapshotItem, CML,
+		AccountRewards, ActiveStakingSnapshot, CmlStore, CmlType, MinerItem, MinerItemStore,
+		MinerStatus, StakingCategory, StakingItem, StakingProperties, StakingSnapshotItem, CML,
 	};
-	use frame_support::traits::Currency;
 
 	#[test]
 	fn staking_period_related_works() {
@@ -426,188 +339,11 @@ mod tests {
 	}
 
 	#[test]
-	fn calculate_staking_works_when_there_are_genesis_miner_credits() {
-		new_test_ext().execute_with(|| {
-			let user1 = 1;
-			let user2 = 2;
-			let user3 = 3;
-			let origin_free_amount = 10000;
-			<Test as Config>::Currency::make_free_balance_be(&user1, origin_free_amount);
-			<Test as Config>::Currency::make_free_balance_be(&user2, origin_free_amount);
-			<Test as Config>::Currency::make_free_balance_be(&user3, origin_free_amount);
-
-			let cml_id1 = 1;
-			ActiveStakingSnapshot::<Test>::insert(
-				cml_id1,
-				vec![
-					StakingSnapshotItem {
-						owner: user1,
-						weight: 1,
-						staking_at: 0,
-					},
-					StakingSnapshotItem {
-						owner: user1,
-						weight: 2,
-						staking_at: 1,
-					},
-				],
-			);
-
-			let cml_id2 = 2;
-			ActiveStakingSnapshot::<Test>::insert(
-				cml_id2,
-				vec![
-					StakingSnapshotItem {
-						owner: user2,
-						weight: 1,
-						staking_at: 0,
-					},
-					StakingSnapshotItem {
-						owner: user3,
-						weight: 3,
-						staking_at: 1,
-					},
-				],
-			);
-
-			let credit_amount = DOLLARS * 2;
-			GenesisMinerCreditStore::<Test>::insert(user1, cml_id1, credit_amount);
-			GenesisMinerCreditStore::<Test>::insert(user2, cml_id2, credit_amount);
-
-			Cml::calculate_staking();
-
-			assert!(!GenesisMinerCreditStore::<Test>::contains_key(
-				&user1, cml_id1
-			));
-			assert!(!AccountRewards::<Test>::contains_key(&user1));
-			assert_eq!(
-				<Test as Config>::Currency::reserved_balance(&user1),
-				DOLLARS * 2
-			);
-
-			assert!(GenesisMinerCreditStore::<Test>::contains_key(
-				&user2, cml_id2
-			));
-			assert_eq!(
-				GenesisMinerCreditStore::<Test>::get(user2, cml_id2),
-				DOLLARS
-			);
-			assert!(!AccountRewards::<Test>::contains_key(&user2));
-			assert_eq!(
-				<Test as Config>::Currency::reserved_balance(&user2),
-				DOLLARS
-			);
-
-			assert!(AccountRewards::<Test>::contains_key(&user3));
-			assert_eq!(AccountRewards::<Test>::get(&user3), DOLLARS);
-			assert_eq!(<Test as Config>::Currency::reserved_balance(&user3), 0);
-		})
-	}
-
-	#[test]
 	fn calculate_staking_works_if_snapshots_is_empty() {
 		new_test_ext().execute_with(|| {
 			assert_eq!(ActiveStakingSnapshot::<Test>::iter().count(), 0);
 			Cml::calculate_staking();
 			assert_eq!(AccountRewards::<Test>::iter().count(), 0);
-		})
-	}
-
-	#[test]
-	fn try_return_left_staking_reward_works() {
-		new_test_ext().execute_with(|| {
-			let user1 = 1;
-			let initial_amount = 1000;
-			<Test as Config>::Currency::make_free_balance_be(&user1, initial_amount);
-
-			let initial_reward1 = 50;
-			let cml_id = 11;
-			assert!(!GenesisMinerCreditStore::<Test>::contains_key(
-				&user1, cml_id
-			));
-			let reward = Cml::try_return_left_staking_reward(&user1, initial_reward1);
-			assert_eq!(reward, initial_reward1); // return all rewards if not have credit
-			assert_eq!(
-				<Test as Config>::Currency::free_balance(&user1),
-				initial_amount
-			);
-			assert_eq!(<Test as Config>::Currency::reserved_balance(&user1), 0);
-
-			let credit_amount2 = 1000;
-			let initial_reward2 = 100; // initial reward small than credit amount
-			GenesisMinerCreditStore::<Test>::insert(user1, cml_id, credit_amount2);
-			let reward = Cml::try_return_left_staking_reward(&user1, initial_reward2);
-			assert_eq!(reward, 0); // should have no reward
-			assert_eq!(
-				<Test as Config>::Currency::free_balance(&user1),
-				initial_amount
-			);
-			assert_eq!(
-				<Test as Config>::Currency::reserved_balance(&user1),
-				initial_reward2
-			);
-			assert_eq!(
-				GenesisMinerCreditStore::<Test>::get(user1, cml_id),
-				credit_amount2 - initial_reward2
-			);
-
-			let initial_reward3 = 1000; // initial reward can pay all the credit
-			let reward = Cml::try_return_left_staking_reward(&user1, initial_reward3);
-			assert_eq!(reward, initial_reward3 - (credit_amount2 - initial_reward2));
-			assert_eq!(
-				<Test as Config>::Currency::free_balance(&user1),
-				initial_amount
-			);
-			assert_eq!(
-				<Test as Config>::Currency::reserved_balance(&user1),
-				credit_amount2
-			);
-			assert!(!GenesisMinerCreditStore::<Test>::contains_key(
-				user1, cml_id
-			))
-		})
-	}
-
-	#[test]
-	fn try_return_left_staking_reward_works_with_multipile_credits() {
-		new_test_ext().execute_with(|| {
-			let user1 = 1;
-
-			let cml_id1 = 11;
-			GenesisMinerCreditStore::<Test>::insert(&user1, cml_id1, STAKING_PRICE);
-
-			let cml_id2 = 22;
-			GenesisMinerCreditStore::<Test>::insert(&user1, cml_id2, STAKING_PRICE);
-
-			let reward =
-				Cml::try_return_left_staking_reward(&user1, STAKING_PRICE + STAKING_PRICE / 2);
-			assert_eq!(reward, 0);
-			assert_eq!(
-				GenesisMinerCreditStore::<Test>::iter_prefix(user1).count(),
-				1
-			);
-			assert_eq!(
-				GenesisMinerCreditStore::<Test>::iter_prefix(user1)
-					.next()
-					.map(|(_, v)| v)
-					.unwrap(),
-				STAKING_PRICE / 2
-			);
-			assert_eq!(
-				<Test as Config>::Currency::reserved_balance(&user1),
-				STAKING_PRICE + STAKING_PRICE / 2
-			);
-
-			let reward = Cml::try_return_left_staking_reward(&user1, STAKING_PRICE);
-			assert_eq!(reward, STAKING_PRICE / 2);
-			assert_eq!(
-				GenesisMinerCreditStore::<Test>::iter_prefix(user1).count(),
-				0
-			);
-			assert_eq!(
-				<Test as Config>::Currency::reserved_balance(&user1),
-				STAKING_PRICE * 2
-			);
 		})
 	}
 }

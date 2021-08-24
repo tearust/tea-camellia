@@ -32,9 +32,8 @@ sp_api::decl_runtime_apis! {
 		/// 2. Projected  7 day mining income (USD)
 		/// 3. TEA Account balance (in USD)
 		/// 4. USD account balance
-		/// 5. Genesis stake debt
-		/// 6. genesis loan
-		/// 7. Total account value
-		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance)>;
+		/// 5. genesis loan
+		/// 6. Total account value
+		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance)>;
 	}
 }

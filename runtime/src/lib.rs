@@ -1171,10 +1171,6 @@ impl_runtime_apis! {
 			Cml::user_cml_list(who)
 		}
 
-		fn user_credit_list(who: &AccountId) -> Vec<(u64, Balance)> {
-			Cml::user_credit_list(who)
-		}
-
 		fn user_staking_list(who: &AccountId) -> Vec<(u64, u64)> {
 			Cml::user_staking_list(who)
 		}
@@ -1237,7 +1233,7 @@ impl_runtime_apis! {
 			GenesisExchange::estimate_amount(withdraw_amount, buy_tea)
 		}
 
-		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance)> {
+		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance)> {
 			GenesisExchange::user_asset_list()
 		}
 	}

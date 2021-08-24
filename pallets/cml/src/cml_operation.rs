@@ -34,10 +34,6 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		target_account: &Self::AccountId,
 	) -> DispatchResult {
 		Self::check_belongs(cml_id, from_account)?;
-		ensure!(
-			Self::user_credit_amount(from_account, cml_id).is_zero(),
-			Error::<T>::OperationForbiddenWithCredit
-		);
 
 		let cml = CmlStore::<T>::get(cml_id);
 		if cml.is_mining() {
@@ -105,19 +101,6 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			}
 		}
 		None
-	}
-
-	/// Get credit amount of the given user.
-	fn user_credit_amount(account_id: &Self::AccountId, cml_id: &CmlId) -> Self::Balance {
-		if !GenesisMinerCreditStore::<T>::contains_key(account_id, cml_id) {
-			return Zero::zero();
-		}
-
-		GenesisMinerCreditStore::<T>::get(account_id, cml_id)
-	}
-
-	fn user_credits(who: &Self::AccountId) -> Vec<(CmlId, Self::Balance)> {
-		GenesisMinerCreditStore::<T>::iter_prefix(who).collect()
 	}
 
 	/// Add a cml into `CmlStore` and bind the CML with the given user.

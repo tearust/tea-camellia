@@ -12,10 +12,7 @@ use genesis_bank_interface::GenesisBankOperation;
 use log::{info, warn};
 use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
 use pallet_utils::{extrinsic_procedure, extrinsic_procedure_with_weight, CurrencyOperations};
-use sp_runtime::{
-	traits::{Saturating, Zero},
-	DispatchResult, SaturatedConversion,
-};
+use sp_runtime::{traits::Saturating, DispatchResult, SaturatedConversion};
 use sp_std::{cmp::Ordering, convert::TryInto, prelude::*};
 
 #[cfg(test)]
@@ -103,7 +100,6 @@ pub mod auction {
 		/// The bid auction item belongs to extrinsic sender self
 		BidSelfBelongs,
 		AuctionOwnerInvalid,
-		AuctionOwnerHasCredit,
 		NotFoundBid,
 		NotAllowQuitBid,
 
@@ -212,10 +208,6 @@ pub mod auction {
 							|| (cml_item.is_fresh_seed() && !cml_item.has_expired(&current_height))
 							|| cml_item.check_tree_validity(&current_height).is_ok(),
 						Error::<T>::NotAllowToAuction
-					);
-					ensure!(
-						T::CmlOperation::user_credit_amount(sender, &cml_id).is_zero(),
-						Error::<T>::AuctionOwnerHasCredit
 					);
 					Ok(())
 				},

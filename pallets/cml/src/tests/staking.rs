@@ -1,8 +1,5 @@
 use crate::tests::{new_genesis_seed, seed_from_lifespan};
-use crate::{
-	mock::*, types::*, AccountRewards, CmlStore, Config, Error, GenesisMinerCreditStore,
-	UserCmlStore,
-};
+use crate::{mock::*, types::*, AccountRewards, CmlStore, Config, Error, UserCmlStore};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_utils::CurrencyOperations;
 
@@ -182,6 +179,7 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_the_max_length() {
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
+		<Test as Config>::Currency::make_free_balance_be(&1, STAKING_PRICE);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml_id,
@@ -224,6 +222,7 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_acceptable_index() {
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
+		<Test as Config>::Currency::make_free_balance_be(&1, STAKING_PRICE);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml_id,
@@ -387,6 +386,7 @@ fn stop_staking_works_with_mixed_staking_items() {
 		UserCmlStore::<Test>::insert(user1, cml1_id, ());
 		let cml1 = CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100));
 		CmlStore::<Test>::insert(cml1_id, cml1);
+		<Test as Config>::Currency::make_free_balance_be(&user1, STAKING_PRICE);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(user1),
 			cml1_id,
@@ -598,87 +598,6 @@ fn withdraw_staking_reward_should_fail_if_user_not_have_reward() {
 		assert_noop!(
 			Cml::withdraw_staking_reward(Origin::signed(1)),
 			Error::<Test>::NotFoundRewardAccount
-		);
-	})
-}
-
-#[test]
-fn withdraw_staking_reward_should_work_if_there_is_credit() {
-	new_test_ext().execute_with(|| {
-		AccountRewards::<Test>::insert(1, 1000);
-		GenesisMinerCreditStore::<Test>::insert(1, 1, 200);
-
-		assert_ok!(Cml::withdraw_staking_reward(Origin::signed(1)));
-
-		assert_eq!(Utils::free_balance(&1), 1000);
-		assert!(!AccountRewards::<Test>::contains_key(&1));
-	})
-}
-
-#[test]
-fn pay_off_mining_credit_works() {
-	new_test_ext().execute_with(|| {
-		let user1 = 11;
-		let free_balance = 10000;
-		<Test as Config>::Currency::make_free_balance_be(&user1, free_balance);
-
-		let credit_balance = 1000;
-		let cml_id = 11;
-		GenesisMinerCreditStore::<Test>::insert(user1, cml_id, credit_balance);
-
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&user1),
-			free_balance
-		);
-		assert_eq!(<Test as Config>::Currency::reserved_balance(&user1), 0);
-
-		assert_ok!(Cml::pay_off_mining_credit(Origin::signed(user1), cml_id));
-
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&user1),
-			free_balance - credit_balance
-		);
-		assert_eq!(
-			<Test as Config>::Currency::reserved_balance(&user1),
-			credit_balance
-		);
-		assert!(!GenesisMinerCreditStore::<Test>::contains_key(
-			&user1, cml_id
-		));
-	})
-}
-
-#[test]
-fn pay_off_mining_credit_should_fail_if_there_is_no_credit() {
-	new_test_ext().execute_with(|| {
-		let user1 = 11;
-		assert_eq!(
-			GenesisMinerCreditStore::<Test>::iter_prefix(&user1).count(),
-			0
-		);
-
-		assert_noop!(
-			Cml::pay_off_mining_credit(Origin::signed(user1), 1),
-			Error::<Test>::CmlNoNeedToPayOff
-		);
-	})
-}
-
-#[test]
-fn pay_off_mining_credit_should_fail_if_not_enough_balance() {
-	new_test_ext().execute_with(|| {
-		let user1 = 11;
-		let free_balance = 100;
-		<Test as Config>::Currency::make_free_balance_be(&user1, free_balance);
-
-		let credit_balance = 1000;
-		let cml_id = 22;
-		GenesisMinerCreditStore::<Test>::insert(user1, cml_id, credit_balance);
-
-		assert!(free_balance < credit_balance);
-		assert_noop!(
-			Cml::pay_off_mining_credit(Origin::signed(user1), cml_id),
-			Error::<Test>::InsufficientFreeBalance
 		);
 	})
 }

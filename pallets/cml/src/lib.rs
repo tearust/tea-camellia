@@ -139,21 +139,6 @@ pub mod cml {
 	pub type MinerItemStore<T: Config> =
 		StorageMap<_, Twox64Concat, MachineId, MinerItem, ValueQuery>;
 
-	/// Storage map of all miners that have credit when starting mining (when start mining with a seed
-	/// generated at genesis block, if users have insufficient free balance Camellia allow them to have
-	/// credit and mining first).
-	#[pallet::storage]
-	#[pallet::getter(fn miner_credit_store)]
-	pub type GenesisMinerCreditStore<T: Config> = StorageDoubleMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		Twox64Concat,
-		CmlId,
-		BalanceOf<T>,
-		ValueQuery,
-	>;
-
 	/// Double map about `CmlType` and `DefrostScheduleType`, value is the rest of CMLs in lucky draw box.
 	#[pallet::storage]
 	#[pallet::getter(fn lucky_draw_box)]
@@ -260,8 +245,6 @@ pub mod cml {
 		/// The specified machine ID is not found in the machine store, indicates that the specified machin
 		/// ID not existed.
 		NotFoundMiner,
-		/// When user has credit it is forbidden for transfering CML to others.
-		OperationForbiddenWithCredit,
 		/// Specified CML in not valid to operate as a mining tree.
 		InvalidMiner,
 		/// Sepcified miner IP is not a valid format of IPv4.
@@ -280,8 +263,6 @@ pub mod cml {
 		/// User specfied max acceptable slot length and current staking index has over than that.
 		StakingSlotsOverAcceptableIndex,
 
-		/// There is no credit of user, no need to pay for it.
-		CmlNoNeedToPayOff,
 		/// Defrost time should have value when defrost.
 		CmlDefrostTimeIsNone,
 		/// Cml should be frozen seed.
@@ -530,7 +511,7 @@ pub mod cml {
 					let cml = CmlStore::<T>::get(cml_id);
 					cml.check_start_mining(&current_block_number)
 						.map_err(|e| Error::<T>::from(e))?;
-					Self::check_miner_first_staking(&sender, &cml)?;
+					Self::check_miner_first_staking(&sender)?;
 
 					Ok(())
 				},
@@ -540,11 +521,8 @@ pub mod cml {
 
 					let ip = miner_ip.clone();
 					CmlStore::<T>::mutate(cml_id, |cml| {
-						let staking_item = if cml.is_from_genesis() {
-							Self::create_genesis_miner_balance_staking(&sender, cml.id())
-						} else {
-							Self::create_balance_staking(&sender, T::StakingPrice::get())
-						};
+						let staking_item =
+							Self::create_balance_staking(&sender, T::StakingPrice::get());
 						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 						if staking_item.is_err() {
 							return;
@@ -741,36 +719,6 @@ pub mod cml {
 			)
 		}
 
-		/// Pay off all credit of current user about mining genesis CMLs.
-		#[pallet::weight(T::WeightInfo::pay_off_mining_credit())]
-		pub fn pay_off_mining_credit(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
-			let who = ensure_signed(sender)?;
-
-			extrinsic_procedure(
-				&who,
-				|who| {
-					ensure!(
-						GenesisMinerCreditStore::<T>::contains_key(who, cml_id),
-						Error::<T>::CmlNoNeedToPayOff
-					);
-					ensure!(
-						T::CurrencyOperations::free_balance(who)
-							>= GenesisMinerCreditStore::<T>::get(who, cml_id),
-						Error::<T>::InsufficientFreeBalance
-					);
-					Ok(())
-				},
-				|who| {
-					let pay_off_balance = GenesisMinerCreditStore::<T>::get(who, cml_id);
-					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-					if T::CurrencyOperations::reserve(who, pay_off_balance).is_err() {
-						return;
-					}
-					GenesisMinerCreditStore::<T>::remove(who, cml_id);
-				},
-			)
-		}
-
 		/// Called after a miner has complete a RA task, note this is dummy extrinsic to simulate the
 		/// task submit, the real RA task should initiate at an Enclave enviroment and validate by
 		/// other nodes.
@@ -867,11 +815,6 @@ pub trait CmlOperation {
 
 	/// Get the deposit price if CML is mining, or `None` otherwise.
 	fn cml_deposit_price(cml_id: &CmlId) -> Option<Self::Balance>;
-
-	/// Get credit amount of the given user.
-	fn user_credit_amount(account_id: &Self::AccountId, cml_id: &CmlId) -> Self::Balance;
-
-	fn user_credits(account_id: &Self::AccountId) -> Vec<(CmlId, Self::Balance)>;
 
 	/// Add a cml into `CmlStore` and bind the CML with the given user.
 	fn add_cml(

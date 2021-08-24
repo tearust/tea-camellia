@@ -1,9 +1,7 @@
 use crate::mock::*;
 use crate::*;
 use frame_support::{assert_noop, assert_ok};
-use pallet_cml::{
-	CmlId, CmlType, DefrostScheduleType, Error as CmlError, GenesisMinerCreditStore, Seed, CML,
-};
+use pallet_cml::{CmlId, CmlType, DefrostScheduleType, Error as CmlError, Seed, CML};
 
 #[test]
 fn apply_loan_genesis_bank_works() {
@@ -189,27 +187,6 @@ fn apply_loan_should_fail_if_cml_is_not_genesis_seed() {
 }
 
 #[test]
-fn apply_loan_should_fail_if_cml_can_not_be_transfer() {
-	new_test_ext().execute_with(|| {
-		let user = 1;
-		let cml_id: CmlId = 4;
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
-		Cml::add_cml(&user, cml);
-
-		GenesisMinerCreditStore::<Test>::insert(user, cml_id, 100);
-
-		assert_noop!(
-			GenesisBank::apply_loan_genesis_bank(
-				Origin::signed(user),
-				from_cml_id(cml_id),
-				AssetType::CML
-			),
-			CmlError::<Test>::OperationForbiddenWithCredit
-		);
-	})
-}
-
-#[test]
 fn payoff_loan_works() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
@@ -345,31 +322,6 @@ fn payoff_loan_should_fail_if_have_not_enough_balance() {
 		assert_noop!(
 			GenesisBank::payoff_loan(Origin::signed(user), from_cml_id(cml_id), AssetType::CML),
 			Error::<Test>::InsufficientRepayBalance
-		);
-	})
-}
-
-#[test]
-fn payoff_loan_should_fail_if_cannot_transfer_cml() {
-	new_test_ext().execute_with(|| {
-		let user = 1;
-		let cml_id: CmlId = 4;
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
-		Cml::add_cml(&user, cml);
-
-		assert_ok!(GenesisBank::apply_loan_genesis_bank(
-			Origin::signed(user),
-			from_cml_id(cml_id),
-			AssetType::CML
-		));
-		<Test as Config>::Currency::make_free_balance_be(&user, GENESIS_CML_LOAN_AMOUNT * 2);
-
-		// should never happen, add credit here just reproduce the error
-		GenesisMinerCreditStore::<Test>::insert(OperationAccount::<Test>::get(), cml_id, 100);
-
-		assert_noop!(
-			GenesisBank::payoff_loan(Origin::signed(user), from_cml_id(cml_id), AssetType::CML),
-			CmlError::<Test>::OperationForbiddenWithCredit
 		);
 	})
 }

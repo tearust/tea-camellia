@@ -1,11 +1,9 @@
 use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::tests::{new_genesis_frozen_seed, new_genesis_seed, seed_from_lifespan};
 use crate::{
-	mock::*, types::*, CmlStore, Config, Error, GenesisMinerCreditStore, MinerItemStore,
-	MiningCmlTaskPoints, UserCmlStore,
+	mock::*, types::*, CmlStore, Config, Error, MinerItemStore, MiningCmlTaskPoints, UserCmlStore,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
-use node_primitives::Balance;
 use pallet_utils::CurrencyOperations;
 
 #[test]
@@ -37,9 +35,6 @@ fn start_mining_with_frozen_seed_works() {
 		assert_eq!(cml.staking_slots()[0].amount, Some(STAKING_PRICE));
 		assert_eq!(cml.staking_slots()[0].owner, user_id);
 
-		assert!(!GenesisMinerCreditStore::<Test>::contains_key(
-			&user_id, cml_id
-		));
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user_id),
 			amount - STAKING_PRICE
@@ -52,7 +47,7 @@ fn start_mining_with_frozen_seed_works() {
 }
 
 #[test]
-fn start_mining_works_with_insufficient_balance() {
+fn start_mining_should_fail_with_insufficient_balance() {
 	new_test_ext().execute_with(|| {
 		let user_id = 1;
 		let amount = STAKING_PRICE - 1;
@@ -64,71 +59,21 @@ fn start_mining_works_with_insufficient_balance() {
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
-		assert_ok!(Cml::start_mining(
-			Origin::signed(user_id),
-			cml_id,
-			machine_id,
-			b"miner_ip".to_vec()
-		));
-
-		// if free balance is not enough, will let all staking needed price be debt, with free
-		// balance left as it is.
-		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(&user_id, cml_id),
-			STAKING_PRICE
+		assert_noop!(
+			Cml::start_mining(
+				Origin::signed(user_id),
+				cml_id,
+				machine_id,
+				b"miner_ip".to_vec()
+			),
+			Error::<Test>::InsufficientFreeBalance
 		);
+		assert!(!CmlStore::<Test>::get(cml_id).is_mining());
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user_id),
 			STAKING_PRICE - 1
 		);
 		assert_eq!(<Test as Config>::Currency::reserved_balance(&user_id), 0);
-	})
-}
-
-#[test]
-fn start_mining_of_multipile_cml_works_with_insufficient_balance() {
-	new_test_ext().execute_with(|| {
-		let user_id = 1;
-		<Test as Config>::Currency::make_free_balance_be(&user_id, 0);
-
-		let cml_id1: CmlId = 4;
-		UserCmlStore::<Test>::insert(user_id, cml_id1, ());
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100));
-		CmlStore::<Test>::insert(cml_id1, cml);
-
-		let cml_id2: CmlId = 5;
-		UserCmlStore::<Test>::insert(user_id, cml_id2, ());
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100));
-		CmlStore::<Test>::insert(cml_id2, cml);
-
-		let machine_id1: MachineId = [1u8; 32];
-		assert_ok!(Cml::start_mining(
-			Origin::signed(user_id),
-			cml_id1,
-			machine_id1,
-			b"miner_ip".to_vec()
-		));
-		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(&user_id, cml_id1),
-			STAKING_PRICE
-		);
-
-		let machine_id2: MachineId = [2u8; 32];
-		assert_ok!(Cml::start_mining(
-			Origin::signed(user_id),
-			cml_id2,
-			machine_id2,
-			b"miner_ip2".to_vec()
-		));
-		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(&user_id, cml_id2),
-			STAKING_PRICE
-		);
-
-		assert_eq!(
-			GenesisMinerCreditStore::<Test>::iter_prefix_values(&user_id).sum::<Balance>(),
-			STAKING_PRICE * 2
-		);
 	})
 }
 
@@ -392,6 +337,7 @@ fn stop_mining_works() {
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
+		<Test as Config>::Currency::make_free_balance_be(&1, STAKING_PRICE);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml_id,
@@ -562,88 +508,11 @@ fn stop_mining_works_with_cml_staking() {
 }
 
 #[test]
-fn stop_mining_works_if_genesis_miner_have_credit() {
-	new_test_ext().execute_with(|| {
-		let miner = 1;
-		let user1 = 2;
-		let user2 = 3;
-		let amount = 100 * 1000;
-		<Test as Config>::Currency::make_free_balance_be(&miner, STOP_MINING_PUNISHMENT * 2);
-		<Test as Config>::Currency::make_free_balance_be(&user1, amount);
-		<Test as Config>::Currency::make_free_balance_be(&user2, amount);
-
-		let cml_id: CmlId = 4;
-		UserCmlStore::<Test>::insert(miner, cml_id, ());
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
-		CmlStore::<Test>::insert(cml_id, cml);
-
-		let machine_id: MachineId = [1u8; 32];
-		assert_ok!(Cml::start_mining(
-			Origin::signed(miner),
-			cml_id,
-			machine_id,
-			b"miner_ip".to_vec()
-		));
-		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(miner, cml_id),
-			STAKING_PRICE
-		);
-
-		assert_ok!(Cml::start_staking(
-			Origin::signed(user1),
-			cml_id,
-			None,
-			None
-		));
-		assert_ok!(Cml::start_staking(
-			Origin::signed(user2),
-			cml_id,
-			None,
-			None
-		));
-
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&miner),
-			STOP_MINING_PUNISHMENT * 2
-		);
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&user1),
-			amount - STAKING_PRICE
-		);
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&user2),
-			amount - STAKING_PRICE
-		);
-
-		// assume has payoff 4/5 of the balance
-		GenesisMinerCreditStore::<Test>::mutate(miner, cml_id, |balance| *balance = *balance / 5);
-		<Test as Config>::Currency::make_free_balance_be(
-			&miner,
-			STAKING_PRICE * 4 / 5 + STOP_MINING_PUNISHMENT * 2,
-		);
-		assert_ok!(Utils::reserve(&miner, STAKING_PRICE * 4 / 5));
-		assert_ok!(Cml::stop_mining(Origin::signed(1), cml_id, machine_id));
-
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&miner),
-			STAKING_PRICE * 4 / 5
-		);
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&user1),
-			amount + STOP_MINING_PUNISHMENT
-		);
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&user2),
-			amount + STOP_MINING_PUNISHMENT
-		);
-	})
-}
-
-#[test]
 fn stop_mining_works_if_only_miner_stakes() {
 	new_test_ext().execute_with(|| {
 		let miner = 1;
-		<Test as Config>::Currency::make_free_balance_be(&miner, 0);
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
 
 		let cml_id: CmlId = 4;
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
@@ -657,10 +526,6 @@ fn stop_mining_works_if_only_miner_stakes() {
 			machine_id,
 			b"miner_ip".to_vec()
 		));
-		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(miner, cml_id),
-			STAKING_PRICE
-		);
 
 		<Test as Config>::Currency::make_free_balance_be(&miner, STAKING_PRICE * 2);
 		assert_ok!(Cml::start_staking(
@@ -676,12 +541,12 @@ fn stop_mining_works_if_only_miner_stakes() {
 			None
 		));
 		assert_eq!(<Test as Config>::Currency::free_balance(&miner), 0);
-		assert_eq!(Utils::reserved_balance(&miner), STAKING_PRICE * 2);
+		assert_eq!(Utils::reserved_balance(&miner), STAKING_PRICE * 3);
 
 		assert_ok!(Cml::stop_mining(Origin::signed(miner), cml_id, machine_id));
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&miner),
-			STAKING_PRICE * 2
+			STAKING_PRICE * 3
 		);
 		assert_eq!(Utils::reserved_balance(&miner), 0);
 	})
@@ -694,7 +559,7 @@ fn stop_mining_should_fail_if_miner_free_balance_is_not_enoungh_pay_for_stakers(
 		let user1 = 2;
 		let user2 = 3;
 		let amount = 100 * 1000;
-		<Test as Config>::Currency::make_free_balance_be(&miner, 0);
+		<Test as Config>::Currency::make_free_balance_be(&miner, STAKING_PRICE);
 		<Test as Config>::Currency::make_free_balance_be(&user1, amount);
 		<Test as Config>::Currency::make_free_balance_be(&user2, amount);
 
@@ -710,10 +575,6 @@ fn stop_mining_should_fail_if_miner_free_balance_is_not_enoungh_pay_for_stakers(
 			machine_id,
 			b"miner_ip".to_vec()
 		));
-		assert_eq!(
-			GenesisMinerCreditStore::<Test>::get(miner, cml_id),
-			STAKING_PRICE
-		);
 
 		assert_ok!(Cml::start_staking(
 			Origin::signed(user1),
@@ -752,6 +613,7 @@ fn stop_mining_should_fail_if_cml_not_belongs_to_user() {
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
+		<Test as Config>::Currency::make_free_balance_be(&user1, STAKING_PRICE);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(user1),
 			cml_id,

@@ -19,9 +19,6 @@ pub trait CmlApi<BlockHash, AccountId> {
 	#[rpc(name = "cml_userCmlList")]
 	fn user_cml_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
 
-	#[rpc(name = "cml_userCreditList")]
-	fn user_credit_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<(u64, Price)>>;
-
 	#[rpc(name = "cml_userStakingList")]
 	fn user_staking_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<(u64, u64)>>;
 
@@ -84,22 +81,6 @@ where
 			.user_cml_list(&at, &who)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
-	}
-
-	fn user_credit_list(
-		&self,
-		who: AccountId,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<(u64, Price)>> {
-		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
-
-		let result: Vec<(u64, Balance)> = api
-			.user_credit_list(&at, &who)
-			.map_err(runtime_error_into_rpc_err)?;
-		Ok(result.iter().map(|(id, v)| (*id, Price(*v))).collect())
 	}
 
 	fn user_staking_list(

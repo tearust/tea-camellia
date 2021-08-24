@@ -106,14 +106,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 			}
 
 			// unstake the first slot
-			let unstake_amount = if GenesisMinerCreditStore::<T>::contains_key(who, cml_id) {
-				let cml_credit = GenesisMinerCreditStore::<T>::take(who, cml_id);
-				T::StakingPrice::get().saturating_sub(cml_credit)
-			} else {
-				T::StakingPrice::get()
-			};
-			Self::unstake(who, cml, 0, unstake_amount);
-
+			Self::unstake(who, cml, 0, T::StakingPrice::get());
 			cml.stop_mining();
 		});
 		MinerItemStore::<T>::remove(machine_id);
@@ -499,7 +492,7 @@ mod tests {
 		InvestorCouponStore, LastCmlId, LuckyDrawBox, MinerItemStore, Seed, SeedProperties,
 		StakingProperties, TeamCouponStore, TreeProperties, UserCmlStore, CML,
 	};
-	use frame_support::assert_ok;
+	use frame_support::{assert_ok, traits::Currency};
 	use rand::{thread_rng, Rng};
 
 	#[test]
@@ -1064,6 +1057,7 @@ mod tests {
 				CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100, DefrostScheduleType::Team));
 			cml1.set_owner(&user1);
 			CmlStore::<Test>::insert(cml1_id, cml1);
+			<Test as crate::Config>::Currency::make_free_balance_be(&user1, STAKING_PRICE);
 			assert_ok!(Cml::start_mining(
 				Origin::signed(user1),
 				cml1_id,
@@ -1076,6 +1070,7 @@ mod tests {
 				CML::from_genesis_seed(seed_from_lifespan(cml2_id, 200, DefrostScheduleType::Team));
 			cml2.set_owner(&user2);
 			CmlStore::<Test>::insert(cml2_id, cml2);
+			<Test as crate::Config>::Currency::make_free_balance_be(&user2, STAKING_PRICE);
 			assert_ok!(Cml::start_mining(
 				Origin::signed(user2),
 				cml2_id,
@@ -1134,6 +1129,7 @@ mod tests {
 				CML::from_genesis_seed(seed_from_lifespan(cml3_id, 300, DefrostScheduleType::Team));
 			cml3.set_owner(&user3);
 			CmlStore::<Test>::insert(cml3_id, cml3);
+			<Test as crate::Config>::Currency::make_free_balance_be(&user3, STAKING_PRICE);
 			assert_ok!(Cml::start_mining(
 				Origin::signed(user3),
 				cml3_id,
