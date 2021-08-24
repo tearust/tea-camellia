@@ -76,6 +76,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	/// - Total supply
 	/// - Token buy price
 	/// - Token sell price
+	/// - Owner
 	/// - Detail
 	/// - Link
 	pub fn list_tapps() -> Vec<(
@@ -85,6 +86,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		BalanceOf<T>,
 		BalanceOf<T>,
 		BalanceOf<T>,
+		T::AccountId,
 		Vec<u8>,
 		Vec<u8>,
 	)> {
@@ -100,6 +102,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 					total_supply,
 					buy_price,
 					sell_price,
+					item.owner,
 					item.detail,
 					item.link,
 				)
@@ -113,6 +116,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	/// - TApp Ticker
 	/// - User holding tokens
 	/// - Token sell price
+	/// - Owner
 	/// - Detail
 	/// - Link
 	pub fn list_user_assets(
@@ -123,6 +127,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		Vec<u8>,
 		BalanceOf<T>,
 		BalanceOf<T>,
+		T::AccountId,
 		Vec<u8>,
 		Vec<u8>,
 	)> {
@@ -137,6 +142,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 					item.ticker,
 					amount,
 					sell_price,
+					item.owner,
 					item.detail,
 					item.link,
 				)

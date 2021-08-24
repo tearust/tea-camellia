@@ -28,6 +28,7 @@ sp_api::decl_runtime_apis! {
 		/// - Total supply
 		/// - Token buy price
 		/// - Token sell price
+		/// - Owner
 		/// - Detail
 		/// - Link
 		fn list_tapps() -> Vec<(
@@ -37,16 +38,27 @@ sp_api::decl_runtime_apis! {
 			Balance,
 			Balance,
 			Balance,
+			AccountId,
 			Vec<u8>,
 			Vec<u8>,
 		)>;
 
+		/// Returned item fields:
+		/// - TApp Name
+		/// - TApp Id
+		/// - TApp Ticker
+		/// - User holding tokens
+		/// - Token sell price
+		/// - Owner
+		/// - Detail
+		/// - Link
 		fn list_user_assets(who: AccountId) -> Vec<(
 			Vec<u8>,
 			u64,
 			Vec<u8>,
 			Balance,
 			Balance,
+			AccountId,
 			Vec<u8>,
 			Vec<u8>,
 		)>;

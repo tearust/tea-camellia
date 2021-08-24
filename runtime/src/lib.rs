@@ -1266,6 +1266,7 @@ impl_runtime_apis! {
 			Balance,
 			Balance,
 			Balance,
+			AccountId,
 			Vec<u8>,
 			Vec<u8>,
 		)> {
@@ -1278,6 +1279,7 @@ impl_runtime_apis! {
 			Vec<u8>,
 			Balance,
 			Balance,
+			AccountId,
 			Vec<u8>,
 			Vec<u8>,
 		)> {
