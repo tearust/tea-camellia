@@ -27,6 +27,7 @@ use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get},
 };
 use frame_system::pallet_prelude::*;
+use genesis_exchange_interface::MiningOperation;
 use pallet_utils::{
 	extrinsic_procedure, extrinsic_procedure_with_weight, CommonUtils, CurrencyOperations,
 };
@@ -76,6 +77,8 @@ pub mod cml {
 
 		/// Operations to calculate staking rewards.
 		type StakingEconomics: StakingEconomics<BalanceOf<Self>, Self::AccountId>;
+
+		type MiningOperation: MiningOperation<AccountId = Self::AccountId>;
 
 		/// Weight definition about all user related extrinsics.
 		type WeightInfo: WeightInfo;
@@ -514,6 +517,9 @@ pub mod cml {
 			extrinsic_procedure(
 				&sender,
 				|sender| {
+					// check if miner is ready to prepare a mining machine.
+					T::MiningOperation::check_buying_mining_machine(sender, cml_id)?;
+
 					Self::check_belongs(&cml_id, &sender)?;
 					ensure!(
 						!<MinerItemStore<T>>::contains_key(&machine_id),
@@ -529,6 +535,9 @@ pub mod cml {
 					Ok(())
 				},
 				|sender| {
+					// Prepare the mining machine at first.
+					T::MiningOperation::buy_mining_machine(sender, cml_id);
+
 					let ip = miner_ip.clone();
 					CmlStore::<T>::mutate(cml_id, |cml| {
 						let staking_item = if cml.is_from_genesis() {

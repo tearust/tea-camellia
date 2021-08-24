@@ -197,6 +197,10 @@ where
 		self.intrinsic.id
 	}
 
+	fn cml_type(&self) -> CmlType {
+		self.intrinsic.cml_type
+	}
+
 	fn lifespan(&self) -> BlockNumber {
 		self.intrinsic.lifespan.into()
 	}

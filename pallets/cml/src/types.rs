@@ -21,6 +21,8 @@ pub trait SeedProperties<BlockNumber> {
 	/// CML identity.
 	fn id(&self) -> CmlId;
 
+	fn cml_type(&self) -> CmlType;
+
 	fn lifespan(&self) -> BlockNumber;
 
 	/// Return `true` if CML is frozen seed or fresh seed, or `false` otherwise.

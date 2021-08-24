@@ -1096,6 +1096,7 @@ dependencies = [
  "env_logger 0.8.4",
  "frame-support",
  "frame-system",
+ "genesis-exchange-interface",
  "log",
  "node-primitives",
  "pallet-balances",
@@ -2341,6 +2342,15 @@ dependencies = [
  "node-primitives",
  "parity-scale-codec",
  "sp-api",
+ "sp-std",
+]
+
+[[package]]
+name = "genesis-exchange-interface"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "sp-runtime",
  "sp-std",
 ]
 
@@ -4398,6 +4408,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "genesis-exchange-interface",
  "log",
  "node-primitives",
  "pallet-balances",
@@ -4515,6 +4526,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "genesis-bank-interface",
+ "genesis-exchange-interface",
  "hex",
  "hex-literal",
  "log",

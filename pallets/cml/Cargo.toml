@@ -26,6 +26,7 @@ frame-system = { version = "3.0.0", default-features = false, git = 'https://git
 frame-benchmarking = { version = "3.1.0", default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
+genesis-exchange-interface = { path = "../genesis-exchange/interface", default-features = false }
 
 # optional, used in std
 rand = { version = "0.8.4", optional = true }
@@ -49,6 +50,7 @@ std = [
 	"frame-benchmarking/std",
 	"node-primitives/std",
 	"pallet-utils/std",
+	"genesis-exchange-interface/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",

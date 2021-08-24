@@ -31,6 +31,7 @@ frame-benchmarking = {default-features = false, optional = true, version = '3.1.
 hex = {default-features = false, optional = true, version = '0.4.3'}
 
 genesis-bank-interface = { path = "../genesis-bank/interface", default-features = false }
+genesis-exchange-interface = { path = "./interface", default-features = false }
 pallet-cml = { path = "../cml", version="3.0.0", default-features = false }
 pallet-genesis-bank = { path = "../genesis-bank", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
@@ -63,5 +64,6 @@ std = [
 	'pallet-utils/std',
 	'pallet-genesis-bank/std',
 	'genesis-bank-interface/std',
+	'genesis-exchange-interface/std',
 ]
 try-runtime = ['frame-support/try-runtime']

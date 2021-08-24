@@ -22,6 +22,7 @@ members = [
 
 	'pallets/genesis-exchange/runtime-api',
 	'pallets/genesis-exchange/rpc',
+	'pallets/genesis-exchange/interface',
 
 	'pallets/bounding-curve/runtime-api',
 	'pallets/bounding-curve/rpc',

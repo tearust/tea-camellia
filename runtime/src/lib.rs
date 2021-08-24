@@ -819,6 +819,7 @@ impl pallet_cml::Config for Runtime {
 	type SeedFreshDuration = SeedFreshDuration;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
+	type MiningOperation = GenesisExchange;
 	type StakingEconomics = staking_economics::TeaStakingEconomics;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
@@ -857,6 +858,9 @@ impl pallet_genesis_bank::Config for Runtime {
 parameter_types! {
 	pub const PER: Balance = 7;
 	pub const InterestPeriodLength: BlockNumber = 100;
+	pub const CmlAMiningMachineCost: Balance = 2000 * DOLLARS;
+	pub const CmlBMiningMachineCost: Balance = 1000 * DOLLARS;
+	pub const CmlCMiningMachineCost: Balance = 500 * DOLLARS;
 }
 
 impl pallet_genesis_exchange::Config for Runtime {
@@ -867,6 +871,9 @@ impl pallet_genesis_exchange::Config for Runtime {
 	type GenesisBankOperation = GenesisBank;
 	type PER = PER;
 	type InterestPeriodLength = InterestPeriodLength;
+	type CmlAMiningMachineCost = CmlAMiningMachineCost;
+	type CmlBMiningMachineCost = CmlBMiningMachineCost;
+	type CmlCMiningMachineCost = CmlCMiningMachineCost;
 }
 
 parameter_types! {

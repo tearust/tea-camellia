@@ -106,6 +106,7 @@ impl pallet_cml::Config for Test {
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
+	type MiningOperation = GenesisExchange;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type StopMiningPunishment = StopMiningPunishment;
 	type WeightInfo = ();
@@ -145,10 +146,16 @@ impl pallet_auction::Config for Test {
 
 pub const PER_RATE: Balance = 5;
 pub const INTEREST_PERIOD_LENGTH: BlockNumber = 1000;
+pub const CML_A_MINING_MACHINE_COST: Balance = 2000;
+pub const CML_B_MINING_MACHINE_COST: Balance = 1000;
+pub const CML_C_MINING_MACHINE_COST: Balance = 500;
 
 parameter_types! {
 	pub const PER: Balance = PER_RATE;
 	pub const InterestPeriodLength: BlockNumber = INTEREST_PERIOD_LENGTH;
+	pub const CmlAMiningMachineCost: Balance = CML_A_MINING_MACHINE_COST;
+	pub const CmlBMiningMachineCost: Balance = CML_B_MINING_MACHINE_COST;
+	pub const CmlCMiningMachineCost: Balance = CML_C_MINING_MACHINE_COST;
 }
 
 impl pallet_genesis_exchange::Config for Test {
@@ -159,6 +166,9 @@ impl pallet_genesis_exchange::Config for Test {
 	type PER = PER;
 	type GenesisBankOperation = GenesisBank;
 	type InterestPeriodLength = InterestPeriodLength;
+	type CmlAMiningMachineCost = CmlAMiningMachineCost;
+	type CmlBMiningMachineCost = CmlBMiningMachineCost;
+	type CmlCMiningMachineCost = CmlCMiningMachineCost;
 }
 
 parameter_types! {

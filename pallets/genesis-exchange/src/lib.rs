@@ -12,6 +12,7 @@ mod mock;
 mod tests;
 
 mod functions;
+mod mining;
 mod rpc;
 
 use frame_support::{
@@ -20,6 +21,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use genesis_bank_interface::GenesisBankOperation;
+use genesis_exchange_interface::MiningOperation;
 use log::error;
 use pallet_cml::CmlOperation;
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
@@ -66,6 +68,15 @@ pub mod genesis_exchange {
 		/// Length of a USD interest calculation.
 		#[pallet::constant]
 		type InterestPeriodLength: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type CmlAMiningMachineCost: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type CmlBMiningMachineCost: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type CmlCMiningMachineCost: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -171,6 +182,7 @@ pub mod genesis_exchange {
 		/// USD interest rate should larger than competitions count, otherwise the rate of each one
 		/// will be zero.
 		USDInterestRateShouldLargerThanCompetitionsCount,
+		InsufficientUSDToPayMiningMachineCost,
 	}
 
 	#[pallet::hooks]
