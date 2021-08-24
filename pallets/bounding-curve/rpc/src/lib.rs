@@ -138,7 +138,7 @@ where
 	Block: BlockT,
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
 	C::Api: bounding_curve_runtime_api::BoundingCurveApi<Block, AccountId>,
-	AccountId: Codec,
+	AccountId: Codec + Clone,
 {
 	fn query_price(
 		&self,
