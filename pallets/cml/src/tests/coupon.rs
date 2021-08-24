@@ -1,9 +1,11 @@
-use crate::{mock::*, types::*, Error, InvestorCouponStore, TeamCouponStore};
+use crate::{mock::*, types::*, EnableTransferCoupon, Error, InvestorCouponStore, TeamCouponStore};
 use frame_support::{assert_noop, assert_ok};
 
 #[test]
 fn transfer_coupon_works() {
 	new_test_ext().execute_with(|| {
+		EnableTransferCoupon::<Test>::set(true);
+
 		TeamCouponStore::<Test>::insert(1, CmlType::A, new_coupon(10, CmlType::A));
 		TeamCouponStore::<Test>::insert(2, CmlType::A, new_coupon(10, CmlType::A));
 		TeamCouponStore::<Test>::insert(1, CmlType::B, new_coupon(10, CmlType::B));
@@ -65,6 +67,7 @@ fn transfer_coupon_works() {
 #[test]
 fn transfer_coupon_to_not_exist_account_works() {
 	new_test_ext().execute_with(|| {
+		EnableTransferCoupon::<Test>::set(true);
 		InvestorCouponStore::<Test>::insert(1, CmlType::A, new_coupon(10, CmlType::A));
 
 		assert!(InvestorCouponStore::<Test>::get(2, CmlType::A).is_none());
@@ -92,8 +95,27 @@ fn transfer_coupon_to_not_exist_account_works() {
 }
 
 #[test]
+fn transfer_coupon_should_fail_if_enable_transfer_coupon_is_false() {
+	new_test_ext().execute_with(|| {
+		EnableTransferCoupon::<Test>::set(false);
+		InvestorCouponStore::<Test>::insert(1, CmlType::A, new_coupon(10, CmlType::A));
+		assert_noop!(
+			Cml::transfer_coupon(
+				Origin::signed(1),
+				2,
+				CmlType::A,
+				DefrostScheduleType::Investor,
+				3
+			),
+			Error::<Test>::ForbiddenTransferCoupon
+		);
+	})
+}
+
+#[test]
 fn transfer_coupon_when_timeout_should_fail() {
 	new_test_ext().execute_with(|| {
+		EnableTransferCoupon::<Test>::set(true);
 		frame_system::Pallet::<Test>::set_block_number(SEEDS_TIMEOUT_HEIGHT as u64 + 1);
 
 		InvestorCouponStore::<Test>::insert(1, CmlType::A, new_coupon(10, CmlType::A));
@@ -113,6 +135,7 @@ fn transfer_coupon_when_timeout_should_fail() {
 #[test]
 fn transfer_coupon_with_insufficient_amount_should_fail() {
 	new_test_ext().execute_with(|| {
+		EnableTransferCoupon::<Test>::set(true);
 		TeamCouponStore::<Test>::insert(1, CmlType::A, new_coupon(10, CmlType::A));
 
 		assert_noop!(
@@ -131,6 +154,7 @@ fn transfer_coupon_with_insufficient_amount_should_fail() {
 #[test]
 fn transfer_coupon_from_not_existing_account_should_fail() {
 	new_test_ext().execute_with(|| {
+		EnableTransferCoupon::<Test>::set(true);
 		assert_noop!(
 			Cml::transfer_coupon(
 				Origin::signed(1),
@@ -147,6 +171,7 @@ fn transfer_coupon_from_not_existing_account_should_fail() {
 #[test]
 fn transfer_coupon_to_cause_to_amount_overflow() {
 	new_test_ext().execute_with(|| {
+		EnableTransferCoupon::<Test>::set(true);
 		TeamCouponStore::<Test>::insert(1, CmlType::A, new_coupon(10, CmlType::A));
 		TeamCouponStore::<Test>::insert(2, CmlType::A, new_coupon(u32::MAX, CmlType::A));
 

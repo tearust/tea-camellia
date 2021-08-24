@@ -1,7 +1,7 @@
 use crate::tests::coupon::new_coupon;
 use crate::{
-	mock::*, types::*, Error, Event as CmlEvent, InvestorCouponStore, LuckyDrawBox, TeamCouponStore,
-	UserCmlStore,
+	mock::*, types::*, EnableTransferCoupon, Error, Event as CmlEvent, InvestorCouponStore,
+	LuckyDrawBox, TeamCouponStore, UserCmlStore,
 };
 use frame_support::{assert_noop, assert_ok};
 
@@ -41,6 +41,7 @@ fn draw_cmls_from_coupon_works() {
 fn draw_cmls_works_the_second_time_if_get_coupon_again() {
 	new_test_ext().execute_with(|| {
 		frame_system::Pallet::<Test>::set_block_number(100);
+		EnableTransferCoupon::<Test>::set(true);
 
 		let origin_a_box: Vec<u64> = (1..=10).collect();
 		let origin_b_box: Vec<u64> = (11..=20).collect();

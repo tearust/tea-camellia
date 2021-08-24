@@ -166,8 +166,14 @@ pub mod cml {
 
 	/// Staking rewards of all participating staking users.
 	#[pallet::storage]
+	#[pallet::getter(fn account_rewards)]
 	pub type AccountRewards<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+	/// Simple transfer coupon switch that can changed by sudo user.
+	#[pallet::storage]
+	#[pallet::getter(fn enable_transfer_coupon)]
+	pub type EnableTransferCoupon<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -186,6 +192,9 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			// disable transfer coupon by default
+			EnableTransferCoupon::<T>::set(false);
+
 			crate::functions::init_from_genesis_coupons::<T>(&self.genesis_coupons);
 			crate::functions::init_from_genesis_seeds::<T>(&self.genesis_seeds);
 		}
@@ -220,6 +229,8 @@ pub mod cml {
 		NotEnoughCoupon,
 		/// User transfer the coupons amount is over than he really has.
 		InvalidCouponAmount,
+		/// It's forbidden to transfer coupon.
+		ForbiddenTransferCoupon,
 
 		/// There is not enough draw seeds left in luck draw box (this error indicate the genesis draw seeds count
 		/// and coupons amount not matched).
@@ -348,6 +359,20 @@ pub mod cml {
 			)
 		}
 
+		/// turn on or turn off transfer coupon operation.
+		#[pallet::weight(195_000_000)]
+		pub fn set_transfer_coupon(sender: OriginFor<T>, enable: bool) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					EnableTransferCoupon::<T>::set(enable);
+				},
+			)
+		}
+
 		/// Transfer coupon from `sender` to `target`.
 		#[pallet::weight(T::WeightInfo::transfer_coupon())]
 		pub fn transfer_coupon(
@@ -370,6 +395,10 @@ pub mod cml {
 			extrinsic_procedure(
 				&sender,
 				|_| {
+					ensure!(
+						EnableTransferCoupon::<T>::get(),
+						Error::<T>::ForbiddenTransferCoupon
+					);
 					ensure!(
 						!Self::is_coupon_outdated(frame_system::Pallet::<T>::block_number()),
 						Error::<T>::CouponsHasOutdated
