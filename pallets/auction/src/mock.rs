@@ -1,6 +1,7 @@
 use crate as pallet_auction;
 use frame_support::parameter_types;
 use frame_system as system;
+use genesis_exchange_interface::MiningOperation;
 use node_primitives::{Balance, BlockNumber};
 use sp_core::H256;
 use sp_runtime::{
@@ -10,6 +11,26 @@ use sp_runtime::{
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+pub struct MiningOperationMock {}
+
+impl Default for MiningOperationMock {
+	fn default() -> Self {
+		MiningOperationMock {}
+	}
+}
+
+impl MiningOperation for MiningOperationMock {
+	type AccountId = u64;
+
+	fn check_buying_mining_machine(
+		_who: &Self::AccountId,
+		_cml_id: u64,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+
+	fn buy_mining_machine(_who: &Self::AccountId, _cml_id: u64) {}
+}
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -82,6 +103,7 @@ impl pallet_cml::Config for Test {
 	type StakingEconomics = Cml;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type StopMiningPunishment = StopMiningPunishment;
+	type MiningOperation = MiningOperationMock;
 	type WeightInfo = ();
 }
 
