@@ -42,12 +42,13 @@ pub trait GenesisExchangeApi<BlockHash, AccountId> {
 	/// 3. TEA Account balance (in USD)
 	/// 4. USD account balance
 	/// 5. genesis loan
-	/// 6. Total account value
+	/// 6. USD debt
+	/// 7. Total account value
 	#[rpc(name = "cml_userAssetList")]
 	fn user_asset_list(
 		&self,
 		at: Option<BlockHash>,
-	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price)>>;
+	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price)>>;
 }
 
 pub struct GenesisExchangeApiImpl<C, M> {
@@ -127,30 +128,38 @@ where
 	/// 2. Projected  7 day mining income (USD)
 	/// 3. TEA Account balance (in USD)
 	/// 4. USD account balance
-	/// 5. Genesis stake debt
-	/// 6. genesis loan
+	/// 5. genesis loan
+	/// 6. USD debt
 	/// 7. Total account value
 	fn user_asset_list(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price)>> {
+	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let result: Vec<(AccountId, Balance, Balance, Balance, Balance, Balance)> = api
-			.user_asset_list(&at)
+		let result: Vec<(
+			AccountId,
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+		)> = api.user_asset_list(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result
 			.iter()
-			.map(|(account_id, cml, tea, usd, loan, total)| {
+			.map(|(account_id, cml, tea, usd, loan, usd_debt, total)| {
 				(
 					account_id.clone(),
 					Price(*cml),
 					Price(*tea),
 					Price(*usd),
 					Price(*loan),
+					Price(*usd_debt),
 					Price(*total),
 				)
 			})

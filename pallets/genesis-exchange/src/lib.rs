@@ -108,6 +108,11 @@ pub mod genesis_exchange {
 	pub type CompetitionUsers<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, (), ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn usd_debt)]
+	pub type USDDebt<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub operation_account: T::AccountId,
@@ -183,6 +188,12 @@ pub mod genesis_exchange {
 		/// will be zero.
 		USDInterestRateShouldLargerThanCompetitionsCount,
 		InsufficientUSDToPayMiningMachineCost,
+		BorrowAmountShouldNotBeZero,
+		BorrowAmountHasOverflow,
+		InsufficientUSDToRepayDebts,
+		NoNeedToRepayUSDDebts,
+		RepayUSDAmountShouldNotBeZero,
+		RepayUSDAmountMoreThanDebtAmount,
 	}
 
 	#[pallet::hooks]
@@ -326,6 +337,84 @@ pub mod genesis_exchange {
 							&exchange_remains_usd,
 							&exchange_remains_tea,
 						)
+					}
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn borrow_usd(sender: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(!amount.is_zero(), Error::<T>::BorrowAmountShouldNotBeZero);
+					ensure!(
+						USDDebt::<T>::get(who).checked_add(&amount).is_some(),
+						Error::<T>::BorrowAmountHasOverflow
+					);
+					Ok(())
+				},
+				|who| {
+					USDDebt::<T>::mutate(who, |balance| {
+						*balance = balance.saturating_add(amount);
+					});
+				},
+			)
+		}
+
+		/// repay debts buy given specified amount, if `amount` is none will repay all debts by
+		/// default.
+		#[pallet::weight(195_000_000)]
+		pub fn repay_usd_debts(
+			sender: OriginFor<T>,
+			amount: Option<BalanceOf<T>>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					let repay_amount = match amount {
+						Some(amount) => amount,
+						None => USDDebt::<T>::get(who),
+					};
+					ensure!(
+						!USDDebt::<T>::get(who).is_zero(),
+						Error::<T>::NoNeedToRepayUSDDebts
+					);
+					ensure!(
+						!repay_amount.is_zero(),
+						Error::<T>::RepayUSDAmountShouldNotBeZero
+					);
+					ensure!(
+						repay_amount <= USDDebt::<T>::get(who),
+						Error::<T>::RepayUSDAmountMoreThanDebtAmount
+					);
+					ensure!(
+						USDStore::<T>::get(who) >= repay_amount,
+						Error::<T>::InsufficientUSDToRepayDebts
+					);
+					Ok(())
+				},
+				|who| {
+					USDDebt::<T>::mutate(who, |debt| {
+						let repay_amount = match amount {
+							Some(amount) => amount,
+							None => USDDebt::<T>::get(who),
+						};
+						*debt = debt.saturating_sub(repay_amount);
+						USDStore::<T>::mutate(who, |a| {
+							*a = a.saturating_sub(repay_amount);
+						});
+					});
+
+					if USDDebt::<T>::get(who).is_zero() {
+						USDDebt::<T>::remove(who);
+					}
+					if USDStore::<T>::get(who).is_zero() {
+						USDStore::<T>::remove(who);
 					}
 				},
 			)

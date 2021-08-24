@@ -120,9 +120,11 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	/// 3. TEA Account balance (in USD)
 	/// 4. USD account balance
 	/// 5. genesis loan
-	/// 6. Total account value
+	/// 6. USD debt
+	/// 7. Total account value
 	pub fn user_asset_list() -> Vec<(
 		T::AccountId,
+		BalanceOf<T>,
 		BalanceOf<T>,
 		BalanceOf<T>,
 		BalanceOf<T>,
@@ -134,6 +136,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let tea_assets = Self::collect_tea_assets();
 		let usd_assets = Self::collect_usd_assets();
 		let genesis_loan_credits = Self::collect_genesis_loan_credit();
+		let usd_debts = Self::collect_usd_debts();
 
 		let mut total_assets = Vec::new();
 		for (user, _) in CompetitionUsers::<T>::iter() {
@@ -141,17 +144,19 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			let tea = Self::amount_from_map(&user, &tea_assets);
 			let usd = Self::amount_from_map(&user, &usd_assets);
 			let loan_credit = Self::amount_from_map(&user, &genesis_loan_credits);
+			let usd_debt = Self::amount_from_map(&user, &usd_debts);
 			let mut total: BalanceOf<T> = Zero::zero();
 			total = total
 				.saturating_add(cml)
 				.saturating_add(tea)
 				.saturating_add(usd)
-				.saturating_sub(loan_credit);
+				.saturating_sub(loan_credit)
+				.saturating_sub(usd_debt);
 
-			total_assets.push((user.clone(), cml, tea, usd, loan_credit, total));
+			total_assets.push((user.clone(), cml, tea, usd, loan_credit, usd_debt, total));
 		}
 
-		total_assets.sort_by(|(_, _, _, _, _, a), (_, _, _, _, _, b)| a.cmp(b));
+		total_assets.sort_by(|(_, _, _, _, _, _, a), (_, _, _, _, _, _, b)| a.cmp(b));
 		total_assets.reverse();
 		total_assets
 	}
@@ -176,6 +181,15 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 					));
 			}
 			asset_usd_map.insert(user, credit_total * current_exchange_rate / one_tea_dollar);
+		});
+		asset_usd_map
+	}
+
+	fn collect_usd_debts() -> BTreeMap<T::AccountId, BalanceOf<T>> {
+		let mut asset_usd_map = BTreeMap::new();
+
+		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
+			asset_usd_map.insert(user.clone(), USDDebt::<T>::get(&user));
 		});
 		asset_usd_map
 	}
@@ -603,6 +617,7 @@ mod tests {
 					99,
 					COMPETITION_USER_USD_AMOUNT,
 					0,
+					0,
 					COMPETITION_USER_USD_AMOUNT + 99 + 14399640008
 				)
 			);
@@ -614,6 +629,7 @@ mod tests {
 					299,
 					COMPETITION_USER_USD_AMOUNT,
 					5027374315642,
+					0,
 					COMPETITION_USER_USD_AMOUNT + 299 + 7199820004 - 5027374315642
 				)
 			);
@@ -625,6 +641,7 @@ mod tests {
 					199,
 					COMPETITION_USER_USD_AMOUNT,
 					15082122946926,
+					0,
 					COMPETITION_USER_USD_AMOUNT + 199 + 7199820004 - 15082122946926
 				)
 			);

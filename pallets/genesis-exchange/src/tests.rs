@@ -489,3 +489,153 @@ fn sell_usd_to_tea_should_fail_if_user_do_not_have_enough_tea() {
 		);
 	})
 }
+
+#[test]
+fn borrow_usd_works() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		assert_eq!(USDDebt::<Test>::get(user), 0);
+
+		let debt = 1000;
+		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), debt));
+		assert_eq!(USDDebt::<Test>::get(user), debt);
+	})
+}
+
+#[test]
+fn borrow_usd_works_if_usd_store_is_not_zero() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		USDStore::<Test>::insert(user, 10000);
+		assert_eq!(USDDebt::<Test>::get(user), 0);
+
+		let debt = 1000;
+		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), debt));
+		assert_eq!(USDDebt::<Test>::get(user), debt);
+	})
+}
+
+#[test]
+fn borrow_usd_should_fail_if_borrow_amount_is_zero() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			GenesisExchange::borrow_usd(Origin::signed(1), 0),
+			Error::<Test>::BorrowAmountShouldNotBeZero
+		);
+	})
+}
+
+#[test]
+fn borrow_usd_should_fail_if_borrowed_amount_is_overflow() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		let debt = 1000;
+		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), debt));
+
+		assert_noop!(
+			GenesisExchange::borrow_usd(Origin::signed(user), u128::MAX),
+			Error::<Test>::BorrowAmountHasOverflow
+		);
+		assert_eq!(USDDebt::<Test>::get(user), debt);
+	})
+}
+
+#[test]
+fn repay_usd_debts_works() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		let debt = 1000;
+		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), debt));
+		assert_eq!(USDDebt::<Test>::get(user), debt);
+
+		let usd_amount = 10000;
+		USDStore::<Test>::insert(user, usd_amount);
+		assert_ok!(GenesisExchange::repay_usd_debts(
+			Origin::signed(user),
+			Some(100)
+		));
+		assert_eq!(USDDebt::<Test>::get(user), debt - 100);
+		assert_eq!(USDStore::<Test>::get(user), usd_amount - 100);
+	})
+}
+
+#[test]
+fn repay_usd_debts_works_if_pay_out_all_debts() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		let debt = 1000;
+		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), debt));
+		assert_eq!(USDDebt::<Test>::get(user), debt);
+
+		let usd_amount = 10000;
+		USDStore::<Test>::insert(user, usd_amount);
+		assert_ok!(GenesisExchange::repay_usd_debts(Origin::signed(user), None));
+		assert_eq!(USDDebt::<Test>::get(user), 0);
+		assert!(!USDDebt::<Test>::contains_key(user));
+		assert_eq!(USDStore::<Test>::get(user), usd_amount - debt);
+	})
+}
+
+#[test]
+fn repay_usd_debts_should_fail_if_user_debts_is_zero() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		let usd_amount = 10000;
+		USDStore::<Test>::insert(user, usd_amount);
+
+		USDDebt::<Test>::insert(user, 1000);
+		assert_noop!(
+			GenesisExchange::repay_usd_debts(Origin::signed(user), Some(0)),
+			Error::<Test>::RepayUSDAmountShouldNotBeZero
+		);
+	})
+}
+
+#[test]
+fn repay_usd_debts_should_fail_if_no_need_to_pay_usd_debts() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		assert_eq!(USDDebt::<Test>::get(user), 0);
+		assert_noop!(
+			GenesisExchange::repay_usd_debts(Origin::signed(user), None),
+			Error::<Test>::NoNeedToRepayUSDDebts
+		);
+	})
+}
+
+#[test]
+fn repay_usd_debts_should_fail_if_repay_amount_more_than_debts() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		let usd_amount = 10000;
+		USDStore::<Test>::insert(user, usd_amount);
+
+		USDDebt::<Test>::insert(user, 1000);
+		assert_noop!(
+			GenesisExchange::repay_usd_debts(Origin::signed(user), Some(2000)),
+			Error::<Test>::RepayUSDAmountMoreThanDebtAmount
+		);
+	})
+}
+
+#[test]
+fn repay_usd_debts_should_fail_if_usd_amount_less_than_repay_amount() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		let usd_amount = 100;
+		USDStore::<Test>::insert(user, usd_amount);
+
+		USDDebt::<Test>::insert(user, 1000);
+		assert_noop!(
+			GenesisExchange::repay_usd_debts(Origin::signed(user), Some(200)),
+			Error::<Test>::InsufficientUSDToRepayDebts
+		);
+	})
+}
