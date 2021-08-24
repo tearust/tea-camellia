@@ -3,10 +3,7 @@
 use bounding_curve_interface::BoundingCurveInterface;
 use sp_runtime::traits::{AtLeast32BitUnsigned, One, Zero};
 use sp_std::fmt::Debug;
-use sp_std::{convert::TryInto, marker::PhantomData};
-
-const CENTS: node_primitives::Balance = 10_000_000_000;
-const DOLLARS: node_primitives::Balance = 100 * CENTS;
+use sp_std::marker::PhantomData;
 
 pub mod linear;
 pub mod square_root;

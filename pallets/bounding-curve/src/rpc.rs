@@ -10,9 +10,9 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::buy_price(total_supply),
 		};
 		let sell_price = match tapp_item.sell_curve {
-			CurveType::UnsignedLinear => T::LinearCurve::sell_price(total_supply),
-			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::sell_price(total_supply),
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::sell_price(total_supply),
+			CurveType::UnsignedLinear => T::LinearCurve::buy_price(total_supply),
+			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::buy_price(total_supply),
+			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::buy_price(total_supply),
 		};
 		(buy_price, sell_price)
 	}
@@ -169,7 +169,7 @@ mod tests {
 			));
 			let (buy_price, sell_price) = BoundingCurve::query_price(1);
 			assert_eq!(buy_price, 10);
-			assert_eq!(sell_price, 142857142857142857142857);
+			assert_eq!(sell_price, 7);
 
 			assert_ok!(BoundingCurve::create_new_tapp(
 				Origin::signed(1),
@@ -181,7 +181,7 @@ mod tests {
 			));
 			let (buy_price, sell_price) = BoundingCurve::query_price(2);
 			assert_eq!(buy_price, 100);
-			assert_eq!(sell_price, 14285714285714285714285);
+			assert_eq!(sell_price, 70);
 		})
 	}
 }

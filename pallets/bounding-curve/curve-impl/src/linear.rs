@@ -11,33 +11,12 @@ where
 	phantom: PhantomData<Balance>,
 }
 
-impl<Balance, const A: u32> UnsignedLinearCurve<Balance, A>
-where
-	Balance: AtLeast32BitUnsigned + Default + Clone,
-{
-	fn unit_price() -> Balance {
-		Self::u128_to_balance(DOLLARS)
-	}
-
-	fn u128_to_balance(amount: u128) -> Balance {
-		amount.try_into().map_err(|_| "").unwrap()
-	}
-}
-
 impl<Balance, const A: u32> BoundingCurveInterface<Balance> for UnsignedLinearCurve<Balance, A>
 where
 	Balance: AtLeast32BitUnsigned + Default + Clone,
 {
 	fn buy_price(total_supply: Balance) -> Balance {
 		total_supply * A.into() / 100u32.into()
-	}
-
-	fn sell_price(total_supply: Balance) -> Balance {
-		let buy_price = Self::buy_price(total_supply);
-		if buy_price.is_zero() {
-			return Zero::zero();
-		}
-		Self::unit_price() * Self::unit_price() / buy_price
 	}
 
 	fn pool_balance(x: Balance) -> Balance {
@@ -64,6 +43,9 @@ where
 mod tests {
 	use super::*;
 	use node_primitives::Balance;
+
+	const CENTS: node_primitives::Balance = 10_000_000_000;
+	const DOLLARS: node_primitives::Balance = 100 * CENTS;
 
 	#[test]
 	fn pool_balance_works() {
@@ -96,24 +78,12 @@ mod tests {
 			0
 		);
 		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::sell_price(0),
-			0
-		);
-		assert_eq!(
 			<Linear_100 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			DOLLARS
-		);
-		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
 			DOLLARS
 		);
 		assert_eq!(
 			<Linear_100 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
 			DOLLARS * 100
-		);
-		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::sell_price(100 * DOLLARS),
-			DOLLARS / 100
 		);
 
 		#[allow(non_camel_case_types)]
@@ -123,23 +93,11 @@ mod tests {
 			0
 		);
 		assert_eq!(
-			<Linear_1 as BoundingCurveInterface<Balance>>::sell_price(0),
-			0
-		);
-		assert_eq!(
 			<Linear_1 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
 			DOLLARS / 100
 		);
 		assert_eq!(
-			<Linear_1 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
-			DOLLARS * 100
-		);
-		assert_eq!(
 			<Linear_1 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
-			DOLLARS
-		);
-		assert_eq!(
-			<Linear_1 as BoundingCurveInterface<Balance>>::sell_price(100 * DOLLARS),
 			DOLLARS
 		);
 	}

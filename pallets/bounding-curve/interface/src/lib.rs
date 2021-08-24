@@ -9,9 +9,6 @@ where
 	/// calculate current token price by given `total_supply`
 	fn buy_price(total_supply: Balance) -> Balance;
 
-	/// calculate current T price by given total_supply
-	fn sell_price(total_supply: Balance) -> Balance;
-
 	/// This is the calculus function of this curve
 	/// it calculates the area of a given x
 	/// This area is the T in the pool

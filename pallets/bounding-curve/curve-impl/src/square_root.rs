@@ -22,14 +22,6 @@ impl<Balance, const K: u32> UnsignedSquareRoot<Balance, K>
 where
 	Balance: AtLeast32BitUnsigned + Default + Clone + Debug,
 {
-	fn unit_price() -> Balance {
-		Self::u128_to_balance(DOLLARS)
-	}
-
-	fn u128_to_balance(amount: u128) -> Balance {
-		amount.try_into().map_err(|_| "").unwrap()
-	}
-
 	fn recursively_balance_reverse_calculation(
 		x_n: Balance,
 		area: Balance,
@@ -88,14 +80,6 @@ where
 		total_supply.integer_sqrt() * K.into() / K_BASE_POINT.into()
 	}
 
-	fn sell_price(total_supply: Balance) -> Balance {
-		let buy_price = Self::buy_price(total_supply);
-		if buy_price.is_zero() {
-			return Zero::zero();
-		}
-		Self::unit_price() * Self::unit_price() / buy_price
-	}
-
 	fn pool_balance(x: Balance) -> Balance {
 		x.integer_sqrt() * x.clone() * K.into() * 2u32.into() / K_BASE_POINT.into() / 3u32.into()
 	}
@@ -141,6 +125,9 @@ where
 mod tests {
 	use super::*;
 	use node_primitives::Balance;
+
+	const CENTS: node_primitives::Balance = 10_000_000_000;
+	const DOLLARS: node_primitives::Balance = 100 * CENTS;
 
 	#[test]
 	fn pool_balance_works() {
@@ -290,15 +277,7 @@ mod tests {
 			0
 		);
 		assert_eq!(
-			<RootSquare_10 as BoundingCurveInterface<Balance>>::sell_price(0),
-			0
-		);
-		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			0
-		);
-		assert_eq!(
-			<RootSquare_10 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
 			0
 		);
 		assert_eq!(
@@ -306,16 +285,8 @@ mod tests {
 			1
 		);
 		assert_eq!(
-			<RootSquare_10 as BoundingCurveInterface<Balance>>::sell_price(100 * DOLLARS),
-			DOLLARS * DOLLARS
-		);
-		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(10000 * DOLLARS),
 			10
-		);
-		assert_eq!(
-			<RootSquare_10 as BoundingCurveInterface<Balance>>::sell_price(10000 * DOLLARS),
-			DOLLARS * DOLLARS / 10
 		);
 
 		#[allow(non_camel_case_types)]
@@ -325,15 +296,7 @@ mod tests {
 			0
 		);
 		assert_eq!(
-			<RootSquare_7 as BoundingCurveInterface<Balance>>::sell_price(0),
-			0
-		);
-		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			0
-		);
-		assert_eq!(
-			<RootSquare_7 as BoundingCurveInterface<Balance>>::sell_price(DOLLARS),
 			0
 		);
 		assert_eq!(
@@ -341,16 +304,8 @@ mod tests {
 			2
 		);
 		assert_eq!(
-			<RootSquare_7 as BoundingCurveInterface<Balance>>::sell_price(1000 * DOLLARS),
-			DOLLARS * DOLLARS / 2
-		);
-		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(10000 * DOLLARS),
 			7
-		);
-		assert_eq!(
-			<RootSquare_7 as BoundingCurveInterface<Balance>>::sell_price(10000 * DOLLARS),
-			DOLLARS * DOLLARS / 7
 		);
 	}
 }
