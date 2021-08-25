@@ -189,6 +189,7 @@ pub mod genesis_exchange {
 		USDInterestRateShouldLargerThanCompetitionsCount,
 		InsufficientUSDToPayMiningMachineCost,
 		BorrowAmountShouldNotBeZero,
+		BorrowDebtHasOverflow,
 		BorrowAmountHasOverflow,
 		InsufficientUSDToRepayDebts,
 		NoNeedToRepayUSDDebts,
@@ -352,12 +353,20 @@ pub mod genesis_exchange {
 					ensure!(!amount.is_zero(), Error::<T>::BorrowAmountShouldNotBeZero);
 					ensure!(
 						USDDebt::<T>::get(who).checked_add(&amount).is_some(),
-						Error::<T>::BorrowAmountHasOverflow
+						Error::<T>::BorrowDebtHasOverflow
 					);
+					ensure!(
+						USDStore::<T>::get(who).checked_add(&amount).is_some(),
+						Error::<T>::BorrowAmountHasOverflow,
+					);
+
 					Ok(())
 				},
 				|who| {
 					USDDebt::<T>::mutate(who, |balance| {
+						*balance = balance.saturating_add(amount);
+					});
+					USDStore::<T>::mutate(who, |balance| {
 						*balance = balance.saturating_add(amount);
 					});
 				},

@@ -495,10 +495,12 @@ fn borrow_usd_works() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 		assert_eq!(USDDebt::<Test>::get(user), 0);
+		assert_eq!(USDStore::<Test>::get(user), 0);
 
 		let debt = 1000;
 		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), debt));
 		assert_eq!(USDDebt::<Test>::get(user), debt);
+		assert_eq!(USDStore::<Test>::get(user), debt);
 	})
 }
 
@@ -506,12 +508,14 @@ fn borrow_usd_works() {
 fn borrow_usd_works_if_usd_store_is_not_zero() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
-		USDStore::<Test>::insert(user, 10000);
+		let amount = 10000;
+		USDStore::<Test>::insert(user, amount);
 		assert_eq!(USDDebt::<Test>::get(user), 0);
 
 		let debt = 1000;
 		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), debt));
 		assert_eq!(USDDebt::<Test>::get(user), debt);
+		assert_eq!(USDStore::<Test>::get(user), debt + amount);
 	})
 }
 
@@ -526,7 +530,7 @@ fn borrow_usd_should_fail_if_borrow_amount_is_zero() {
 }
 
 #[test]
-fn borrow_usd_should_fail_if_borrowed_amount_is_overflow() {
+fn borrow_usd_should_fail_if_borrowed_debt_is_overflow() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 
@@ -535,9 +539,25 @@ fn borrow_usd_should_fail_if_borrowed_amount_is_overflow() {
 
 		assert_noop!(
 			GenesisExchange::borrow_usd(Origin::signed(user), u128::MAX),
-			Error::<Test>::BorrowAmountHasOverflow
+			Error::<Test>::BorrowDebtHasOverflow
 		);
 		assert_eq!(USDDebt::<Test>::get(user), debt);
+	})
+}
+
+#[test]
+fn borrow_usd_should_fail_if_borrowed_amount_is_overflow() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		USDStore::<Test>::insert(user, 100);
+
+		assert_noop!(
+			GenesisExchange::borrow_usd(Origin::signed(user), u128::MAX),
+			Error::<Test>::BorrowAmountHasOverflow
+		);
+		assert_eq!(USDDebt::<Test>::get(user), 0);
+		assert_eq!(USDStore::<Test>::get(user), 100);
 	})
 }
 
