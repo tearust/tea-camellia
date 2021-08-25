@@ -6,6 +6,11 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		height % T::BillingCycle::get() == 5u32.into()
 	}
 
+	pub(crate) fn is_time_for_reset_interest_rate(height: T::BlockNumber) -> bool {
+		// offset with `InterestPeriodLength` - 2 to void overlapping with staking period
+		height % T::BillingCycle::get() == T::BillingCycle::get() - 2u32.into()
+	}
+
 	pub(crate) fn try_clean_default_loan() -> Vec<AssetUniqueId> {
 		let current_height = frame_system::Pallet::<T>::block_number();
 		let expired_ids: Vec<AssetUniqueId> = CollateralStore::<T>::iter()
@@ -66,6 +71,12 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 					!T::AuctionOperation::is_cml_in_auction(cml_id),
 					Error::<T>::CannotPawnWhenCmlIsInAuction
 				);
+
+				let amount = Self::cml_loan_initial_amount(cml_id)?;
+				ensure!(
+					T::CurrencyOperations::free_balance(&OperationAccount::<T>::get()) >= amount,
+					Error::<T>::GenesisBankInsufficientFreeBalance,
+				);
 			}
 		}
 		Ok(())
@@ -76,17 +87,42 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 			AssetType::CML => {
 				let current_height = frame_system::Pallet::<T>::block_number();
 				let cml_id = to_cml_id(&id.inner_id).unwrap();
-				CollateralStore::<T>::insert(
-					id,
-					Loan {
-						start_at: current_height,
-						owner: who.clone(),
-					},
-				);
-				UserCollateralStore::<T>::insert(who, id, ());
-				T::CmlOperation::transfer_cml_to_other(who, &cml_id, &OperationAccount::<T>::get());
 
-				T::CurrencyOperations::deposit_creating(who, T::GenesisCmlLoanAmount::get());
+				if let Ok(cml) = T::CmlOperation::cml_by_id(&cml_id) {
+					match Self::cml_loan_initial_amount(cml_id) {
+						Ok(initial_amount) => {
+							if let Err(e) = T::CurrencyOperations::transfer(
+								&OperationAccount::<T>::get(),
+								who,
+								initial_amount,
+								ExistenceRequirement::AllowDeath,
+							) {
+								// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+								log::error!("genesis bank transfer free balance failed: {:?}", e);
+							}
+
+							CollateralStore::<T>::insert(
+								id,
+								Loan {
+									start_at: current_height,
+									owner: who.clone(),
+									loan_type: cml.cml_type(),
+									amount: initial_amount,
+								},
+							);
+							UserCollateralStore::<T>::insert(who, id, ());
+							T::CmlOperation::transfer_cml_to_other(
+								who,
+								&cml_id,
+								&OperationAccount::<T>::get(),
+							);
+						}
+						Err(e) => {
+							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+							log::error!("get cml loan initial amount failed: {:?}", e);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -94,6 +130,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 	pub(crate) fn check_before_payoff_loan(
 		id: &AssetUniqueId,
 		who: &T::AccountId,
+		pay_interest_only: bool,
 	) -> DispatchResult {
 		let current_height = frame_system::Pallet::<T>::block_number();
 		Self::check_belongs(who, id)?;
@@ -107,7 +144,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 				);
 				ensure!(
 					T::CurrencyOperations::free_balance(who)
-						>= Self::cml_need_to_pay(id, &current_height),
+						>= Self::cml_need_to_pay(id, pay_interest_only)?,
 					Error::<T>::InsufficientRepayBalance
 				);
 				T::CmlOperation::check_transfer_cml_to_other(
@@ -136,47 +173,115 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn payoff_loan_inner(id: &AssetUniqueId, who: &T::AccountId) {
-		let current_height = frame_system::Pallet::<T>::block_number();
-
+	pub(crate) fn payoff_loan_inner(
+		id: &AssetUniqueId,
+		who: &T::AccountId,
+		pay_interest_only: bool,
+	) {
 		match id.asset_type {
 			AssetType::CML => {
 				let cml_id = to_cml_id(&id.inner_id).unwrap();
-				T::CurrencyOperations::slash(who, Self::cml_need_to_pay(id, &current_height));
-				T::CmlOperation::transfer_cml_to_other(&OperationAccount::<T>::get(), &cml_id, who);
+				match Self::cml_need_to_pay(id, pay_interest_only) {
+					Ok(need_to_pay) => {
+						let (need_transfer, need_slash) = match pay_interest_only {
+							true => (Zero::zero(), need_to_pay),
+							false => {
+								// if pay initial amount and interest, we already make sure `cml_loan_initial_amount` not return error,
+								//  here just unwrap it
+								let initial_amount = Self::cml_loan_initial_amount(cml_id).unwrap();
+								(initial_amount, need_to_pay.saturating_sub(initial_amount))
+							}
+						};
 
-				CollateralStore::<T>::remove(id);
-				UserCollateralStore::<T>::remove(who, id);
+						if !need_transfer.is_zero() {
+							if let Err(e) = T::CurrencyOperations::transfer(
+								who,
+								&OperationAccount::<T>::get(),
+								need_transfer,
+								ExistenceRequirement::AllowDeath,
+							) {
+								// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+								log::error!("transfer balance to bank failed: {:?}", e);
+								return;
+							}
+						}
+						if !need_slash.is_zero() {
+							T::CurrencyOperations::slash(who, need_slash);
+						}
+
+						T::CmlOperation::transfer_cml_to_other(
+							&OperationAccount::<T>::get(),
+							&cml_id,
+							who,
+						);
+
+						CollateralStore::<T>::remove(id);
+						UserCollateralStore::<T>::remove(who, id);
+					}
+					Err(e) => {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("calculate cml need to pay failed: {:?}", e);
+					}
+				}
 			}
 		}
 	}
 
 	pub(crate) fn cml_need_to_pay(
 		id: &AssetUniqueId,
-		current_height: &T::BlockNumber,
-	) -> BalanceOf<T> {
+		pay_interest_only: bool,
+	) -> Result<BalanceOf<T>, DispatchError> {
 		if !CollateralStore::<T>::contains_key(id) {
-			return Zero::zero();
+			return Ok(Zero::zero());
 		}
 
-		let loan = CollateralStore::<T>::get(id);
-		T::GenesisCmlLoanAmount::get() + Self::calculate_interest(current_height, &loan.start_at)
+		let amount = match id.asset_type {
+			AssetType::CML => {
+				let cml_id = to_cml_id(&id.inner_id).unwrap();
+				let loan = CollateralStore::<T>::get(id);
+				if !pay_interest_only {
+					loan.amount.saturating_add(Self::calculate_interest(&loan))
+				} else {
+					loan.amount
+						.checked_sub(&Self::cml_loan_initial_amount(cml_id)?)
+						.ok_or(Error::<T>::NoNeedToRepayInterest)?
+				}
+			}
+		};
+		Ok(amount)
+	}
+
+	pub(crate) fn reset_all_loan_amounts() {
+		CollateralStore::<T>::iter().for_each(|(id, _)| {
+			CollateralStore::<T>::mutate(&id, |loan| {
+				loan.amount += Self::calculate_interest(loan);
+			});
+		});
 	}
 
 	pub fn calculate_interest(
-		current_height: &T::BlockNumber,
-		start_at: &T::BlockNumber,
+		loan: &Loan<T::AccountId, T::BlockNumber, BalanceOf<T>>,
 	) -> BalanceOf<T> {
-		if *current_height < *start_at {
-			return Zero::zero();
-		}
+		// todo use `bill_duration.try_into() / T::BillingCycle::get()` as a variable if needed later
+		// let _bill_duration = min(*current_height - loan.start_at, T::BillingCycle::get());
+		loan.amount * InterestRate::<T>::get() / 10000u32.into()
+	}
 
-		let terms: Option<u32> = ((*current_height - *start_at) / T::BillingCycle::get())
-			.try_into()
-			.ok();
+	pub(crate) fn reset_interest_rate() {
+		InterestRate::<T>::set(
+			AMMCurveKCoefficient::<T>::get()
+				/ T::CurrencyOperations::free_balance(&OperationAccount::<T>::get()),
+		);
+	}
 
-		(T::GenesisCmlLoanAmount::get() * (terms.unwrap_or(1u32) + 1u32).into() / 10000u32.into())
-			* T::InterestRate::get()
+	pub(crate) fn cml_loan_initial_amount(cml_id: CmlId) -> Result<BalanceOf<T>, DispatchError> {
+		let cml = T::CmlOperation::cml_by_id(&cml_id)?;
+		let amount = match cml.cml_type() {
+			CmlType::A => T::CmlALoanAmount::get(),
+			CmlType::B => T::CmlBLoanAmount::get(),
+			CmlType::C => T::CmlCLoanAmount::get(),
+		};
+		Ok(amount)
 	}
 }
 
@@ -187,33 +292,70 @@ mod tests {
 	use pallet_cml::CmlId;
 
 	#[test]
+	fn cml_need_to_pay_works() {
+		new_test_ext().execute_with(|| {
+			let id = AssetUniqueId {
+				asset_type: AssetType::CML,
+				inner_id: from_cml_id(1),
+			};
+			let loan = Loan {
+				start_at: 0,
+				owner: 1,
+				loan_type: CmlType::B,
+				amount: 100_000,
+			};
+			CollateralStore::<Test>::insert(&id, loan);
+
+			assert_eq!(
+				GenesisBank::cml_need_to_pay(&id, false).unwrap(),
+				100_000 + 100_000 * 10 / 10000
+			);
+		})
+	}
+
+	#[test]
+	fn reset_interest_rate_works() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				BANK_INITIAL_BALANCE
+			);
+			assert_eq!(InterestRate::<Test>::get(), 10);
+
+			<Test as Config>::Currency::make_free_balance_be(
+				&OperationAccount::<Test>::get(),
+				BANK_INITIAL_BALANCE / 2,
+			);
+			GenesisBank::reset_interest_rate();
+			assert_eq!(InterestRate::<Test>::get(), 20);
+
+			<Test as Config>::Currency::make_free_balance_be(
+				&OperationAccount::<Test>::get(),
+				BANK_INITIAL_BALANCE * 2,
+			);
+			GenesisBank::reset_interest_rate();
+			assert_eq!(InterestRate::<Test>::get(), 5);
+
+			<Test as Config>::Currency::make_free_balance_be(
+				&OperationAccount::<Test>::get(),
+				BANK_INITIAL_BALANCE * 2 / 10,
+			);
+			GenesisBank::reset_interest_rate();
+			assert_eq!(InterestRate::<Test>::get(), 50);
+		})
+	}
+
+	#[test]
 	fn calculate_interest_works() {
 		new_test_ext().execute_with(|| {
-			let unit_interest = GENESIS_CML_LOAN_AMOUNT * INTEREST_RATE / 10000;
-			// return unit leading rate if current_height equals to start_at, or difference lower than BillingCycle
-			assert_eq!(GenesisBank::calculate_interest(&0, &0), unit_interest);
-			assert_eq!(
-				GenesisBank::calculate_interest(&10000, &10000),
-				unit_interest
-			);
-			assert_eq!(
-				GenesisBank::calculate_interest(&(LOAN_BILLING_CYCLE as u64 - 1), &0),
-				unit_interest
-			);
+			let unit_interest = CML_A_LOAN_AMOUNT * BANK_INITIAL_INTEREST_RATE / 10000;
+			let mut loan = new_lien(1, 0);
 
-			assert_eq!(
-				GenesisBank::calculate_interest(&(LOAN_BILLING_CYCLE as u64), &0),
-				unit_interest * 2
-			);
-			assert_eq!(
-				GenesisBank::calculate_interest(&(2 * LOAN_BILLING_CYCLE as u64 - 1), &0),
-				unit_interest * 2
-			);
+			loan.amount = CML_A_LOAN_AMOUNT;
+			assert_eq!(GenesisBank::calculate_interest(&loan), unit_interest);
 
-			assert_eq!(
-				GenesisBank::calculate_interest(&(2 * LOAN_BILLING_CYCLE as u64), &0),
-				unit_interest * 3
-			);
+			loan.amount = CML_A_LOAN_AMOUNT * 10;
+			assert_eq!(GenesisBank::calculate_interest(&loan), unit_interest * 10);
 		});
 	}
 
@@ -272,7 +414,11 @@ mod tests {
 		}
 	}
 
-	fn new_lien(owner: u64, start_at: u64) -> Loan<u64, u64> {
-		Loan { owner, start_at }
+	fn new_lien(owner: u64, start_at: u64) -> Loan<u64, u64, u128> {
+		Loan {
+			owner,
+			start_at,
+			..Default::default()
+		}
 	}
 }

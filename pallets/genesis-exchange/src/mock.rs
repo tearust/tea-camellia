@@ -30,15 +30,17 @@ frame_support::construct_runtime!(
 );
 
 pub const LOAN_TERM_DURATION: BlockNumber = 10000;
-pub const GENESIS_CML_LOAN_AMOUNT: Balance = 5000000000000;
-pub const GENESIS_BANK_INTEREST_RATE: Balance = 5;
 pub const LOAN_BILLING_CYCLE: BlockNumber = 1000;
+pub const CML_A_LOAN_AMOUNT: Balance = 2000;
+pub const CML_B_LOAN_AMOUNT: Balance = 1000;
+pub const CML_C_LOAN_AMOUNT: Balance = 500;
 
 parameter_types! {
 	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
-	pub const GenesisCmlLoanAmount: Balance = GENESIS_CML_LOAN_AMOUNT;
-	pub const InterestRate: Balance = GENESIS_BANK_INTEREST_RATE;
 	pub const BillingCycle: BlockNumber = LOAN_BILLING_CYCLE;
+	pub const CmlALoanAmount: Balance = CML_A_LOAN_AMOUNT;
+	pub const CmlBLoanBmount: Balance = CML_B_LOAN_AMOUNT;
+	pub const CmlCLoanCmount: Balance = CML_C_LOAN_AMOUNT;
 }
 
 impl pallet_genesis_bank::Config for Test {
@@ -48,9 +50,10 @@ impl pallet_genesis_bank::Config for Test {
 	type CmlOperation = Cml;
 	type AuctionOperation = Auction;
 	type LoanTermDuration = LoanTermDuration;
-	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
-	type InterestRate = InterestRate;
 	type BillingCycle = BillingCycle;
+	type CmlALoanAmount = CmlALoanAmount;
+	type CmlBLoanAmount = CmlBLoanBmount;
+	type CmlCLoanAmount = CmlCLoanCmount;
 }
 
 parameter_types! {
@@ -202,6 +205,10 @@ pub const COMPETITION_USERS1: u64 = 101;
 pub const COMPETITION_USERS2: u64 = 102;
 pub const COMPETITION_USERS3: u64 = 103;
 
+pub const BANK_OPERATION_ACCOUNT: u64 = 200;
+pub const BANK_INITIAL_BALANCE: Balance = 100_000;
+pub const BANK_INITIAL_INTEREST_RATE: Balance = 10;
+
 // Build genesis storage according to the mock runtime.
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
@@ -221,12 +228,24 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	.assimilate_storage(&mut t)
 	.unwrap();
 
+	pallet_genesis_bank::GenesisConfig::<Test> {
+		operation_account: OPERATION_ACCOUNT,
+		bank_initial_balance: BANK_INITIAL_BALANCE,
+		bank_initial_interest_rate: BANK_INITIAL_INTEREST_RATE,
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| {
 		System::set_block_number(1);
 		<Test as pallet_genesis_exchange::Config>::Currency::make_free_balance_be(
 			&OPERATION_ACCOUNT,
 			OPERATION_TEA_AMOUNT,
+		);
+		<Test as pallet_genesis_exchange::Config>::Currency::make_free_balance_be(
+			&BANK_OPERATION_ACCOUNT,
+			BANK_INITIAL_BALANCE,
 		);
 	});
 	ext

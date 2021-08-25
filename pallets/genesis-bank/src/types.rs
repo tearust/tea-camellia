@@ -1,8 +1,4 @@
-use codec::{Decode, Encode};
-use pallet_cml::CmlId;
-use sp_runtime::traits::AtLeast32BitUnsigned;
-use sp_runtime::RuntimeDebug;
-use sp_std::prelude::*;
+use super::*;
 
 // all types of ID should encode as Vec<u8>
 pub type AssetId = Vec<u8>;
@@ -19,24 +15,30 @@ pub struct AssetUniqueId {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct Loan<AccountId, BlockNumber>
+pub struct Loan<AccountId, BlockNumber, Balance>
 where
 	AccountId: Default + PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	Balance: Default + AtLeast32BitUnsigned + Clone,
 {
 	pub start_at: BlockNumber,
 	pub owner: AccountId,
+	pub loan_type: CmlType,
+	pub amount: Balance,
 }
 
-impl<AccountId, BlockNumber> Default for Loan<AccountId, BlockNumber>
+impl<AccountId, BlockNumber, Balance> Default for Loan<AccountId, BlockNumber, Balance>
 where
 	AccountId: Default + PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	Balance: Default + AtLeast32BitUnsigned + Clone,
 {
 	fn default() -> Self {
 		Loan {
 			start_at: BlockNumber::default(),
 			owner: Default::default(),
+			loan_type: CmlType::C,
+			amount: Balance::default(),
 		}
 	}
 }

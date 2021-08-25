@@ -4505,6 +4505,7 @@ dependencies = [
  "genesis-exchange-interface",
  "hex",
  "hex-literal",
+ "log",
  "node-primitives",
  "pallet-balances",
  "pallet-cml",

@@ -140,15 +140,17 @@ impl pallet_auction::Config for Test {
 }
 
 pub const LOAN_TERM_DURATION: BlockNumber = 10000;
-pub const GENESIS_CML_LOAN_AMOUNT: Balance = 5000000000000;
-pub const INTEREST_RATE: Balance = 5;
 pub const LOAN_BILLING_CYCLE: BlockNumber = 1000;
+pub const CML_A_LOAN_AMOUNT: Balance = 2000;
+pub const CML_B_LOAN_AMOUNT: Balance = 1000;
+pub const CML_C_LOAN_AMOUNT: Balance = 500;
 
 parameter_types! {
 	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
-	pub const GenesisCmlLoanAmount: Balance = GENESIS_CML_LOAN_AMOUNT;
-	pub const InterestRate: Balance = INTEREST_RATE;
 	pub const BillingCycle: BlockNumber = LOAN_BILLING_CYCLE;
+	pub const CmlALoanAmount: Balance = CML_A_LOAN_AMOUNT;
+	pub const CmlBLoanBmount: Balance = CML_B_LOAN_AMOUNT;
+	pub const CmlCLoanCmount: Balance = CML_C_LOAN_AMOUNT;
 }
 
 impl pallet_genesis_bank::Config for Test {
@@ -158,9 +160,10 @@ impl pallet_genesis_bank::Config for Test {
 	type CmlOperation = Cml;
 	type AuctionOperation = Auction;
 	type LoanTermDuration = LoanTermDuration;
-	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
-	type InterestRate = InterestRate;
 	type BillingCycle = BillingCycle;
+	type CmlALoanAmount = CmlALoanAmount;
+	type CmlBLoanAmount = CmlBLoanBmount;
+	type CmlCLoanAmount = CmlCLoanCmount;
 }
 
 parameter_types! {

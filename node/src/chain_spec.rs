@@ -29,6 +29,8 @@ const COUPON_ACCOUNT_BALANCE: Balance = 1 * DOLLARS;
 const INITIAL_EXCHANGE_TEA_BALANCE: Balance = 40_000 * DOLLARS;
 const INITIAL_EXCHANGE_USD_BALANCE: Balance = 40_000 * DOLLARS;
 
+const INITIAL_GENESIS_BANK_ACCOUNT_BALANCE: Balance = 100_000 * DOLLARS;
+
 const INITIAL_COMPETITION_USER_USD_BALANCE: Balance = 1000 * DOLLARS;
 
 // address derived from [0u8; 32] that the corresponding private key we don't know
@@ -364,6 +366,11 @@ fn testnet_genesis(
 		genesis_exchange_operation_account.clone(),
 		INITIAL_EXCHANGE_TEA_BALANCE,
 	));
+	initial_balances.push((
+		genesis_bank_operation_account.clone(),
+		INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
+	));
+
 	let competition_users = genesis_coupons
 		.coupons
 		.iter()
@@ -460,6 +467,8 @@ fn testnet_genesis(
 		},
 		pallet_genesis_bank: GenesisBankConfig {
 			operation_account: genesis_bank_operation_account,
+			bank_initial_balance: INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
+			bank_initial_interest_rate: 10,
 		},
 		pallet_genesis_exchange: GenesisExchangeConfig {
 			operation_account: genesis_exchange_operation_account,

@@ -1,6 +1,7 @@
 use crate as pallet_genesis_bank;
 use auction_interface::AuctionOperation;
-use frame_support::parameter_types;
+use frame_benchmarking::frame_support::pallet_prelude::GenesisBuild;
+use frame_support::{parameter_types, traits::Currency};
 use frame_system as system;
 use genesis_exchange_interface::MiningOperation;
 use node_primitives::{Balance, BlockNumber};
@@ -13,6 +14,10 @@ use sp_runtime::{
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 pub const IN_AUCTION_CML_ID: u64 = 99;
+
+pub const OPERATION_ACCOUNT: u64 = 100;
+pub const BANK_INITIAL_BALANCE: Balance = 100_000;
+pub const BANK_INITIAL_INTEREST_RATE: Balance = 10;
 
 pub struct AuctionOperationMock {}
 
@@ -140,15 +145,17 @@ impl pallet_cml::Config for Test {
 }
 
 pub const LOAN_TERM_DURATION: BlockNumber = 10000;
-pub const GENESIS_CML_LOAN_AMOUNT: Balance = 5000000000000;
-pub const INTEREST_RATE: Balance = 5;
 pub const LOAN_BILLING_CYCLE: BlockNumber = 1000;
+pub const CML_A_LOAN_AMOUNT: Balance = 2000;
+pub const CML_B_LOAN_AMOUNT: Balance = 1000;
+pub const CML_C_LOAN_AMOUNT: Balance = 500;
 
 parameter_types! {
 	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
-	pub const GenesisCmlLoanAmount: Balance = GENESIS_CML_LOAN_AMOUNT;
-	pub const InterestRate: Balance = INTEREST_RATE;
 	pub const BillingCycle: BlockNumber = LOAN_BILLING_CYCLE;
+	pub const CmlALoanAmount: Balance = CML_A_LOAN_AMOUNT;
+	pub const CmlBLoanBmount: Balance = CML_B_LOAN_AMOUNT;
+	pub const CmlCLoanCmount: Balance = CML_C_LOAN_AMOUNT;
 }
 
 impl pallet_genesis_bank::Config for Test {
@@ -158,9 +165,10 @@ impl pallet_genesis_bank::Config for Test {
 	type CmlOperation = Cml;
 	type AuctionOperation = AuctionOperationMock;
 	type LoanTermDuration = LoanTermDuration;
-	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
-	type InterestRate = InterestRate;
 	type BillingCycle = BillingCycle;
+	type CmlALoanAmount = CmlALoanAmount;
+	type CmlBLoanAmount = CmlBLoanBmount;
+	type CmlCLoanAmount = CmlCLoanCmount;
 }
 
 parameter_types! {
@@ -188,8 +196,25 @@ impl pallet_utils::Config for Test {
 // Build genesis storage according to the mock runtime.
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default()
+	let mut t = system::GenesisConfig::default()
 		.build_storage::<Test>()
-		.unwrap()
-		.into()
+		.unwrap();
+
+	pallet_genesis_bank::GenesisConfig::<Test> {
+		operation_account: OPERATION_ACCOUNT,
+		bank_initial_balance: BANK_INITIAL_BALANCE,
+		bank_initial_interest_rate: BANK_INITIAL_INTEREST_RATE,
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	let mut ext = sp_io::TestExternalities::new(t);
+	ext.execute_with(|| {
+		System::set_block_number(1);
+		<Test as pallet_genesis_bank::Config>::Currency::make_free_balance_be(
+			&OPERATION_ACCOUNT,
+			BANK_INITIAL_BALANCE,
+		);
+	});
+	ext
 }

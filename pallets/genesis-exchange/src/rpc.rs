@@ -292,7 +292,7 @@ mod tests {
 	use crate::mock::*;
 	use crate::*;
 	use frame_support::assert_ok;
-	use pallet_cml::{ActiveStakingSnapshot, StakingSnapshotItem};
+	use pallet_cml::{ActiveStakingSnapshot, CmlType, StakingSnapshotItem};
 	use pallet_genesis_bank::{
 		from_cml_id, AssetType, AssetUniqueId, CollateralStore, Loan, UserCollateralStore,
 	};
@@ -385,6 +385,8 @@ mod tests {
 				Loan {
 					start_at: 0,
 					owner: COMPETITION_USERS2,
+					loan_type: CmlType::B,
+					amount: 100_000,
 				},
 			);
 			CollateralStore::<Test>::insert(
@@ -392,6 +394,8 @@ mod tests {
 				Loan {
 					start_at: 0,
 					owner: COMPETITION_USERS2,
+					loan_type: CmlType::B,
+					amount: 100_000,
 				},
 			);
 			CollateralStore::<Test>::insert(
@@ -399,6 +403,8 @@ mod tests {
 				Loan {
 					start_at: 0,
 					owner: COMPETITION_USERS2,
+					loan_type: CmlType::B,
+					amount: 100_000,
 				},
 			);
 			CollateralStore::<Test>::insert(
@@ -406,6 +412,8 @@ mod tests {
 				Loan {
 					start_at: 0,
 					owner: COMPETITION_USERS3,
+					loan_type: CmlType::B,
+					amount: 100_000,
 				},
 			);
 
@@ -417,8 +425,8 @@ mod tests {
 			let asset_usd_map = GenesisExchange::collect_genesis_loan_credit();
 
 			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 0);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 15082122946926);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 5027374315642);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 300_292);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 100_097);
 		})
 	}
 
@@ -578,6 +586,8 @@ mod tests {
 				Loan {
 					start_at: 0,
 					owner: COMPETITION_USERS2,
+					loan_type: CmlType::B,
+					amount: 100_000,
 				},
 			);
 			CollateralStore::<Test>::insert(
@@ -585,6 +595,8 @@ mod tests {
 				Loan {
 					start_at: 0,
 					owner: COMPETITION_USERS2,
+					loan_type: CmlType::B,
+					amount: 100_000,
 				},
 			);
 			CollateralStore::<Test>::insert(
@@ -592,6 +604,8 @@ mod tests {
 				Loan {
 					start_at: 0,
 					owner: COMPETITION_USERS2,
+					loan_type: CmlType::B,
+					amount: 100_000,
 				},
 			);
 			CollateralStore::<Test>::insert(
@@ -599,6 +613,8 @@ mod tests {
 				Loan {
 					start_at: 0,
 					owner: COMPETITION_USERS3,
+					loan_type: CmlType::B,
+					amount: 100_000,
 				},
 			);
 			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset1, ());
@@ -628,9 +644,9 @@ mod tests {
 					7199820004,
 					299,
 					COMPETITION_USER_USD_AMOUNT,
-					5027374315642,
+					100097,
 					0,
-					COMPETITION_USER_USD_AMOUNT + 299 + 7199820004 - 5027374315642
+					COMPETITION_USER_USD_AMOUNT + 299 + 7199820004 - 100097
 				)
 			);
 			assert_eq!(
@@ -640,9 +656,9 @@ mod tests {
 					7199820004,
 					199,
 					COMPETITION_USER_USD_AMOUNT,
-					15082122946926,
+					300_292,
 					0,
-					COMPETITION_USER_USD_AMOUNT + 199 + 7199820004 - 15082122946926
+					COMPETITION_USER_USD_AMOUNT + 199 + 7199820004 - 300_292
 				)
 			);
 		})

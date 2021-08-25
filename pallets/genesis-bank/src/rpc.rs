@@ -27,7 +27,13 @@ impl<T: genesis_bank::Config> GenesisBankOperation for genesis_bank::Pallet<T> {
 			asset_type: AssetType::CML,
 			inner_id: from_cml_id(cml_id),
 		};
-		Self::cml_need_to_pay(&unique_id, &block_height)
+		match Self::cml_need_to_pay(&unique_id, false) {
+			Ok(amount) => amount,
+			Err(e) => {
+				log::error!("calculate loan amount failed: {:?}", e);
+				Zero::zero()
+			}
+		}
 	}
 
 	fn user_collaterals(who: &Self::AccountId) -> Vec<(CmlId, Self::BlockNumber)> {

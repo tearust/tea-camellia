@@ -836,11 +836,12 @@ parameter_types! {
 	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
 	/// The appraisal for seed regardless types
 	pub const GenesisCmlLoanAmount: Balance = 500 * DOLLARS;
-	/// Interest in 1/10000 for every BillingCycle
-	pub const InterestRate: Balance = 8;//0.08% interest rate for every 1000 blocks. good for fast testing
 	/// The Genesis Bank calculate interest every BillingCycle. If borrower repay the loan before a billing cycle ends,
 	/// the interest is calculated to the end of this billing cycle.
-	pub const BillingCycle: BlockNumber = 1000;
+	pub const BillingCycle: BlockNumber = 100;
+	pub const CmlALoanAmount: Balance = 2000 * DOLLARS;
+	pub const CmlBLoanBmount: Balance = 1000 * DOLLARS;
+	pub const CmlCLoanCmount: Balance = 500 * DOLLARS;
 }
 
 impl pallet_genesis_bank::Config for Runtime {
@@ -850,9 +851,10 @@ impl pallet_genesis_bank::Config for Runtime {
 	type CurrencyOperations = Utils;
 	type AuctionOperation = Auction;
 	type LoanTermDuration = LoanTermDuration;
-	type GenesisCmlLoanAmount = GenesisCmlLoanAmount;
-	type InterestRate = InterestRate;
 	type BillingCycle = BillingCycle;
+	type CmlALoanAmount = CmlALoanAmount;
+	type CmlBLoanAmount = CmlBLoanBmount;
+	type CmlCLoanAmount = CmlCLoanCmount;
 }
 
 parameter_types! {

@@ -17,13 +17,15 @@ mod rpc;
 mod types;
 
 use auction_interface::AuctionOperation;
-use frame_support::{pallet_prelude::*, traits::Currency};
+use frame_support::{
+	pallet_prelude::*,
+	traits::{Currency, ExistenceRequirement},
+};
 use frame_system::pallet_prelude::*;
 use genesis_bank_interface::GenesisBankOperation;
-use pallet_cml::{CmlId, CmlOperation, SeedProperties};
+use pallet_cml::{CmlId, CmlOperation, CmlType, SeedProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::traits::Zero;
-use sp_std::convert::TryInto;
+use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedSub, Saturating, Zero};
 use sp_std::prelude::*;
 
 /// The balance type of this module.
@@ -61,18 +63,19 @@ pub mod genesis_bank {
 		/// The loan's contract length, before this time the loan has to be paid off or in default
 		#[pallet::constant]
 		type LoanTermDuration: Get<Self::BlockNumber>;
-		/// The unit amount that a genesis cml can be paid.
-		/// This is the appraisal value (in unit) of a seed as a collateral
-		#[pallet::constant]
-		type GenesisCmlLoanAmount: Get<BalanceOf<Self>>;
-		/// Interest rates of one loan period in ten thousand units(‱).
-		/// This number need to be an integer
-		#[pallet::constant]
-		type InterestRate: Get<BalanceOf<Self>>;
 		/// Billing cycle of bank to calculate bill.
 		/// How frequent the bank review all the loan
 		#[pallet::constant]
 		type BillingCycle: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type CmlALoanAmount: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type CmlBLoanAmount: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type CmlCLoanAmount: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -88,8 +91,24 @@ pub mod genesis_bank {
 
 	#[pallet::storage]
 	#[pallet::getter(fn lien_store)]
-	pub type CollateralStore<T: Config> =
-		StorageMap<_, Twox64Concat, AssetUniqueId, Loan<T::AccountId, T::BlockNumber>, ValueQuery>;
+	pub type CollateralStore<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		AssetUniqueId,
+		Loan<T::AccountId, T::BlockNumber, BalanceOf<T>>,
+		ValueQuery,
+	>;
+
+	/// Interest rates of one loan period in ten thousand units(‱).
+	/// This number need to be an integer
+	#[pallet::storage]
+	#[pallet::getter(fn interest_rate)]
+	pub type InterestRate<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	/// AMM curve coefficient k: `x * y = k`, k initialized when genesis build.
+	#[pallet::storage]
+	#[pallet::getter(fn amm_curve_k_coefficient)]
+	pub type AMMCurveKCoefficient<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_lien_store)]
@@ -106,12 +125,18 @@ pub mod genesis_bank {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub operation_account: T::AccountId,
+		pub bank_initial_balance: BalanceOf<T>,
+		/// Interest rates of one loan period in ten thousand units(‱).
+		/// This number need to be an integer
+		pub bank_initial_interest_rate: BalanceOf<T>,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
 				operation_account: Default::default(),
+				bank_initial_balance: Default::default(),
+				bank_initial_interest_rate: Default::default(),
 			}
 		}
 	}
@@ -119,6 +144,11 @@ pub mod genesis_bank {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			OperationAccount::<T>::set(self.operation_account.clone());
+
+			InterestRate::<T>::set(self.bank_initial_interest_rate);
+			AMMCurveKCoefficient::<T>::set(
+				self.bank_initial_interest_rate * self.bank_initial_balance,
+			);
 		}
 	}
 
@@ -160,6 +190,8 @@ pub mod genesis_bank {
 		/// We have such a close time because Genesis bank is supposed to be temporary cold-start
 		/// helper. When newer Defi service tApps are ready, the Genesis Bank should be retired
 		CannotApplyLoanAfterClosed,
+		GenesisBankInsufficientFreeBalance,
+		NoNeedToRepayInterest,
 	}
 
 	#[pallet::hooks]
@@ -167,6 +199,10 @@ pub mod genesis_bank {
 		fn on_finalize(n: BlockNumberFor<T>) {
 			if Self::is_time_for_collateral_check(n) {
 				Self::try_clean_default_loan();
+			}
+			if Self::is_time_for_reset_interest_rate(n) {
+				Self::reset_all_loan_amounts();
+				Self::reset_interest_rate();
 			}
 		}
 	}
@@ -224,6 +260,7 @@ pub mod genesis_bank {
 			sender: OriginFor<T>,
 			id: AssetId,
 			asset_type: AssetType,
+			pay_interest_only: bool,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let unique_id = AssetUniqueId {
@@ -233,8 +270,8 @@ pub mod genesis_bank {
 
 			extrinsic_procedure(
 				&who,
-				|who| Self::check_before_payoff_loan(&unique_id, who),
-				|who| Self::payoff_loan_inner(&unique_id, who),
+				|who| Self::check_before_payoff_loan(&unique_id, who, pay_interest_only),
+				|who| Self::payoff_loan_inner(&unique_id, who, pay_interest_only),
 			)
 		}
 	}
