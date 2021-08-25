@@ -163,6 +163,7 @@ mod tests {
 	#[test]
 	fn query_price_works() {
 		new_test_ext().execute_with(|| {
+			EnableUserCreateTApp::<Test>::set(true);
 			<Test as Config>::Currency::make_free_balance_be(&1, DOLLARS * DOLLARS);
 
 			assert_ok!(BoundingCurve::create_new_tapp(

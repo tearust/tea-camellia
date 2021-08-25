@@ -116,6 +116,40 @@ pub mod bounding_curve {
 	#[pallet::getter(fn operation_account)]
 	pub type OperationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn enable_user_create_tapp)]
+	pub type EnableUserCreateTApp<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn npc_account)]
+	pub type NPCAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub operation_account: T::AccountId,
+		pub npc_account: T::AccountId,
+		pub user_create_tapp: bool,
+	}
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			GenesisConfig {
+				operation_account: Default::default(),
+				npc_account: Default::default(),
+				user_create_tapp: false,
+			}
+		}
+	}
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			OperationAccount::<T>::set(self.operation_account.clone());
+			NPCAccount::<T>::set(self.npc_account.clone());
+
+			EnableUserCreateTApp::<T>::set(self.user_create_tapp);
+		}
+	}
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -166,6 +200,8 @@ pub mod bounding_curve {
 		SellTeaAmountCanNotBeZero,
 		SubtractionOverflow,
 		AddOverflow,
+		NotAllowedNormalUserCreateTApp,
+		OnlyTAppOwnerAllowedToExpense,
 	}
 
 	#[pallet::hooks]
@@ -175,6 +211,29 @@ pub mod bounding_curve {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(195_000_000)]
+		pub fn set_tapp_creation_settings(
+			sender: OriginFor<T>,
+			enable_create: Option<bool>,
+			npc_account: Option<T::AccountId>,
+		) -> DispatchResult {
+			let who = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|_who| Ok(()),
+				|_who| {
+					if let Some(enable_create) = enable_create {
+						EnableUserCreateTApp::<T>::set(enable_create);
+					}
+
+					if let Some(ref npc_account) = npc_account {
+						NPCAccount::<T>::set(npc_account.clone());
+					}
+				},
+			)
+		}
+
 		#[pallet::weight(195_000_000)]
 		pub fn create_new_tapp(
 			sender: OriginFor<T>,
@@ -191,6 +250,13 @@ pub mod bounding_curve {
 			extrinsic_procedure(
 				&who,
 				|who| {
+					if !EnableUserCreateTApp::<T>::get() {
+						ensure!(
+							who.eq(&NPCAccount::<T>::get()),
+							Error::<T>::NotAllowedNormalUserCreateTApp
+						);
+					}
+
 					Self::check_tapp_fields_length(&tapp_name, &ticker, &detail, &link)?;
 					ensure!(
 						!TAppNames::<T>::contains_key(&tapp_name),
@@ -375,16 +441,21 @@ pub mod bounding_curve {
 		pub fn expense(
 			sender: OriginFor<T>,
 			tapp_id: TAppId,
+			target_account: T::AccountId,
 			tea_amount: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
 			extrinsic_procedure(
 				&who,
-				|_who| {
+				|who| {
 					ensure!(
 						TAppBoundingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						who.eq(&TAppBoundingCurve::<T>::get(tapp_id).owner),
+						Error::<T>::OnlyTAppOwnerAllowedToExpense
 					);
 					ensure!(
 						!tea_amount.is_zero(),
@@ -401,14 +472,14 @@ pub mod bounding_curve {
 					);
 					Ok(())
 				},
-				|who| {
+				|_who| {
 					match Self::calculate_given_received_tea_how_much_seller_give_away(
 						tapp_id, tea_amount,
 					) {
 						Ok(withdraw_tapp_amount) => {
 							if let Err(e) = T::CurrencyOperations::transfer(
 								&OperationAccount::<T>::get(),
-								who,
+								&target_account,
 								tea_amount,
 								ExistenceRequirement::AllowDeath,
 							) {
@@ -420,7 +491,7 @@ pub mod bounding_curve {
 
 							Self::deposit_event(Event::TAppExpense(
 								tapp_id,
-								who.clone(),
+								target_account.clone(),
 								tea_amount,
 							));
 						}

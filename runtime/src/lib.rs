@@ -1007,7 +1007,7 @@ construct_runtime!(
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
 		GenesisBank: pallet_genesis_bank::{Pallet, Call, Config<T>, Storage, Event<T>} = 104,
 		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Config<T>, Storage, Event<T>} = 105,
-		BoundingCurve: pallet_bounding_curve::{Pallet, Call, Storage, Event<T>} = 106,
+		BoundingCurve: pallet_bounding_curve::{Pallet, Call, Config<T>, Storage, Event<T>} = 106,
 	}
 );
 
