@@ -1245,7 +1245,7 @@ impl_runtime_apis! {
 			BoundingCurve::query_price(tapp_id)
 		}
 
-		fn estimate_required_tea_when_buy(tapp_id: u64, token_amount: Balance) -> Balance {
+		fn estimate_required_tea_when_buy(tapp_id: Option<u64>, token_amount: Balance) -> Balance {
 			BoundingCurve::estimate_required_tea_when_buy(tapp_id, token_amount)
 		}
 

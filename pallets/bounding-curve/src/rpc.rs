@@ -18,7 +18,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	}
 
 	pub fn estimate_required_tea_when_buy(
-		tapp_id: TAppId,
+		tapp_id: Option<TAppId>,
 		tapp_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
 		match Self::calculate_buy_amount(tapp_id, tapp_amount) {

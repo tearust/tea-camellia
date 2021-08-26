@@ -13,7 +13,7 @@ sp_api::decl_runtime_apis! {
 	{
 		fn query_price(tapp_id: u64) -> (Balance, Balance);
 
-		fn estimate_required_tea_when_buy(tapp_id: u64, token_amount: Balance) -> Balance;
+		fn estimate_required_tea_when_buy(tapp_id: Option<u64>, token_amount: Balance) -> Balance;
 
 		fn estimate_receive_tea_when_sell(tapp_id: u64, token_amount: Balance) -> Balance;
 

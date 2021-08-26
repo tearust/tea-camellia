@@ -19,10 +19,12 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	#[rpc(name = "bounding_queryPrice")]
 	fn query_price(&self, tapp_id: u64, at: Option<BlockHash>) -> Result<(Price, Price)>;
 
+	/// if `tapp_id` is `None` will calculating total supply with zero, and buy curve with
+	/// `UnsignedSquareRoot_10`
 	#[rpc(name = "bounding_estimateTeaRequiredToBuyGivenToken")]
 	fn estimate_required_tea_when_buy(
 		&self,
-		tapp_id: u64,
+		tapp_id: Option<u64>,
 		token_amount: Balance,
 		at: Option<BlockHash>,
 	) -> Result<Price>;
@@ -158,7 +160,7 @@ where
 
 	fn estimate_required_tea_when_buy(
 		&self,
-		tapp_id: u64,
+		tapp_id: Option<u64>,
 		token_amount: Balance,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Price> {

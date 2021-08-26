@@ -20,7 +20,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let deposit_tea_amount = Self::calculate_buy_amount(tapp_id, tapp_amount)?;
+		let deposit_tea_amount = Self::calculate_buy_amount(Some(tapp_id), tapp_amount)?;
 		let reserved_tea_amount = Self::calculate_reserve_amount(tapp_id, tapp_amount)?;
 		ensure!(
 			deposit_tea_amount >= reserved_tea_amount,
@@ -197,16 +197,28 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	}
 
 	pub(crate) fn calculate_buy_amount(
-		tapp_id: TAppId,
+		tapp_id: Option<TAppId>,
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
-		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		Self::calculate_increase_amount_from_curve_total_supply(
-			tapp_item.buy_curve,
-			total_supply,
-			tapp_amount,
-		)
+		match tapp_id {
+			Some(tapp_id) => {
+				let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+				let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+				Self::calculate_increase_amount_from_curve_total_supply(
+					tapp_item.buy_curve,
+					total_supply,
+					tapp_amount,
+				)
+			}
+			None => {
+				// by default total supply is zero, buy curve is UnsignedSquareRoot_10
+				Self::calculate_increase_amount_from_curve_total_supply(
+					CurveType::UnsignedSquareRoot_10,
+					Zero::zero(),
+					tapp_amount,
+				)
+			}
+		}
 	}
 
 	pub(crate) fn calculate_reserve_amount(
