@@ -110,6 +110,7 @@ impl pallet_cml::Config for Test {
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
 	type MiningOperation = GenesisExchange;
+	type AuctionOperation = Auction;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type StopMiningPunishment = StopMiningPunishment;
 	type WeightInfo = ();
