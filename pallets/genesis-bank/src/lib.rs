@@ -198,10 +198,9 @@ pub mod genesis_bank {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
-			if Self::is_time_for_collateral_check(n) {
-				Self::try_clean_default_loan();
-			}
 			if Self::is_time_for_reset_interest_rate(n) {
+				Self::try_clean_default_loan();
+
 				Self::reset_all_loan_amounts();
 				Self::reset_interest_rate();
 			}

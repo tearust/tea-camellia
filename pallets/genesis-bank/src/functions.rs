@@ -1,11 +1,6 @@
 use super::*;
 
 impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
-	pub(crate) fn is_time_for_collateral_check(height: T::BlockNumber) -> bool {
-		// offset with 5 to void overlapping with staking period
-		height % T::BillingCycle::get() == 5u32.into()
-	}
-
 	pub(crate) fn is_time_for_reset_interest_rate(height: T::BlockNumber) -> bool {
 		// offset with `InterestPeriodLength` - 2 to void overlapping with staking period
 		height % T::BillingCycle::get() == T::BillingCycle::get() - 2u32.into()
@@ -343,6 +338,10 @@ mod tests {
 			assert_eq!(
 				GenesisBank::cml_need_to_pay(&id, false),
 				100_000 + 100_000 * 10 / 10000
+			);
+			assert_eq!(
+				GenesisBank::cml_need_to_pay(&id, true),
+				100_000 * 10 / 10000
 			);
 		})
 	}
