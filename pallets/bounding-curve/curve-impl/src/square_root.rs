@@ -33,8 +33,8 @@ where
 		let result = if x_n.is_zero() {
 			Zero::zero()
 		} else {
-			x_n.clone() - x_n.clone() * 2u32.into() / 3u32.into()
-				+ area.clone() * K_BASE_POINT.into() / K.into() / x_n.integer_sqrt()
+			x_n.clone() - x_n.clone() * 2u32.into() * 1_000_000u32.into() * 1_000_000u32.into()/ 3u32.into() 
+				+ area.clone() / K.into() * 10u32.into() / 1_000_000u32.into() / x_n.integer_sqrt()
 		};
 
 		if approximately_equals(x_n, result.clone(), precision.clone()) {
