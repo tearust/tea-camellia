@@ -381,36 +381,44 @@ mod tests {
 				&asset1,
 				Loan {
 					start_at: 0,
+					term_update_at: 0,
 					owner: COMPETITION_USERS2,
 					loan_type: CmlType::B,
-					amount: 100_000,
+					principal: 100_000,
+					interest: 0,
 				},
 			);
 			CollateralStore::<Test>::insert(
 				&asset2,
 				Loan {
 					start_at: 0,
+					term_update_at: 0,
 					owner: COMPETITION_USERS2,
 					loan_type: CmlType::B,
-					amount: 100_000,
+					principal: 100_000,
+					interest: 0,
 				},
 			);
 			CollateralStore::<Test>::insert(
 				&asset3,
 				Loan {
 					start_at: 0,
+					term_update_at: 0,
 					owner: COMPETITION_USERS2,
 					loan_type: CmlType::B,
-					amount: 100_000,
+					principal: 100_000,
+					interest: 0,
 				},
 			);
 			CollateralStore::<Test>::insert(
 				&asset4,
 				Loan {
 					start_at: 0,
+					term_update_at: 0,
 					owner: COMPETITION_USERS3,
 					loan_type: CmlType::B,
-					amount: 100_000,
+					principal: 100_000,
+					interest: 0,
 				},
 			);
 
@@ -582,36 +590,44 @@ mod tests {
 				&asset1,
 				Loan {
 					start_at: 0,
+					term_update_at: 0,
 					owner: COMPETITION_USERS2,
 					loan_type: CmlType::B,
-					amount: 100_000,
+					principal: 100_000,
+					interest: 0,
 				},
 			);
 			CollateralStore::<Test>::insert(
 				&asset2,
 				Loan {
 					start_at: 0,
+					term_update_at: 0,
 					owner: COMPETITION_USERS2,
 					loan_type: CmlType::B,
-					amount: 100_000,
+					principal: 100_000,
+					interest: 0,
 				},
 			);
 			CollateralStore::<Test>::insert(
 				&asset3,
 				Loan {
 					start_at: 0,
+					term_update_at: 0,
 					owner: COMPETITION_USERS2,
 					loan_type: CmlType::B,
-					amount: 100_000,
+					principal: 100_000,
+					interest: 0,
 				},
 			);
 			CollateralStore::<Test>::insert(
 				&asset4,
 				Loan {
 					start_at: 0,
+					term_update_at: 0,
 					owner: COMPETITION_USERS3,
 					loan_type: CmlType::B,
-					amount: 100_000,
+					principal: 100_000,
+					interest: 0,
 				},
 			);
 			UserCollateralStore::<Test>::insert(COMPETITION_USERS2, asset1, ());
