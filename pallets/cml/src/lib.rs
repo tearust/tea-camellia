@@ -455,7 +455,7 @@ pub mod cml {
 
 			extrinsic_procedure_with_weight(
 				&sender,
-				|_| {
+				|who| {
 					ensure!(
 						!Self::is_coupon_outdated(frame_system::Pallet::<T>::block_number()),
 						Error::<T>::CouponsHasOutdated
@@ -465,9 +465,25 @@ pub mod cml {
 						Error::<T>::WithoutCoupon
 					);
 					Self::check_luck_draw(a_coupon, b_coupon, c_coupon, schedule_type)?;
+
+					T::MiningOperation::check_redeem_coupons(
+						who,
+						match schedule_type {
+							DefrostScheduleType::Investor => true,
+							DefrostScheduleType::Team => false,
+						},
+					)?;
 					Ok(())
 				},
-				|sender| {
+				|who| {
+					T::MiningOperation::redeem_coupons(
+						who,
+						match schedule_type {
+							DefrostScheduleType::Investor => true,
+							DefrostScheduleType::Team => false,
+						},
+					);
+
 					let weight = match schedule_type {
 						DefrostScheduleType::Investor => None,
 						DefrostScheduleType::Team => {
@@ -475,16 +491,16 @@ pub mod cml {
 						}
 					};
 					let seed_ids =
-						Self::lucky_draw(&sender, a_coupon, b_coupon, c_coupon, schedule_type);
+						Self::lucky_draw(&who, a_coupon, b_coupon, c_coupon, schedule_type);
 					let seeds_count = seed_ids.len() as u64;
 					seed_ids.iter().for_each(|id| {
 						CmlStore::<T>::mutate(id, |cml| {
-							cml.set_owner(&sender);
+							cml.set_owner(&who);
 						});
-						UserCmlStore::<T>::insert(&sender, id, ());
+						UserCmlStore::<T>::insert(&who, id, ());
 					});
 
-					Self::deposit_event(Event::DrawCmls(sender.clone(), seeds_count));
+					Self::deposit_event(Event::DrawCmls(who.clone(), seeds_count));
 					weight
 				},
 			)
@@ -874,6 +890,8 @@ pub trait CmlOperation {
 
 	/// Get current mining cml list;
 	fn current_mining_cmls() -> Vec<CmlId>;
+
+	fn user_coupon_list(who: &Self::AccountId, schedule_type: DefrostScheduleType) -> Vec<Coupon>;
 }
 
 /// Operations to calculate staking rewards.

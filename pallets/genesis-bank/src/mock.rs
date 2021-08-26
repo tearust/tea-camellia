@@ -1,6 +1,7 @@
 use crate as pallet_genesis_bank;
 use auction_interface::AuctionOperation;
 use frame_benchmarking::frame_support::pallet_prelude::GenesisBuild;
+use frame_benchmarking::frame_support::sp_runtime::DispatchResult;
 use frame_support::{parameter_types, traits::Currency};
 use frame_system as system;
 use genesis_exchange_interface::MiningOperation;
@@ -68,6 +69,12 @@ impl MiningOperation for MiningOperationMock {
 	}
 
 	fn buy_mining_machine(_who: &Self::AccountId, _cml_id: u64) {}
+
+	fn check_redeem_coupons(_who: &Self::AccountId, _is_investor: bool) -> DispatchResult {
+		Ok(())
+	}
+
+	fn redeem_coupons(_who: &Self::AccountId, _is_investor: bool) {}
 }
 
 // Configure a mock runtime to test the pallet.

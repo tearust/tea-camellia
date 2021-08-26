@@ -152,6 +152,9 @@ pub const INTEREST_PERIOD_LENGTH: BlockNumber = 1000;
 pub const CML_A_MINING_MACHINE_COST: Balance = 2000;
 pub const CML_B_MINING_MACHINE_COST: Balance = 1000;
 pub const CML_C_MINING_MACHINE_COST: Balance = 500;
+pub const CML_A_REDEEM_COUPON_COST: Balance = 2000;
+pub const CML_B_REDEEM_COUPON_COST: Balance = 1000;
+pub const CML_C_REDEEM_COUPON_COST: Balance = 500;
 
 parameter_types! {
 	pub const PER: Balance = PER_RATE;
@@ -159,6 +162,9 @@ parameter_types! {
 	pub const CmlAMiningMachineCost: Balance = CML_A_MINING_MACHINE_COST;
 	pub const CmlBMiningMachineCost: Balance = CML_B_MINING_MACHINE_COST;
 	pub const CmlCMiningMachineCost: Balance = CML_C_MINING_MACHINE_COST;
+	pub const CmlARedeemCouponCost: Balance = CML_A_REDEEM_COUPON_COST;
+	pub const CmlBRedeemCouponCost: Balance = CML_B_REDEEM_COUPON_COST;
+	pub const CmlCRedeemCouponCost: Balance = CML_C_REDEEM_COUPON_COST;
 }
 
 impl pallet_genesis_exchange::Config for Test {
@@ -172,6 +178,9 @@ impl pallet_genesis_exchange::Config for Test {
 	type CmlAMiningMachineCost = CmlAMiningMachineCost;
 	type CmlBMiningMachineCost = CmlBMiningMachineCost;
 	type CmlCMiningMachineCost = CmlCMiningMachineCost;
+	type CmlARedeemCouponCost = CmlARedeemCouponCost;
+	type CmlBRedeemCouponCost = CmlBRedeemCouponCost;
+	type CmlCRedeemCouponCost = CmlCRedeemCouponCost;
 }
 
 parameter_types! {

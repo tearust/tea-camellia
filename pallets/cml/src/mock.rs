@@ -38,6 +38,15 @@ impl MiningOperation for MiningOperationMock {
 	}
 
 	fn buy_mining_machine(_who: &Self::AccountId, _cml_id: u64) {}
+
+	fn check_redeem_coupons(
+		_who: &Self::AccountId,
+		_is_investor: bool,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+
+	fn redeem_coupons(_who: &Self::AccountId, _is_investor: bool) {}
 }
 
 // Configure a mock runtime to test the pallet.

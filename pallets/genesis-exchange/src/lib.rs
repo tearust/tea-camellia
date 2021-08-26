@@ -77,6 +77,15 @@ pub mod genesis_exchange {
 
 		#[pallet::constant]
 		type CmlCMiningMachineCost: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type CmlARedeemCouponCost: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type CmlBRedeemCouponCost: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type CmlCRedeemCouponCost: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -195,6 +204,7 @@ pub mod genesis_exchange {
 		NoNeedToRepayUSDDebts,
 		RepayUSDAmountShouldNotBeZero,
 		RepayUSDAmountMoreThanDebtAmount,
+		InsufficientUSDToRedeemCoupons,
 	}
 
 	#[pallet::hooks]

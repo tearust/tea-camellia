@@ -174,6 +174,17 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			.map(|(_, miner_item)| miner_item.cml_id)
 			.collect()
 	}
+
+	fn user_coupon_list(who: &Self::AccountId, schedule_type: DefrostScheduleType) -> Vec<Coupon> {
+		match schedule_type {
+			DefrostScheduleType::Team => TeamCouponStore::<T>::iter_prefix(who)
+				.map(|(_, coupon)| coupon)
+				.collect(),
+			DefrostScheduleType::Investor => InvestorCouponStore::<T>::iter_prefix(who)
+				.map(|(_, coupon)| coupon)
+				.collect(),
+		}
+	}
 }
 
 #[cfg(test)]
