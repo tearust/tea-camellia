@@ -77,11 +77,12 @@ where
 	Balance: AtLeast32BitUnsigned + Default + Clone + Debug,
 {
 	fn buy_price(total_supply: Balance) -> Balance {
-		total_supply.integer_sqrt() * K.into() / K_BASE_POINT.into()
+		// total_supply.integer_sqrt() * K.into() / K_BASE_POINT.into()
+		total_supply.integer_sqrt() * K.into() / 10u32.into() * 1000000u32.into()
 	}
 
 	fn pool_balance(x: Balance) -> Balance {
-		x.integer_sqrt() * x.clone() * K.into() * 2u32.into() / K_BASE_POINT.into() / 3u32.into()
+		x.integer_sqrt() * x.clone() * K.into() * 2u32.into() / 1_000_000u32.into() / 30u32.into()
 	}
 
 	fn pool_balance_reverse(area: Balance, precision: Balance) -> Balance {
@@ -139,27 +140,27 @@ mod tests {
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(100000),
-			2
+			21
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(1000000),
-			66
+			666
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(10000000),
-			2108
+			21080
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(100000000),
-			66666
+			666666
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(DOLLARS),
-			66666666666
+			666666666666
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
-			66666666666666
+			666666666666666
 		);
 
 		#[allow(non_camel_case_types)]
@@ -170,25 +171,25 @@ mod tests {
 		);
 		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(1000000),
-			46
+			466
 		);
 		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(10000000),
-			1475
+			14756
 		);
 		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(100000000),
-			46666
+			466666
 		);
 		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(DOLLARS),
-			46666666666
+			466666666666
 		);
 		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
-			46666666666666
+			466666666666666
 		);
-	}
+	} 
 
 	#[test]
 	fn pool_balance_reverse_works() {
@@ -278,15 +279,15 @@ mod tests {
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			0
+			1_000_000_000_000
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
-			1
+			10_000_000_000_000
 		);
 		assert_eq!(
 			<RootSquare_10 as BoundingCurveInterface<Balance>>::buy_price(10000 * DOLLARS),
-			10
+			100_000_000_000_000
 		);
 
 		#[allow(non_camel_case_types)]
@@ -297,15 +298,15 @@ mod tests {
 		);
 		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
-			0
+			700_000_000_000
 		);
 		assert_eq!(
-			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(1000 * DOLLARS),
-			2
+			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
+			7_000_000_000_000
 		);
 		assert_eq!(
 			<RootSquare_7 as BoundingCurveInterface<Balance>>::buy_price(10000 * DOLLARS),
-			7
+			70_000_000_000_000
 		);
 	}
 }
