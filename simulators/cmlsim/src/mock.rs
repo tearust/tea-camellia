@@ -1,4 +1,5 @@
 use frame_support::parameter_types;
+use frame_support::sp_runtime::DispatchResult;
 use frame_system as system;
 use genesis_exchange_interface::MiningOperation;
 use node_primitives::Balance;
@@ -31,6 +32,12 @@ impl MiningOperation for MiningOperationMock {
 	}
 
 	fn buy_mining_machine(_who: &Self::AccountId, _cml_id: u64) {}
+
+	fn check_redeem_coupons(_who: &Self::AccountId, _is_investor: bool) -> DispatchResult {
+		Ok(())
+	}
+
+	fn redeem_coupons(_who: &Self::AccountId, _is_investor: bool) {}
 }
 
 // Configure a mock runtime to test the pallet.

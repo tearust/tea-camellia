@@ -863,6 +863,9 @@ parameter_types! {
 	pub const CmlAMiningMachineCost: Balance = 2000 * DOLLARS;
 	pub const CmlBMiningMachineCost: Balance = 1000 * DOLLARS;
 	pub const CmlCMiningMachineCost: Balance = 500 * DOLLARS;
+	pub const CmlARedeemCouponCost: Balance =  2000 * DOLLARS;
+	pub const CmlBRedeemCouponCost: Balance =  1000 * DOLLARS;
+	pub const CmlCRedeemCouponCost: Balance =  500 * DOLLARS;
 }
 
 impl pallet_genesis_exchange::Config for Runtime {
@@ -876,6 +879,9 @@ impl pallet_genesis_exchange::Config for Runtime {
 	type CmlAMiningMachineCost = CmlAMiningMachineCost;
 	type CmlBMiningMachineCost = CmlBMiningMachineCost;
 	type CmlCMiningMachineCost = CmlCMiningMachineCost;
+	type CmlARedeemCouponCost = CmlARedeemCouponCost;
+	type CmlBRedeemCouponCost = CmlBRedeemCouponCost;
+	type CmlCRedeemCouponCost = CmlCRedeemCouponCost;
 }
 
 parameter_types! {
