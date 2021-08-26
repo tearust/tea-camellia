@@ -10,7 +10,7 @@ pub trait GenesisBankOperation {
 
 	fn is_cml_in_loan(cml_id: u64) -> bool;
 
-	fn calculate_loan_amount(cml_id: u64, block_height: Self::BlockNumber) -> Self::Balance;
+	fn calculate_loan_amount(cml_id: u64, pay_interest_only: bool) -> Self::Balance;
 
 	fn user_collaterals(who: &Self::AccountId) -> Vec<(u64, Self::BlockNumber)>;
 }

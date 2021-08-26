@@ -22,9 +22,11 @@ where
 	Balance: Default + AtLeast32BitUnsigned + Clone,
 {
 	pub start_at: BlockNumber,
+	pub term_update_at: BlockNumber,
 	pub owner: AccountId,
 	pub loan_type: CmlType,
-	pub amount: Balance,
+	pub principal: Balance,
+	pub interest: Balance,
 }
 
 impl<AccountId, BlockNumber, Balance> Default for Loan<AccountId, BlockNumber, Balance>
@@ -36,9 +38,11 @@ where
 	fn default() -> Self {
 		Loan {
 			start_at: BlockNumber::default(),
+			term_update_at: BlockNumber::default(),
 			owner: Default::default(),
 			loan_type: CmlType::C,
-			amount: Balance::default(),
+			principal: Balance::default(),
+			interest: Balance::default(),
 		}
 	}
 }

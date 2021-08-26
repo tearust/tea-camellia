@@ -167,18 +167,15 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	fn collect_genesis_loan_credit() -> BTreeMap<T::AccountId, BalanceOf<T>> {
 		let mut asset_usd_map = BTreeMap::new();
-		let current_height = frame_system::Pallet::<T>::block_number();
 		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 
 		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
 			let mut credit_total: BalanceOf<T> = Zero::zero();
-			for (cml_id, expired_height) in T::GenesisBankOperation::user_collaterals(&user) {
-				credit_total =
-					credit_total.saturating_add(T::GenesisBankOperation::calculate_loan_amount(
-						cml_id,
-						max(current_height, expired_height),
-					));
+			for (cml_id, _) in T::GenesisBankOperation::user_collaterals(&user) {
+				credit_total = credit_total.saturating_add(
+					T::GenesisBankOperation::calculate_loan_amount(cml_id, false),
+				);
 			}
 			asset_usd_map.insert(user, credit_total * current_exchange_rate / one_tea_dollar);
 		});

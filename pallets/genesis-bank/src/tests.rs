@@ -219,7 +219,7 @@ fn payoff_loan_works() {
 			Origin::signed(user),
 			from_cml_id(cml_id),
 			AssetType::CML,
-			false,
+			CML_A_LOAN_AMOUNT * 2
 		));
 
 		let unique_id = AssetUniqueId {
@@ -246,10 +246,180 @@ fn payoff_loan_works() {
 }
 
 #[test]
+fn payoff_loan_works_if_only_pay_part_of_interest() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml_id: CmlId = 4;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		Cml::add_cml(&user, cml);
+
+		assert_ok!(GenesisBank::apply_loan_genesis_bank(
+			Origin::signed(user),
+			from_cml_id(cml_id),
+			AssetType::CML
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			CML_A_LOAN_AMOUNT
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			BANK_INITIAL_BALANCE - CML_A_LOAN_AMOUNT
+		);
+
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		assert_ok!(GenesisBank::payoff_loan(
+			Origin::signed(user),
+			from_cml_id(cml_id),
+			AssetType::CML,
+			1
+		));
+
+		let unique_id = AssetUniqueId {
+			asset_type: AssetType::CML,
+			inner_id: from_cml_id(cml_id),
+		};
+		assert!(CollateralStore::<Test>::contains_key(&unique_id));
+		assert!(UserCollateralStore::<Test>::contains_key(user, &unique_id));
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			BANK_INITIAL_BALANCE - CML_A_LOAN_AMOUNT
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			CML_A_LOAN_AMOUNT - 1
+		);
+
+		let loan = CollateralStore::<Test>::get(&unique_id);
+		assert_eq!(loan.start_at, 1);
+		assert_eq!(loan.term_update_at, 1);
+		assert_eq!(loan.principal, CML_A_LOAN_AMOUNT);
+		assert_eq!(
+			loan.interest,
+			CML_A_LOAN_AMOUNT * BANK_INITIAL_INTEREST_RATE / 10000 - 1
+		);
+	})
+}
+
+#[test]
+fn payoff_loan_works_if_only_pay_all_interest_and_part_of_principle() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml_id: CmlId = 4;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		Cml::add_cml(&user, cml);
+
+		assert_ok!(GenesisBank::apply_loan_genesis_bank(
+			Origin::signed(user),
+			from_cml_id(cml_id),
+			AssetType::CML
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			CML_A_LOAN_AMOUNT
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			BANK_INITIAL_BALANCE - CML_A_LOAN_AMOUNT
+		);
+
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		assert_ok!(GenesisBank::payoff_loan(
+			Origin::signed(user),
+			from_cml_id(cml_id),
+			AssetType::CML,
+			CML_A_LOAN_AMOUNT / 2 + CML_A_LOAN_AMOUNT * BANK_INITIAL_INTEREST_RATE / 10000
+		));
+
+		let unique_id = AssetUniqueId {
+			asset_type: AssetType::CML,
+			inner_id: from_cml_id(cml_id),
+		};
+		assert!(CollateralStore::<Test>::contains_key(&unique_id));
+		assert!(UserCollateralStore::<Test>::contains_key(user, &unique_id));
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			BANK_INITIAL_BALANCE - CML_A_LOAN_AMOUNT / 2
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			CML_A_LOAN_AMOUNT
+				- CML_A_LOAN_AMOUNT / 2
+				- CML_A_LOAN_AMOUNT * BANK_INITIAL_INTEREST_RATE / 10000
+		);
+
+		let loan = CollateralStore::<Test>::get(&unique_id);
+		assert_eq!(loan.start_at, 1);
+		assert_eq!(loan.term_update_at, 100);
+		assert_eq!(loan.principal, CML_A_LOAN_AMOUNT / 2);
+		assert_eq!(loan.interest, 0);
+	})
+}
+
+#[test]
+fn payoff_loan_works_if_only_pay_all_interest() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml_id: CmlId = 4;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		Cml::add_cml(&user, cml);
+
+		assert_ok!(GenesisBank::apply_loan_genesis_bank(
+			Origin::signed(user),
+			from_cml_id(cml_id),
+			AssetType::CML
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			CML_A_LOAN_AMOUNT
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			BANK_INITIAL_BALANCE - CML_A_LOAN_AMOUNT
+		);
+
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		assert_ok!(GenesisBank::payoff_loan(
+			Origin::signed(user),
+			from_cml_id(cml_id),
+			AssetType::CML,
+			CML_A_LOAN_AMOUNT * BANK_INITIAL_INTEREST_RATE / 10000
+		));
+
+		let unique_id = AssetUniqueId {
+			asset_type: AssetType::CML,
+			inner_id: from_cml_id(cml_id),
+		};
+		assert!(CollateralStore::<Test>::contains_key(&unique_id));
+		assert!(UserCollateralStore::<Test>::contains_key(user, &unique_id));
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			BANK_INITIAL_BALANCE - CML_A_LOAN_AMOUNT
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			CML_A_LOAN_AMOUNT - CML_A_LOAN_AMOUNT * BANK_INITIAL_INTEREST_RATE / 10000
+		);
+
+		let loan = CollateralStore::<Test>::get(&unique_id);
+		assert_eq!(loan.start_at, 1);
+		assert_eq!(loan.term_update_at, 100);
+		assert_eq!(loan.principal, CML_A_LOAN_AMOUNT);
+		assert_eq!(loan.interest, 0);
+	})
+}
+
+#[test]
 fn payoff_loan_should_fail_if_load_not_exist() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			GenesisBank::payoff_loan(Origin::signed(1), from_cml_id(2), AssetType::CML, false),
+			GenesisBank::payoff_loan(Origin::signed(1), from_cml_id(2), AssetType::CML, 1),
 			Error::<Test>::LoanNotExists
 		);
 	})
@@ -270,12 +440,7 @@ fn payoff_loan_should_fail_if_load_not_belongs_to_user() {
 		));
 
 		assert_noop!(
-			GenesisBank::payoff_loan(
-				Origin::signed(4),
-				from_cml_id(cml_id),
-				AssetType::CML,
-				false
-			),
+			GenesisBank::payoff_loan(Origin::signed(4), from_cml_id(cml_id), AssetType::CML, 1),
 			Error::<Test>::InvalidBorrower
 		);
 	})
@@ -294,12 +459,7 @@ fn payoff_loan_should_fail_if_asset_id_invalid() {
 		UserCollateralStore::<Test>::insert(&user, &unique_id, ());
 
 		assert_noop!(
-			GenesisBank::payoff_loan(
-				Origin::signed(user),
-				invalid_asset_id,
-				AssetType::CML,
-				false
-			),
+			GenesisBank::payoff_loan(Origin::signed(user), invalid_asset_id, AssetType::CML, 1),
 			Error::<Test>::ConvertToCmlIdLengthMismatch
 		);
 	})
@@ -322,13 +482,29 @@ fn payoff_loan_should_fail_if_expired_loan_term_duration() {
 
 		frame_system::Pallet::<Test>::set_block_number(LOAN_TERM_DURATION as u64 + 1);
 		assert_noop!(
-			GenesisBank::payoff_loan(
-				Origin::signed(user),
-				from_cml_id(cml_id),
-				AssetType::CML,
-				false
-			),
+			GenesisBank::payoff_loan(Origin::signed(user), from_cml_id(cml_id), AssetType::CML, 1),
 			Error::<Test>::LoanInDefault
+		);
+	})
+}
+
+#[test]
+fn payoff_loan_should_fail_if_amount_is_zero() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml_id: CmlId = 4;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		Cml::add_cml(&user, cml);
+
+		assert_ok!(GenesisBank::apply_loan_genesis_bank(
+			Origin::signed(user),
+			from_cml_id(cml_id),
+			AssetType::CML
+		));
+
+		assert_noop!(
+			GenesisBank::payoff_loan(Origin::signed(user), from_cml_id(cml_id), AssetType::CML, 0),
+			Error::<Test>::RepayAmountCanNotBeZero
 		);
 	})
 }
@@ -356,7 +532,7 @@ fn payoff_loan_should_fail_if_have_not_enough_balance() {
 				Origin::signed(user),
 				from_cml_id(cml_id),
 				AssetType::CML,
-				false
+				CML_A_LOAN_AMOUNT + 1
 			),
 			Error::<Test>::InsufficientRepayBalance
 		);

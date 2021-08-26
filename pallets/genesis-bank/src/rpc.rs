@@ -1,8 +1,8 @@
 use super::*;
 
 impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
-	pub fn cml_calculate_loan_amount(cml_id: u64, block_height: T::BlockNumber) -> BalanceOf<T> {
-		Self::calculate_loan_amount(cml_id, block_height)
+	pub fn cml_calculate_loan_amount(cml_id: u64, pay_interest_only: bool) -> BalanceOf<T> {
+		Self::calculate_loan_amount(cml_id, pay_interest_only)
 	}
 
 	pub fn user_collateral_list(who: &T::AccountId) -> Vec<(u64, T::BlockNumber)> {
@@ -22,18 +22,12 @@ impl<T: genesis_bank::Config> GenesisBankOperation for genesis_bank::Pallet<T> {
 		})
 	}
 
-	fn calculate_loan_amount(cml_id: u64, block_height: Self::BlockNumber) -> Self::Balance {
+	fn calculate_loan_amount(cml_id: u64, pay_interest_only: bool) -> Self::Balance {
 		let unique_id = AssetUniqueId {
 			asset_type: AssetType::CML,
 			inner_id: from_cml_id(cml_id),
 		};
-		match Self::cml_need_to_pay(&unique_id, false) {
-			Ok(amount) => amount,
-			Err(e) => {
-				log::error!("calculate loan amount failed: {:?}", e);
-				Zero::zero()
-			}
-		}
+		Self::cml_need_to_pay(&unique_id, pay_interest_only)
 	}
 
 	fn user_collaterals(who: &Self::AccountId) -> Vec<(CmlId, Self::BlockNumber)> {
@@ -41,7 +35,7 @@ impl<T: genesis_bank::Config> GenesisBankOperation for genesis_bank::Pallet<T> {
 			.map(|(id, _)| {
 				(
 					to_cml_id(&id.inner_id).unwrap_or(u64::MAX),
-					CollateralStore::<T>::get(&id).start_at + T::LoanTermDuration::get(),
+					CollateralStore::<T>::get(&id).term_update_at + T::LoanTermDuration::get(),
 				)
 			})
 			.collect()

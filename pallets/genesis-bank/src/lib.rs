@@ -25,7 +25,7 @@ use frame_system::pallet_prelude::*;
 use genesis_bank_interface::GenesisBankOperation;
 use pallet_cml::{CmlId, CmlOperation, CmlType, SeedProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::traits::{AtLeast32BitUnsigned, CheckedSub, Saturating, Zero};
+use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
 use sp_std::prelude::*;
 
 /// The balance type of this module.
@@ -192,6 +192,7 @@ pub mod genesis_bank {
 		CannotApplyLoanAfterClosed,
 		GenesisBankInsufficientFreeBalance,
 		NoNeedToRepayInterest,
+		RepayAmountCanNotBeZero,
 	}
 
 	#[pallet::hooks]
@@ -260,7 +261,7 @@ pub mod genesis_bank {
 			sender: OriginFor<T>,
 			id: AssetId,
 			asset_type: AssetType,
-			pay_interest_only: bool,
+			amount: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let unique_id = AssetUniqueId {
@@ -270,8 +271,8 @@ pub mod genesis_bank {
 
 			extrinsic_procedure(
 				&who,
-				|who| Self::check_before_payoff_loan(&unique_id, who, pay_interest_only),
-				|who| Self::payoff_loan_inner(&unique_id, who, pay_interest_only),
+				|who| Self::check_before_payoff_loan(&unique_id, who, amount),
+				|who| Self::payoff_loan_inner(&unique_id, who, amount),
 			)
 		}
 	}

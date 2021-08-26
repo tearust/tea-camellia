@@ -20,7 +20,7 @@ pub trait GenesisBankApi<BlockHash, AccountId> {
 	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
-		block_height: BlockNumber,
+		pay_interest_only: bool,
 		at: Option<BlockHash>,
 	) -> Result<Price>;
 
@@ -69,7 +69,7 @@ where
 	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
-		block_height: BlockNumber,
+		pay_interest_only: bool,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Price> {
 		let api = self.client.runtime_api();
@@ -78,7 +78,7 @@ where
 			self.client.info().best_hash));
 
 		let result: Balance = api
-			.cml_calculate_loan_amount(&at, cml_id, block_height)
+			.cml_calculate_loan_amount(&at, cml_id, pay_interest_only)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
 	}
