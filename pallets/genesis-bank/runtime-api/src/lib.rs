@@ -11,7 +11,7 @@ sp_api::decl_runtime_apis! {
 	where
 		AccountId: Codec,
 	{
-		fn cml_calculate_loan_amount(cml_id: u64, pay_interest_only: bool) -> Balance;
+		fn cml_calculate_loan_amount(cml_id: u64) -> (Balance, Balance, Balance);
 
 		fn user_collateral_list(who: &AccountId) -> Vec<(u64, BlockNumber)>;
 	}

@@ -1,8 +1,21 @@
 use super::*;
 
 impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
-	pub fn cml_calculate_loan_amount(cml_id: u64, pay_interest_only: bool) -> BalanceOf<T> {
-		Self::calculate_loan_amount(cml_id, pay_interest_only)
+	/// return fields:
+	/// - Prime loan
+	/// - Loan interest
+	/// - Total
+	pub fn cml_calculate_loan_amount(cml_id: u64) -> (BalanceOf<T>, BalanceOf<T>, BalanceOf<T>) {
+		let total = Self::calculate_loan_amount(cml_id, false);
+		let loan = CollateralStore::<T>::get(AssetUniqueId {
+			asset_type: AssetType::CML,
+			inner_id: from_cml_id(cml_id),
+		});
+		(
+			loan.principal.clone(),
+			total.saturating_sub(loan.principal),
+			total,
+		)
 	}
 
 	pub fn user_collateral_list(who: &T::AccountId) -> Vec<(u64, T::BlockNumber)> {

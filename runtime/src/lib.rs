@@ -1205,8 +1205,8 @@ impl_runtime_apis! {
 	}
 
 	impl genesis_bank_runtime_api::GenesisBankApi<Block, AccountId> for Runtime {
-		fn cml_calculate_loan_amount(cml_id: u64, pay_interest_only: bool) -> Balance {
-			GenesisBank::cml_calculate_loan_amount(cml_id, pay_interest_only)
+		fn cml_calculate_loan_amount(cml_id: u64) -> (Balance, Balance, Balance) {
+			GenesisBank::cml_calculate_loan_amount(cml_id)
 		}
 
 		fn user_collateral_list(who: &AccountId) -> Vec<(u64, BlockNumber)> {

@@ -16,13 +16,16 @@ const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
 pub trait GenesisBankApi<BlockHash, AccountId> {
+	/// return fields:
+	/// - Prime loan
+	/// - Loan interest
+	/// - Total
 	#[rpc(name = "cml_calculateLoanAmount")]
 	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
-		pay_interest_only: bool,
 		at: Option<BlockHash>,
-	) -> Result<Price>;
+	) -> Result<(Price, Price, Price)>;
 
 	#[rpc(name = "cml_userCmlLoanList")]
 	fn user_collateral_list(
@@ -69,18 +72,17 @@ where
 	fn cml_calculate_loan_amount(
 		&self,
 		cml_id: u64,
-		pay_interest_only: bool,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Price> {
+	) -> Result<(Price, Price, Price)> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let result: Balance = api
-			.cml_calculate_loan_amount(&at, cml_id, pay_interest_only)
+		let (prime, interest, total): (Balance, Balance, Balance) = api
+			.cml_calculate_loan_amount(&at, cml_id)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(Price(result))
+		Ok((Price(prime), Price(interest), Price(total)))
 	}
 
 	fn user_collateral_list(
