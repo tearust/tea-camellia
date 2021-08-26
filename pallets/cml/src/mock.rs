@@ -1,6 +1,8 @@
 use crate as pallet_cml;
 use crate::generator::init_genesis;
 use crate::{CouponConfig, GenesisCoupons, GenesisSeeds};
+use auction_interface::AuctionOperation;
+use frame_benchmarking::Zero;
 use frame_support::pallet_prelude::*;
 use frame_support::parameter_types;
 use frame_system as system;
@@ -47,6 +49,31 @@ impl MiningOperation for MiningOperationMock {
 	}
 
 	fn redeem_coupons(_who: &Self::AccountId, _is_investor: bool) {}
+}
+
+pub struct AuctionOperationMock {}
+
+impl Default for AuctionOperationMock {
+	fn default() -> Self {
+		AuctionOperationMock {}
+	}
+}
+impl AuctionOperation for AuctionOperationMock {
+	type AccountId = u64;
+	type Balance = Balance;
+	type BlockNumber = u64;
+
+	fn is_cml_in_auction(_cml_id: u64) -> bool {
+		false
+	}
+
+	fn create_new_bid(_sender: &Self::AccountId, _auction_id: &u64, _price: Self::Balance) {}
+
+	fn update_current_winner(_auction_id: &u64, _bid_user: &Self::AccountId) {}
+
+	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber) {
+		(Zero::zero(), Zero::zero())
+	}
 }
 
 // Configure a mock runtime to test the pallet.
@@ -121,6 +148,7 @@ impl pallet_cml::Config for Test {
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
+	type AuctionOperation = AuctionOperationMock;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type StopMiningPunishment = StopMiningPunishment;
 	type MiningOperation = MiningOperationMock;

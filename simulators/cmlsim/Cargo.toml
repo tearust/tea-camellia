@@ -23,4 +23,5 @@ pallet-cml = { path = '../../pallets/cml' }
 pallet-utils = { path = '../../pallets/utils'}
 staking-economics = { path = '../../pallets/cml/staking-economics'}
 genesis-exchange-interface = { path = "../../pallets/genesis-exchange/interface" }
+auction-interface = { path = "../../pallets/auction/interface" }
 

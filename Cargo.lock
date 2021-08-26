@@ -1092,6 +1092,7 @@ dependencies = [
 name = "cmlsim"
 version = "0.1.0"
 dependencies = [
+ "auction-interface",
  "clap 3.0.0-beta.2",
  "env_logger 0.8.4",
  "frame-support",
@@ -4406,6 +4407,7 @@ dependencies = [
 name = "pallet-cml"
 version = "3.0.0"
 dependencies = [
+ "auction-interface",
  "frame-benchmarking",
  "frame-support",
  "frame-system",

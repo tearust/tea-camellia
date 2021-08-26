@@ -20,6 +20,7 @@ pub use param::*;
 pub use types::*;
 pub use weights::WeightInfo;
 
+use auction_interface::AuctionOperation;
 use frame_support::{
 	dispatch::DispatchResult,
 	ensure,
@@ -79,6 +80,12 @@ pub mod cml {
 		type StakingEconomics: StakingEconomics<BalanceOf<Self>, Self::AccountId>;
 
 		type MiningOperation: MiningOperation<AccountId = Self::AccountId>;
+
+		type AuctionOperation: AuctionOperation<
+			AccountId = Self::AccountId,
+			BlockNumber = Self::BlockNumber,
+			Balance = BalanceOf<Self>,
+		>;
 
 		/// Weight definition about all user related extrinsics.
 		type WeightInfo: WeightInfo;
@@ -273,6 +280,8 @@ pub mod cml {
 		StakingSlotsOverTheMaxLength,
 		/// User specfied max acceptable slot length and current staking index has over than that.
 		StakingSlotsOverAcceptableIndex,
+		/// It is forbidden to stake a cml that is in aution.
+		CannotStakeWhenCmlIsInAuction,
 
 		/// Defrost time should have value when defrost.
 		CmlDefrostTimeIsNone,
@@ -644,6 +653,10 @@ pub mod cml {
 					let amount: Result<Option<BalanceOf<T>>, DispatchError> = match staking_cml {
 						Some(cml_id) => {
 							Self::check_belongs(&cml_id, &who)?;
+							ensure!(
+								!T::AuctionOperation::is_cml_in_auction(cml_id),
+								Error::<T>::CannotStakeWhenCmlIsInAuction
+							);
 							let cml = CmlStore::<T>::get(cml_id);
 							cml.check_can_stake_to(&current_block_number)
 								.map_err(|e| Error::<T>::from(e))?;
