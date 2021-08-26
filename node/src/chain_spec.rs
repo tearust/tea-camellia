@@ -31,7 +31,7 @@ const INITIAL_EXCHANGE_USD_BALANCE: Balance = 40_000 * DOLLARS;
 
 const INITIAL_GENESIS_BANK_ACCOUNT_BALANCE: Balance = 100_000 * DOLLARS;
 
-const INITIAL_COMPETITION_USER_USD_BALANCE: Balance = 1000 * DOLLARS;
+const INITIAL_COMPETITION_USER_USD_BALANCE: Balance = 0;
 
 // address derived from [0u8; 32] that the corresponding private key we don't know
 const GENESIS_BANK_OPERATION_ADDRESS: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM";
