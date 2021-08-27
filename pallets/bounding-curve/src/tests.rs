@@ -70,7 +70,7 @@ fn create_new_tapp_works() {
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
 		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
 		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
-		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99999954);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99999534);
 	})
 }
 
@@ -398,7 +398,7 @@ fn buy_token_should_fail_if_tapp_amount_is_too_low() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 1000),
+			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 100),
 			Error::<Test>::BuyTeaAmountCanNotBeZero
 		);
 	})
@@ -597,7 +597,7 @@ fn sell_token_should_fail_if_tapp_amount_is_too_low() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::sell_token(Origin::signed(owner), tapp_id, 1000),
+			BoundingCurve::sell_token(Origin::signed(owner), tapp_id, 100),
 			Error::<Test>::SellTeaAmountCanNotBeZero
 		);
 	})
@@ -681,11 +681,11 @@ fn consume_works() {
 			DOLLARS - 10000,
 			1,
 		));
-		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 4358558);
-		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 8717116);
-		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 17434232);
+		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 1484987);
+		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 2969974);
+		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 5939948);
 		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 30509907)
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 10394910)
 	})
 }
 
@@ -805,11 +805,11 @@ fn expense_works() {
 			expense_amount
 		));
 
-		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 964197);
-		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 1928394);
-		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 3856788);
+		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 996013);
+		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 1992025);
+		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 3984050);
 		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 6749379);
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 6972086);
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user4),
 			DOLLARS + expense_amount

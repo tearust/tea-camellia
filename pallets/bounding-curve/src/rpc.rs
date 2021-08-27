@@ -175,8 +175,8 @@ mod tests {
 				vec![],
 			));
 			let (buy_price, sell_price) = BoundingCurve::query_price(1);
-			assert_eq!(buy_price, 10);
-			assert_eq!(sell_price, 7);
+			assert_eq!(buy_price, 100000000000000);
+			assert_eq!(sell_price, 70000000000000);
 
 			assert_ok!(BoundingCurve::create_new_tapp(
 				Origin::signed(1),
@@ -187,8 +187,8 @@ mod tests {
 				vec![],
 			));
 			let (buy_price, sell_price) = BoundingCurve::query_price(2);
-			assert_eq!(buy_price, 100);
-			assert_eq!(sell_price, 70);
+			assert_eq!(buy_price, 1000000000000000);
+			assert_eq!(sell_price, 700000000000000);
 		})
 	}
 }
