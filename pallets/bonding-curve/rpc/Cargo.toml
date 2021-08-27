@@ -1,5 +1,5 @@
 [package]
-name = "bounding-curve-rpc"
+name = "bonding-curve-rpc"
 version = "0.1.0"
 authors = ["Yan Mingzhi <realraindust@gmail.com>"]
 edition = "2018"
@@ -19,7 +19,7 @@ sp-blockchain = {default-features = false, version = '3.0.0', git = 'https://git
 sp-rpc = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
-bounding-curve-runtime-api = {default-features = false, path = '../runtime-api'}
+bonding-curve-runtime-api = {default-features = false, path = '../runtime-api'}
 
 [dev-dependencies]
 rmp-serde = "0.14.3"
@@ -32,5 +32,5 @@ std = [
     "sp-api/std",
     "sp-runtime/std",
     "node-primitives/std",
-    "bounding-curve-runtime-api/std"
+    "bonding-curve-runtime-api/std"
 ]

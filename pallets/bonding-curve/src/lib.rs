@@ -3,7 +3,7 @@
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
-pub use bounding_curve::*;
+pub use bonding_curve::*;
 pub use types::*;
 
 #[cfg(test)]
@@ -16,7 +16,7 @@ mod functions;
 mod rpc;
 mod types;
 
-use bounding_curve_interface::BoundingCurveInterface;
+use bonding_curve_interface::BondingCurveInterface;
 use codec::{Decode, Encode};
 use frame_support::{
 	pallet_prelude::*,
@@ -36,7 +36,7 @@ pub type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
-pub mod bounding_curve {
+pub mod bonding_curve {
 	use super::*;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -80,13 +80,13 @@ pub mod bounding_curve {
 		#[pallet::constant]
 		type HostArrangeDuration: Get<Self::BlockNumber>;
 
-		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
+		type LinearCurve: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_10: BoundingCurveInterface<BalanceOf<Self>>;
+		type UnsignedSquareRoot_10: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_7: BoundingCurveInterface<BalanceOf<Self>>;
+		type UnsignedSquareRoot_7: BondingCurveInterface<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -95,15 +95,8 @@ pub mod bounding_curve {
 
 	#[pallet::storage]
 	#[pallet::getter(fn account_table)]
-	pub type AccountTable<T: Config> = StorageDoubleMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		Twox64Concat,
-		TAppId,
-		BalanceOf<T>,
-		ValueQuery,
-	>;
+	pub type AccountTable<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, TAppId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn total_supply_table)]
@@ -111,8 +104,8 @@ pub mod bounding_curve {
 		StorageMap<_, Twox64Concat, TAppId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn tapp_bounding_curve)]
-	pub type TAppBoundingCurve<T: Config> =
+	#[pallet::getter(fn tapp_bonding_curve)]
+	pub type TAppBondingCurve<T: Config> =
 		StorageMap<_, Twox64Concat, TAppId, TAppItem<T::AccountId>, ValueQuery>;
 
 	#[pallet::storage]
@@ -146,8 +139,7 @@ pub mod bounding_curve {
 
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_current_hosted_cmls)]
-	pub type CmlHostingTApps<T: Config> =
-		StorageMap<_, Twox64Concat, CmlId, Vec<TAppId>, ValueQuery>;
+	pub type CmlHostingTApps<T: Config> = StorageMap<_, Twox64Concat, CmlId, Vec<TAppId>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -310,12 +302,11 @@ pub mod bounding_curve {
 						!init_fund.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-					let deposit_tea_amount =
-						Self::calculate_increase_amount_from_curve_total_supply(
-							buy_curve,
-							0u32.into(),
-							init_fund,
-						)?;
+					let deposit_tea_amount = Self::calculate_increase_amount_from_curve_total_supply(
+						buy_curve,
+						0u32.into(),
+						init_fund,
+					)?;
 					ensure!(
 						!deposit_tea_amount.is_zero(),
 						Error::<T>::BuyTeaAmountCanNotBeZero
@@ -331,7 +322,7 @@ pub mod bounding_curve {
 					let id = Self::next_id();
 					TAppNames::<T>::insert(&tapp_name, id);
 					TAppTickers::<T>::insert(&ticker, id);
-					TAppBoundingCurve::<T>::insert(
+					TAppBondingCurve::<T>::insert(
 						id,
 						TAppItem {
 							id,
@@ -365,15 +356,14 @@ pub mod bounding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
 						!tapp_amount.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-					let deposit_tea_amount =
-						Self::calculate_buy_amount(Some(tapp_id), tapp_amount)?;
+					let deposit_tea_amount = Self::calculate_buy_amount(Some(tapp_id), tapp_amount)?;
 					ensure!(
 						!deposit_tea_amount.is_zero(),
 						Error::<T>::BuyTeaAmountCanNotBeZero
@@ -386,11 +376,7 @@ pub mod bounding_curve {
 				},
 				|who| {
 					let deposit_tea_amount = Self::buy_token_inner(who, tapp_id, tapp_amount);
-					Self::deposit_event(Event::TokenBought(
-						tapp_id,
-						who.clone(),
-						deposit_tea_amount,
-					));
+					Self::deposit_event(Event::TokenBought(tapp_id, who.clone(), deposit_tea_amount));
 				},
 			)
 		}
@@ -407,7 +393,7 @@ pub mod bounding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
@@ -441,7 +427,7 @@ pub mod bounding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
@@ -455,13 +441,9 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|who| {
-					match Self::calculate_given_increase_tea_how_much_token_mint(
-						tapp_id, tea_amount,
-					) {
+					match Self::calculate_given_increase_tea_how_much_token_mint(tapp_id, tea_amount) {
 						Ok(deposit_tapp_amount) => {
-							if let Err(e) =
-								Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount)
-							{
+							if let Err(e) = Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount) {
 								// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 								log::error!("allocate buy tea amount failed: {:?}", e);
 								return;
@@ -494,11 +476,11 @@ pub mod bounding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
-						who.eq(&TAppBoundingCurve::<T>::get(tapp_id).owner),
+						who.eq(&TAppBondingCurve::<T>::get(tapp_id).owner),
 						Error::<T>::OnlyTAppOwnerAllowedToExpense
 					);
 					ensure!(
@@ -507,9 +489,7 @@ pub mod bounding_curve {
 					);
 
 					let withdraw_tapp_amount =
-						Self::calculate_given_received_tea_how_much_seller_give_away(
-							tapp_id, tea_amount,
-						)?;
+						Self::calculate_given_received_tea_how_much_seller_give_away(tapp_id, tea_amount)?;
 					ensure!(
 						TotalSupplyTable::<T>::get(tapp_id) > withdraw_tapp_amount,
 						Error::<T>::InsufficientTotalSupply
@@ -517,9 +497,7 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|_who| {
-					match Self::calculate_given_received_tea_how_much_seller_give_away(
-						tapp_id, tea_amount,
-					) {
+					match Self::calculate_given_received_tea_how_much_seller_give_away(tapp_id, tea_amount) {
 						Ok(withdraw_tapp_amount) => {
 							if let Err(e) = T::CurrencyOperations::transfer(
 								&OperationAccount::<T>::get(),
@@ -557,13 +535,12 @@ pub mod bounding_curve {
 				|who| {
 					T::CmlOperation::check_belongs(&cml_id, who)?;
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
-					let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+					let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 					ensure!(
-						tapp_item.host_performance.is_some()
-							&& tapp_item.max_allowed_hosts.is_some(),
+						tapp_item.host_performance.is_some() && tapp_item.max_allowed_hosts.is_some(),
 						Error::<T>::TAppNotSupportToHost
 					);
 					ensure!(
@@ -573,8 +550,7 @@ pub mod bounding_curve {
 					);
 
 					let current_block = frame_system::Pallet::<T>::block_number();
-					let (current_performance, _) =
-						T::CmlOperation::miner_performance(cml_id, &current_block);
+					let (current_performance, _) = T::CmlOperation::miner_performance(cml_id, &current_block);
 					ensure!(
 						current_performance
 							>= Self::cml_total_used_performance(cml_id)
@@ -599,7 +575,7 @@ pub mod bounding_curve {
 				|who| {
 					T::CmlOperation::check_belongs(&cml_id, who)?;
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(

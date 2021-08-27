@@ -2,7 +2,7 @@
 
 use sp_runtime::traits::AtLeast32BitUnsigned;
 
-pub trait BoundingCurveInterface<Balance>
+pub trait BondingCurveInterface<Balance>
 where
 	Balance: AtLeast32BitUnsigned,
 {

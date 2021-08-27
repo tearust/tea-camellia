@@ -6,7 +6,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use bounding_curve_impl::{linear::UnsignedLinearCurve, square_root::UnsignedSquareRoot};
+use bonding_curve_impl::{linear::UnsignedLinearCurve, square_root::UnsignedSquareRoot};
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
@@ -260,16 +260,11 @@ impl pallet_grandpa::Config for Runtime {
 	type KeyOwnerProof =
 		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 
-	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
-		KeyTypeId,
-		GrandpaId,
-	)>>::IdentificationTuple;
+	type KeyOwnerIdentification =
+		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
 
-	type HandleEquivocation = pallet_grandpa::EquivocationHandler<
-		Self::KeyOwnerIdentification,
-		Offences,
-		ReportLongevity,
-	>;
+	type HandleEquivocation =
+		pallet_grandpa::EquivocationHandler<Self::KeyOwnerIdentification, Offences, ReportLongevity>;
 
 	type WeightInfo = (); // not setting because polkadot do not set either, add weight info if needed later
 }
@@ -895,7 +890,7 @@ parameter_types! {
 	pub const HostArrangeDuration: BlockNumber = 1000;
 }
 
-impl pallet_bounding_curve::Config for Runtime {
+impl pallet_bonding_curve::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
@@ -1019,7 +1014,7 @@ construct_runtime!(
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
 		GenesisBank: pallet_genesis_bank::{Pallet, Call, Config<T>, Storage, Event<T>} = 104,
 		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Config<T>, Storage, Event<T>} = 105,
-		BoundingCurve: pallet_bounding_curve::{Pallet, Call, Config<T>, Storage, Event<T>} = 106,
+		BondingCurve: pallet_bonding_curve::{Pallet, Call, Config<T>, Storage, Event<T>} = 106,
 	}
 );
 
@@ -1250,25 +1245,25 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl bounding_curve_runtime_api::BoundingCurveApi<Block, AccountId> for Runtime {
+	impl bonding_curve_runtime_api::BondingCurveApi<Block, AccountId> for Runtime {
 		fn query_price(tapp_id: u64) -> (Balance, Balance) {
-			BoundingCurve::query_price(tapp_id)
+			BondingCurve::query_price(tapp_id)
 		}
 
 		fn estimate_required_tea_when_buy(tapp_id: Option<u64>, token_amount: Balance) -> Balance {
-			BoundingCurve::estimate_required_tea_when_buy(tapp_id, token_amount)
+			BondingCurve::estimate_required_tea_when_buy(tapp_id, token_amount)
 		}
 
 		fn estimate_receive_tea_when_sell(tapp_id: u64, token_amount: Balance) -> Balance {
-			BoundingCurve::estimate_receive_tea_when_sell(tapp_id, token_amount)
+			BondingCurve::estimate_receive_tea_when_sell(tapp_id, token_amount)
 		}
 
 		fn estimate_receive_token_when_buy(tapp_id: u64, tea_amount: Balance) -> Balance {
-			BoundingCurve::estimate_receive_token_when_buy(tapp_id, tea_amount)
+			BondingCurve::estimate_receive_token_when_buy(tapp_id, tea_amount)
 		}
 
 		fn estimate_required_token_when_sell(tapp_id: u64, tea_amount: Balance) -> Balance {
-			BoundingCurve::estimate_required_token_when_sell(tapp_id, tea_amount)
+			BondingCurve::estimate_required_token_when_sell(tapp_id, tea_amount)
 		}
 
 		fn list_tapps() -> Vec<(
@@ -1285,7 +1280,7 @@ impl_runtime_apis! {
 			u32,
 			u32,
 		)> {
-			BoundingCurve::list_tapps()
+			BondingCurve::list_tapps()
 		}
 
 		fn list_user_assets(who: AccountId) -> Vec<(
@@ -1301,7 +1296,7 @@ impl_runtime_apis! {
 			u32,
 			u32,
 		)> {
-			BoundingCurve::list_user_assets(&who)
+			BondingCurve::list_user_assets(&who)
 		}
 
 		fn list_candidate_miner() -> Vec<(
@@ -1310,7 +1305,7 @@ impl_runtime_apis! {
 			u32,
 			BlockNumber,
 			Vec<u64>)> {
-			BoundingCurve::list_candidate_miner()
+			BondingCurve::list_candidate_miner()
 		}
 	}
 

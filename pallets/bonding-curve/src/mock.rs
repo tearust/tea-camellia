@@ -1,7 +1,7 @@
-use crate as pallet_bounding_curve;
+use crate as pallet_bonding_curve;
 use auction_interface::AuctionOperation;
-use bounding_curve_impl::linear::UnsignedLinearCurve;
-use bounding_curve_impl::square_root::UnsignedSquareRoot;
+use bonding_curve_impl::linear::UnsignedLinearCurve;
+use bonding_curve_impl::square_root::UnsignedSquareRoot;
 use frame_support::parameter_types;
 use frame_system as system;
 use genesis_exchange_interface::MiningOperation;
@@ -79,7 +79,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		BoundingCurve: pallet_bounding_curve::{Pallet, Call, Storage, Event<T>},
+		BondingCurve: pallet_bonding_curve::{Pallet, Call, Storage, Event<T>},
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
 		Cml: pallet_cml::{Pallet, Call, Storage, Event<T>},
 	}
@@ -134,7 +134,7 @@ parameter_types! {
 	pub const HostArrangeDuration: u64 = HOST_ARRANGE_DURATION;
 }
 
-impl pallet_bounding_curve::Config for Test {
+impl pallet_bonding_curve::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type CurrencyOperations = Utils;

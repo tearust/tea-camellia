@@ -2,7 +2,7 @@ use super::*;
 
 pub(crate) const CALCULATION_PRECISION: u32 = 100000000;
 
-impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
+impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn need_arrange_host(height: T::BlockNumber) -> bool {
 		// offset with `InterestPeriodLength` - 3 to void overlapping with staking period
 		height % T::HostArrangeDuration::get() == T::HostArrangeDuration::get() - 3u32.into()
@@ -40,7 +40,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		)?;
 		T::CurrencyOperations::transfer(
 			who,
-			&TAppBoundingCurve::<T>::get(tapp_id).owner,
+			&TAppBondingCurve::<T>::get(tapp_id).owner,
 			deposit_tea_amount.saturating_sub(reserved_tea_amount),
 			ExistenceRequirement::AllowDeath,
 		)?;
@@ -125,7 +125,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		}
 		if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
 			TotalSupplyTable::<T>::remove(tapp_id);
-			let item = TAppBoundingCurve::<T>::take(tapp_id);
+			let item = TAppBondingCurve::<T>::take(tapp_id);
 			TAppNames::<T>::remove(item.name);
 			TAppTickers::<T>::remove(item.ticker);
 		}
@@ -207,7 +207,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	) -> Result<BalanceOf<T>, DispatchError> {
 		match tapp_id {
 			Some(tapp_id) => {
-				let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+				let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 				let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 				Self::calculate_increase_amount_from_curve_total_supply(
 					tapp_item.buy_curve,
@@ -230,7 +230,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		Self::calculate_increase_amount_from_curve_total_supply(
 			tapp_item.sell_curve,
@@ -246,9 +246,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let current_pool_balance = match curve_type {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply)
-			}
+			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance(total_supply),
 			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
 		};
 
@@ -269,22 +267,22 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 					.ok_or(Error::<T>::AddOverflow)?,
 			),
 		};
-		Ok(after_buy_pool_balance
-			.checked_sub(&current_pool_balance)
-			.ok_or(Error::<T>::SubtractionOverflow)?)
+		Ok(
+			after_buy_pool_balance
+				.checked_sub(&current_pool_balance)
+				.ok_or(Error::<T>::SubtractionOverflow)?,
+		)
 	}
 
 	pub(crate) fn calculate_given_increase_tea_how_much_token_mint(
 		tapp_id: TAppId,
 		tea_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_buy_area_tea_amount = match tapp_item.buy_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply)
-			}
+			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance(total_supply),
 			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
 		};
 		let after_increase_tea_amount = current_buy_area_tea_amount
@@ -304,9 +302,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 				T::PoolBalanceReversePrecision::get(),
 			),
 		};
-		Ok(total_supply_after_increase
-			.checked_sub(&total_supply)
-			.ok_or(Error::<T>::SubtractionOverflow)?)
+		Ok(
+			total_supply_after_increase
+				.checked_sub(&total_supply)
+				.ok_or(Error::<T>::SubtractionOverflow)?,
+		)
 	}
 
 	/// If user want to sell tapp_amount of tapp_id token, how many T token seller receive after sale
@@ -314,7 +314,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		ensure!(
 			tapp_amount <= total_supply,
@@ -323,9 +323,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 
 		let current_pool_balance = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply)
-			}
+			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance(total_supply),
 			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
 		};
 		let after_sell_pool_balance = match tapp_item.sell_curve {
@@ -339,9 +337,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 				T::UnsignedSquareRoot_7::pool_balance(total_supply.saturating_sub(tapp_amount))
 			}
 		};
-		Ok(current_pool_balance
-			.checked_sub(&after_sell_pool_balance)
-			.ok_or(Error::<T>::SubtractionOverflow)?)
+		Ok(
+			current_pool_balance
+				.checked_sub(&after_sell_pool_balance)
+				.ok_or(Error::<T>::SubtractionOverflow)?,
+		)
 	}
 
 	/// calcualte given seller receive tea_amount of TEA, how much of tapp token this seller will give away
@@ -349,13 +349,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tea_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_reserve_pool_tea = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply)
-			}
+			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance(total_supply),
 			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
 		};
 		ensure!(
@@ -377,9 +375,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 				T::PoolBalanceReversePrecision::get(),
 			),
 		};
-		Ok(total_supply
-			.checked_sub(&total_supply_after_sell_tapp_token)
-			.ok_or(Error::<T>::SubtractionOverflow)?)
+		Ok(
+			total_supply
+				.checked_sub(&total_supply_after_sell_tapp_token)
+				.ok_or(Error::<T>::SubtractionOverflow)?,
+		)
 	}
 
 	pub(crate) fn check_tapp_fields_length(
@@ -459,8 +459,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 
 		let mut unhosted_list = Vec::new();
 		mining_cmls.iter().for_each(|cml_id| {
-			let (current_performance, _) =
-				T::CmlOperation::miner_performance(*cml_id, &current_block);
+			let (current_performance, _) = T::CmlOperation::miner_performance(*cml_id, &current_block);
 			while Self::cml_total_used_performance(*cml_id) > current_performance {
 				if let Some(tapp_id) = Self::unhost_last_tapp(*cml_id) {
 					unhosted_list.push((tapp_id, *cml_id));
@@ -475,7 +474,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		let mut total: Performance = Zero::zero();
 		for tapp_id in CmlHostingTApps::<T>::get(cml_id).iter() {
 			total = total.saturating_add(
-				TAppBoundingCurve::<T>::get(tapp_id)
+				TAppBondingCurve::<T>::get(tapp_id)
 					.host_performance
 					.unwrap_or_default(),
 			);
@@ -486,7 +485,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 
 pub fn approximately_equals<T>(a: BalanceOf<T>, b: BalanceOf<T>, precision: BalanceOf<T>) -> bool
 where
-	T: bounding_curve::Config,
+	T: bonding_curve::Config,
 {
 	let abs = match a >= b {
 		true => a.saturating_sub(b),
@@ -499,7 +498,7 @@ where
 mod tests {
 	use crate::mock::*;
 	use crate::*;
-	use bounding_curve_impl::approximately_equals;
+	use bonding_curve_impl::approximately_equals;
 
 	const CENTS: node_primitives::Balance = 10_000_000_000;
 	const DOLLARS: node_primitives::Balance = 100 * CENTS;
@@ -513,7 +512,7 @@ mod tests {
 			let tapp_id = 1;
 			<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 			<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
-			TAppBoundingCurve::<Test>::insert(
+			TAppBondingCurve::<Test>::insert(
 				tapp_id,
 				TAppItem {
 					id: tapp_id,
@@ -525,7 +524,7 @@ mod tests {
 			);
 			assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 0);
 
-			let deposit_amount = BoundingCurve::allocate_buy_tea_amount(&user1, 1, 1_000_000);
+			let deposit_amount = BondingCurve::allocate_buy_tea_amount(&user1, 1, 1_000_000);
 			assert_eq!(deposit_amount, Ok(666));
 			assert_eq!(<Test as Config>::Currency::free_balance(&user2), 200);
 			assert_eq!(
@@ -538,7 +537,7 @@ mod tests {
 			);
 
 			TotalSupplyTable::<Test>::insert(tapp_id, 1_000_000);
-			let deposit_amount = BoundingCurve::allocate_buy_tea_amount(&user3, 1, 9_000_000);
+			let deposit_amount = BondingCurve::allocate_buy_tea_amount(&user3, 1, 9_000_000);
 			assert_eq!(deposit_amount.unwrap(), 20414);
 			assert_eq!(<Test as Config>::Currency::free_balance(&user2), 6324);
 			assert_eq!(
@@ -558,7 +557,7 @@ mod tests {
 	// 	new_test_ext().execute_with(|| {
 	// 		let tapp_id = 1;
 	// 		TotalSupplyTable::<Test>::insert(tapp_id, 0);
-	// 		TAppBoundingCurve::<Test>::insert(
+	// 		TAppBondingCurve::<Test>::insert(
 	// 			tapp_id,
 	// 			TAppItem {
 	// 				id: tapp_id,
@@ -569,12 +568,12 @@ mod tests {
 	// 		);
 	//
 	// 		let amount =
-	// 			BoundingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 66);
+	// 			BondingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 66);
 	// 		assert!(approximately_equals(amount.unwrap(), 1000000, 6000));
 	//
 	// 		TotalSupplyTable::<Test>::insert(tapp_id, 1_000_000);
 	// 		let amount =
-	// 			BoundingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 2108 - 66);
+	// 			BondingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 2108 - 66);
 	// 		assert!(approximately_equals(amount.unwrap(), 9_000_000, 900));
 	// 	})
 	// }
@@ -584,7 +583,7 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			let tapp_id = 1;
 			TotalSupplyTable::<Test>::insert(tapp_id, 100_000_000);
-			TAppBoundingCurve::<Test>::insert(
+			TAppBondingCurve::<Test>::insert(
 				tapp_id,
 				TAppItem {
 					id: tapp_id,
@@ -594,7 +593,7 @@ mod tests {
 				},
 			);
 
-			let amount = BoundingCurve::calculate_sell_amount(tapp_id, 90_000_000);
+			let amount = BondingCurve::calculate_sell_amount(tapp_id, 90_000_000);
 			assert_eq!(amount.unwrap(), 451910);
 		})
 	}
@@ -605,7 +604,7 @@ mod tests {
 	// 	new_test_ext().execute_with(|| {
 	// 		let tapp_id = 1;
 	// 		TotalSupplyTable::<Test>::insert(tapp_id, 100_000_000);
-	// 		TAppBoundingCurve::<Test>::insert(
+	// 		TAppBondingCurve::<Test>::insert(
 	// 			tapp_id,
 	// 			TAppItem {
 	// 				id: tapp_id,
@@ -615,7 +614,7 @@ mod tests {
 	// 			},
 	// 		);
 	//
-	// 		let amount = BoundingCurve::calculate_given_received_tea_how_much_seller_give_away(
+	// 		let amount = BondingCurve::calculate_given_received_tea_how_much_seller_give_away(
 	// 			tapp_id,
 	// 			46666 - 1475,
 	// 		);

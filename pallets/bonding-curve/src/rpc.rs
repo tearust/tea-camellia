@@ -1,9 +1,9 @@
 use super::*;
 use pallet_cml::{SeedProperties, TreeProperties};
 
-impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
+impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub fn query_price(tapp_id: TAppId) -> (BalanceOf<T>, BalanceOf<T>) {
-		let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let buy_price = match tapp_item.buy_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::buy_price(total_supply),
@@ -97,7 +97,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		u32,
 		u32,
 	)> {
-		TAppBoundingCurve::<T>::iter()
+		TAppBondingCurve::<T>::iter()
 			.map(|(id, item)| {
 				let (buy_price, sell_price) = Self::query_price(id);
 				let total_supply = TotalSupplyTable::<T>::get(id);
@@ -150,7 +150,7 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		AccountTable::<T>::iter_prefix(who)
 			.map(|(id, amount)| {
 				let (_, sell_price) = Self::query_price(id);
-				let item = TAppBoundingCurve::<T>::get(id);
+				let item = TAppBondingCurve::<T>::get(id);
 
 				(
 					item.name,
@@ -183,13 +183,12 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		mining_cmls
 			.iter()
 			.map(|cml_id| {
-				let (current_performance, _) =
-					T::CmlOperation::miner_performance(*cml_id, &current_block);
+				let (current_performance, _) = T::CmlOperation::miner_performance(*cml_id, &current_block);
 				let hosted_performance = Self::cml_total_used_performance(*cml_id);
 				let life_remain = match T::CmlOperation::cml_by_id(cml_id) {
 					Ok(cml) => {
-						let life_spends = current_block
-							.saturating_sub(*cml.get_plant_at().unwrap_or(&Zero::zero()));
+						let life_spends =
+							current_block.saturating_sub(*cml.get_plant_at().unwrap_or(&Zero::zero()));
 						cml.lifespan().saturating_sub(life_spends)
 					}
 					_ => Zero::zero(),
@@ -222,7 +221,7 @@ mod tests {
 			EnableUserCreateTApp::<Test>::set(true);
 			<Test as Config>::Currency::make_free_balance_be(&1, DOLLARS * DOLLARS);
 
-			assert_ok!(BoundingCurve::create_new_tapp(
+			assert_ok!(BondingCurve::create_new_tapp(
 				Origin::signed(1),
 				b"test".to_vec(),
 				b"test".to_vec(),
@@ -232,11 +231,11 @@ mod tests {
 				None,
 				None,
 			));
-			let (buy_price, sell_price) = BoundingCurve::query_price(1);
+			let (buy_price, sell_price) = BondingCurve::query_price(1);
 			assert_eq!(buy_price, 100000000000000);
 			assert_eq!(sell_price, 70000000000000);
 
-			assert_ok!(BoundingCurve::create_new_tapp(
+			assert_ok!(BondingCurve::create_new_tapp(
 				Origin::signed(1),
 				b"test2".to_vec(),
 				b"test2".to_vec(),
@@ -246,7 +245,7 @@ mod tests {
 				None,
 				None,
 			));
-			let (buy_price, sell_price) = BoundingCurve::query_price(2);
+			let (buy_price, sell_price) = BondingCurve::query_price(2);
 			assert_eq!(buy_price, 1000000000000000);
 			assert_eq!(sell_price, 700000000000000);
 		})

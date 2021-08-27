@@ -13,7 +13,7 @@ fn set_tapp_creation_settings_works() {
 		assert_eq!(NPCAccount::<Test>::get(), 0);
 		assert!(!EnableUserCreateTApp::<Test>::get());
 
-		assert_ok!(BoundingCurve::set_tapp_creation_settings(
+		assert_ok!(BondingCurve::set_tapp_creation_settings(
 			Origin::root(),
 			Some(true),
 			Some(npc)
@@ -27,7 +27,7 @@ fn set_tapp_creation_settings_works() {
 fn set_tapp_creation_settings_should_fail_if_not_root_user() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			BoundingCurve::set_tapp_creation_settings(Origin::signed(1), Some(true), None),
+			BondingCurve::set_tapp_creation_settings(Origin::signed(1), Some(true), None),
 			DispatchError::BadOrigin
 		);
 	})
@@ -45,7 +45,7 @@ fn create_new_tapp_works() {
 		let init_fund = 1000000;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user),
 			tapp_name.as_bytes().to_vec(),
 			ticker.as_bytes().to_vec(),
@@ -63,7 +63,7 @@ fn create_new_tapp_works() {
 		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
 		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
-		let tapp_item = TAppBoundingCurve::<Test>::get(tapp_id);
+		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
 		assert_eq!(tapp_item.id, tapp_id);
 		assert_eq!(tapp_item.buy_curve, CurveType::UnsignedSquareRoot_10);
 		assert_eq!(tapp_item.sell_curve, CurveType::UnsignedSquareRoot_7);
@@ -84,7 +84,7 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 		let tapp_name = "test name";
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user),
 			tapp_name.as_bytes().to_vec(),
 			b"tea".to_vec(),
@@ -96,7 +96,7 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 		));
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				tapp_name.as_bytes().to_vec(),
 				b"tea".to_vec(),
@@ -119,7 +119,7 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 		let ticker = b"tea";
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user),
 			b"test name".to_vec(),
 			ticker.to_vec(),
@@ -131,7 +131,7 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 		));
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				b"test name2".to_vec(),
 				ticker.to_vec(),
@@ -154,7 +154,7 @@ fn create_new_tapp_should_fail_if_not_allowed_user_create_tapp() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				b"test name".to_vec(),
 				b"tea".to_vec(),
@@ -177,7 +177,7 @@ fn create_new_tapp_should_fail_if_name_is_too_long() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				b"test name".to_vec(),
 				[1; TAPP_TICKER_MAX_LENGTH as usize + 1].to_vec(),
@@ -200,7 +200,7 @@ fn create_new_tapp_should_fail_if_name_is_too_short() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				b"test name".to_vec(),
 				[1; TAPP_TICKER_MIN_LENGTH as usize - 1].to_vec(),
@@ -223,7 +223,7 @@ fn create_new_tapp_should_fail_if_detail_is_too_long() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				b"test name".to_vec(),
 				b"tea".to_vec(),
@@ -246,7 +246,7 @@ fn create_new_tapp_should_fail_if_link_is_too_long() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				b"test name".to_vec(),
 				b"tea".to_vec(),
@@ -269,7 +269,7 @@ fn create_new_tapp_should_fail_if_free_balance_is_not_enough() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 0);
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				b"test name".to_vec(),
 				b"tea".to_vec(),
@@ -292,7 +292,7 @@ fn create_new_tapp_should_fail_if_tapp_amount_is_too_low() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 0);
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				b"test name".to_vec(),
 				b"tea".to_vec(),
@@ -315,7 +315,7 @@ fn create_new_tapp_should_fail_if_ticker_is_too_long() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
 		assert_noop!(
-			BoundingCurve::create_new_tapp(
+			BondingCurve::create_new_tapp(
 				Origin::signed(user),
 				[1; TAPP_NAME_MAX_LENGTH as usize + 1].to_vec(),
 				b"tea".to_vec(),
@@ -340,7 +340,7 @@ fn buy_token_works() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -352,7 +352,7 @@ fn buy_token_works() {
 		));
 
 		let tapp_id = 1;
-		assert_ok!(BoundingCurve::buy_token(
+		assert_ok!(BondingCurve::buy_token(
 			Origin::signed(user),
 			tapp_id,
 			tapp_amount
@@ -372,7 +372,7 @@ fn buy_token_should_fail_if_tapp_is_not_exist() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 1_000_000,),
+			BondingCurve::buy_token(Origin::signed(user), tapp_id, 1_000_000,),
 			Error::<Test>::TAppIdNotExist
 		);
 	})
@@ -388,7 +388,7 @@ fn buy_token_should_fail_if_tapp_amount_is_zero() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -401,7 +401,7 @@ fn buy_token_should_fail_if_tapp_amount_is_zero() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 0),
+			BondingCurve::buy_token(Origin::signed(user), tapp_id, 0),
 			Error::<Test>::OperationAmountCanNotBeZero
 		);
 	})
@@ -417,7 +417,7 @@ fn buy_token_should_fail_if_tapp_amount_is_too_low() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -430,7 +430,7 @@ fn buy_token_should_fail_if_tapp_amount_is_too_low() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 100),
+			BondingCurve::buy_token(Origin::signed(user), tapp_id, 100),
 			Error::<Test>::BuyTeaAmountCanNotBeZero
 		);
 	})
@@ -446,7 +446,7 @@ fn buy_token_should_fail_if_free_balance_is_not_enough() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, 0);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -459,7 +459,7 @@ fn buy_token_should_fail_if_free_balance_is_not_enough() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::buy_token(Origin::signed(user), tapp_id, 1000000),
+			BondingCurve::buy_token(Origin::signed(user), tapp_id, 1000000),
 			Error::<Test>::InsufficientFreeBalance
 		);
 	})
@@ -475,7 +475,7 @@ fn sell_token_works() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -487,12 +487,12 @@ fn sell_token_works() {
 		));
 
 		let tapp_id = 1;
-		assert_ok!(BoundingCurve::buy_token(
+		assert_ok!(BondingCurve::buy_token(
 			Origin::signed(user),
 			tapp_id,
 			tapp_amount
 		));
-		assert_ok!(BoundingCurve::sell_token(
+		assert_ok!(BondingCurve::sell_token(
 			Origin::signed(user),
 			tapp_id,
 			tapp_amount
@@ -519,7 +519,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 
 		let name = b"test name".to_vec();
 		let ticker = b"tea".to_vec();
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			name.clone(),
 			ticker.clone(),
@@ -531,7 +531,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		));
 
 		let tapp_id = 1;
-		assert_ok!(BoundingCurve::sell_token(
+		assert_ok!(BondingCurve::sell_token(
 			Origin::signed(owner),
 			tapp_id,
 			tapp_amount
@@ -539,7 +539,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 
 		assert!(!AccountTable::<Test>::contains_key(&owner, tapp_id));
 		assert!(!TotalSupplyTable::<Test>::contains_key(tapp_id));
-		assert!(!TAppBoundingCurve::<Test>::contains_key(tapp_id));
+		assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
 		assert!(!TAppNames::<Test>::contains_key(name));
 		assert!(!TAppTickers::<Test>::contains_key(ticker));
 		assert_eq!(<Test as Config>::Currency::free_balance(&owner), DOLLARS);
@@ -554,7 +554,7 @@ fn sell_token_should_fail_if_tapp_not_exist() {
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
 		assert_noop!(
-			BoundingCurve::sell_token(Origin::signed(user), 1, tapp_amount),
+			BondingCurve::sell_token(Origin::signed(user), 1, tapp_amount),
 			Error::<Test>::TAppIdNotExist
 		);
 	})
@@ -570,7 +570,7 @@ fn sell_token_should_fail_if_tapp_amount_is_not_enough() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -583,7 +583,7 @@ fn sell_token_should_fail_if_tapp_amount_is_not_enough() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::sell_token(Origin::signed(user), tapp_id, tapp_amount + 1),
+			BondingCurve::sell_token(Origin::signed(user), tapp_id, tapp_amount + 1),
 			Error::<Test>::InsufficientTAppToken
 		);
 	})
@@ -599,7 +599,7 @@ fn sell_token_should_fail_if_tapp_amount_is_zero() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -612,7 +612,7 @@ fn sell_token_should_fail_if_tapp_amount_is_zero() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::sell_token(Origin::signed(user), tapp_id, 0),
+			BondingCurve::sell_token(Origin::signed(user), tapp_id, 0),
 			Error::<Test>::OperationAmountCanNotBeZero
 		);
 	})
@@ -628,7 +628,7 @@ fn sell_token_should_fail_if_tapp_amount_is_too_low() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -641,7 +641,7 @@ fn sell_token_should_fail_if_tapp_amount_is_too_low() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::sell_token(Origin::signed(owner), tapp_id, 100),
+			BondingCurve::sell_token(Origin::signed(owner), tapp_id, 100),
 			Error::<Test>::SellTeaAmountCanNotBeZero
 		);
 	})
@@ -655,7 +655,7 @@ fn sell_token_should_fail_if_tapp_total_supply_is_not_enough() {
 		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(owner),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -670,7 +670,7 @@ fn sell_token_should_fail_if_tapp_total_supply_is_not_enough() {
 		// should never happen, set here just to cover the test case.
 		TotalSupplyTable::<Test>::mutate(tapp_id, |amount| *amount = tapp_amount - 1);
 		assert_noop!(
-			BoundingCurve::sell_token(Origin::signed(owner), tapp_id, tapp_amount),
+			BondingCurve::sell_token(Origin::signed(owner), tapp_id, tapp_amount),
 			Error::<Test>::InsufficientTotalSupply
 		);
 	})
@@ -692,7 +692,7 @@ fn consume_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -704,12 +704,12 @@ fn consume_works() {
 		));
 
 		let tapp_id = 1;
-		assert_ok!(BoundingCurve::buy_token(
+		assert_ok!(BondingCurve::buy_token(
 			Origin::signed(user2),
 			tapp_id,
 			tapp_amount2
 		));
-		assert_ok!(BoundingCurve::buy_token(
+		assert_ok!(BondingCurve::buy_token(
 			Origin::signed(user3),
 			tapp_id,
 			tapp_amount3
@@ -719,7 +719,7 @@ fn consume_works() {
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
 
-		assert_ok!(BoundingCurve::consume(
+		assert_ok!(BondingCurve::consume(
 			Origin::signed(user4),
 			tapp_id,
 			10000
@@ -744,7 +744,7 @@ fn consume_should_fail_if_tapp_not_exist() {
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
 		assert_noop!(
-			BoundingCurve::consume(Origin::signed(user1), 1, 10000),
+			BondingCurve::consume(Origin::signed(user1), 1, 10000),
 			Error::<Test>::TAppIdNotExist
 		);
 	})
@@ -760,7 +760,7 @@ fn consume_should_fail_if_consume_amount_is_zero() {
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -773,7 +773,7 @@ fn consume_should_fail_if_consume_amount_is_zero() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::consume(Origin::signed(user2), tapp_id, 0),
+			BondingCurve::consume(Origin::signed(user2), tapp_id, 0),
 			Error::<Test>::OperationAmountCanNotBeZero
 		);
 	})
@@ -789,7 +789,7 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, 0);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -802,7 +802,7 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::consume(Origin::signed(user2), tapp_id, 1_000_000),
+			BondingCurve::consume(Origin::signed(user2), tapp_id, 1_000_000),
 			Error::<Test>::InsufficientFreeBalance
 		);
 	})
@@ -824,7 +824,7 @@ fn expense_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -836,12 +836,12 @@ fn expense_works() {
 		));
 
 		let tapp_id = 1;
-		assert_ok!(BoundingCurve::buy_token(
+		assert_ok!(BondingCurve::buy_token(
 			Origin::signed(user2),
 			tapp_id,
 			tapp_amount2
 		));
-		assert_ok!(BoundingCurve::buy_token(
+		assert_ok!(BondingCurve::buy_token(
 			Origin::signed(user3),
 			tapp_id,
 			tapp_amount3
@@ -852,7 +852,7 @@ fn expense_works() {
 		);
 
 		let expense_amount = 46;
-		assert_ok!(BoundingCurve::expense(
+		assert_ok!(BondingCurve::expense(
 			Origin::signed(user1),
 			tapp_id,
 			user4,
@@ -880,7 +880,7 @@ fn expense_should_fail_if_tapp_not_exist() {
 
 		let expense_amount = 4666;
 		assert_noop!(
-			BoundingCurve::expense(Origin::signed(user1), 1, 2, expense_amount),
+			BondingCurve::expense(Origin::signed(user1), 1, 2, expense_amount),
 			Error::<Test>::TAppIdNotExist
 		);
 	})
@@ -895,7 +895,7 @@ fn expense_should_fail_if_sender_is_not_tapp_owner() {
 		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -908,7 +908,7 @@ fn expense_should_fail_if_sender_is_not_tapp_owner() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::expense(Origin::signed(user2), tapp_id, 2, 100),
+			BondingCurve::expense(Origin::signed(user2), tapp_id, 2, 100),
 			Error::<Test>::OnlyTAppOwnerAllowedToExpense
 		);
 	})
@@ -922,7 +922,7 @@ fn expense_should_fail_if_expense_amount_is_zero() {
 		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -935,7 +935,7 @@ fn expense_should_fail_if_expense_amount_is_zero() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::expense(Origin::signed(user1), tapp_id, 2, 0),
+			BondingCurve::expense(Origin::signed(user1), tapp_id, 2, 0),
 			Error::<Test>::OperationAmountCanNotBeZero
 		);
 	})
@@ -949,7 +949,7 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
-		assert_ok!(BoundingCurve::create_new_tapp(
+		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
@@ -963,7 +963,7 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 		let tapp_id = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user1, 0);
 		assert_noop!(
-			BoundingCurve::expense(Origin::signed(user1), tapp_id, 2, 1000000),
+			BondingCurve::expense(Origin::signed(user1), tapp_id, 2, 1000000),
 			Error::<Test>::TAppInsufficientFreeBalance
 		);
 	})

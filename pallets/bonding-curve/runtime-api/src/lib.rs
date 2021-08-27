@@ -7,7 +7,7 @@ use node_primitives::{Balance, BlockNumber};
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
-	pub trait BoundingCurveApi<AccountId>
+	pub trait BondingCurveApi<AccountId>
 	where
 		AccountId: Codec,
 	{
