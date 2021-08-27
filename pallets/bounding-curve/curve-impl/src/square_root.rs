@@ -29,7 +29,7 @@ where
 		times: &mut usize,
 	) -> Balance {
 		*times += 1;
-		println!("xn {:?}", &x_n);
+		// println!("xn {:?}", &x_n);
 		// println!(
 		// 	"parta {:?}",
 		// 	area.clone() / K.into() * 10u32.into() * 1_000_000u32.into() / x_n.integer_sqrt()
@@ -40,7 +40,9 @@ where
 		} else {
 			x_n.clone()
 				+ area.clone() / K.into() * 10u32.into() / 1_000_000u32.into() / x_n.integer_sqrt()
-				- x_n.clone() * 2u32.into() / 3u32.into() / 1_000_000u32.into() / 1_000_000u32.into()
+				- x_n.clone() * 2u32.into()
+					/ 3u32.into() / 1_000_000u32.into()
+					/ 1_000_000u32.into()
 		};
 
 		// println!("result {:?}", &result);
@@ -112,8 +114,8 @@ where
 					Zero::zero()
 				} else {
 					x_n.clone()
-						+ area.clone() / K.into() * 10u32.into() * 1_000_000u32.into() / x_n.integer_sqrt()
-						- x_n.clone() * 2u32.into() / 3u32.into()
+						+ area.clone() / K.into() * 10u32.into() * 1_000_000u32.into()
+							/ x_n.integer_sqrt() - x_n.clone() * 2u32.into() / 3u32.into()
 				}
 			};
 			// println!("times is {}, xnplusone is {:?}", &times, &x_n_plus_1);
