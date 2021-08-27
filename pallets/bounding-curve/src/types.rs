@@ -1,6 +1,4 @@
-use codec::{Decode, Encode};
-use sp_runtime::RuntimeDebug;
-use sp_std::prelude::*;
+use super::*;
 
 pub type TAppId = u64;
 
@@ -23,6 +21,8 @@ pub struct TAppItem<AccountId> {
 	pub sell_curve: CurveType,
 	pub detail: Vec<u8>,
 	pub link: Vec<u8>,
+	pub host_performance: Option<Performance>,
+	pub max_allowed_hosts: Option<u32>,
 }
 
 impl<AccountId> Default for TAppItem<AccountId>
@@ -39,6 +39,8 @@ where
 			sell_curve: CurveType::UnsignedLinear,
 			detail: vec![],
 			link: vec![],
+			host_performance: Default::default(),
+			max_allowed_hosts: Default::default(),
 		}
 	}
 }

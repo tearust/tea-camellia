@@ -69,29 +69,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Self::deposit_event(Event::RewardStatements(reward_statements));
 	}
 
-	/// return a pair of values, first is current performance calculated by given block height,
-	/// the second is the peak performance.
-	pub(crate) fn miner_performance(
-		cml_id: CmlId,
-		block_height: &T::BlockNumber,
-	) -> (Performance, Performance) {
-		let cml = CmlStore::<T>::get(cml_id);
-		let age_percentage = if cml.lifespan().is_zero() {
-			100u32.into()
-		} else {
-			if let Some(plant_at_block) = cml.get_plant_at() {
-				(*block_height - *plant_at_block) * 100u32.into() / cml.lifespan()
-			} else {
-				0u32.into()
-			}
-		};
-
-		(
-			cml.calculate_performance(age_percentage.try_into().unwrap_or(0)),
-			cml.get_peak_performance(),
-		)
-	}
-
 	pub(crate) fn service_task_point_total() -> ServiceTaskPoint {
 		let mut total: ServiceTaskPoint = 0;
 		for (_, point) in MiningCmlTaskPoints::<T>::iter() {

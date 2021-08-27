@@ -904,6 +904,13 @@ pub trait CmlOperation {
 	/// Get current mining cml list;
 	fn current_mining_cmls() -> Vec<CmlId>;
 
+	/// return a pair of values, first is current performance calculated by given block height,
+	/// the second is the peak performance.
+	fn miner_performance(
+		cml_id: CmlId,
+		block_height: &Self::BlockNumber,
+	) -> (Performance, Performance);
+
 	fn user_coupon_list(who: &Self::AccountId, schedule_type: DefrostScheduleType) -> Vec<Coupon>;
 }
 

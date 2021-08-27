@@ -2,7 +2,7 @@ use bounding_curve_runtime_api::BoundingCurveApi as BoundingCurveRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-use node_primitives::Balance;
+use node_primitives::{Balance, BlockNumber};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
@@ -106,6 +106,18 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 			Vec<u8>,
 		)>,
 	>;
+
+	/// Returned item fields:
+	/// - CML Id
+	/// - CML current performance
+	/// - CML remaining performance
+	/// - life remaining
+	/// - Hosted tapp list
+	#[rpc(name = "bounding_listUserAssets")]
+	fn list_candidate_miner(
+		&self,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>>;
 }
 
 pub struct BoundingCurveApiImpl<C, M> {
@@ -327,5 +339,20 @@ where
 				},
 			)
 			.collect())
+	}
+
+	fn list_candidate_miner(
+		&self,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.list_candidate_miner(&at)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
 	}
 }

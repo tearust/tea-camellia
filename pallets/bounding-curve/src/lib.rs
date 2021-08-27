@@ -17,13 +17,18 @@ mod rpc;
 mod types;
 
 use bounding_curve_interface::BoundingCurveInterface;
+use codec::{Decode, Encode};
 use frame_support::{
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement},
 };
 use frame_system::pallet_prelude::*;
+use pallet_cml::{CmlId, CmlOperation, Performance};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
-use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating, Zero};
+use sp_runtime::{
+	traits::{CheckedAdd, CheckedSub, Saturating, Zero},
+	RuntimeDebug,
+};
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 
 /// The balance type of this module.
@@ -47,6 +52,12 @@ pub mod bounding_curve {
 			Balance = BalanceOf<Self>,
 		>;
 
+		type CmlOperation: CmlOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+			BlockNumber = Self::BlockNumber,
+		>;
+
 		#[pallet::constant]
 		type TAppNameMaxLength: Get<u32>;
 
@@ -64,6 +75,10 @@ pub mod bounding_curve {
 
 		#[pallet::constant]
 		type PoolBalanceReversePrecision: Get<BalanceOf<Self>>;
+
+		/// duration to arrange (mainly reduce hosting TApps according performance) cml
+		#[pallet::constant]
+		type HostArrangeDuration: Get<Self::BlockNumber>;
 
 		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
 
@@ -124,6 +139,16 @@ pub mod bounding_curve {
 	#[pallet::getter(fn npc_account)]
 	pub type NPCAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn cml_hosting_tapps)]
+	pub type TAppCurrentHosts<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, TAppId, Twox64Concat, CmlId, (), ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn tapp_current_hosted_cmls)]
+	pub type CmlHostingTApps<T: Config> =
+		StorageMap<_, Twox64Concat, CmlId, Vec<TAppId>, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub operation_account: T::AccountId,
@@ -176,6 +201,8 @@ pub mod bounding_curve {
 		/// 2. Payed Account Id
 		/// 3. Payed TEA amount
 		TAppExpense(TAppId, T::AccountId, BalanceOf<T>),
+
+		TAppsUnhosted(Vec<(TAppId, CmlId)>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -202,11 +229,22 @@ pub mod bounding_curve {
 		AddOverflow,
 		NotAllowedNormalUserCreateTApp,
 		OnlyTAppOwnerAllowedToExpense,
+		HostPerformanceAndMaxAllowedHostMustBePaired,
+		PerformanceValueShouldNotBeZero,
+		MaxAllowedHostShouldNotBeZero,
+		TAppNotSupportToHost,
+		TAppHostMachineIsFull,
+		CmlMachineIsFullLoad,
+		CmlNotHostTheTApp,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_finalize(_n: BlockNumberFor<T>) {}
+		fn on_finalize(n: BlockNumberFor<T>) {
+			if Self::need_arrange_host(n) {
+				Self::arrange_host();
+			}
+		}
 	}
 
 	#[pallet::call]
@@ -242,6 +280,8 @@ pub mod bounding_curve {
 			init_fund: BalanceOf<T>,
 			detail: Vec<u8>,
 			link: Vec<u8>,
+			host_performance: Option<Performance>,
+			max_allowed_hosts: Option<u32>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let buy_curve = CurveType::UnsignedSquareRoot_10;
@@ -284,6 +324,7 @@ pub mod bounding_curve {
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
 					);
+					Self::check_host_creating(host_performance, max_allowed_hosts)?;
 					Ok(())
 				},
 				|who| {
@@ -301,6 +342,8 @@ pub mod bounding_curve {
 							sell_curve,
 							detail: detail.clone(),
 							link: link.clone(),
+							host_performance,
+							max_allowed_hosts,
 						},
 					);
 					Self::buy_token_inner(who, id, init_fund);
@@ -501,6 +544,73 @@ pub mod bounding_curve {
 							log::error!("calculation failed: {:?}", e);
 						}
 					}
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn host(sender: OriginFor<T>, cml_id: CmlId, tapp_id: TAppId) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					T::CmlOperation::check_belongs(&cml_id, who)?;
+					ensure!(
+						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+					ensure!(
+						tapp_item.host_performance.is_some()
+							&& tapp_item.max_allowed_hosts.is_some(),
+						Error::<T>::TAppNotSupportToHost
+					);
+					ensure!(
+						TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
+							< tapp_item.max_allowed_hosts.unwrap() as usize,
+						Error::<T>::TAppHostMachineIsFull
+					);
+
+					let current_block = frame_system::Pallet::<T>::block_number();
+					let (current_performance, _) =
+						T::CmlOperation::miner_performance(cml_id, &current_block);
+					ensure!(
+						current_performance
+							>= Self::cml_total_used_performance(cml_id)
+								.saturating_add(tapp_item.host_performance.unwrap()),
+						Error::<T>::CmlMachineIsFullLoad
+					);
+					Ok(())
+				},
+				|_who| {
+					TAppCurrentHosts::<T>::insert(tapp_id, cml_id, ());
+					CmlHostingTApps::<T>::mutate(cml_id, |tapp_ids| tapp_ids.push(tapp_id))
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn unhost(sender: OriginFor<T>, cml_id: CmlId, tapp_id: TAppId) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					T::CmlOperation::check_belongs(&cml_id, who)?;
+					ensure!(
+						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						TAppCurrentHosts::<T>::contains_key(tapp_id, cml_id),
+						Error::<T>::CmlNotHostTheTApp
+					);
+
+					Ok(())
+				},
+				|_who| {
+					Self::unhost_tapp(tapp_id, cml_id);
 				},
 			)
 		}

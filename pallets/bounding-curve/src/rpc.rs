@@ -1,4 +1,5 @@
 use super::*;
+use pallet_cml::{SeedProperties, TreeProperties};
 
 impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	pub fn query_price(tapp_id: TAppId) -> (BalanceOf<T>, BalanceOf<T>) {
@@ -149,6 +150,43 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			})
 			.collect()
 	}
+
+	/// Returned item fields:
+	/// - CML Id
+	/// - CML current performance
+	/// - CML remaining performance
+	/// - life remaining
+	/// - Hosted tapp list
+	pub fn list_candidate_miner(
+	) -> Vec<(CmlId, Performance, Performance, T::BlockNumber, Vec<TAppId>)> {
+		let current_block = frame_system::Pallet::<T>::block_number();
+		let mining_cmls = T::CmlOperation::current_mining_cmls();
+
+		mining_cmls
+			.iter()
+			.map(|cml_id| {
+				let (current_performance, _) =
+					T::CmlOperation::miner_performance(*cml_id, &current_block);
+				let hosted_performance = Self::cml_total_used_performance(*cml_id);
+				let life_remain = match T::CmlOperation::cml_by_id(cml_id) {
+					Ok(cml) => {
+						let life_spends = current_block
+							.saturating_sub(*cml.get_plant_at().unwrap_or(&Zero::zero()));
+						cml.lifespan().saturating_sub(life_spends)
+					}
+					_ => Zero::zero(),
+				};
+
+				(
+					*cml_id,
+					current_performance,
+					current_performance.saturating_sub(hosted_performance),
+					life_remain,
+					CmlHostingTApps::<T>::get(cml_id),
+				)
+			})
+			.collect()
+	}
 }
 
 #[cfg(test)]
@@ -173,6 +211,8 @@ mod tests {
 				DOLLARS * 10_000,
 				vec![],
 				vec![],
+				None,
+				None,
 			));
 			let (buy_price, sell_price) = BoundingCurve::query_price(1);
 			assert_eq!(buy_price, 100000000000000);
@@ -185,6 +225,8 @@ mod tests {
 				DOLLARS * 1_000_000,
 				vec![],
 				vec![],
+				None,
+				None,
 			));
 			let (buy_price, sell_price) = BoundingCurve::query_price(2);
 			assert_eq!(buy_price, 1000000000000000);

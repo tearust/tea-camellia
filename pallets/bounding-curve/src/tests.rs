@@ -52,6 +52,8 @@ fn create_new_tapp_works() {
 			init_fund,
 			detail.as_bytes().to_vec(),
 			link.as_bytes().to_vec(),
+			None,
+			None,
 		));
 
 		// this is the first tapp so tapp id is 1
@@ -89,6 +91,8 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		assert_noop!(
@@ -99,6 +103,8 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::TAppNameAlreadyExist
 		);
@@ -120,6 +126,8 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		assert_noop!(
@@ -130,6 +138,8 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::TAppTickerAlreadyExist
 		);
@@ -151,6 +161,8 @@ fn create_new_tapp_should_fail_if_not_allowed_user_create_tapp() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::NotAllowedNormalUserCreateTApp,
 		);
@@ -172,6 +184,8 @@ fn create_new_tapp_should_fail_if_name_is_too_long() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::TAppTickerIsTooLong,
 		);
@@ -193,6 +207,8 @@ fn create_new_tapp_should_fail_if_name_is_too_short() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::TAppTickerIsTooShort,
 		);
@@ -214,6 +230,8 @@ fn create_new_tapp_should_fail_if_detail_is_too_long() {
 				1_000_000,
 				[1; TAPP_DETAIL_MAX_LENGTH as usize + 1].to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::TAppDetailIsTooLong,
 		);
@@ -235,6 +253,8 @@ fn create_new_tapp_should_fail_if_link_is_too_long() {
 				1_000_000,
 				b"test detail".to_vec(),
 				[1; TAPP_LINK_MAX_LENGTH as usize + 1].to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::TAppLinkIsTooLong,
 		);
@@ -256,6 +276,8 @@ fn create_new_tapp_should_fail_if_free_balance_is_not_enough() {
 				1000000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::InsufficientFreeBalance,
 		);
@@ -277,6 +299,8 @@ fn create_new_tapp_should_fail_if_tapp_amount_is_too_low() {
 				1000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::BuyTeaAmountCanNotBeZero,
 		);
@@ -298,6 +322,8 @@ fn create_new_tapp_should_fail_if_ticker_is_too_long() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
+				None,
+				None,
 			),
 			Error::<Test>::TAppNameIsTooLong
 		);
@@ -321,6 +347,8 @@ fn buy_token_works() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -367,6 +395,8 @@ fn buy_token_should_fail_if_tapp_amount_is_zero() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -394,6 +424,8 @@ fn buy_token_should_fail_if_tapp_amount_is_too_low() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -421,6 +453,8 @@ fn buy_token_should_fail_if_free_balance_is_not_enough() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -448,6 +482,8 @@ fn sell_token_works() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -490,6 +526,8 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -539,6 +577,8 @@ fn sell_token_should_fail_if_tapp_amount_is_not_enough() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -566,6 +606,8 @@ fn sell_token_should_fail_if_tapp_amount_is_zero() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -593,6 +635,8 @@ fn sell_token_should_fail_if_tapp_amount_is_too_low() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -618,6 +662,8 @@ fn sell_token_should_fail_if_tapp_total_supply_is_not_enough() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -653,6 +699,8 @@ fn consume_works() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -719,6 +767,8 @@ fn consume_should_fail_if_consume_amount_is_zero() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -746,6 +796,8 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -779,6 +831,8 @@ fn expense_works() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -848,6 +902,8 @@ fn expense_should_fail_if_sender_is_not_tapp_owner() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -873,6 +929,8 @@ fn expense_should_fail_if_expense_amount_is_zero() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -898,6 +956,8 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;

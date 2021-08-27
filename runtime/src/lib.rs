@@ -892,12 +892,14 @@ parameter_types! {
 	pub const TAppTickerMinLength: u32 = 3;
 	pub const TAppTickerMaxLength: u32 = 6;
 	pub const PoolBalanceReversePrecision: Balance = 100000;
+	pub const HostArrangeDuration: BlockNumber = 1000;
 }
 
 impl pallet_bounding_curve::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
+	type CmlOperation = Cml;
 	type TAppNameMaxLength = TAppNameMaxLength;
 	type TAppTickerMinLength = TAppTickerMinLength;
 	type TAppTickerMaxLength = TAppTickerMaxLength;
@@ -907,6 +909,7 @@ impl pallet_bounding_curve::Config for Runtime {
 	type LinearCurve = UnsignedLinearCurve<Balance, 16>;
 	type UnsignedSquareRoot_10 = UnsignedSquareRoot<Balance, 10>;
 	type UnsignedSquareRoot_7 = UnsignedSquareRoot<Balance, 7>;
+	type HostArrangeDuration = HostArrangeDuration;
 }
 
 parameter_types! {
@@ -1293,6 +1296,15 @@ impl_runtime_apis! {
 			Vec<u8>,
 		)> {
 			BoundingCurve::list_user_assets(&who)
+		}
+
+		fn list_candidate_miner() -> Vec<(
+			u64,
+			u32,
+			u32,
+			BlockNumber,
+			Vec<u64>)> {
+			BoundingCurve::list_candidate_miner()
 		}
 	}
 

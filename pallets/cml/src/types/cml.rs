@@ -571,7 +571,7 @@ where
 	fn calculate_performance(&self, age_percentage: u32) -> Performance {
 		let base = self.intrinsic.performance;
 		match age_percentage {
-			0..=9 => base * 30 / 100,
+			1..=9 => base * 30 / 100,
 			10..=19 => base * 60 / 100,
 			20..=29 => base * 90 / 100,
 			30..=49 => base,

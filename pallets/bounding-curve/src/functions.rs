@@ -3,6 +3,11 @@ use super::*;
 pub(crate) const CALCULATION_PRECISION: u32 = 100000000;
 
 impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
+	pub(crate) fn need_arrange_host(height: T::BlockNumber) -> bool {
+		// offset with `InterestPeriodLength` - 3 to void overlapping with staking period
+		height % T::HostArrangeDuration::get() == T::HostArrangeDuration::get() - 3u32.into()
+	}
+
 	pub fn next_id() -> TAppId {
 		LastTAppId::<T>::mutate(|id| {
 			if *id < u64::MAX {
@@ -404,6 +409,78 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			Error::<T>::TAppLinkIsTooLong
 		);
 		Ok(())
+	}
+
+	pub(crate) fn check_host_creating(
+		host_performance: Option<Performance>,
+		max_allowed_hosts: Option<u32>,
+	) -> DispatchResult {
+		ensure!(
+			(host_performance.is_some() && max_allowed_hosts.is_some())
+				|| (host_performance.is_none() && max_allowed_hosts.is_none()),
+			Error::<T>::HostPerformanceAndMaxAllowedHostMustBePaired
+		);
+		if let Some(performance) = host_performance {
+			ensure!(
+				!performance.is_zero(),
+				Error::<T>::PerformanceValueShouldNotBeZero,
+			);
+		}
+		if let Some(max_allowed_hosts) = max_allowed_hosts {
+			ensure!(
+				!max_allowed_hosts.is_zero(),
+				Error::<T>::MaxAllowedHostShouldNotBeZero,
+			);
+		}
+
+		Ok(())
+	}
+
+	pub(crate) fn unhost_tapp(tapp_id: TAppId, cml_id: CmlId) {
+		TAppCurrentHosts::<T>::remove(tapp_id, cml_id);
+		CmlHostingTApps::<T>::mutate(cml_id, |array| {
+			if let Some(index) = array.iter().position(|x| *x == tapp_id) {
+				array.remove(index);
+			}
+		});
+	}
+
+	pub(crate) fn unhost_last_tapp(cml_id: CmlId) -> Option<TAppId> {
+		if let Some(last_tapp) = CmlHostingTApps::<T>::get(cml_id).last() {
+			Self::unhost_tapp(*last_tapp, cml_id);
+			return Some(*last_tapp);
+		}
+		None
+	}
+
+	pub(crate) fn arrange_host() {
+		let current_block = frame_system::Pallet::<T>::block_number();
+		let mining_cmls = T::CmlOperation::current_mining_cmls();
+
+		let mut unhosted_list = Vec::new();
+		mining_cmls.iter().for_each(|cml_id| {
+			let (current_performance, _) =
+				T::CmlOperation::miner_performance(*cml_id, &current_block);
+			while Self::cml_total_used_performance(*cml_id) > current_performance {
+				if let Some(tapp_id) = Self::unhost_last_tapp(*cml_id) {
+					unhosted_list.push((tapp_id, *cml_id));
+				}
+			}
+		});
+
+		Self::deposit_event(Event::TAppsUnhosted(unhosted_list));
+	}
+
+	pub(crate) fn cml_total_used_performance(cml_id: CmlId) -> Performance {
+		let mut total: Performance = Zero::zero();
+		for tapp_id in CmlHostingTApps::<T>::get(cml_id).iter() {
+			total = total.saturating_add(
+				TAppBoundingCurve::<T>::get(tapp_id)
+					.host_performance
+					.unwrap_or_default(),
+			);
+		}
+		total
 	}
 }
 

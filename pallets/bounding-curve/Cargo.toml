@@ -32,6 +32,7 @@ hex = {default-features = false, optional = true, version = '0.4.3'}
 
 bounding-curve-interface = { path = "./interface", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
+pallet-cml = {default-features = false, path = '../cml'}
 
 [dev-dependencies]
 serde = '1.0.119'
@@ -41,6 +42,8 @@ rand = '0.7.2'
 node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 bounding-curve-impl = { path = "./curve-impl" }
+auction-interface = { path = '../auction/interface' }
+genesis-exchange-interface = { path = '../genesis-exchange/interface' }
 
 [features]
 default = ['std']
@@ -58,6 +61,7 @@ std = [
 	'frame-system/std',
 	'frame-benchmarking/std',
 	'pallet-utils/std',
+	'pallet-cml/std',
 	'bounding-curve-interface/std',
 ]
 try-runtime = ['frame-support/try-runtime']

@@ -175,6 +175,29 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			.collect()
 	}
 
+	/// return a pair of values, first is current performance calculated by given block height,
+	/// the second is the peak performance.
+	fn miner_performance(
+		cml_id: CmlId,
+		block_height: &Self::BlockNumber,
+	) -> (Performance, Performance) {
+		let cml = CmlStore::<T>::get(cml_id);
+		let age_percentage = if cml.lifespan().is_zero() {
+			100u32.into()
+		} else {
+			if let Some(plant_at_block) = cml.get_plant_at() {
+				(*block_height - *plant_at_block) * 100u32.into() / cml.lifespan()
+			} else {
+				0u32.into()
+			}
+		};
+
+		(
+			cml.calculate_performance(age_percentage.try_into().unwrap_or(0)),
+			cml.get_peak_performance(),
+		)
+	}
+
 	fn user_coupon_list(who: &Self::AccountId, schedule_type: DefrostScheduleType) -> Vec<Coupon> {
 		match schedule_type {
 			DefrostScheduleType::Team => TeamCouponStore::<T>::iter_prefix(who)

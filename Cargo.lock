@@ -4362,17 +4362,20 @@ dependencies = [
 name = "pallet-bounding-curve"
 version = "0.0.1"
 dependencies = [
+ "auction-interface",
  "bounding-curve-impl",
  "bounding-curve-interface",
  "ed25519-dalek",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "genesis-exchange-interface",
  "hex",
  "hex-literal",
  "log",
  "node-primitives",
  "pallet-balances",
+ "pallet-cml",
  "pallet-randomness-collective-flip",
  "pallet-utils",
  "parity-scale-codec",

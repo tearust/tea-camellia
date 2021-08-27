@@ -3,7 +3,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::Codec;
-use node_primitives::Balance;
+use node_primitives::{Balance, BlockNumber};
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
@@ -62,5 +62,18 @@ sp_api::decl_runtime_apis! {
 			Vec<u8>,
 			Vec<u8>,
 		)>;
+
+		/// Returned item fields:
+		/// - CML Id
+		/// - CML current performance
+		/// - CML remaining performance
+		/// - life remaining
+		/// - Hosted tapp list
+		fn list_candidate_miner() -> Vec<(
+			u64,
+			u32,
+			u32,
+			BlockNumber,
+			Vec<u64>)>;
 	}
 }
