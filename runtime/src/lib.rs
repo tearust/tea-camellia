@@ -1281,6 +1281,9 @@ impl_runtime_apis! {
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)> {
 			BoundingCurve::list_tapps()
 		}
@@ -1294,6 +1297,9 @@ impl_runtime_apis! {
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)> {
 			BoundingCurve::list_user_assets(&who)
 		}

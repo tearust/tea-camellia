@@ -62,6 +62,9 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	/// - Owner
 	/// - Detail
 	/// - Link
+	/// - Host performance requirement (return zero if is none)
+	/// - current hosts (return zero if is none)
+	/// - max hosts (return zero if is none)
 	#[rpc(name = "bounding_listTApps")]
 	fn list_tapps(
 		&self,
@@ -77,6 +80,9 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)>,
 	>;
 
@@ -89,6 +95,9 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	/// - Owner
 	/// - Detail
 	/// - Link
+	/// - Host performance requirement (return zero if is none)
+	/// - current hosts (return zero if is none)
+	/// - max hosts (return zero if is none)
 	#[rpc(name = "bounding_listUserAssets")]
 	fn list_user_assets(
 		&self,
@@ -104,6 +113,9 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)>,
 	>;
 
@@ -113,8 +125,8 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	/// - CML remaining performance
 	/// - life remaining
 	/// - Hosted tapp list
-	#[rpc(name = "bounding_listUserAssets")]
-	fn list_candidate_miner(
+	#[rpc(name = "bounding_listCandidateMiners")]
+	fn list_candidate_miners(
 		&self,
 		at: Option<BlockHash>,
 	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>>;
@@ -252,6 +264,9 @@ where
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)>,
 	> {
 		let api = self.client.runtime_api();
@@ -269,11 +284,27 @@ where
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)> = api.list_tapps(&at).map_err(runtime_error_into_rpc_err)?;
 		Ok(result
 			.iter()
 			.map(
-				|(name, id, ticker, total_supply, buy_price, sell_price, owner, detail, link)| {
+				|(
+					name,
+					id,
+					ticker,
+					total_supply,
+					buy_price,
+					sell_price,
+					owner,
+					detail,
+					link,
+					performance,
+					current_hosts,
+					max_hosts,
+				)| {
 					(
 						name.clone(),
 						*id,
@@ -284,6 +315,9 @@ where
 						owner.clone(),
 						detail.clone(),
 						link.clone(),
+						*performance,
+						*current_hosts,
+						*max_hosts,
 					)
 				},
 			)
@@ -304,6 +338,9 @@ where
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)>,
 	> {
 		let api = self.client.runtime_api();
@@ -320,12 +357,27 @@ where
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)> = api.list_user_assets(&at, who)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result
 			.iter()
 			.map(
-				|(name, id, ticker, amount, sell_price, owner, detail, link)| {
+				|(
+					name,
+					id,
+					ticker,
+					amount,
+					sell_price,
+					owner,
+					detail,
+					link,
+					performance,
+					current_hosts,
+					max_hosts,
+				)| {
 					(
 						name.clone(),
 						*id,
@@ -335,13 +387,16 @@ where
 						owner.clone(),
 						detail.clone(),
 						link.clone(),
+						*performance,
+						*current_hosts,
+						*max_hosts,
 					)
 				},
 			)
 			.collect())
 	}
 
-	fn list_candidate_miner(
+	fn list_candidate_miners(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>> {

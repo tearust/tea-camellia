@@ -31,6 +31,9 @@ sp_api::decl_runtime_apis! {
 		/// - Owner
 		/// - Detail
 		/// - Link
+		/// - Host performance requirement (return zero if is none)
+		/// - current hosts (return zero if is none)
+		/// - max hosts (return zero if is none)
 		fn list_tapps() -> Vec<(
 			Vec<u8>,
 			u64,
@@ -41,6 +44,9 @@ sp_api::decl_runtime_apis! {
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)>;
 
 		/// Returned item fields:
@@ -61,6 +67,9 @@ sp_api::decl_runtime_apis! {
 			AccountId,
 			Vec<u8>,
 			Vec<u8>,
+			u32,
+			u32,
+			u32,
 		)>;
 
 		/// Returned item fields:

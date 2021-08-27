@@ -80,6 +80,9 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	/// - Owner
 	/// - Detail
 	/// - Link
+	/// - Host performance requirement (return zero if is none)
+	/// - current hosts (return zero if is none)
+	/// - max hosts (return zero if is none)
 	pub fn list_tapps() -> Vec<(
 		Vec<u8>,
 		TAppId,
@@ -90,6 +93,9 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		T::AccountId,
 		Vec<u8>,
 		Vec<u8>,
+		Performance,
+		u32,
+		u32,
 	)> {
 		TAppBoundingCurve::<T>::iter()
 			.map(|(id, item)| {
@@ -106,6 +112,9 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 					item.owner,
 					item.detail,
 					item.link,
+					item.host_performance.unwrap_or_default(),
+					TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
+					item.max_allowed_hosts.unwrap_or_default(),
 				)
 			})
 			.collect()
@@ -120,6 +129,9 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	/// - Owner
 	/// - Detail
 	/// - Link
+	/// - Host performance requirement (return zero if is none)
+	/// - current hosts (return zero if is none)
+	/// - max hosts (return zero if is none)
 	pub fn list_user_assets(
 		who: &T::AccountId,
 	) -> Vec<(
@@ -131,6 +143,9 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 		T::AccountId,
 		Vec<u8>,
 		Vec<u8>,
+		Performance,
+		u32,
+		u32,
 	)> {
 		AccountTable::<T>::iter_prefix(who)
 			.map(|(id, amount)| {
@@ -146,6 +161,9 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 					item.owner,
 					item.detail,
 					item.link,
+					item.host_performance.unwrap_or_default(),
+					TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
+					item.max_allowed_hosts.unwrap_or_default(),
 				)
 			})
 			.collect()
