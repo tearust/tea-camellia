@@ -849,7 +849,7 @@ fn expense_works() {
 		);
 
 		let cml_id = 11;
-		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
 		cml.set_owner(&miner);
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -970,7 +970,7 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 		let tapp_id = 1;
 
 		let cml_id = 11;
-		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
 		cml.set_owner(&miner);
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -1003,7 +1003,7 @@ fn host_works() {
 		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
 
 		let cml_id = 11;
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
@@ -1035,6 +1035,274 @@ fn host_works() {
 }
 
 #[test]
+fn host_should_fail_if_cml_not_belongs_to_user() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::host(Origin::signed(33), cml_id, tapp_id),
+			pallet_cml::Error::<Test>::CMLOwnerInvalid
+		);
+
+		assert_noop!(
+			BondingCurve::host(Origin::signed(33), 44, tapp_id),
+			pallet_cml::Error::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn host_should_fail_if_tapp_not_exist() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::TAppIdNotExist
+		);
+	})
+}
+
+#[test]
+fn host_should_fail_if_not_supported_for_hosting() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			None,
+			None,
+		));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::TAppNotSupportToHost
+		);
+	})
+}
+
+#[test]
+fn host_should_fail_if_cml_is_already_hosting() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(1),
+		));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::CmlIsAlreadyHosting
+		);
+	})
+}
+
+#[test]
+fn host_should_fail_if_tapp_hosts_if_full() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml_id2 = 22;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		UserCmlStore::<Test>::insert(miner, cml_id2, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+		CmlStore::<Test>::insert(cml_id2, cml2);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id2,
+			[2u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(1),
+		));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id2, tapp_id),
+			Error::<Test>::TAppHostsIsFull
+		);
+	})
+}
+
+#[test]
+fn host_should_fail_if_cml_is_full_load() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 4000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(1),
+		));
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name2".to_vec(),
+			b"tea2".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(1),
+		));
+
+		let tapp_id = 1;
+		let tapp_id2 = 2;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id2),
+			Error::<Test>::CmlMachineIsFullLoad
+		);
+	})
+}
+
+#[test]
+fn host_should_fail_if_cml_is_not_mining() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(1),
+		));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::OnlyMiningCmlCanHost
+		);
+	})
+}
+
+#[test]
 fn unhost_works() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
@@ -1044,7 +1312,7 @@ fn unhost_works() {
 		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
 
 		let cml_id = 11;
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
@@ -1080,19 +1348,137 @@ fn unhost_works() {
 	})
 }
 
-pub fn new_genesis_seed(id: CmlId) -> Seed {
+#[test]
+fn unhost_should_fail_if_cml_not_belongs_to_user() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		assert_noop!(
+			BondingCurve::unhost(Origin::signed(4), cml_id, tapp_id),
+			pallet_cml::Error::<Test>::CMLOwnerInvalid
+		);
+	})
+}
+
+#[test]
+fn unhost_should_fail_if_tapp_id_not_exist() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::TAppIdNotExist
+		);
+	})
+}
+
+#[test]
+fn unhost_should_fail_if_cml_not_host_the_tapp() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name2".to_vec(),
+			b"tea2".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+
+		let tapp_id = 1;
+		let tapp_id2 = 2;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		assert_noop!(
+			BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id2),
+			Error::<Test>::CmlNotHostTheTApp
+		);
+	})
+}
+
+pub fn seed_from_lifespan(id: CmlId, lifespan: u32, performance: u32) -> Seed {
 	Seed {
 		id,
 		cml_type: CmlType::A,
 		defrost_schedule: Some(DefrostScheduleType::Team),
 		defrost_time: Some(0),
-		lifespan: 0,
-		performance: 10000,
+		lifespan,
+		performance,
 	}
-}
-
-pub fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
-	let mut seed = new_genesis_seed(id);
-	seed.lifespan = lifespan;
-	seed
 }

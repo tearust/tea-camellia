@@ -270,6 +270,8 @@ pub mod bonding_curve {
 		CmlOwnerIsNone,
 		/// It's not allowed for the CML that not start mining to host
 		OnlyMiningCmlCanHost,
+		/// The CML is already hosting the given tapp
+		CmlIsAlreadyHosting,
 	}
 
 	#[pallet::hooks]
@@ -601,6 +603,10 @@ pub mod bonding_curve {
 						tapp_item.host_performance.is_some()
 							&& tapp_item.max_allowed_hosts.is_some(),
 						Error::<T>::TAppNotSupportToHost
+					);
+					ensure!(
+						!TAppCurrentHosts::<T>::contains_key(tapp_id, cml_id),
+						Error::<T>::CmlIsAlreadyHosting
 					);
 					ensure!(
 						TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
