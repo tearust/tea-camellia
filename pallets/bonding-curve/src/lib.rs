@@ -214,35 +214,61 @@ pub mod bonding_curve {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
+		/// The length of the tapp name is over than required
 		TAppNameIsTooLong,
+		/// The length of the tapp ticker is over than required
 		TAppTickerIsTooLong,
+		/// The length of the tapp ticker is less than required
 		TAppTickerIsTooShort,
+		/// The length of the tapp detail is over than required
 		TAppDetailIsTooLong,
+		/// The length of the tapp link is over than required
 		TAppLinkIsTooLong,
+		/// Tapp name already exists
 		TAppNameAlreadyExist,
+		/// Tapp ticker already exists
 		TAppTickerAlreadyExist,
+		/// TEA free balance is not enough
 		InsufficientFreeBalance,
+		/// Tapp token is not enough
 		InsufficientTAppToken,
 		/// Sell amount more than total supply
 		InsufficientTotalSupply,
+		/// The given tapp id not exists in the tapp store
 		TAppIdNotExist,
 		/// Sell amount more than total reserved pool tea token
 		TAppInsufficientFreeBalance,
+		/// All operation amount should greater than 0
 		OperationAmountCanNotBeZero,
+		/// Buy tea amount should greater than 0
 		BuyTeaAmountCanNotBeZero,
+		/// Sell tea amount should greater than 0
 		SellTeaAmountCanNotBeZero,
+		/// Subtraction operation has overflowed
 		SubtractionOverflow,
+		/// Add operation has overflowed
 		AddOverflow,
+		/// It is forbidden for normal user to create tapp
 		NotAllowedNormalUserCreateTApp,
+		/// Only the tapp owner is allowed to submit the `expense` extrinsic
 		OnlyTAppOwnerAllowedToExpense,
+		/// Host performance and max allowed host number should both have value or both be none
 		HostPerformanceAndMaxAllowedHostMustBePaired,
+		/// Performance value should greater than 0
 		PerformanceValueShouldNotBeZero,
+		/// If specify the maximum allowed host count, it should be greater than 0
 		MaxAllowedHostShouldNotBeZero,
+		/// The tapp is not supported to be hosted, that usually means the tapp is not need long running.
 		TAppNotSupportToHost,
-		TAppHostMachineIsFull,
+		/// The tapp already has desired count of hosts that can not be hosted anymore
+		TAppHostsIsFull,
+		/// The CML machine is full loan that can not host anymore
 		CmlMachineIsFullLoad,
+		/// The CML not hosting the given tapp
 		CmlNotHostTheTApp,
+		/// Cml owner is none
 		CmlOwnerIsNone,
+		/// It's not allowed for the CML that not start mining to host
 		OnlyMiningCmlCanHost,
 	}
 
@@ -579,7 +605,7 @@ pub mod bonding_curve {
 					ensure!(
 						TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
 							< tapp_item.max_allowed_hosts.unwrap() as usize,
-						Error::<T>::TAppHostMachineIsFull
+						Error::<T>::TAppHostsIsFull
 					);
 
 					let cml = T::CmlOperation::cml_by_id(&cml_id)?;
