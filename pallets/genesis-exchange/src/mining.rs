@@ -1,5 +1,4 @@
 use super::*;
-use pallet_cml::{CmlType, Coupon, DefrostScheduleType, SeedProperties};
 
 impl<T: genesis_exchange::Config> MiningOperation for genesis_exchange::Pallet<T> {
 	type AccountId = T::AccountId;
@@ -34,8 +33,13 @@ impl<T: genesis_exchange::Config> MiningOperation for genesis_exchange::Pallet<T
 		}
 	}
 
-	fn check_redeem_coupons(who: &Self::AccountId, is_investor: bool) -> DispatchResult {
-		let cost_sum = Self::calculate_coupons_cost(who, is_investor);
+	fn check_redeem_coupons(
+		who: &Self::AccountId,
+		a_coupon: u32,
+		b_coupon: u32,
+		c_coupon: u32,
+	) -> DispatchResult {
+		let cost_sum = Self::calculate_coupons_cost(a_coupon, b_coupon, c_coupon);
 		ensure!(
 			USDStore::<T>::get(who) >= cost_sum,
 			Error::<T>::InsufficientUSDToRedeemCoupons
@@ -43,8 +47,8 @@ impl<T: genesis_exchange::Config> MiningOperation for genesis_exchange::Pallet<T
 		Ok(())
 	}
 
-	fn redeem_coupons(who: &Self::AccountId, is_investor: bool) {
-		let cost_sum = Self::calculate_coupons_cost(who, is_investor);
+	fn redeem_coupons(who: &Self::AccountId, a_coupon: u32, b_coupon: u32, c_coupon: u32) {
+		let cost_sum = Self::calculate_coupons_cost(a_coupon, b_coupon, c_coupon);
 		USDStore::<T>::mutate(who, |balance| *balance = balance.saturating_sub(cost_sum));
 	}
 }
@@ -60,29 +64,21 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		Ok(cost)
 	}
 
-	fn calculate_coupons_cost(who: &T::AccountId, is_investor: bool) -> BalanceOf<T> {
-		let coupons = T::CmlOperation::user_coupon_list(
-			who,
-			match is_investor {
-				true => DefrostScheduleType::Investor,
-				false => DefrostScheduleType::Team,
-			},
-		);
-
+	fn calculate_coupons_cost(a_coupon: u32, b_coupon: u32, c_coupon: u32) -> BalanceOf<T> {
 		let mut sum: BalanceOf<T> = Zero::zero();
-		for coupon in coupons.iter() {
-			sum = sum.saturating_add(Self::single_coupon_cost(coupon));
-		}
+		sum = sum.saturating_add(Self::coupon_type_cost(a_coupon, CmlType::A));
+		sum = sum.saturating_add(Self::coupon_type_cost(b_coupon, CmlType::B));
+		sum = sum.saturating_add(Self::coupon_type_cost(c_coupon, CmlType::C));
 		sum
 	}
 
-	fn single_coupon_cost(coupon: &Coupon) -> BalanceOf<T> {
-		let cost = match coupon.cml_type {
+	fn coupon_type_cost(amount: u32, cml_type: CmlType) -> BalanceOf<T> {
+		let cost = match cml_type {
 			CmlType::A => T::CmlARedeemCouponCost::get(),
 			CmlType::B => T::CmlBRedeemCouponCost::get(),
 			CmlType::C => T::CmlCRedeemCouponCost::get(),
 		};
-		cost.saturating_mul(coupon.amount.into())
+		cost.saturating_mul(amount.into())
 	}
 }
 
@@ -91,7 +87,7 @@ mod tests {
 	use crate::mock::*;
 	use crate::*;
 	use frame_support::{assert_noop, assert_ok};
-	use pallet_cml::{CmlId, CmlType, Coupon, DefrostScheduleType, Seed, CML};
+	use pallet_cml::{CmlId, CmlType, DefrostScheduleType, Seed, CML};
 
 	#[test]
 	fn redeem_coupons_works() {
@@ -102,9 +98,11 @@ mod tests {
 			);
 			assert_ok!(GenesisExchange::check_redeem_coupons(
 				&COMPETITION_USERS1,
-				true
+				1,
+				2,
+				4
 			));
-			GenesisExchange::redeem_coupons(&COMPETITION_USERS1, true);
+			GenesisExchange::redeem_coupons(&COMPETITION_USERS1, 1, 2, 4);
 			assert_eq!(
 				USDStore::<Test>::get(&COMPETITION_USERS1),
 				COMPETITION_USER_USD_AMOUNT - 6000
@@ -116,27 +114,23 @@ mod tests {
 			);
 			assert_ok!(GenesisExchange::check_redeem_coupons(
 				&COMPETITION_USERS2,
-				false
+				1,
+				2,
+				4
 			));
-			GenesisExchange::redeem_coupons(&COMPETITION_USERS2, false);
+			GenesisExchange::redeem_coupons(&COMPETITION_USERS2, 1, 2, 4);
 			assert_eq!(
 				USDStore::<Test>::get(&COMPETITION_USERS2),
 				COMPETITION_USER_USD_AMOUNT - 6000
 			);
 
-			assert_eq!(
-				USDStore::<Test>::get(&COMPETITION_USERS3),
-				COMPETITION_USER_USD_AMOUNT
+			USDStore::<Test>::insert(COMPETITION_USERS3, 0);
+			assert_noop!(
+				GenesisExchange::check_redeem_coupons(&COMPETITION_USERS3, 1, 1, 1),
+				Error::<Test>::InsufficientUSDToRedeemCoupons
 			);
-			assert_ok!(GenesisExchange::check_redeem_coupons(
-				&COMPETITION_USERS3,
-				true
-			));
-			GenesisExchange::redeem_coupons(&COMPETITION_USERS3, true);
-			assert_eq!(
-				USDStore::<Test>::get(&COMPETITION_USERS3),
-				COMPETITION_USER_USD_AMOUNT - 2000 - 1000 - 500
-			);
+			GenesisExchange::redeem_coupons(&COMPETITION_USERS3, 1, 1, 1);
+			assert_eq!(USDStore::<Test>::get(&COMPETITION_USERS3), 0);
 		})
 	}
 
@@ -144,26 +138,17 @@ mod tests {
 	fn single_coupon_cost_works() {
 		new_test_ext().execute_with(|| {
 			assert_eq!(
-				GenesisExchange::single_coupon_cost(&Coupon {
-					amount: 1,
-					cml_type: CmlType::A
-				}),
+				GenesisExchange::coupon_type_cost(1, CmlType::A),
 				CML_A_REDEEM_COUPON_COST
 			);
 
 			assert_eq!(
-				GenesisExchange::single_coupon_cost(&Coupon {
-					amount: 3,
-					cml_type: CmlType::B
-				}),
+				GenesisExchange::coupon_type_cost(3, CmlType::B),
 				CML_B_REDEEM_COUPON_COST * 3
 			);
 
 			assert_eq!(
-				GenesisExchange::single_coupon_cost(&Coupon {
-					amount: 5,
-					cml_type: CmlType::C
-				}),
+				GenesisExchange::coupon_type_cost(5, CmlType::C),
 				CML_C_REDEEM_COUPON_COST * 5
 			);
 		})

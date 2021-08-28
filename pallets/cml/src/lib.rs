@@ -475,23 +475,11 @@ pub mod cml {
 					);
 					Self::check_luck_draw(a_coupon, b_coupon, c_coupon, schedule_type)?;
 
-					T::MiningOperation::check_redeem_coupons(
-						who,
-						match schedule_type {
-							DefrostScheduleType::Investor => true,
-							DefrostScheduleType::Team => false,
-						},
-					)?;
+					T::MiningOperation::check_redeem_coupons(who, a_coupon, b_coupon, c_coupon)?;
 					Ok(())
 				},
 				|who| {
-					T::MiningOperation::redeem_coupons(
-						who,
-						match schedule_type {
-							DefrostScheduleType::Investor => true,
-							DefrostScheduleType::Team => false,
-						},
-					);
+					T::MiningOperation::redeem_coupons(who, a_coupon, b_coupon, c_coupon);
 
 					let weight = match schedule_type {
 						DefrostScheduleType::Investor => None,

@@ -23,7 +23,7 @@ use frame_system::pallet_prelude::*;
 use genesis_bank_interface::GenesisBankOperation;
 use genesis_exchange_interface::MiningOperation;
 use log::error;
-use pallet_cml::CmlOperation;
+use pallet_cml::{CmlOperation, CmlType, SeedProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating, Zero};
 use sp_std::{cmp::max, collections::btree_map::BTreeMap, convert::TryInto, prelude::*};

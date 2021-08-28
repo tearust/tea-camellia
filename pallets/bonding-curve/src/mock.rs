@@ -37,12 +37,14 @@ impl MiningOperation for MiningOperationMock {
 
 	fn check_redeem_coupons(
 		_who: &Self::AccountId,
-		_is_investor: bool,
+		_a_coupon: u32,
+		_b_coupon: u32,
+		_c_coupon: u32,
 	) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
 
-	fn redeem_coupons(_who: &Self::AccountId, _is_investor: bool) {}
+	fn redeem_coupons(_who: &Self::AccountId, _a_coupon: u32, _b_coupon: u32, _c_coupon: u32) {}
 }
 
 pub struct AuctionOperationMock {}

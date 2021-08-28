@@ -9,7 +9,12 @@ pub trait MiningOperation {
 
 	fn buy_mining_machine(who: &Self::AccountId, cml_id: u64);
 
-	fn check_redeem_coupons(who: &Self::AccountId, is_investor: bool) -> DispatchResult;
+	fn check_redeem_coupons(
+		who: &Self::AccountId,
+		a_coupon: u32,
+		b_coupon: u32,
+		c_coupon: u32,
+	) -> DispatchResult;
 
-	fn redeem_coupons(who: &Self::AccountId, is_investor: bool);
+	fn redeem_coupons(who: &Self::AccountId, a_coupon: u32, b_coupon: u32, c_coupon: u32);
 }
