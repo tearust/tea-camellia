@@ -11,7 +11,7 @@ where
 	phantom: PhantomData<Balance>,
 }
 
-impl<Balance, const A: u32> BoundingCurveInterface<Balance> for UnsignedLinearCurve<Balance, A>
+impl<Balance, const A: u32> BondingCurveInterface<Balance> for UnsignedLinearCurve<Balance, A>
 where
 	Balance: AtLeast32BitUnsigned + Default + Clone,
 {
@@ -52,19 +52,19 @@ mod tests {
 		#[allow(non_camel_case_types)]
 		type Linear_100 = UnsignedLinearCurve<Balance, 100>; // y = x
 		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::pool_balance(0),
+			<Linear_100 as BondingCurveInterface<Balance>>::pool_balance(0),
 			0
 		);
 		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::pool_balance(100),
+			<Linear_100 as BondingCurveInterface<Balance>>::pool_balance(100),
 			100 * 100 / 2
 		);
 		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::pool_balance(DOLLARS),
+			<Linear_100 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS),
 			DOLLARS * DOLLARS / 2
 		);
 		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
+			<Linear_100 as BondingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
 			DOLLARS * DOLLARS * 100 * 100 / 2
 		);
 	}
@@ -74,30 +74,30 @@ mod tests {
 		#[allow(non_camel_case_types)]
 		type Linear_100 = UnsignedLinearCurve<Balance, 100>; // y = x
 		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::buy_price(0),
+			<Linear_100 as BondingCurveInterface<Balance>>::buy_price(0),
 			0
 		);
 		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
+			<Linear_100 as BondingCurveInterface<Balance>>::buy_price(DOLLARS),
 			DOLLARS
 		);
 		assert_eq!(
-			<Linear_100 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
+			<Linear_100 as BondingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
 			DOLLARS * 100
 		);
 
 		#[allow(non_camel_case_types)]
 		type Linear_1 = UnsignedLinearCurve<Balance, 1>; // y = x/100
 		assert_eq!(
-			<Linear_1 as BoundingCurveInterface<Balance>>::buy_price(0),
+			<Linear_1 as BondingCurveInterface<Balance>>::buy_price(0),
 			0
 		);
 		assert_eq!(
-			<Linear_1 as BoundingCurveInterface<Balance>>::buy_price(DOLLARS),
+			<Linear_1 as BondingCurveInterface<Balance>>::buy_price(DOLLARS),
 			DOLLARS / 100
 		);
 		assert_eq!(
-			<Linear_1 as BoundingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
+			<Linear_1 as BondingCurveInterface<Balance>>::buy_price(100 * DOLLARS),
 			DOLLARS
 		);
 	}

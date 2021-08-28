@@ -2,7 +2,7 @@ use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisCoupons, GenesisSeeds},
-	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, BoundingCurveConfig,
+	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, BondingCurveConfig,
 	CmlConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisBankConfig, GenesisConfig,
 	GenesisExchangeConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, Signature, StakerStatus,
 	StakingConfig, SudoConfig, SystemConfig, TeaConfig, TechnicalCommitteeConfig, WASM_BINARY,
@@ -38,9 +38,9 @@ const GENESIS_BANK_OPERATION_ADDRESS: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvW
 // address derived from [1u8; 32] that the corresponding private key we don't know
 const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn38446dhCpsi2mLHiFT";
 // address derived from [2u8; 32] that the corresponding private key we don't know
-const BOUNDING_CURVE_OPERATION_ADDRESS: &str = "5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt";
+const BONDING_CURVE_OPERATION_ADDRESS: &str = "5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt";
 // predefined "sudo" user in competition csv file
-const BOUNDING_CURVE_NPC_ADDRESS: &str = "5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP";
+const BONDING_CURVE_NPC_ADDRESS: &str = "5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP";
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -258,8 +258,7 @@ pub fn local_testnet_config(
 		get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 	];
-	let endowed_balances =
-		generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
+	let endowed_balances = generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
 
 	testnet_config(
 		genesis_coupons,
@@ -358,9 +357,9 @@ fn testnet_genesis(
 		AccountId32::from_str(GENESIS_BANK_OPERATION_ADDRESS).unwrap();
 	let genesis_exchange_operation_account =
 		AccountId32::from_str(GENESIS_EXCHANGE_OPERATION_ADDRESS).unwrap();
-	let bounding_curve_operation_account =
-		AccountId32::from_str(BOUNDING_CURVE_OPERATION_ADDRESS).unwrap();
-	let bounding_curve_npc_account = AccountId32::from_str(BOUNDING_CURVE_NPC_ADDRESS).unwrap();
+	let bonding_curve_operation_account =
+		AccountId32::from_str(BONDING_CURVE_OPERATION_ADDRESS).unwrap();
+	let bonding_curve_npc_account = AccountId32::from_str(BONDING_CURVE_NPC_ADDRESS).unwrap();
 
 	initial_balances.push((
 		genesis_exchange_operation_account.clone(),
@@ -476,9 +475,9 @@ fn testnet_genesis(
 			operation_tea_amount: INITIAL_EXCHANGE_TEA_BALANCE,
 			competition_users,
 		},
-		pallet_bounding_curve: BoundingCurveConfig {
-			operation_account: bounding_curve_operation_account,
-			npc_account: bounding_curve_npc_account,
+		pallet_bonding_curve: BondingCurveConfig {
+			operation_account: bonding_curve_operation_account,
+			npc_account: bonding_curve_npc_account,
 			user_create_tapp: false, // default disable user create tapp
 		},
 	}
@@ -521,9 +520,7 @@ fn generate_account_balance_list(
 #[cfg(test)]
 mod tests {
 	use crate::chain_spec::get_unique_accounts;
-	use camellia_runtime::pallet_cml::{
-		CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons,
-	};
+	use camellia_runtime::pallet_cml::{CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons};
 	use sp_runtime::AccountId32;
 
 	#[test]

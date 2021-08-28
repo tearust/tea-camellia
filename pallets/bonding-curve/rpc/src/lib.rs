@@ -1,4 +1,4 @@
-use bounding_curve_runtime_api::BoundingCurveApi as BoundingCurveRuntimeApi;
+use bonding_curve_runtime_api::BondingCurveApi as BondingCurveRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
@@ -15,13 +15,13 @@ pub use types::*;
 const RUNTIME_ERROR: i64 = 1;
 
 #[rpc]
-pub trait BoundingCurveApi<BlockHash, AccountId> {
-	#[rpc(name = "bounding_queryPrice")]
+pub trait BondingCurveApi<BlockHash, AccountId> {
+	#[rpc(name = "bonding_queryPrice")]
 	fn query_price(&self, tapp_id: u64, at: Option<BlockHash>) -> Result<(Price, Price)>;
 
 	/// if `tapp_id` is `None` will calculating total supply with zero, and buy curve with
 	/// `UnsignedSquareRoot_10`
-	#[rpc(name = "bounding_estimateTeaRequiredToBuyGivenToken")]
+	#[rpc(name = "bonding_estimateTeaRequiredToBuyGivenToken")]
 	fn estimate_required_tea_when_buy(
 		&self,
 		tapp_id: Option<u64>,
@@ -29,7 +29,7 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<Price>;
 
-	#[rpc(name = "bounding_estimateReceivedTeaBySellGivenToken")]
+	#[rpc(name = "bonding_estimateReceivedTeaBySellGivenToken")]
 	fn estimate_receive_tea_when_sell(
 		&self,
 		tapp_id: u64,
@@ -37,7 +37,7 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<Price>;
 
-	#[rpc(name = "bounding_estimateHowMuchTokenBoughtByGivenTea")]
+	#[rpc(name = "bonding_estimateHowMuchTokenBoughtByGivenTea")]
 	fn estimate_receive_token_when_buy(
 		&self,
 		tapp_id: u64,
@@ -45,7 +45,7 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<Price>;
 
-	#[rpc(name = "bounding_estimateHowMuchTokenToSellByGivenTea")]
+	#[rpc(name = "bonding_estimateHowMuchTokenToSellByGivenTea")]
 	fn estimate_required_token_when_sell(
 		&self,
 		tapp_id: u64,
@@ -65,7 +65,7 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	/// - Host performance requirement (return zero if is none)
 	/// - current hosts (return zero if is none)
 	/// - max hosts (return zero if is none)
-	#[rpc(name = "bounding_listTApps")]
+	#[rpc(name = "bonding_listTApps")]
 	fn list_tapps(
 		&self,
 		at: Option<BlockHash>,
@@ -98,7 +98,7 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	/// - Host performance requirement (return zero if is none)
 	/// - current hosts (return zero if is none)
 	/// - max hosts (return zero if is none)
-	#[rpc(name = "bounding_listUserAssets")]
+	#[rpc(name = "bonding_listUserAssets")]
 	fn list_user_assets(
 		&self,
 		who: AccountId,
@@ -125,21 +125,21 @@ pub trait BoundingCurveApi<BlockHash, AccountId> {
 	/// - CML remaining performance
 	/// - life remaining
 	/// - Hosted tapp list
-	#[rpc(name = "bounding_listCandidateMiners")]
+	#[rpc(name = "bonding_listCandidateMiners")]
 	fn list_candidate_miners(
 		&self,
 		at: Option<BlockHash>,
 	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>>;
 }
 
-pub struct BoundingCurveApiImpl<C, M> {
+pub struct BondingCurveApiImpl<C, M> {
 	// If you have more generics, no need to SumStorage<C, M, N, P, ...>
 	// just use a tuple like SumStorage<C, (M, N, P, ...)>
 	client: Arc<C>,
 	_marker: std::marker::PhantomData<M>,
 }
 
-impl<C, M> BoundingCurveApiImpl<C, M> {
+impl<C, M> BondingCurveApiImpl<C, M> {
 	/// Create new `SumStorage` instance with the given reference to the client.
 	pub fn new(client: Arc<C>) -> Self {
 		Self {
@@ -158,12 +158,12 @@ fn runtime_error_into_rpc_err(err: impl std::fmt::Debug) -> RpcError {
 	}
 }
 
-impl<C, Block, AccountId> BoundingCurveApi<<Block as BlockT>::Hash, AccountId>
-	for BoundingCurveApiImpl<C, Block>
+impl<C, Block, AccountId> BondingCurveApi<<Block as BlockT>::Hash, AccountId>
+	for BondingCurveApiImpl<C, Block>
 where
 	Block: BlockT,
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
-	C::Api: bounding_curve_runtime_api::BoundingCurveApi<Block, AccountId>,
+	C::Api: bonding_curve_runtime_api::BondingCurveApi<Block, AccountId>,
 	AccountId: Codec + Clone,
 {
 	fn query_price(
@@ -288,40 +288,42 @@ where
 			u32,
 			u32,
 		)> = api.list_tapps(&at).map_err(runtime_error_into_rpc_err)?;
-		Ok(result
-			.iter()
-			.map(
-				|(
-					name,
-					id,
-					ticker,
-					total_supply,
-					buy_price,
-					sell_price,
-					owner,
-					detail,
-					link,
-					performance,
-					current_hosts,
-					max_hosts,
-				)| {
-					(
-						name.clone(),
-						*id,
-						ticker.clone(),
-						Price(*total_supply),
-						Price(*buy_price),
-						Price(*sell_price),
-						owner.clone(),
-						detail.clone(),
-						link.clone(),
-						*performance,
-						*current_hosts,
-						*max_hosts,
-					)
-				},
-			)
-			.collect())
+		Ok(
+			result
+				.iter()
+				.map(
+					|(
+						name,
+						id,
+						ticker,
+						total_supply,
+						buy_price,
+						sell_price,
+						owner,
+						detail,
+						link,
+						performance,
+						current_hosts,
+						max_hosts,
+					)| {
+						(
+							name.clone(),
+							*id,
+							ticker.clone(),
+							Price(*total_supply),
+							Price(*buy_price),
+							Price(*sell_price),
+							owner.clone(),
+							detail.clone(),
+							link.clone(),
+							*performance,
+							*current_hosts,
+							*max_hosts,
+						)
+					},
+				)
+				.collect(),
+		)
 	}
 
 	fn list_user_assets(
@@ -360,40 +362,43 @@ where
 			u32,
 			u32,
 			u32,
-		)> = api.list_user_assets(&at, who)
+		)> = api
+			.list_user_assets(&at, who)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(result
-			.iter()
-			.map(
-				|(
-					name,
-					id,
-					ticker,
-					amount,
-					sell_price,
-					owner,
-					detail,
-					link,
-					performance,
-					current_hosts,
-					max_hosts,
-				)| {
-					(
-						name.clone(),
-						*id,
-						ticker.clone(),
-						Price(*amount),
-						Price(*sell_price),
-						owner.clone(),
-						detail.clone(),
-						link.clone(),
-						*performance,
-						*current_hosts,
-						*max_hosts,
-					)
-				},
-			)
-			.collect())
+		Ok(
+			result
+				.iter()
+				.map(
+					|(
+						name,
+						id,
+						ticker,
+						amount,
+						sell_price,
+						owner,
+						detail,
+						link,
+						performance,
+						current_hosts,
+						max_hosts,
+					)| {
+						(
+							name.clone(),
+							*id,
+							ticker.clone(),
+							Price(*amount),
+							Price(*sell_price),
+							owner.clone(),
+							detail.clone(),
+							link.clone(),
+							*performance,
+							*current_hosts,
+							*max_hosts,
+						)
+					},
+				)
+				.collect(),
+		)
 	}
 
 	fn list_candidate_miners(

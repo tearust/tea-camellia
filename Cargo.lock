@@ -656,10 +656,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "bounding-curve-impl"
+name = "bonding-curve-impl"
 version = "0.1.0"
 dependencies = [
- "bounding-curve-interface",
+ "bonding-curve-interface",
  "frame-support",
  "node-primitives",
  "sp-runtime",
@@ -667,7 +667,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bounding-curve-interface"
+name = "bonding-curve-interface"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
@@ -676,10 +676,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "bounding-curve-rpc"
+name = "bonding-curve-rpc"
 version = "0.1.0"
 dependencies = [
- "bounding-curve-runtime-api",
+ "bonding-curve-runtime-api",
  "jsonrpc-core",
  "jsonrpc-core-client",
  "jsonrpc-derive",
@@ -694,7 +694,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bounding-curve-runtime-api"
+name = "bonding-curve-runtime-api"
 version = "0.1.0"
 dependencies = [
  "node-primitives",
@@ -788,8 +788,8 @@ name = "camellia-runtime"
 version = "0.0.1"
 dependencies = [
  "auction-runtime-api",
- "bounding-curve-impl",
- "bounding-curve-runtime-api",
+ "bonding-curve-impl",
+ "bonding-curve-runtime-api",
  "chainbridge",
  "cml-runtime-api",
  "frame-benchmarking",
@@ -808,7 +808,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
- "pallet-bounding-curve",
+ "pallet-bonding-curve",
  "pallet-bridge",
  "pallet-cml",
  "pallet-collective",
@@ -4359,12 +4359,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bounding-curve"
+name = "pallet-bonding-curve"
 version = "0.0.1"
 dependencies = [
  "auction-interface",
- "bounding-curve-impl",
- "bounding-curve-interface",
+ "bonding-curve-impl",
+ "bonding-curve-interface",
  "ed25519-dalek",
  "frame-benchmarking",
  "frame-support",
@@ -8219,8 +8219,8 @@ version = "0.0.1"
 dependencies = [
  "auction-rpc",
  "auction-runtime-api",
- "bounding-curve-rpc",
- "bounding-curve-runtime-api",
+ "bonding-curve-rpc",
+ "bonding-curve-runtime-api",
  "camellia-runtime",
  "cml-rpc",
  "cml-runtime-api",

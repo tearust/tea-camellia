@@ -1,5 +1,5 @@
 [package]
-name = "bounding-curve-runtime-api"
+name = "bonding-curve-runtime-api"
 version = "0.1.0"
 authors = ["Yan Mingzhi <realraindust@gmail.com>"]
 edition = "2018"

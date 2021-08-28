@@ -3,7 +3,7 @@
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
-pub use bounding_curve::*;
+pub use bonding_curve::*;
 pub use types::*;
 
 #[cfg(test)]
@@ -16,7 +16,7 @@ mod functions;
 mod rpc;
 mod types;
 
-use bounding_curve_interface::BoundingCurveInterface;
+use bonding_curve_interface::BondingCurveInterface;
 use codec::{Decode, Encode};
 use frame_support::{
 	pallet_prelude::*,
@@ -36,7 +36,7 @@ pub type BalanceOf<T> =
 	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
-pub mod bounding_curve {
+pub mod bonding_curve {
 	use super::*;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -86,13 +86,13 @@ pub mod bounding_curve {
 		#[pallet::constant]
 		type HostCostCoefficient: Get<BalanceOf<Self>>;
 
-		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
+		type LinearCurve: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_10: BoundingCurveInterface<BalanceOf<Self>>;
+		type UnsignedSquareRoot_10: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_7: BoundingCurveInterface<BalanceOf<Self>>;
+		type UnsignedSquareRoot_7: BondingCurveInterface<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -117,8 +117,8 @@ pub mod bounding_curve {
 		StorageMap<_, Twox64Concat, TAppId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn tapp_bounding_curve)]
-	pub type TAppBoundingCurve<T: Config> =
+	#[pallet::getter(fn tapp_bonding_curve)]
+	pub type TAppBondingCurve<T: Config> =
 		StorageMap<_, Twox64Concat, TAppId, TAppItem<T::AccountId, BalanceOf<T>>, ValueQuery>;
 
 	#[pallet::storage]
@@ -342,7 +342,7 @@ pub mod bounding_curve {
 					let id = Self::next_id();
 					TAppNames::<T>::insert(&tapp_name, id);
 					TAppTickers::<T>::insert(&ticker, id);
-					TAppBoundingCurve::<T>::insert(
+					TAppBondingCurve::<T>::insert(
 						id,
 						TAppItem {
 							id,
@@ -377,7 +377,7 @@ pub mod bounding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
@@ -419,7 +419,7 @@ pub mod bounding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
@@ -453,7 +453,7 @@ pub mod bounding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
@@ -501,10 +501,10 @@ pub mod bounding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
-					let tapp = TAppBoundingCurve::<T>::get(tapp_id);
+					let tapp = TAppBondingCurve::<T>::get(tapp_id);
 					ensure!(
 						who.eq(&tapp.owner),
 						Error::<T>::OnlyTAppOwnerAllowedToExpense
@@ -527,7 +527,7 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|_who| {
-					let tapp = TAppBoundingCurve::<T>::get(tapp_id);
+					let tapp = TAppBondingCurve::<T>::get(tapp_id);
 					match Self::calculate_given_received_tea_how_much_seller_give_away(
 						tapp_id,
 						tapp.current_cost,
@@ -567,10 +567,10 @@ pub mod bounding_curve {
 				|who| {
 					T::CmlOperation::check_belongs(&cml_id, who)?;
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
-					let tapp_item = TAppBoundingCurve::<T>::get(tapp_id);
+					let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 					ensure!(
 						tapp_item.host_performance.is_some()
 							&& tapp_item.max_allowed_hosts.is_some(),
@@ -589,7 +589,7 @@ pub mod bounding_curve {
 					let (current_performance, _) =
 						T::CmlOperation::miner_performance(cml_id, &current_block);
 					ensure!(
-						current_performance
+						current_performance.unwrap_or(0)
 							>= Self::cml_total_used_performance(cml_id)
 								.saturating_add(tapp_item.host_performance.unwrap()),
 						Error::<T>::CmlMachineIsFullLoad
@@ -612,7 +612,7 @@ pub mod bounding_curve {
 				|who| {
 					T::CmlOperation::check_belongs(&cml_id, who)?;
 					ensure!(
-						TAppBoundingCurve::<T>::contains_key(tapp_id),
+						TAppBondingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
 					ensure!(

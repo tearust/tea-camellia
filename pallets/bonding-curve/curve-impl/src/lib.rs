@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bounding_curve_interface::BoundingCurveInterface;
+use bonding_curve_interface::BondingCurveInterface;
 use sp_runtime::traits::{AtLeast32BitUnsigned, One, Zero};
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;

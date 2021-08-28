@@ -76,8 +76,8 @@ genesis-bank-runtime-api = {path = '../pallets/genesis-bank/runtime-api'}
 genesis-bank-rpc = {path = '../pallets/genesis-bank/rpc'}
 genesis-exchange-runtime-api = {path = '../pallets/genesis-exchange/runtime-api'}
 genesis-exchange-rpc = {path = '../pallets/genesis-exchange/rpc'}
-bounding-curve-runtime-api = {path = '../pallets/bounding-curve/runtime-api'}
-bounding-curve-rpc = {path = '../pallets/bounding-curve/rpc'}
+bonding-curve-runtime-api = {path = '../pallets/bonding-curve/runtime-api'}
+bonding-curve-rpc = {path = '../pallets/bonding-curve/rpc'}
 
 [features]
 default = []
