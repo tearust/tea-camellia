@@ -31,7 +31,7 @@ pub trait CmlApi<BlockHash, AccountId> {
 	/// return a pair of values, first is current performance calculated by current block height,
 	/// the second is the peak performance.
 	#[rpc(name = "cml_cmlPerformance")]
-	fn cml_performance(&self, cml_id: u64, at: Option<BlockHash>) -> Result<(u32, u32)>;
+	fn cml_performance(&self, cml_id: u64, at: Option<BlockHash>) -> Result<(Option<u32>, u32)>;
 }
 
 pub struct CmlApiImpl<C, M> {
@@ -127,7 +127,7 @@ where
 		&self,
 		cml_id: u64,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<(u32, u32)> {
+	) -> Result<(Option<u32>, u32)> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.

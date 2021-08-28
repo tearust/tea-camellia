@@ -21,6 +21,6 @@ sp_api::decl_runtime_apis! {
 
 		fn staking_price_table() -> Vec<Balance>;
 
-		fn cml_performance(cml_id: u64) -> (u32, u32);
+		fn cml_performance(cml_id: u64) -> (Option<u32>, u32);
 	}
 }

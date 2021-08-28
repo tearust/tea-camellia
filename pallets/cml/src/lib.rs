@@ -909,7 +909,7 @@ pub trait CmlOperation {
 	fn miner_performance(
 		cml_id: CmlId,
 		block_height: &Self::BlockNumber,
-	) -> (Performance, Performance);
+	) -> (Option<Performance>, Performance);
 
 	fn user_coupon_list(who: &Self::AccountId, schedule_type: DefrostScheduleType) -> Vec<Coupon>;
 }

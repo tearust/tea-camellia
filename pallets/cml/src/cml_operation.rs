@@ -151,7 +151,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			let miner_total_reward = T::StakingEconomics::total_staking_rewards_of_miner(
 				miner_task_point,
 				total_task_point,
-				performance,
+				performance.unwrap_or(0),
 			);
 			let total_staking_point =
 				T::StakingEconomics::miner_total_staking_weight(&snapshot_items);
@@ -180,22 +180,25 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 	fn miner_performance(
 		cml_id: CmlId,
 		block_height: &Self::BlockNumber,
-	) -> (Performance, Performance) {
+	) -> (Option<Performance>, Performance) {
 		let cml = CmlStore::<T>::get(cml_id);
-		let age_percentage = if cml.lifespan().is_zero() {
-			100u32.into()
+		let peak_performance = cml.get_peak_performance();
+		if cml.lifespan().is_zero() {
+			return (None, peak_performance);
 		} else {
 			if let Some(plant_at_block) = cml.get_plant_at() {
-				(*block_height - *plant_at_block) * 100u32.into() / cml.lifespan()
-			} else {
-				0u32.into()
+				let age_percentage =
+					(*block_height - *plant_at_block) * 100u32.into() / cml.lifespan();
+				if let Ok(age_percentage) = age_percentage.try_into() {
+					return (
+						Some(cml.calculate_performance(age_percentage)),
+						peak_performance,
+					);
+				}
 			}
 		};
 
-		(
-			cml.calculate_performance(age_percentage.try_into().unwrap_or(0)),
-			cml.get_peak_performance(),
-		)
+		(None, peak_performance)
 	}
 
 	fn user_coupon_list(who: &Self::AccountId, schedule_type: DefrostScheduleType) -> Vec<Coupon> {
