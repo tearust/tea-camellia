@@ -23,10 +23,10 @@ use frame_support::{
 	traits::{Currency, ExistenceRequirement},
 };
 use frame_system::pallet_prelude::*;
-use pallet_cml::{CmlId, CmlOperation, Performance};
+use pallet_cml::{CmlId, CmlOperation, MiningProperties, Performance};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::{
-	traits::{CheckedAdd, CheckedSub, Saturating, Zero},
+	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating, Zero},
 	RuntimeDebug,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
@@ -80,6 +80,12 @@ pub mod bounding_curve {
 		#[pallet::constant]
 		type HostArrangeDuration: Get<Self::BlockNumber>;
 
+		#[pallet::constant]
+		type HostCostCollectionDuration: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type HostCostCoefficient: Get<BalanceOf<Self>>;
+
 		type LinearCurve: BoundingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
@@ -113,7 +119,7 @@ pub mod bounding_curve {
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_bounding_curve)]
 	pub type TAppBoundingCurve<T: Config> =
-		StorageMap<_, Twox64Concat, TAppId, TAppItem<T::AccountId>, ValueQuery>;
+		StorageMap<_, Twox64Concat, TAppId, TAppItem<T::AccountId, BalanceOf<T>>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_names)]
@@ -198,9 +204,9 @@ pub mod bounding_curve {
 
 		/// Fired after TApp expensed successfully, event parameters:
 		/// 1. TApp Id
-		/// 2. Payed Account Id
+		/// 2. Payed Account Id list
 		/// 3. Payed TEA amount
-		TAppExpense(TAppId, T::AccountId, BalanceOf<T>),
+		TAppExpense(TAppId, Vec<T::AccountId>, BalanceOf<T>),
 
 		TAppsUnhosted(Vec<(TAppId, CmlId)>),
 	}
@@ -236,6 +242,8 @@ pub mod bounding_curve {
 		TAppHostMachineIsFull,
 		CmlMachineIsFullLoad,
 		CmlNotHostTheTApp,
+		CmlOwnerIsNone,
+		OnlyMiningCmlCanHost,
 	}
 
 	#[pallet::hooks]
@@ -244,13 +252,16 @@ pub mod bounding_curve {
 			if Self::need_arrange_host(n) {
 				Self::arrange_host();
 			}
+			if Self::need_collect_host_cost(n) {
+				Self::collect_host_cost();
+			}
 		}
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000_000)]
-		pub fn set_tapp_creation_settings(
+		pub fn tapp_creation_settings(
 			sender: OriginFor<T>,
 			enable_create: Option<bool>,
 			npc_account: Option<T::AccountId>,
@@ -344,6 +355,7 @@ pub mod bounding_curve {
 							link: link.clone(),
 							host_performance,
 							max_allowed_hosts,
+							current_cost: Zero::zero(),
 						},
 					);
 					Self::buy_token_inner(who, id, init_fund);
@@ -482,12 +494,7 @@ pub mod bounding_curve {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn expense(
-			sender: OriginFor<T>,
-			tapp_id: TAppId,
-			target_account: T::AccountId,
-			tea_amount: BalanceOf<T>,
-		) -> DispatchResult {
+		pub fn expense(sender: OriginFor<T>, tapp_id: TAppId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
 			extrinsic_procedure(
@@ -497,18 +504,21 @@ pub mod bounding_curve {
 						TAppBoundingCurve::<T>::contains_key(tapp_id),
 						Error::<T>::TAppIdNotExist
 					);
+					let tapp = TAppBoundingCurve::<T>::get(tapp_id);
 					ensure!(
-						who.eq(&TAppBoundingCurve::<T>::get(tapp_id).owner),
+						who.eq(&tapp.owner),
 						Error::<T>::OnlyTAppOwnerAllowedToExpense
 					);
+
 					ensure!(
-						!tea_amount.is_zero(),
+						!tapp.current_cost.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
 
 					let withdraw_tapp_amount =
 						Self::calculate_given_received_tea_how_much_seller_give_away(
-							tapp_id, tea_amount,
+							tapp_id,
+							tapp.current_cost,
 						)?;
 					ensure!(
 						TotalSupplyTable::<T>::get(tapp_id) > withdraw_tapp_amount,
@@ -517,27 +527,27 @@ pub mod bounding_curve {
 					Ok(())
 				},
 				|_who| {
+					let tapp = TAppBoundingCurve::<T>::get(tapp_id);
 					match Self::calculate_given_received_tea_how_much_seller_give_away(
-						tapp_id, tea_amount,
+						tapp_id,
+						tapp.current_cost,
 					) {
 						Ok(withdraw_tapp_amount) => {
-							if let Err(e) = T::CurrencyOperations::transfer(
-								&OperationAccount::<T>::get(),
-								&target_account,
-								tea_amount,
-								ExistenceRequirement::AllowDeath,
-							) {
-								// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-								log::error!("transfer free balance failed: {:?}", e);
-								return;
-							}
-							Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
+							match Self::distribute_to_miners(tapp_id, tapp.current_cost) {
+								Ok((miners, each_amount)) => {
+									Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
 
-							Self::deposit_event(Event::TAppExpense(
-								tapp_id,
-								target_account.clone(),
-								tea_amount,
-							));
+									Self::deposit_event(Event::TAppExpense(
+										tapp_id,
+										miners,
+										each_amount,
+									));
+								}
+								Err(e) => {
+									// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+									log::error!("transfer free balance failed: {:?}", e);
+								}
+							}
 						}
 						Err(e) => {
 							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
@@ -571,6 +581,9 @@ pub mod bounding_curve {
 							< tapp_item.max_allowed_hosts.unwrap() as usize,
 						Error::<T>::TAppHostMachineIsFull
 					);
+
+					let cml = T::CmlOperation::cml_by_id(&cml_id)?;
+					ensure!(cml.is_mining(), Error::<T>::OnlyMiningCmlCanHost);
 
 					let current_block = frame_system::Pallet::<T>::block_number();
 					let (current_performance, _) =

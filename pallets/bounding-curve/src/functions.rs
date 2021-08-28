@@ -1,4 +1,5 @@
 use super::*;
+use pallet_cml::TreeProperties;
 
 pub(crate) const CALCULATION_PRECISION: u32 = 100000000;
 
@@ -6,6 +7,11 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	pub(crate) fn need_arrange_host(height: T::BlockNumber) -> bool {
 		// offset with `InterestPeriodLength` - 3 to void overlapping with staking period
 		height % T::HostArrangeDuration::get() == T::HostArrangeDuration::get() - 3u32.into()
+	}
+
+	pub(crate) fn need_collect_host_cost(height: T::BlockNumber) -> bool {
+		height % T::HostCostCollectionDuration::get()
+			== T::HostCostCollectionDuration::get() - 4u32.into()
 	}
 
 	pub fn next_id() -> TAppId {
@@ -481,6 +487,42 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 			);
 		}
 		total
+	}
+
+	pub(crate) fn collect_host_cost() {
+		TAppBoundingCurve::<T>::iter()
+			.filter(|(_, tapp)| tapp.host_performance.is_some())
+			.for_each(|(id, _)| {
+				TAppBoundingCurve::<T>::mutate(id, |tapp| {
+					tapp.current_cost = tapp.current_cost.saturating_add(
+						T::HostCostCoefficient::get()
+							.saturating_mul(tapp.host_performance.unwrap().into()),
+					);
+				})
+			});
+	}
+
+	pub(crate) fn distribute_to_miners(
+		tapp_id: TAppId,
+		total_amount: BalanceOf<T>,
+	) -> Result<(Vec<T::AccountId>, BalanceOf<T>), DispatchError> {
+		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
+		let each_amount = total_amount / host_count.into();
+
+		let mut miners = Vec::new();
+		for (cml_id, _) in TAppCurrentHosts::<T>::iter_prefix(tapp_id) {
+			let cml = T::CmlOperation::cml_by_id(&cml_id)?;
+
+			let target = cml.owner().ok_or(Error::<T>::CmlOwnerIsNone)?;
+			T::CurrencyOperations::transfer(
+				&OperationAccount::<T>::get(),
+				target,
+				each_amount.clone(),
+				ExistenceRequirement::AllowDeath,
+			)?;
+			miners.push(target.clone());
+		}
+		Ok((miners, each_amount))
 	}
 }
 

@@ -123,6 +123,8 @@ pub const TAPP_DETAIL_MAX_LENGTH: u32 = 120;
 pub const TAPP_LINK_MAX_LENGTH: u32 = 100;
 pub const POOL_BALANCE_REVERSE_PRECISION: Balance = 100000;
 pub const HOST_ARRANGE_DURATION: u64 = 1000;
+pub const HOST_COST_COLLECTION_DURATION: u64 = 100;
+pub const HOST_COST_COEFFICIENT: Balance = 10000;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
@@ -132,6 +134,8 @@ parameter_types! {
 	pub const TAppTickerMinLength: u32 = TAPP_TICKER_MIN_LENGTH;
 	pub const PoolBalanceReversePrecision: Balance = POOL_BALANCE_REVERSE_PRECISION;
 	pub const HostArrangeDuration: u64 = HOST_ARRANGE_DURATION;
+	pub const HostCostCollectionDuration: u64 = HOST_COST_COLLECTION_DURATION;
+	pub const HostCostCoefficient: Balance = HOST_COST_COEFFICIENT;
 }
 
 impl pallet_bounding_curve::Config for Test {
@@ -149,6 +153,8 @@ impl pallet_bounding_curve::Config for Test {
 	type UnsignedSquareRoot_7 = UnsignedSquareRoot<Balance, 7>;
 	type PoolBalanceReversePrecision = PoolBalanceReversePrecision;
 	type HostArrangeDuration = HostArrangeDuration;
+	type HostCostCollectionDuration = HostCostCollectionDuration;
+	type HostCostCoefficient = HostCostCoefficient;
 }
 
 pub const STAKING_PRICE: Balance = 1000;

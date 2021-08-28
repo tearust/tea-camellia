@@ -893,6 +893,8 @@ parameter_types! {
 	pub const TAppTickerMaxLength: u32 = 6;
 	pub const PoolBalanceReversePrecision: Balance = 100000;
 	pub const HostArrangeDuration: BlockNumber = 1000;
+	pub const HostCostCollectionDuration: BlockNumber = 100;
+	pub const HostCostCoefficient: Balance = 100_000_000;
 }
 
 impl pallet_bounding_curve::Config for Runtime {
@@ -910,6 +912,8 @@ impl pallet_bounding_curve::Config for Runtime {
 	type UnsignedSquareRoot_10 = UnsignedSquareRoot<Balance, 10>;
 	type UnsignedSquareRoot_7 = UnsignedSquareRoot<Balance, 7>;
 	type HostArrangeDuration = HostArrangeDuration;
+	type HostCostCollectionDuration = HostCostCollectionDuration;
+	type HostCostCoefficient = HostCostCoefficient;
 }
 
 parameter_types! {

@@ -2,6 +2,7 @@ use crate::functions::approximately_equals;
 use crate::mock::*;
 use crate::*;
 use frame_support::{assert_noop, assert_ok};
+use pallet_cml::{CmlStore, CmlType, DefrostScheduleType, Seed, UserCmlStore, CML};
 
 const CENTS: node_primitives::Balance = 10_000_000_000;
 const DOLLARS: node_primitives::Balance = 100 * CENTS;
@@ -13,7 +14,7 @@ fn set_tapp_creation_settings_works() {
 		assert_eq!(NPCAccount::<Test>::get(), 0);
 		assert!(!EnableUserCreateTApp::<Test>::get());
 
-		assert_ok!(BoundingCurve::set_tapp_creation_settings(
+		assert_ok!(BoundingCurve::tapp_creation_settings(
 			Origin::root(),
 			Some(true),
 			Some(npc)
@@ -27,7 +28,7 @@ fn set_tapp_creation_settings_works() {
 fn set_tapp_creation_settings_should_fail_if_not_root_user() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
-			BoundingCurve::set_tapp_creation_settings(Origin::signed(1), Some(true), None),
+			BoundingCurve::tapp_creation_settings(Origin::signed(1), Some(true), None),
 			DispatchError::BadOrigin
 		);
 	})
@@ -815,14 +816,14 @@ fn expense_works() {
 		let user1 = 1;
 		let user2 = 2;
 		let user3 = 3;
-		let user4 = 4;
+		let miner = 5;
 		let tapp_amount1 = 1000000;
 		let tapp_amount2 = 2000000;
 		let tapp_amount3 = 4000000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
-		<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&miner, DOLLARS);
 
 		assert_ok!(BoundingCurve::create_new_tapp(
 			Origin::signed(user1),
@@ -831,8 +832,8 @@ fn expense_works() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			Some(1000),
+			Some(10),
 		));
 
 		let tapp_id = 1;
@@ -851,22 +852,31 @@ fn expense_works() {
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
 
-		let expense_amount = 46;
-		assert_ok!(BoundingCurve::expense(
-			Origin::signed(user1),
-			tapp_id,
-			user4,
-			expense_amount
+		let cml_id = 11;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&miner);
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
 		));
+		assert_ok!(BoundingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		let expense_amount = 46;
+		TAppBoundingCurve::<Test>::mutate(tapp_id, |tapp| tapp.current_cost = expense_amount);
+		assert_ok!(BoundingCurve::expense(Origin::signed(user1), tapp_id));
 
 		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 996013);
 		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 1992025);
 		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 3984050);
-		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
+		assert_eq!(AccountTable::<Test>::get(miner, tapp_id), 0);
 		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 6972086);
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&user4),
-			DOLLARS + expense_amount
+			<Test as Config>::Currency::free_balance(&miner),
+			DOLLARS + expense_amount - STAKING_PRICE
 		);
 	})
 }
@@ -880,7 +890,7 @@ fn expense_should_fail_if_tapp_not_exist() {
 
 		let expense_amount = 4666;
 		assert_noop!(
-			BoundingCurve::expense(Origin::signed(user1), 1, 2, expense_amount),
+			BoundingCurve::expense(Origin::signed(user1), 1),
 			Error::<Test>::TAppIdNotExist
 		);
 	})
@@ -908,7 +918,7 @@ fn expense_should_fail_if_sender_is_not_tapp_owner() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::expense(Origin::signed(user2), tapp_id, 2, 100),
+			BoundingCurve::expense(Origin::signed(user2), tapp_id),
 			Error::<Test>::OnlyTAppOwnerAllowedToExpense
 		);
 	})
@@ -935,7 +945,7 @@ fn expense_should_fail_if_expense_amount_is_zero() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BoundingCurve::expense(Origin::signed(user1), tapp_id, 2, 0),
+			BoundingCurve::expense(Origin::signed(user1), tapp_id),
 			Error::<Test>::OperationAmountCanNotBeZero
 		);
 	})
@@ -946,8 +956,10 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
+		let miner = 2;
 		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&miner, DOLLARS);
 
 		assert_ok!(BoundingCurve::create_new_tapp(
 			Origin::signed(user1),
@@ -956,15 +968,140 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			Some(1000),
+			Some(10),
 		));
 
 		let tapp_id = 1;
+
+		let cml_id = 11;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&miner);
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(BoundingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		let expense_amount = 1000000;
+		TAppBoundingCurve::<Test>::mutate(tapp_id, |tapp| tapp.current_cost = expense_amount);
+
 		<Test as Config>::Currency::make_free_balance_be(&user1, 0);
 		assert_noop!(
-			BoundingCurve::expense(Origin::signed(user1), tapp_id, 2, 1000000),
+			BoundingCurve::expense(Origin::signed(user1), tapp_id),
 			Error::<Test>::TAppInsufficientFreeBalance
 		);
 	})
+}
+
+#[test]
+fn host_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BoundingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+
+		let tapp_id = 1;
+		assert_ok!(BoundingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
+		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
+		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
+	})
+}
+
+#[test]
+fn unhost_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BoundingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+
+		let tapp_id = 1;
+		assert_ok!(BoundingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
+		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
+		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
+
+		assert_ok!(BoundingCurve::unhost(
+			Origin::signed(miner),
+			cml_id,
+			tapp_id
+		));
+
+		assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
+		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 0);
+	})
+}
+
+pub fn new_genesis_seed(id: CmlId) -> Seed {
+	Seed {
+		id,
+		cml_type: CmlType::A,
+		defrost_schedule: Some(DefrostScheduleType::Team),
+		defrost_time: Some(0),
+		lifespan: 0,
+		performance: 10000,
+	}
+}
+
+pub fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
+	let mut seed = new_genesis_seed(id);
+	seed.lifespan = lifespan;
+	seed
 }

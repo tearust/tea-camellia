@@ -12,7 +12,7 @@ pub enum CurveType {
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct TAppItem<AccountId> {
+pub struct TAppItem<AccountId, Balance> {
 	pub id: TAppId,
 	pub name: Vec<u8>,
 	pub ticker: Vec<u8>,
@@ -23,11 +23,13 @@ pub struct TAppItem<AccountId> {
 	pub link: Vec<u8>,
 	pub host_performance: Option<Performance>,
 	pub max_allowed_hosts: Option<u32>,
+	pub current_cost: Balance,
 }
 
-impl<AccountId> Default for TAppItem<AccountId>
+impl<AccountId, Balance> Default for TAppItem<AccountId, Balance>
 where
 	AccountId: Default,
+	Balance: AtLeast32BitUnsigned + Default,
 {
 	fn default() -> Self {
 		TAppItem {
@@ -41,6 +43,7 @@ where
 			link: vec![],
 			host_performance: Default::default(),
 			max_allowed_hosts: Default::default(),
+			current_cost: Default::default(),
 		}
 	}
 }

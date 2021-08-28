@@ -176,12 +176,17 @@ impl<T: bounding_curve::Config> bounding_curve::Pallet<T> {
 	/// - life remaining
 	/// - Hosted tapp list
 	pub fn list_candidate_miner(
+		who: &T::AccountId,
 	) -> Vec<(CmlId, Performance, Performance, T::BlockNumber, Vec<TAppId>)> {
 		let current_block = frame_system::Pallet::<T>::block_number();
 		let mining_cmls = T::CmlOperation::current_mining_cmls();
 
 		mining_cmls
 			.iter()
+			.filter(|cml_id| match T::CmlOperation::cml_by_id(cml_id) {
+				Ok(cml) => cml.owner().unwrap_or(&Default::default()).eq(who),
+				Err(_) => false,
+			})
 			.map(|cml_id| {
 				let (current_performance, _) =
 					T::CmlOperation::miner_performance(*cml_id, &current_block);
