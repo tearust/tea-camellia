@@ -94,6 +94,53 @@ mod tests {
 	use pallet_cml::{CmlId, CmlType, Coupon, DefrostScheduleType, Seed, CML};
 
 	#[test]
+	fn redeem_coupons_works() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(
+				USDStore::<Test>::get(&COMPETITION_USERS1),
+				COMPETITION_USER_USD_AMOUNT
+			);
+			assert_ok!(GenesisExchange::check_redeem_coupons(
+				&COMPETITION_USERS1,
+				true
+			));
+			GenesisExchange::redeem_coupons(&COMPETITION_USERS1, true);
+			assert_eq!(
+				USDStore::<Test>::get(&COMPETITION_USERS1),
+				COMPETITION_USER_USD_AMOUNT - 6000
+			);
+
+			assert_eq!(
+				USDStore::<Test>::get(&COMPETITION_USERS2),
+				COMPETITION_USER_USD_AMOUNT
+			);
+			assert_ok!(GenesisExchange::check_redeem_coupons(
+				&COMPETITION_USERS2,
+				false
+			));
+			GenesisExchange::redeem_coupons(&COMPETITION_USERS2, false);
+			assert_eq!(
+				USDStore::<Test>::get(&COMPETITION_USERS2),
+				COMPETITION_USER_USD_AMOUNT - 6000
+			);
+
+			assert_eq!(
+				USDStore::<Test>::get(&COMPETITION_USERS3),
+				COMPETITION_USER_USD_AMOUNT
+			);
+			assert_ok!(GenesisExchange::check_redeem_coupons(
+				&COMPETITION_USERS3,
+				true
+			));
+			GenesisExchange::redeem_coupons(&COMPETITION_USERS3, true);
+			assert_eq!(
+				USDStore::<Test>::get(&COMPETITION_USERS3),
+				COMPETITION_USER_USD_AMOUNT - 2000 - 1000 - 500
+			);
+		})
+	}
+
+	#[test]
 	fn single_coupon_cost_works() {
 		new_test_ext().execute_with(|| {
 			assert_eq!(

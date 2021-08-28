@@ -3,6 +3,8 @@ use frame_benchmarking::frame_support::pallet_prelude::GenesisBuild;
 use frame_support::{parameter_types, traits::Currency};
 use frame_system as system;
 use node_primitives::{Balance, BlockNumber};
+use pallet_cml::generator::init_genesis;
+use pallet_cml::{CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -242,6 +244,70 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		operation_account: OPERATION_ACCOUNT,
 		bank_initial_balance: BANK_INITIAL_BALANCE,
 		bank_initial_interest_rate: BANK_INITIAL_INTEREST_RATE,
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	pallet_cml::GenesisConfig::<Test> {
+		genesis_seeds: init_genesis([1; 32]),
+		genesis_coupons: GenesisCoupons {
+			coupons: vec![
+				CouponConfig {
+					account: COMPETITION_USERS1,
+					cml_type: CmlType::A,
+					schedule_type: DefrostScheduleType::Investor,
+					amount: 1,
+				},
+				CouponConfig {
+					account: COMPETITION_USERS1,
+					cml_type: CmlType::B,
+					schedule_type: DefrostScheduleType::Investor,
+					amount: 2,
+				},
+				CouponConfig {
+					account: COMPETITION_USERS1,
+					cml_type: CmlType::C,
+					schedule_type: DefrostScheduleType::Investor,
+					amount: 4,
+				},
+				CouponConfig {
+					account: COMPETITION_USERS2,
+					cml_type: CmlType::A,
+					schedule_type: DefrostScheduleType::Team,
+					amount: 1,
+				},
+				CouponConfig {
+					account: COMPETITION_USERS2,
+					cml_type: CmlType::B,
+					schedule_type: DefrostScheduleType::Team,
+					amount: 2,
+				},
+				CouponConfig {
+					account: COMPETITION_USERS2,
+					cml_type: CmlType::C,
+					schedule_type: DefrostScheduleType::Team,
+					amount: 4,
+				},
+				CouponConfig {
+					account: COMPETITION_USERS3,
+					cml_type: CmlType::A,
+					schedule_type: DefrostScheduleType::Investor,
+					amount: 1,
+				},
+				CouponConfig {
+					account: COMPETITION_USERS3,
+					cml_type: CmlType::B,
+					schedule_type: DefrostScheduleType::Investor,
+					amount: 1,
+				},
+				CouponConfig {
+					account: COMPETITION_USERS3,
+					cml_type: CmlType::C,
+					schedule_type: DefrostScheduleType::Investor,
+					amount: 1,
+				},
+			],
+		},
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
