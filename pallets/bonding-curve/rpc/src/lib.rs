@@ -128,6 +128,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	#[rpc(name = "bonding_listCandidateMiners")]
 	fn list_candidate_miners(
 		&self,
+		who: AccountId,
 		at: Option<BlockHash>,
 	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>>;
 }
@@ -288,42 +289,40 @@ where
 			u32,
 			u32,
 		)> = api.list_tapps(&at).map_err(runtime_error_into_rpc_err)?;
-		Ok(
-			result
-				.iter()
-				.map(
-					|(
-						name,
-						id,
-						ticker,
-						total_supply,
-						buy_price,
-						sell_price,
-						owner,
-						detail,
-						link,
-						performance,
-						current_hosts,
-						max_hosts,
-					)| {
-						(
-							name.clone(),
-							*id,
-							ticker.clone(),
-							Price(*total_supply),
-							Price(*buy_price),
-							Price(*sell_price),
-							owner.clone(),
-							detail.clone(),
-							link.clone(),
-							*performance,
-							*current_hosts,
-							*max_hosts,
-						)
-					},
-				)
-				.collect(),
-		)
+		Ok(result
+			.iter()
+			.map(
+				|(
+					name,
+					id,
+					ticker,
+					total_supply,
+					buy_price,
+					sell_price,
+					owner,
+					detail,
+					link,
+					performance,
+					current_hosts,
+					max_hosts,
+				)| {
+					(
+						name.clone(),
+						*id,
+						ticker.clone(),
+						Price(*total_supply),
+						Price(*buy_price),
+						Price(*sell_price),
+						owner.clone(),
+						detail.clone(),
+						link.clone(),
+						*performance,
+						*current_hosts,
+						*max_hosts,
+					)
+				},
+			)
+			.collect())
 	}
 
 	fn list_user_assets(
@@ -362,47 +361,45 @@ where
 			u32,
 			u32,
 			u32,
-		)> = api
-			.list_user_assets(&at, who)
+		)> = api.list_user_assets(&at, who)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(
-			result
-				.iter()
-				.map(
-					|(
-						name,
-						id,
-						ticker,
-						amount,
-						sell_price,
-						owner,
-						detail,
-						link,
-						performance,
-						current_hosts,
-						max_hosts,
-					)| {
-						(
-							name.clone(),
-							*id,
-							ticker.clone(),
-							Price(*amount),
-							Price(*sell_price),
-							owner.clone(),
-							detail.clone(),
-							link.clone(),
-							*performance,
-							*current_hosts,
-							*max_hosts,
-						)
-					},
-				)
-				.collect(),
-		)
+		Ok(result
+			.iter()
+			.map(
+				|(
+					name,
+					id,
+					ticker,
+					amount,
+					sell_price,
+					owner,
+					detail,
+					link,
+					performance,
+					current_hosts,
+					max_hosts,
+				)| {
+					(
+						name.clone(),
+						*id,
+						ticker.clone(),
+						Price(*amount),
+						Price(*sell_price),
+						owner.clone(),
+						detail.clone(),
+						link.clone(),
+						*performance,
+						*current_hosts,
+						*max_hosts,
+					)
+				},
+			)
+			.collect())
 	}
 
 	fn list_candidate_miners(
 		&self,
+		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>> {
 		let api = self.client.runtime_api();
@@ -411,7 +408,7 @@ where
 			self.client.info().best_hash));
 
 		let result = api
-			.list_candidate_miner(&at)
+			.list_candidate_miners(&at, who)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

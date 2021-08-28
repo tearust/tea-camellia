@@ -78,7 +78,7 @@ sp_api::decl_runtime_apis! {
 		/// - CML remaining performance
 		/// - life remaining
 		/// - Hosted tapp list
-		fn list_candidate_miner() -> Vec<(
+		fn list_candidate_miners(who: AccountId) -> Vec<(
 			u64,
 			u32,
 			u32,

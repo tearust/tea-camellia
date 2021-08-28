@@ -260,11 +260,16 @@ impl pallet_grandpa::Config for Runtime {
 	type KeyOwnerProof =
 		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 
-	type KeyOwnerIdentification =
-		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
+	type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
+		KeyTypeId,
+		GrandpaId,
+	)>>::IdentificationTuple;
 
-	type HandleEquivocation =
-		pallet_grandpa::EquivocationHandler<Self::KeyOwnerIdentification, Offences, ReportLongevity>;
+	type HandleEquivocation = pallet_grandpa::EquivocationHandler<
+		Self::KeyOwnerIdentification,
+		Offences,
+		ReportLongevity,
+	>;
 
 	type WeightInfo = (); // not setting because polkadot do not set either, add weight info if needed later
 }
@@ -1303,13 +1308,13 @@ impl_runtime_apis! {
 			BondingCurve::list_user_assets(&who)
 		}
 
-		fn list_candidate_miner() -> Vec<(
+		fn list_candidate_miners(who: AccountId) -> Vec<(
 			u64,
 			u32,
 			u32,
 			BlockNumber,
 			Vec<u64>)> {
-			BondingCurve::list_candidate_miner()
+			BondingCurve::list_candidate_miners(&who)
 		}
 	}
 

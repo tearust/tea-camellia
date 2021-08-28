@@ -175,7 +175,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - CML remaining performance
 	/// - life remaining
 	/// - Hosted tapp list
-	pub fn list_candidate_miner(
+	pub fn list_candidate_miners(
 		who: &T::AccountId,
 	) -> Vec<(CmlId, Performance, Performance, T::BlockNumber, Vec<TAppId>)> {
 		let current_block = frame_system::Pallet::<T>::block_number();
