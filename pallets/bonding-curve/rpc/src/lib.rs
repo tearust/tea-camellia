@@ -120,6 +120,32 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	>;
 
 	/// Returned item fields:
+	/// - TApp Name
+	/// - TApp Id
+	/// - TApp Ticker
+	/// - Owner
+	/// - Detail
+	/// - Link
+	/// - Host performance requirement (return zero if is none)
+	/// - current hosts (return zero if is none)
+	/// - max hosts (return zero if is none)
+	fn tapp_details(
+		&self,
+		tapp_id: u64,
+		at: Option<BlockHash>,
+	) -> Result<(
+		Vec<u8>,
+		u64,
+		Vec<u8>,
+		AccountId,
+		Vec<u8>,
+		Vec<u8>,
+		u32,
+		u32,
+		u32,
+	)>;
+
+	/// Returned item fields:
 	/// - CML Id
 	/// - CML current performance
 	/// - CML remaining performance
@@ -395,6 +421,32 @@ where
 				},
 			)
 			.collect())
+	}
+
+	fn tapp_details(
+		&self,
+		tapp_id: u64,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<(
+		Vec<u8>,
+		u64,
+		Vec<u8>,
+		AccountId,
+		Vec<u8>,
+		Vec<u8>,
+		u32,
+		u32,
+		u32,
+	)> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.tapp_details(&at, tapp_id)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
 	}
 
 	fn list_candidate_miners(

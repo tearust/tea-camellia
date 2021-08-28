@@ -72,6 +72,18 @@ sp_api::decl_runtime_apis! {
 			u32,
 		)>;
 
+		fn tapp_details(tapp_id: u64) -> (
+			Vec<u8>,
+			u64,
+			Vec<u8>,
+			AccountId,
+			Vec<u8>,
+			Vec<u8>,
+			u32,
+			u32,
+			u32,
+		);
+
 		/// Returned item fields:
 		/// - CML Id
 		/// - CML current performance

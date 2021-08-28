@@ -170,6 +170,44 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	}
 
 	/// Returned item fields:
+	/// - TApp Name
+	/// - TApp Id
+	/// - TApp Ticker
+	/// - Owner
+	/// - Detail
+	/// - Link
+	/// - Host performance requirement (return zero if is none)
+	/// - current hosts (return zero if is none)
+	/// - max hosts (return zero if is none)
+	pub fn tapp_details(
+		tapp_id: TAppId,
+	) -> (
+		Vec<u8>,
+		TAppId,
+		Vec<u8>,
+		T::AccountId,
+		Vec<u8>,
+		Vec<u8>,
+		Performance,
+		u32,
+		u32,
+	) {
+		let item = TAppBondingCurve::<T>::get(tapp_id);
+
+		(
+			item.name,
+			tapp_id,
+			item.ticker,
+			item.owner,
+			item.detail,
+			item.link,
+			item.host_performance.unwrap_or_default(),
+			TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
+			item.max_allowed_hosts.unwrap_or_default(),
+		)
+	}
+
+	/// Returned item fields:
 	/// - CML Id
 	/// - CML current performance
 	/// - CML remaining performance

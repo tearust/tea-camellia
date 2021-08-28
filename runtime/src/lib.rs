@@ -1308,6 +1308,20 @@ impl_runtime_apis! {
 			BondingCurve::list_user_assets(&who)
 		}
 
+		fn tapp_details(tapp_id: u64) -> (
+			Vec<u8>,
+			u64,
+			Vec<u8>,
+			AccountId,
+			Vec<u8>,
+			Vec<u8>,
+			u32,
+			u32,
+			u32,
+		) {
+			BondingCurve::tapp_details(tapp_id)
+		}
+
 		fn list_candidate_miners(who: AccountId) -> Vec<(
 			u64,
 			u32,
