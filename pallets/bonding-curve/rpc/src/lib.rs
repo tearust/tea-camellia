@@ -129,6 +129,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - Host performance requirement (return zero if is none)
 	/// - current hosts (return zero if is none)
 	/// - max hosts (return zero if is none)
+	#[rpc(name = "bonding_tappDetails")]
 	fn tapp_details(
 		&self,
 		tapp_id: u64,
