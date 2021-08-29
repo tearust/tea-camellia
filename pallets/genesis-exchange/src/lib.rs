@@ -184,26 +184,44 @@ pub mod genesis_exchange {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
+		/// Exchange have not enough USD
 		ExchangeInsufficientUSD,
+		/// Exchange have not enough TEA
 		ExchangeInsufficientTEA,
+		/// User have not enough USD
 		UserInsufficientUSD,
+		/// User have not enough TEA
 		UserInsufficientTEA,
+		/// Given amount is invalid
 		InvalidCalculationAmount,
+		/// Transfer amount is more than user really holding
 		InvalidTransferUSDAmount,
+		/// Currency amount should not be 0
 		AmountShouldNotBeZero,
+		/// Buy or sell amount parameters should not both have values
 		BuyAndSellAmountShouldNotBothExist,
+		/// Buy or sell amount parameters should not both be none
 		BuyOrSellAmountShouldExist,
 		/// USD interest rate should larger than competitions count, otherwise the rate of each one
 		/// will be zero.
 		USDInterestRateShouldLargerThanCompetitionsCount,
+		/// Not enough USD to pay the mining machine cost
 		InsufficientUSDToPayMiningMachineCost,
+		/// Borrowed amount should not be 0
 		BorrowAmountShouldNotBeZero,
+		/// Borrowed USD debt amount has over the maximum amount currency unit can hold
 		BorrowDebtHasOverflow,
+		/// Borrowed USD amount has over the maximum amount currency unit can hold
 		BorrowAmountHasOverflow,
+		/// Given USD repay debt amount is more than user USD amount
 		InsufficientUSDToRepayDebts,
+		/// Use have not USD debt so no need to repay it
 		NoNeedToRepayUSDDebts,
+		/// Repay USD amount should not be 0
 		RepayUSDAmountShouldNotBeZero,
+		/// Repay usd amount is more than debt amount really required
 		RepayUSDAmountMoreThanDebtAmount,
+		/// Not enough USD amount to redeem coupons when draw lucky box
 		InsufficientUSDToRedeemCoupons,
 	}
 
