@@ -12,7 +12,10 @@ use genesis_bank_interface::GenesisBankOperation;
 use log::warn;
 use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
 use pallet_utils::{extrinsic_procedure, extrinsic_procedure_with_weight, CurrencyOperations};
-use sp_runtime::{traits::Saturating, DispatchResult, SaturatedConversion};
+use sp_runtime::{
+	traits::{Saturating, Zero},
+	DispatchResult, SaturatedConversion,
+};
 use sp_std::{cmp::Ordering, convert::TryInto, prelude::*};
 
 #[cfg(test)]
@@ -101,7 +104,6 @@ pub mod auction {
 		BidSelfBelongs,
 		AuctionOwnerInvalid,
 		NotFoundBid,
-		NotAllowQuitBid,
 
 		LockableInvalid,
 		NotAllowToAuction,
@@ -322,7 +324,7 @@ pub mod auction {
 				},
 				|sender| {
 					let bid_item = Self::delete_bid(sender, &auction_id);
-					Self::return_for_bid(sender, &bid_item);
+					Self::return_for_bid_with_penalty(sender, &bid_item);
 				},
 			)
 		}

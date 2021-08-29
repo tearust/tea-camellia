@@ -912,11 +912,12 @@ fn after_remove_we_can_bid_again() {
 }
 
 #[test]
-fn remove_the_winners_bid_should_fail() {
+fn remove_the_winners_bid_should_works() {
 	new_test_ext().execute_with(|| {
 		let user_id = 1;
 		let auction_id = 22;
-		<Test as Config>::Currency::make_free_balance_be(&user_id, 100 * 1000);
+		let initial_balance = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&user_id, initial_balance);
 		AuctionStore::<Test>::insert(auction_id, default_auction_item(auction_id, 5, 1));
 
 		assert_ok!(Auction::bid_for_auction(
@@ -927,9 +928,73 @@ fn remove_the_winners_bid_should_fail() {
 
 		let auction_item = AuctionStore::<Test>::get(auction_id);
 		assert_eq!(auction_item.bid_user, Some(user_id));
-		assert_noop!(
-			Auction::remove_bid_for_auction(Origin::signed(user_id), auction_id),
-			Error::<Test>::NotAllowQuitBid
+		assert_ok!(Auction::remove_bid_for_auction(
+			Origin::signed(user_id),
+			auction_id
+		));
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user_id),
+			initial_balance - 150
+		);
+		assert_eq!(
+			<Test as Config>::Currency::total_issuance(),
+			initial_balance - 150
+		);
+	})
+}
+
+#[test]
+fn remove_the_highest_bid_works() {
+	new_test_ext().execute_with(|| {
+		let user1_id = 1;
+		let user2_id = 2;
+		let initial_balance = 100 * 1000;
+		let auction_id = 22;
+
+		<Test as Config>::Currency::make_free_balance_be(&user1_id, initial_balance);
+		<Test as Config>::Currency::make_free_balance_be(&user2_id, initial_balance);
+		let auction_item = default_auction_item(auction_id, 5, 1);
+		Auction::add_auction_to_storage(auction_item);
+
+		let user1_bid_price = 150;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id,
+			user1_bid_price
+		));
+		let user2_bid_price = 200;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user2_id),
+			auction_id,
+			user2_bid_price
+		));
+		assert_eq!(
+			AuctionStore::<Test>::get(auction_id).bid_user,
+			Some(user2_id)
+		);
+
+		assert_ok!(Auction::remove_bid_for_auction(
+			Origin::signed(user2_id),
+			auction_id
+		));
+
+		assert_eq!(
+			AuctionStore::<Test>::get(auction_id).bid_user,
+			Some(user1_id)
+		);
+		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 1);
+		assert_eq!(Auction::user_bid_list(&user2_id).len(), 0);
+		assert!(!BidStore::<Test>::contains_key(user2_id, auction_id));
+
+		assert_eq!(
+			Utils::free_balance(&user2_id),
+			initial_balance - (user2_bid_price - user1_bid_price)
+		);
+		assert_eq!(Utils::reserved_balance(&user2_id), 0);
+		assert_eq!(
+			<Test as Config>::Currency::total_issuance(),
+			initial_balance * 2 - (user2_bid_price - user1_bid_price)
 		);
 	})
 }

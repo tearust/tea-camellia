@@ -230,14 +230,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 			Error::<T>::AuctionNotExist
 		);
 
-		let auction_item = AuctionStore::<T>::get(&auction_id);
-		if let Some(bid_user) = auction_item.bid_user {
-			ensure!(
-				who.cmp(&bid_user) != Ordering::Equal,
-				Error::<T>::NotAllowQuitBid
-			);
-		}
-
 		ensure!(
 			BidStore::<T>::contains_key(who, auction_id),
 			Error::<T>::NotFoundBid
@@ -260,6 +252,32 @@ impl<T: auction::Config> auction::Pallet<T> {
 		T::CurrencyOperations::unreserve(who, total);
 	}
 
+	pub fn return_for_bid_with_penalty(
+		who: &T::AccountId,
+		bid_item: &BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+	) {
+		let (highest_account, highest_price) = Self::highest_bid(&bid_item.auction_id);
+		let penalty_amount = match highest_price >= bid_item.price {
+			true => Zero::zero(),
+			false => {
+				if !highest_account.eq(&Default::default()) {
+					AuctionStore::<T>::mutate(&bid_item.auction_id, |auction_item| {
+						auction_item.bid_user = Some(highest_account)
+					});
+				}
+
+				bid_item.price.saturating_sub(highest_price)
+			}
+		};
+
+		let total = Self::bid_total_price(bid_item);
+
+		if !penalty_amount.is_zero() {
+			T::CurrencyOperations::slash_reserved(who, penalty_amount);
+		}
+		T::CurrencyOperations::unreserve(who, total.saturating_sub(penalty_amount));
+	}
+
 	pub fn delete_bid(
 		who: &T::AccountId,
 		auction_id: &AuctionId,
@@ -274,6 +292,24 @@ impl<T: auction::Config> auction::Pallet<T> {
 		});
 
 		BidStore::<T>::take(&who, &auction_id)
+	}
+
+	/// this function assume the given user is the highest user in the `AuctionBidStore`,
+	/// so it is not safe to call it without judging `auction_id` and `highest_user`
+	pub(crate) fn highest_bid(auction_id: &AuctionId) -> (T::AccountId, BalanceOf<T>) {
+		let account_ids = AuctionBidStore::<T>::get(auction_id).unwrap();
+
+		let mut result_account: T::AccountId = Default::default();
+		let mut bid_price: BalanceOf<T> = Zero::zero();
+		account_ids.iter().for_each(|acc| {
+			let bid_item = BidStore::<T>::get(acc, auction_id);
+			if bid_item.price > bid_price {
+				bid_price = bid_item.price;
+				result_account = acc.clone();
+			}
+		});
+
+		(result_account, bid_price)
 	}
 
 	pub(crate) fn bid_total_price(
