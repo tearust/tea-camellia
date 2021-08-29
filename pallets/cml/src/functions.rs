@@ -176,14 +176,27 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 	}
 
-	pub(crate) fn take_coupons(
+	pub(crate) fn fetch_coupons(
 		who: &T::AccountId,
 		schedule_type: DefrostScheduleType,
+		remove: bool,
 	) -> (u32, u32, u32) {
 		let get_coupon_amount = |cml_type: CmlType, who: &T::AccountId| {
 			let item = match schedule_type {
-				DefrostScheduleType::Investor => InvestorCouponStore::<T>::take(who, cml_type),
-				DefrostScheduleType::Team => TeamCouponStore::<T>::take(who, cml_type),
+				DefrostScheduleType::Investor => {
+					if remove {
+						InvestorCouponStore::<T>::take(who, cml_type)
+					} else {
+						InvestorCouponStore::<T>::get(who, cml_type)
+					}
+				}
+				DefrostScheduleType::Team => {
+					if remove {
+						TeamCouponStore::<T>::take(who, cml_type)
+					} else {
+						TeamCouponStore::<T>::get(who, cml_type)
+					}
+				}
 			};
 			match item {
 				Some(coupon) => coupon.amount,

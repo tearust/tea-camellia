@@ -460,11 +460,12 @@ pub mod cml {
 			schedule_type: DefrostScheduleType,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(sender)?;
-			let (a_coupon, b_coupon, c_coupon) = Self::take_coupons(&sender, schedule_type);
 
 			extrinsic_procedure_with_weight(
 				&sender,
 				|who| {
+					let (a_coupon, b_coupon, c_coupon) =
+						Self::fetch_coupons(&sender, schedule_type, false);
 					ensure!(
 						!Self::is_coupon_outdated(frame_system::Pallet::<T>::block_number()),
 						Error::<T>::CouponsHasOutdated
@@ -479,6 +480,8 @@ pub mod cml {
 					Ok(())
 				},
 				|who| {
+					let (a_coupon, b_coupon, c_coupon) =
+						Self::fetch_coupons(&sender, schedule_type, true);
 					T::MiningOperation::redeem_coupons(who, a_coupon, b_coupon, c_coupon);
 
 					let weight = match schedule_type {
