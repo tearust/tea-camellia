@@ -341,7 +341,6 @@ impl<T: auction::Config> auction::Pallet<T> {
 		let (current_window, next_window) = Self::get_window_block();
 
 		if let Some(auction_list) = EndBlockAuctionStore::<T>::take(current_window) {
-			info!("auction_list => {:?}", auction_list);
 			for auction_id in auction_list.iter() {
 				let auction_item = AuctionStore::<T>::get(&auction_id);
 				if let Some(bid_user) = auction_item.bid_user.as_ref() {
@@ -357,7 +356,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 		next_window: T::BlockNumber,
 		auction_item: &AuctionItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 	) {
-		if auction_item.auto_renew
+		let current_height = frame_system::Pallet::<T>::block_number();
+		let cml = T::CmlOperation::cml_by_id(&auction_item.cml_id);
+
+		if (cml.is_ok() && !cml.unwrap().should_dead(&current_height))
+			&& auction_item.auto_renew
 			&& T::CurrencyOperations::free_balance(&auction_item.cml_owner)
 				>= T::AuctionFeePerWindow::get()
 		{
