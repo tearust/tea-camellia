@@ -505,7 +505,7 @@ fn sell_token_works() {
 			<Test as Config>::Currency::free_balance(&user)
 				+ <Test as Config>::Currency::free_balance(&owner),
 			DOLLARS * 2,
-			10000000
+			1000
 		));
 	})
 }
@@ -678,7 +678,7 @@ fn sell_token_should_fail_if_tapp_total_supply_is_not_enough() {
 }
 
 #[test]
-fn consume_works() {
+fn consume_works_large_tea() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
@@ -691,8 +691,7 @@ fn consume_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
-		<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
-
+		<Test as Config>::Currency::make_free_balance_be(&user4, 100 * DOLLARS);
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
@@ -719,21 +718,21 @@ fn consume_works() {
 			TotalSupplyTable::<Test>::get(tapp_id),
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
-
-		assert_ok!(BondingCurve::consume(Origin::signed(user4), tapp_id, 10000));
-		assert!(approximately_equals::<Test>(
-			<Test as Config>::Currency::free_balance(&user4),
-			DOLLARS - 10000,
-			1,
+		let spend_tea = 10 * DOLLARS;
+		assert_ok!(BondingCurve::consume(
+			Origin::signed(user4),
+			tapp_id,
+			spend_tea
 		));
-		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 1484987);
-		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 2969974);
-		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 5939948);
-		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 10394910)
+		let left_balance = <Test as Config>::Currency::free_balance(&user4);
+		// println!("2 {:?}", &left_balance);
+		assert!(approximately_equals::<Test>(
+			left_balance,
+			100 * DOLLARS - spend_tea,
+			10,
+		));
 	})
 }
-
 #[test]
 fn consume_should_fail_if_tapp_not_exist() {
 	new_test_ext().execute_with(|| {
@@ -806,21 +805,20 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 }
 
 #[test]
-fn expense_works() {
+fn consume_works() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
 		let user2 = 2;
 		let user3 = 3;
-		let miner = 5;
-		let tapp_amount1 = 1000000;
-		let tapp_amount2 = 2000000;
-		let tapp_amount3 = 4000000;
+		let user4 = 4;
+		let tapp_amount1 = 1_000_000;
+		let tapp_amount2 = 2_000_000;
+		let tapp_amount3 = 4_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
-		<Test as Config>::Currency::make_free_balance_be(&miner, DOLLARS);
-
+		<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
@@ -828,8 +826,8 @@ fn expense_works() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -847,33 +845,23 @@ fn expense_works() {
 			TotalSupplyTable::<Test>::get(tapp_id),
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
-
-		let cml_id = 11;
-		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
-		cml.set_owner(&miner);
-		UserCmlStore::<Test>::insert(miner, cml_id, ());
-		CmlStore::<Test>::insert(cml_id, cml);
-		assert_ok!(Cml::start_mining(
-			Origin::signed(miner),
-			cml_id,
-			[1u8; 32],
-			b"miner_ip".to_vec()
+		let spend_tea = 1000000;
+		assert_ok!(BondingCurve::consume(
+			Origin::signed(user4),
+			tapp_id,
+			spend_tea
 		));
-		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
-
-		let expense_amount = 46;
-		TAppBondingCurve::<Test>::mutate(tapp_id, |tapp| tapp.current_cost = expense_amount);
-		assert_ok!(BondingCurve::expense(Origin::signed(user1), tapp_id));
-
-		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 996013);
-		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 1992025);
-		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 3984050);
-		assert_eq!(AccountTable::<Test>::get(miner, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 6972086);
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&miner),
-			DOLLARS + expense_amount - STAKING_PRICE
-		);
+		let left_balance = <Test as Config>::Currency::free_balance(&user4);
+		assert!(approximately_equals::<Test>(
+			left_balance,
+			DOLLARS - spend_tea,
+			10,
+		));
+		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 18873325);
+		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 37746650);
+		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 75493301);
+		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 132113278)
 	})
 }
 

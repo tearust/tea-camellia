@@ -891,7 +891,7 @@ parameter_types! {
 	pub const TAppLinkMaxLength: u32 = 100;
 	pub const TAppTickerMinLength: u32 = 3;
 	pub const TAppTickerMaxLength: u32 = 6;
-	pub const PoolBalanceReversePrecision: Balance = 100000;
+	pub const PoolBalanceReversePrecision: Balance = 10;
 	pub const HostArrangeDuration: BlockNumber = 1000;
 	pub const HostCostCollectionDuration: BlockNumber = 100;
 	pub const HostCostCoefficient: Balance = 100_000_000;

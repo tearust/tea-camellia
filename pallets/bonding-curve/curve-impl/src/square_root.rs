@@ -99,13 +99,17 @@ where
 			return Zero::zero();
 		}
 
-		// let (seed_area, seed_x) = Self::select_nearest_area_and_x(area.clone());
-		// if area == seed_area {
-		// 	return seed_x;
-		// }
-
+		
 		let mut times = 0;
+		let mut last_diff = Balance::zero();
 		let mut x_n: Balance = Balance::from(1_100_000u32) * Balance::from(1_000_000u32);
+		let diff = |a: Balance, b: Balance| {
+			if a > b {
+				a - b
+			} else {
+				b - a
+			}
+		};
 		loop {
 			let x_n_plus_1: Balance = {
 				if x_n.is_zero() {
@@ -116,19 +120,44 @@ where
 						- x_n.clone() * 2u32.into() / 3u32.into()
 				}
 			};
-			// println!("times is {}, xnplusone is {:?}", &times, &x_n_plus_1);
+			// println!(
+			// 	"precision is {:?}, xn is {:?}, diff is {:?}, time: {:?}",
+			// 	precision.clone(),
+			// 	x_n.clone(),
+			// 	x_n_plus_1.clone(),
+			// 	&times
+			// );
 			if approximately_equals(x_n.clone(), x_n_plus_1.clone(), precision.clone()) {
+				#[cfg(feature = "std")]
+				println!(
+					"Exit now   precision is {:?}, xn is {:?}, diff is {:?}, time: {:?}",
+					precision.clone(),
+					x_n.clone(),
+					diff(x_n.clone(), x_n_plus_1.clone()),
+					&times
+				);
 				#[cfg(feature = "std")]
 				println!("exiting with {} loops", times);
 				return x_n_plus_1;
 			} else {
+				let new_diff = diff(x_n.clone(), x_n_plus_1.clone());
+				if (last_diff > Balance::zero()) && (new_diff.clone() > last_diff.clone()) {
+					#[cfg(feature = "std")]
+					println!(
+						"Exit now because the diff increased  precision is {:?}, xn is {:?}, diff is {:?}, time: {:?}",
+						precision.clone(),
+						x_n.clone(),
+						&last_diff,
+						&times
+					);
+					#[cfg(feature = "std")]
+					println!("exiting with {} loops", times);
+					return x_n;
+				}
 				x_n = x_n_plus_1;
+				last_diff = new_diff;
 				times += 1;
 			}
-			// println!(
-			// 	"area {:?} (K: {}) calculated result is {:?}, calculated times: {}",
-			// 	area, K, result, times
-			// );
 		}
 		// result
 	}

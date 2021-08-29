@@ -350,7 +350,7 @@ pub mod bonding_curve {
 						Error::<T>::OperationAmountCanNotBeZero
 					);
 					let deposit_tea_amount =
-						Self::calculate_increase_amount_from_curve_total_supply(
+						Self::calculate_increase_amount_from_raise_curve_total_supply(
 							buy_curve,
 							0u32.into(),
 							init_fund,

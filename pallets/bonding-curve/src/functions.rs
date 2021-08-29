@@ -32,7 +32,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let deposit_tea_amount = Self::calculate_buy_amount(Some(tapp_id), tapp_amount)?;
-		let reserved_tea_amount = Self::calculate_reserve_amount(tapp_id, tapp_amount)?;
+		let reserved_tea_amount = Self::calculate_raise_reserve_amount(tapp_id, tapp_amount)?;
 		ensure!(
 			deposit_tea_amount >= reserved_tea_amount,
 			Error::<T>::SubtractionOverflow
@@ -215,7 +215,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			Some(tapp_id) => {
 				let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 				let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-				Self::calculate_increase_amount_from_curve_total_supply(
+				Self::calculate_increase_amount_from_raise_curve_total_supply(
 					tapp_item.buy_curve,
 					total_supply,
 					tapp_amount,
@@ -223,7 +223,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			}
 			None => {
 				// by default total supply is zero, buy curve is UnsignedSquareRoot_10
-				Self::calculate_increase_amount_from_curve_total_supply(
+				Self::calculate_increase_amount_from_raise_curve_total_supply(
 					CurveType::UnsignedSquareRoot_10,
 					Zero::zero(),
 					tapp_amount,
@@ -232,20 +232,20 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		}
 	}
 
-	pub(crate) fn calculate_reserve_amount(
+	pub(crate) fn calculate_raise_reserve_amount(
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		Self::calculate_increase_amount_from_curve_total_supply(
+		Self::calculate_increase_amount_from_raise_curve_total_supply(
 			tapp_item.sell_curve,
 			total_supply,
 			tapp_amount,
 		)
 	}
 
-	pub(crate) fn calculate_increase_amount_from_curve_total_supply(
+	pub(crate) fn calculate_increase_amount_from_raise_curve_total_supply(
 		curve_type: CurveType,
 		total_supply: BalanceOf<T>,
 		tapp_amount: BalanceOf<T>,
@@ -313,6 +313,41 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Ok(total_supply_after_increase
 			.checked_sub(&total_supply)
 			.ok_or(Error::<T>::SubtractionOverflow)?)
+	}
+
+	pub(crate) fn calculate_decrease_amount_from_reduce_curve_total_supply(
+		curve_type: CurveType,
+		total_supply: BalanceOf<T>,
+		tapp_amount: BalanceOf<T>,
+	) -> Result<BalanceOf<T>, DispatchError> {
+		let current_pool_balance = match curve_type {
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance(total_supply),
+			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
+		};
+
+		let after_sell_pool_balance = match curve_type {
+			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(
+				total_supply
+					.checked_sub(&tapp_amount)
+					.ok_or(Error::<T>::AddOverflow)?,
+			),
+			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance(
+				total_supply
+					.checked_sub(&tapp_amount)
+					.ok_or(Error::<T>::AddOverflow)?,
+			),
+			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(
+				total_supply
+					.checked_sub(&tapp_amount)
+					.ok_or(Error::<T>::AddOverflow)?,
+			),
+		};
+		Ok(
+			current_pool_balance
+				.checked_sub(&after_sell_pool_balance)
+				.ok_or(Error::<T>::SubtractionOverflow)?,
+		)
 	}
 
 	/// If user want to sell tapp_amount of tapp_id token, how many T token seller receive after sale
@@ -594,33 +629,36 @@ mod tests {
 		})
 	}
 
-	// todo: kevin please verify and modify it
-	// #[test]
-	// fn calculate_given_increase_tea_how_much_token_mint_works() {
-	// 	new_test_ext().execute_with(|| {
-	// 		let tapp_id = 1;
-	// 		TotalSupplyTable::<Test>::insert(tapp_id, 0);
-	// 		TAppBondingCurve::<Test>::insert(
-	// 			tapp_id,
-	// 			TAppItem {
-	// 				id: tapp_id,
-	// 				buy_curve: CurveType::UnsignedSquareRoot_10,
-	// 				sell_curve: CurveType::UnsignedSquareRoot_7,
-	// 				..Default::default()
-	// 			},
-	// 		);
-	//
-	// 		let amount =
-	// 			BondingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 66);
-	// 		assert!(approximately_equals(amount.unwrap(), 1000000, 6000));
-	//
-	// 		TotalSupplyTable::<Test>::insert(tapp_id, 1_000_000);
-	// 		let amount =
-	// 			BondingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 2108 - 66);
-	// 		assert!(approximately_equals(amount.unwrap(), 9_000_000, 900));
-	// 	})
-	// }
-
+	#[test]
+	fn calculate_given_increase_tea_how_much_token_mint_works() {
+		new_test_ext().execute_with(|| {
+			let tapp_id = 1;
+			TotalSupplyTable::<Test>::insert(tapp_id, 0);
+			TAppBondingCurve::<Test>::insert(
+				tapp_id,
+				TAppItem {
+					id: tapp_id,
+					buy_curve: CurveType::UnsignedSquareRoot_10,
+					sell_curve: CurveType::UnsignedSquareRoot_7,
+					..Default::default()
+				},
+			);
+			let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
+			let total_supply = TotalSupplyTable::<Test>::get(tapp_id);
+			let amount =
+				BondingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 666666666666);
+			assert!(approximately_equals(
+				amount.unwrap(),
+				1_000_000_000_000,
+				1000
+			));
+			TotalSupplyTable::<Test>::insert(tapp_id, 1_000_000_000_000);
+			let amount =
+				BondingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 666666666666);
+			println!("amt {:?}", &amount);
+			assert!(approximately_equals(amount.unwrap(), 587401114832, 100));
+		})
+	}
 	#[test]
 	fn calculate_sell_amount_works() {
 		new_test_ext().execute_with(|| {
@@ -641,27 +679,31 @@ mod tests {
 		})
 	}
 
-	// todo: kevin please verify and modify it
-	// #[test]
-	// fn calculate_given_received_tea_how_much_seller_give_away_works() {
-	// 	new_test_ext().execute_with(|| {
-	// 		let tapp_id = 1;
-	// 		TotalSupplyTable::<Test>::insert(tapp_id, 100_000_000);
-	// 		TAppBondingCurve::<Test>::insert(
-	// 			tapp_id,
-	// 			TAppItem {
-	// 				id: tapp_id,
-	// 				buy_curve: CurveType::UnsignedSquareRoot_10,
-	// 				sell_curve: CurveType::UnsignedSquareRoot_7,
-	// 				..Default::default()
-	// 			},
-	// 		);
-	//
-	// 		let amount = BondingCurve::calculate_given_received_tea_how_much_seller_give_away(
-	// 			tapp_id,
-	// 			46666 - 1475,
-	// 		);
-	// 		assert!(approximately_equals(amount.unwrap(), 90_000_000, 2500));
-	// 	})
-	// }
+	#[test]
+	fn calculate_given_received_tea_how_much_seller_give_away_works() {
+		new_test_ext().execute_with(|| {
+			let tapp_id = 1;
+			TotalSupplyTable::<Test>::insert(tapp_id, 100_000_000_000_000);
+			TAppBondingCurve::<Test>::insert(
+				tapp_id,
+				TAppItem {
+					id: tapp_id,
+					buy_curve: CurveType::UnsignedSquareRoot_10,
+					sell_curve: CurveType::UnsignedSquareRoot_7,
+					..Default::default()
+				},
+			);
+			let token = BondingCurve::calculate_decrease_amount_from_reduce_curve_total_supply(
+				CurveType::UnsignedSquareRoot_7,
+				100_000_000_000_000,
+				1_000_000_000_000,
+			);
+			let amount = BondingCurve::calculate_given_received_tea_how_much_seller_give_away(
+				tapp_id,
+				token.unwrap(),
+			);
+			println!("amount {:?}", amount);
+			assert!(approximately_equals(amount.unwrap(), 1_000_000_000_000, 10));
+		})
+	}
 }
