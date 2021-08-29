@@ -9,7 +9,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::traits::{Currency, ExistenceRequirement::AllowDeath, Get, ReservableCurrency};
 use frame_system::{ensure_signed, pallet_prelude::*};
 use genesis_bank_interface::GenesisBankOperation;
-use log::{info, warn};
+use log::warn;
 use pallet_cml::{CmlId, CmlOperation, SeedProperties, TreeProperties};
 use pallet_utils::{extrinsic_procedure, extrinsic_procedure_with_weight, CurrencyOperations};
 use sp_runtime::{traits::Saturating, DispatchResult, SaturatedConversion};

@@ -17,6 +17,23 @@ impl<T: auction::Config> auction::Pallet<T> {
 	pub fn current_auction_list() -> Vec<u64> {
 		AuctionStore::<T>::iter().map(|(id, _)| id).collect()
 	}
+
+	/// first return value is the minimum bid price, the second return value indicates if the cml
+	/// is mining
+	pub fn estimate_minimum_bid_price(auction_id: AuctionId) -> (BalanceOf<T>, bool) {
+		if !AuctionStore::<T>::contains_key(auction_id) {
+			return (Default::default(), false);
+		}
+		let default_account_min_bid_price =
+			Self::min_bid_price(&AuctionStore::<T>::get(auction_id), &Default::default());
+		match default_account_min_bid_price {
+			Ok(min_bid_price) => {
+				let auction_item = AuctionStore::<T>::get(auction_id);
+				Self::essential_bid_balance(min_bid_price, &auction_item.cml_id)
+			}
+			_ => (Default::default(), false),
+		}
+	}
 }
 
 #[cfg(test)]

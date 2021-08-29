@@ -2,12 +2,16 @@ use auction_runtime_api::AuctionApi as AuctionRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
+use node_primitives::Balance;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
+use types::*;
 
 const RUNTIME_ERROR: i64 = 1;
+
+mod types;
 
 #[rpc]
 pub trait AuctionApi<BlockHash, AccountId> {
@@ -19,6 +23,15 @@ pub trait AuctionApi<BlockHash, AccountId> {
 
 	#[rpc(name = "auction_currentAuctionList")]
 	fn current_auction_list(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
+
+	/// first return value is the minimum bid price, the second return value indicates if the cml
+	/// is mining
+	#[rpc(name = "auction_calculateMinimumBidPrice")]
+	fn estimate_minimum_bid_price(
+		&self,
+		auction_id: u64,
+		at: Option<BlockHash>,
+	) -> Result<(Price, bool)>;
 }
 
 pub struct AuctionApiImpl<C, M> {
@@ -97,5 +110,21 @@ where
 			.current_auction_list(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
+	}
+
+	fn estimate_minimum_bid_price(
+		&self,
+		auction_id: u64,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<(Price, bool)> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let (amount, is_mining): (Balance, bool) = api
+			.estimate_minimum_bid_price(&at, auction_id)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok((Price(amount), is_mining))
 	}
 }

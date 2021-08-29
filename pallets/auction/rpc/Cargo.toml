@@ -17,6 +17,7 @@ sp-api = {default-features = false, version = '3.0.0', git = 'https://github.com
 sp-blockchain = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-rpc = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 
 auction-runtime-api = {default-features = false, path = '../runtime-api'}
 
@@ -27,5 +28,6 @@ std = [
     'codec/std',
     'sp-api/std',
     "sp-runtime/std",
-    "auction-runtime-api/std"
+    "auction-runtime-api/std",
+    "node-primitives/std",
 ]

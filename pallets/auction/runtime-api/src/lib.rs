@@ -3,6 +3,7 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::Codec;
+use node_primitives::Balance;
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
@@ -15,5 +16,7 @@ sp_api::decl_runtime_apis! {
 		fn user_bid_list(who: &AccountId) -> Vec<u64>;
 
 		fn current_auction_list() -> Vec<u64>;
+
+		fn estimate_minimum_bid_price(auction_id: u64) -> (Balance, bool);
 	}
 }

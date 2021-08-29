@@ -417,7 +417,10 @@ impl<T: auction::Config> auction::Pallet<T> {
 		Ok(())
 	}
 
-	fn essential_bid_balance(price: BalanceOf<T>, cml_id: &CmlId) -> (BalanceOf<T>, bool) {
+	pub(crate) fn essential_bid_balance(
+		price: BalanceOf<T>,
+		cml_id: &CmlId,
+	) -> (BalanceOf<T>, bool) {
 		let deposit_price = T::CmlOperation::cml_deposit_price(cml_id);
 		match deposit_price {
 			Some(p) => (price.saturating_add(p), true),

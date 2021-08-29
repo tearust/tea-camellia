@@ -1216,6 +1216,10 @@ impl_runtime_apis! {
 		fn current_auction_list() -> Vec<u64> {
 			Auction::current_auction_list()
 		}
+
+		fn estimate_minimum_bid_price(auction_id: u64) -> (Balance, bool) {
+			Auction::estimate_minimum_bid_price(auction_id)
+		}
 	}
 
 	impl genesis_bank_runtime_api::GenesisBankApi<Block, AccountId> for Runtime {
