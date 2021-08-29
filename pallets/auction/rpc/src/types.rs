@@ -43,24 +43,3 @@ impl<'de> Visitor<'de> for PriceVisitor {
 		Ok(Price(value))
 	}
 }
-
-#[cfg(test)]
-mod tests {
-	use crate::types::Price;
-	use rmp_serde::{Deserializer, Serializer};
-	use serde::{Deserialize, Serialize};
-	use std::io::Cursor;
-
-	#[test]
-	fn price_serialize_deserialize_works() {
-		let p1 = Price(123456789);
-		let mut buf = Vec::new();
-		p1.serialize(&mut Serializer::new(&mut buf).with_struct_map())
-			.unwrap();
-
-		let mut de = Deserializer::new(Cursor::new(buf));
-		let p2: Price = Deserialize::deserialize(&mut de).unwrap();
-
-		assert_eq!(p1, p2);
-	}
-}
