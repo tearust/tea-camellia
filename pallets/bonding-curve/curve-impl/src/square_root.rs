@@ -1,12 +1,4 @@
-use crate::square_root::k10::K10_STEP100_AREA_LIST;
-use crate::square_root::k7::K7_STEP100_AREA_LIST;
 use crate::*;
-
-mod k10;
-mod k7;
-
-const AREA_LIST_LENGTH: usize = 1000;
-const K_BASE_POINT: u32 = 100000000u32;
 
 /// Implement equation: `y = k√x`
 ///
@@ -16,68 +8,6 @@ where
 	Balance: AtLeast32BitUnsigned + Default + Clone + Debug,
 {
 	phantom: PhantomData<Balance>,
-}
-
-impl<Balance, const K: u32> UnsignedSquareRoot<Balance, K>
-where
-	Balance: AtLeast32BitUnsigned + Default + Clone + Debug,
-{
-	fn recursively_balance_reverse_calculation(
-		x_n: Balance,
-		area: Balance,
-		precision: Balance,
-		times: &mut usize,
-	) -> Balance {
-		*times += 1;
-		// println!("xn {:?}", &x_n);
-		// println!(
-		// 	"parta {:?}",
-		// 	area.clone() / K.into() * 10u32.into() * 1_000_000u32.into() / x_n.integer_sqrt()
-		// );
-		// println!("partb {:?}", x_n.clone() * 2u32.into() / 3u32.into());
-		let result = if x_n.is_zero() {
-			Zero::zero()
-		} else {
-			x_n.clone()
-				+ area.clone() / K.into() * 10u32.into() / 1_000_000u32.into() / x_n.integer_sqrt()
-				- x_n.clone() * 2u32.into() / 3u32.into() / 1_000_000u32.into() / 1_000_000u32.into()
-		};
-
-		// println!("result {:?}", &result);
-
-		if approximately_equals(x_n, result.clone(), precision.clone()) {
-			result
-		} else {
-			Self::recursively_balance_reverse_calculation(result, area, precision, times)
-		}
-	}
-
-	// fn select_nearest_area_and_x(current_area: Balance) -> (Balance, Balance) {
-	// 	let select_fn = |it: &[u32; AREA_LIST_LENGTH]| {
-	// 		let mut best_area: u32 = 0;
-	// 		let mut best_x: u32 = 0;
-	// 		for (i, area) in it.iter().enumerate() {
-	// 			if current_area < Balance::from(*area) {
-	// 				break;
-	// 			}
-
-	// 			best_area = *area;
-	// 			if i.is_zero() {
-	// 				best_x = 1;
-	// 			} else {
-	// 				best_x = 100 * i as u32;
-	// 			}
-	// 		}
-
-	// 		(Balance::from(best_area), Balance::from(best_x))
-	// 	};
-
-	// 	match K {
-	// 		1000 => select_fn(&K10_STEP100_AREA_LIST),
-	// 		700 => select_fn(&K7_STEP100_AREA_LIST),
-	// 		_ => (Self::pool_balance(One::one()), One::one()),
-	// 	}
-	// }
 }
 
 impl<Balance, const K: u32> BondingCurveInterface<Balance> for UnsignedSquareRoot<Balance, K>
@@ -98,7 +28,6 @@ where
 		if area.is_zero() {
 			return Zero::zero();
 		}
-
 		
 		let mut times = 0;
 		let mut last_diff = Balance::zero();
@@ -159,7 +88,6 @@ where
 				times += 1;
 			}
 		}
-		// result
 	}
 }
 
@@ -243,11 +171,10 @@ mod tests {
 		);
 	}
 	#[test]
-	fn kevin() {
+	fn combined_test_buy_sell_tapp_tokevin() {
 		#[allow(non_camel_case_types)]
 		type RootSquare_10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
 		type RootSquare_7 = UnsignedSquareRoot<Balance, 7>; // y = 7√x
-		println!("Kevin say hi");
 		let x = <RootSquare_10 as BondingCurveInterface<Balance>>::buy_price(DOLLARS);
 		println!("K10 buy one token use T:{:?}/10000", &x / 100000000);
 		let x = <RootSquare_10 as BondingCurveInterface<Balance>>::buy_price(100 * DOLLARS);
