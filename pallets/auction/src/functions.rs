@@ -503,6 +503,15 @@ impl<T: auction::Config> auction::Pallet<T> {
 		}
 		false
 	}
+
+	pub(crate) fn auction_store_contains(cml_id: CmlId) -> bool {
+		for (_, bid_item) in AuctionStore::<T>::iter() {
+			if bid_item.cml_id == cml_id {
+				return true;
+			}
+		}
+		false
+	}
 }
 
 #[cfg(test)]

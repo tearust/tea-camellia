@@ -49,6 +49,35 @@ fn put_to_store_works() {
 }
 
 #[test]
+fn put_to_store_should_fail_if_put_to_store_twice() {
+	new_test_ext().execute_with(|| {
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			(AUCTION_PLEDGE_AMOUNT + AUCTION_FEE_PER_WINDOW) * 2,
+		);
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.defrost(&0);
+		cml.convert_to_tree(&0);
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Auction::put_to_store(
+			Origin::signed(1),
+			cml_id,
+			1000,
+			None,
+			true
+		));
+
+		assert_noop!(
+			Auction::put_to_store(Origin::signed(1), cml_id, 1000, None, true),
+			Error::<Test>::CmlAlreadyInAuction
+		);
+	})
+}
+
+#[test]
 fn put_not_exist_cml_to_store_should_fail() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(

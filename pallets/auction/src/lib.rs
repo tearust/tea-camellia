@@ -111,6 +111,7 @@ pub mod auction {
 		OverTheMaxUsersPerAuctionLimit,
 		BuyNowPriceShouldHigherThanStartingPrice,
 		CannotSellACollateral,
+		CmlAlreadyInAuction,
 	}
 
 	#[pallet::event]
@@ -202,6 +203,10 @@ pub mod auction {
 							Error::<T>::BuyNowPriceShouldHigherThanStartingPrice
 						);
 					}
+					ensure!(
+						!Self::auction_store_contains(cml_id),
+						Error::<T>::CmlAlreadyInAuction
+					);
 
 					let current_height = frame_system::Pallet::<T>::block_number();
 					// check cml status
