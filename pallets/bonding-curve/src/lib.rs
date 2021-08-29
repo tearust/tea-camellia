@@ -194,20 +194,67 @@ pub mod bonding_curve {
 		/// 1. TApp Id
 		/// 2. Bought Account Id
 		/// 3. Bought TEA amount
-		TokenBought(TAppId, T::AccountId, BalanceOf<T>),
+		/// 4. Buy price
+		/// 5. Sell price
+		/// 6. Total supply
+		TokenBought(
+			TAppId,
+			T::AccountId,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+		),
 
 		/// Fired after TApp token sold successfully, event parameters:
 		/// 1. TApp Id
 		/// 2. Sold Account Id
 		/// 3. Sold TEA amount
-		TokenSold(TAppId, T::AccountId, BalanceOf<T>),
+		/// 4. Buy price
+		/// 5. Sell price
+		/// 6. Total supply
+		TokenSold(
+			TAppId,
+			T::AccountId,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+		),
+
+		/// Fired after TApp consume successfully, event parameters:
+		/// 1. TApp Id
+		/// 2. Consumed TEA amount
+		/// 3. Buy price
+		/// 4. Sell price
+		/// 5. Total supply
+		TAppConsume(
+			TAppId,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+		),
 
 		/// Fired after TApp expensed successfully, event parameters:
 		/// 1. TApp Id
 		/// 2. Payed Account Id list
 		/// 3. Payed TEA amount
-		TAppExpense(TAppId, Vec<T::AccountId>, BalanceOf<T>),
+		/// 4. Buy price
+		/// 5. Sell price
+		/// 6. Total supply
+		TAppExpense(
+			TAppId,
+			Vec<T::AccountId>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+			BalanceOf<T>,
+		),
 
+		/// Fired after each host arrange duration, automatically unhosted lists:
+		/// - Unhost tapp id
+		/// - Unhost CML id
 		TAppsUnhosted(Vec<(TAppId, CmlId)>),
 	}
 
@@ -426,10 +473,15 @@ pub mod bonding_curve {
 				},
 				|who| {
 					let deposit_tea_amount = Self::buy_token_inner(who, tapp_id, tapp_amount);
+
+					let (buy_price, sell_price) = Self::query_price(tapp_id);
 					Self::deposit_event(Event::TokenBought(
 						tapp_id,
 						who.clone(),
 						deposit_tea_amount,
+						buy_price,
+						sell_price,
+						TotalSupplyTable::<T>::get(tapp_id),
 					));
 				},
 			)
@@ -464,7 +516,16 @@ pub mod bonding_curve {
 				},
 				|who| {
 					let sold_amount = Self::sell_token_inner(who, tapp_id, tapp_amount);
-					Self::deposit_event(Event::TokenSold(tapp_id, who.clone(), sold_amount));
+
+					let (buy_price, sell_price) = Self::query_price(tapp_id);
+					Self::deposit_event(Event::TokenSold(
+						tapp_id,
+						who.clone(),
+						sold_amount,
+						buy_price,
+						sell_price,
+						TotalSupplyTable::<T>::get(tapp_id),
+					));
 				},
 			)
 		}
@@ -496,7 +557,8 @@ pub mod bonding_curve {
 				},
 				|who| {
 					match Self::calculate_given_increase_tea_how_much_token_mint(
-						tapp_id, tea_amount,
+						tapp_id,
+						tea_amount.clone(),
 					) {
 						Ok(deposit_tapp_amount) => {
 							if let Err(e) =
@@ -507,6 +569,15 @@ pub mod bonding_curve {
 								return;
 							}
 							Self::distribute_to_investors(tapp_id, deposit_tapp_amount);
+
+							let (buy_price, sell_price) = Self::query_price(tapp_id);
+							Self::deposit_event(Event::TAppConsume(
+								tapp_id,
+								tea_amount,
+								buy_price,
+								sell_price,
+								TotalSupplyTable::<T>::get(tapp_id),
+							));
 						}
 						Err(e) => {
 							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
@@ -565,10 +636,14 @@ pub mod bonding_curve {
 								Ok((miners, each_amount)) => {
 									Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
 
+									let (buy_price, sell_price) = Self::query_price(tapp_id);
 									Self::deposit_event(Event::TAppExpense(
 										tapp_id,
 										miners,
 										each_amount,
+										buy_price,
+										sell_price,
+										TotalSupplyTable::<T>::get(tapp_id),
 									));
 								}
 								Err(e) => {
