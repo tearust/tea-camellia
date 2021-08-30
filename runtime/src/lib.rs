@@ -1213,8 +1213,8 @@ impl_runtime_apis! {
 			Auction::current_auction_list()
 		}
 
-		fn estimate_minimum_bid_price(auction_id: u64) -> (Balance, bool) {
-			Auction::estimate_minimum_bid_price(auction_id)
+		fn estimate_minimum_bid_price(auction_id: u64, who: &AccountId) -> (Balance, bool) {
+			Auction::estimate_minimum_bid_price(auction_id, who)
 		}
 	}
 

@@ -159,6 +159,14 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>>;
 
+	/// Returned item fields:
+	/// - CML Id
+	/// - CML remaining performance
+	/// - TApp Id
+	/// - TApp Ticker
+	/// - TApp Name
+	/// - TApp Detail
+	/// - Min performance request
 	#[rpc(name = "bonding_listCmlHostingTapps")]
 	fn list_cml_hosting_tapps(
 		&self,

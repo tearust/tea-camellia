@@ -30,6 +30,7 @@ pub trait AuctionApi<BlockHash, AccountId> {
 	fn estimate_minimum_bid_price(
 		&self,
 		auction_id: u64,
+		who: AccountId,
 		at: Option<BlockHash>,
 	) -> Result<(Price, bool)>;
 }
@@ -115,6 +116,7 @@ where
 	fn estimate_minimum_bid_price(
 		&self,
 		auction_id: u64,
+		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<(Price, bool)> {
 		let api = self.client.runtime_api();
@@ -123,7 +125,7 @@ where
 			self.client.info().best_hash));
 
 		let (amount, is_mining): (Balance, bool) = api
-			.estimate_minimum_bid_price(&at, auction_id)
+			.estimate_minimum_bid_price(&at, auction_id, &who)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok((Price(amount), is_mining))
 	}
