@@ -159,6 +159,23 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<Vec<(u64, u32, u32, BlockNumber, Vec<u64>)>>;
 
+	#[rpc(name = "bonding_listCmlHostingTapps")]
+	fn list_cml_hosting_tapps(
+		&self,
+		cml_id: u64,
+		at: Option<BlockHash>,
+	) -> Result<
+		Vec<(
+			u64,
+			Option<u32>,
+			u64,
+			Vec<u8>,
+			Vec<u8>,
+			Vec<u8>,
+			Option<u32>,
+		)>,
+	>;
+
 	/// returned values:
 	/// - current performance calculated by current block height
 	/// - remaining performance
@@ -473,6 +490,32 @@ where
 
 		let result = api
 			.list_candidate_miners(&at, who)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
+	}
+
+	fn list_cml_hosting_tapps(
+		&self,
+		cml_id: u64,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<
+		Vec<(
+			u64,
+			Option<u32>,
+			u64,
+			Vec<u8>,
+			Vec<u8>,
+			Vec<u8>,
+			Option<u32>,
+		)>,
+	> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.list_cml_hosting_tapps(&at, cml_id)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

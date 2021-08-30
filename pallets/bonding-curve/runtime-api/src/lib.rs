@@ -97,6 +97,15 @@ sp_api::decl_runtime_apis! {
 			BlockNumber,
 			Vec<u64>)>;
 
+		fn list_cml_hosting_tapps(cml_id: u64) -> Vec<(
+			u64,
+			Option<u32>,
+			u64,
+			Vec<u8>,
+			Vec<u8>,
+			Vec<u8>,
+			Option<u32>)>;
+
 		fn cml_performance(cml_id: u64) -> (Option<u32>, Option<u32>, u32);
 	}
 }
