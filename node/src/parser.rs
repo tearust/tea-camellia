@@ -10,9 +10,9 @@ use std::str::FromStr;
 
 const DEFROST_SCHEDULE_TYPE_INDEX: usize = 2;
 const ACCOUNT_ADDRESS_INDEX: usize = 3;
-const A_CML_AMOUNT_INDEX: usize = 4;
-const B_CML_AMOUNT_INDEX: usize = 5;
-const C_CML_AMOUNT_INDEX: usize = 6;
+const A_CML_AMOUNT_INDEX: usize = 5;
+const B_CML_AMOUNT_INDEX: usize = 6;
+const C_CML_AMOUNT_INDEX: usize = 7;
 
 const COMPETITION_ADDRESS_INDEX: usize = 2;
 
@@ -89,7 +89,6 @@ where
 		});
 	}
 
-	log::info!("competition coupons: {:?}", coupons);
 	Ok(coupons)
 }
 
