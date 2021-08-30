@@ -250,6 +250,60 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			})
 			.collect()
 	}
+
+	/// Returned item fields:
+	/// - CML Id
+	/// - CML remaining performance
+	/// - TApp Id
+	/// - TApp Ticker
+	/// - TApp Name
+	/// - TApp Detail
+	/// - Min performance request
+	pub fn list_cml_hosting_tapps(
+		cml_id: CmlId,
+	) -> Vec<(
+		CmlId,
+		Option<Performance>,
+		TAppId,
+		Vec<u8>,
+		Vec<u8>,
+		Vec<u8>,
+		Option<Performance>,
+	)> {
+		let (_, remaining_performance, _) = Self::cml_performance(cml_id);
+		CmlHostingTApps::<T>::get(cml_id)
+			.iter()
+			.map(|tapp_id| {
+				let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
+				(
+					cml_id,
+					remaining_performance.clone(),
+					*tapp_id,
+					tapp_item.ticker,
+					tapp_item.name,
+					tapp_item.detail,
+					tapp_item.host_performance,
+				)
+			})
+			.collect()
+	}
+
+	/// returned values:
+	/// - current performance calculated by current block height
+	/// - remaining performance
+	/// - peak performance
+	pub fn cml_performance(
+		cml_id: CmlId,
+	) -> (Option<Performance>, Option<Performance>, Performance) {
+		let current_block = frame_system::Pallet::<T>::block_number();
+		let (current_performance, peak_performance) =
+			T::CmlOperation::miner_performance(cml_id, &current_block);
+		let remaining_performance = current_performance.map(|performance| {
+			let hosted_performance = Self::cml_total_used_performance(cml_id);
+			performance.saturating_sub(hosted_performance)
+		});
+		(current_performance, remaining_performance, peak_performance)
+	}
 }
 
 #[cfg(test)]

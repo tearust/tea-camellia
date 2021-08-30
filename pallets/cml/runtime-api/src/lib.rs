@@ -20,7 +20,5 @@ sp_api::decl_runtime_apis! {
 		fn current_mining_cml_list() -> Vec<u64>;
 
 		fn staking_price_table() -> Vec<Balance>;
-
-		fn cml_performance(cml_id: u64) -> (Option<u32>, u32);
 	}
 }
