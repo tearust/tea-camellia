@@ -138,6 +138,16 @@ where
 				amount: c_amount,
 			});
 		}
+
+		// add default one C type coupon if user not setting
+		if a_amount == 0 && b_amount == 0 && c_amount == 0 {
+			coupons.push(CouponConfig {
+				account: account.clone(),
+				schedule_type,
+				cml_type: CmlType::C,
+				amount: 1,
+			});
+		}
 	}
 
 	Ok(coupons)
