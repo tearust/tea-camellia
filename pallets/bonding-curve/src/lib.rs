@@ -625,39 +625,7 @@ pub mod bonding_curve {
 					);
 					Ok(())
 				},
-				|_who| {
-					let tapp = TAppBondingCurve::<T>::get(tapp_id);
-					match Self::calculate_given_received_tea_how_much_seller_give_away(
-						tapp_id,
-						tapp.current_cost,
-					) {
-						Ok(withdraw_tapp_amount) => {
-							match Self::distribute_to_miners(tapp_id, tapp.current_cost) {
-								Ok((miners, each_amount)) => {
-									Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
-
-									let (buy_price, sell_price) = Self::query_price(tapp_id);
-									Self::deposit_event(Event::TAppExpense(
-										tapp_id,
-										miners,
-										each_amount,
-										buy_price,
-										sell_price,
-										TotalSupplyTable::<T>::get(tapp_id),
-									));
-								}
-								Err(e) => {
-									// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-									log::error!("transfer free balance failed: {:?}", e);
-								}
-							}
-						}
-						Err(e) => {
-							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-							log::error!("calculation failed: {:?}", e);
-						}
-					}
-				},
+				|_who| Self::expense_inner(tapp_id),
 			)
 		}
 

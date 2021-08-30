@@ -533,7 +533,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 						T::HostCostCoefficient::get()
 							.saturating_mul(tapp.host_performance.unwrap().into()),
 					);
-				})
+				});
+
+				Self::expense_inner(id)
 			});
 	}
 
@@ -558,6 +560,40 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			miners.push(target.clone());
 		}
 		Ok((miners, each_amount))
+	}
+
+	pub fn expense_inner(tapp_id: TAppId) {
+		let tapp = TAppBondingCurve::<T>::get(tapp_id);
+		match Self::calculate_given_received_tea_how_much_seller_give_away(
+			tapp_id,
+			tapp.current_cost,
+		) {
+			Ok(withdraw_tapp_amount) => {
+				match Self::distribute_to_miners(tapp_id, tapp.current_cost) {
+					Ok((miners, each_amount)) => {
+						Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
+
+						let (buy_price, sell_price) = Self::query_price(tapp_id);
+						Self::deposit_event(Event::TAppExpense(
+							tapp_id,
+							miners,
+							each_amount,
+							buy_price,
+							sell_price,
+							TotalSupplyTable::<T>::get(tapp_id),
+						));
+					}
+					Err(e) => {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("transfer free balance failed: {:?}", e);
+					}
+				}
+			}
+			Err(e) => {
+				// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+				log::error!("calculation failed: {:?}", e);
+			}
+		}
 	}
 }
 
@@ -643,16 +679,20 @@ mod tests {
 					..Default::default()
 				},
 			);
-			let amount =
-				BondingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 666666666666);
+			let amount = BondingCurve::calculate_given_increase_tea_how_much_token_mint(
+				tapp_id,
+				666666666666,
+			);
 			assert!(approximately_equals(
 				amount.unwrap(),
 				1_000_000_000_000,
 				1000
 			));
 			TotalSupplyTable::<Test>::insert(tapp_id, 1_000_000_000_000);
-			let amount =
-				BondingCurve::calculate_given_increase_tea_how_much_token_mint(tapp_id, 666666666666);
+			let amount = BondingCurve::calculate_given_increase_tea_how_much_token_mint(
+				tapp_id,
+				666666666666,
+			);
 			// println!("amt {:?}", &amount);
 			assert!(approximately_equals(amount.unwrap(), 587401114832, 100));
 		})
