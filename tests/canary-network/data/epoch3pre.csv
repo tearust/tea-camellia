@@ -1,6 +1,6 @@
 Timestamp,Email Address,DefrostScheduleType,"Your account address copied from your polkadot browser extension. Please double check this address. If it's wrong, the coupon will be sent to the wrong address.",Your Ethereum ERC20 address. This address will be where the USDT reward for every epoch is sent. It cannot be modified once the epoch starts.,,A CML Amount,B CML Amount,C CML Amount
 8/10/2021 20:06:36,tester@teaproject.com,Investor,5DFzp6FGWRkqm8Pm1KX9dWLoVyukeS51cTiQPNqUADEZMFZq,0xba9d4199fab4f26efe3551d490e3821486f135ba,,1,2,4
-8/10/2021 20:07:10,sudo@teaproject.org,Investor,5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP,0xba9d4199fab4f26efe3551d490e3821486f135ba,,133,239,480
+8/10/2021 20:07:10,sudo@teaproject.org,Investor,5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP,0xba9d4199fab4f26efe3551d490e3821486f135ba,,96,259,512
 8/10/2021 20:07:41,satoshi@teaproject.org,Investor,5DefkQb5cgkMqQ3Bx2w7qXQ6GYwTsJiv8UnfSUmhJShASUr6,0xba9d4199fab4f26efe3551d490e3821486f135ba,,0,2,0
 8/10/2021 20:08:14,vitalik@teaproject.org,Investor,5C8NwJMeuYRMcHC4cBF68noZBUBtWwLZsRuPF44eYaNPNNP9,0xba9d4199fab4f26efe3551d490e3821486f135ba,,0,0,4
 8/10/2021 20:08:56,trump@teaproject.org,Investor,5EUD378hBnfriNCMMGRV5HdoBkcWL8gs7GUC2kopAN13jq3N,0xba9d4199fab4f26efe3551d490e3821486f135ba,,0,0,4
@@ -43,4 +43,3 @@ Timestamp,Email Address,DefrostScheduleType,"Your account address copied from yo
 8/18/2021 22:23:51,reserve2@teaproject.org,Investor,5HEetp6NxCjLfq1F96LqmM78fGfvWRwVpvrAPgSc9qdj3mnx,0xba9d4199fab4f26efe3551d490e3821486f135ba,,0,1,2
 8/18/2021 22:24:24,reserve3@teaproject.org,Investor,5DCbHXkMKD48UJnp98CjjbVNrpmqs278qHSpzudLGbFxWZRo,0xba9d4199fab4f26efe3551d490e3821486f135ba,,0,1,2
 8/19/2021 1:09:49,israelbolaji@gmail.com,Investor,5DCtW99zVEz2ZZB2h3RKbsyAAW2DoiekrEDd4Xvm6d3X5u5r,0xba4fB537EA10aCCc9b2AF409a54E32AC3413C9b7,,0,1,2
-,,,,,,137,280,568
