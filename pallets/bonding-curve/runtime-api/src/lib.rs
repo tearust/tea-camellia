@@ -104,6 +104,7 @@ sp_api::decl_runtime_apis! {
 			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,
+			Vec<u8>,
 			Option<u32>)>;
 
 		fn cml_performance(cml_id: u64) -> (Option<u32>, Option<u32>, u32);

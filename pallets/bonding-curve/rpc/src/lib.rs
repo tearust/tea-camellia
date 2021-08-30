@@ -166,6 +166,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - TApp Ticker
 	/// - TApp Name
 	/// - TApp Detail
+	/// - TApp Link
 	/// - Min performance request
 	#[rpc(name = "bonding_listCmlHostingTapps")]
 	fn list_cml_hosting_tapps(
@@ -177,6 +178,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 			u64,
 			Option<u32>,
 			u64,
+			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,
@@ -511,6 +513,7 @@ where
 			u64,
 			Option<u32>,
 			u64,
+			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,

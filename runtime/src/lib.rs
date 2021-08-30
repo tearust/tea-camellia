@@ -1338,6 +1338,7 @@ impl_runtime_apis! {
 			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,
+			Vec<u8>,
 			Option<u32>)> {
 			BondingCurve::list_cml_hosting_tapps(cml_id)
 		}

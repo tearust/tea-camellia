@@ -258,6 +258,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - TApp Ticker
 	/// - TApp Name
 	/// - TApp Detail
+	/// - TApp Link
 	/// - Min performance request
 	pub fn list_cml_hosting_tapps(
 		cml_id: CmlId,
@@ -265,6 +266,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		CmlId,
 		Option<Performance>,
 		TAppId,
+		Vec<u8>,
 		Vec<u8>,
 		Vec<u8>,
 		Vec<u8>,
@@ -282,6 +284,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					tapp_item.ticker,
 					tapp_item.name,
 					tapp_item.detail,
+					tapp_item.link,
 					tapp_item.host_performance,
 				)
 			})
