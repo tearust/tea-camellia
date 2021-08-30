@@ -22,7 +22,7 @@ use sp_runtime::{
 use std::collections::HashSet;
 use std::str::FromStr;
 
-const INITIAL_ACCOUNT_BALANCE: Balance = 10000 * DOLLARS;
+const INITIAL_ACCOUNT_BALANCE: Balance = 2_000_000 * DOLLARS;
 const INITIAL_VALIDATOR_BALANCE: Balance = 100 * DOLLARS;
 const COUPON_ACCOUNT_BALANCE: Balance = 1 * DOLLARS;
 
@@ -258,7 +258,8 @@ pub fn local_testnet_config(
 		get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 		get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 	];
-	let endowed_balances = generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
+	let endowed_balances =
+		generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
 
 	testnet_config(
 		genesis_coupons,
@@ -520,7 +521,9 @@ fn generate_account_balance_list(
 #[cfg(test)]
 mod tests {
 	use crate::chain_spec::get_unique_accounts;
-	use camellia_runtime::pallet_cml::{CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons};
+	use camellia_runtime::pallet_cml::{
+		CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons,
+	};
 	use sp_runtime::AccountId32;
 
 	#[test]
