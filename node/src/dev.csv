@@ -1,10 +1,9 @@
-Timestamp,Username,DefrostScheduleType,AccountAddress,A CML Amount,B CML Amount,C CML Amount,Notes
-2021/07/06 5:13:58 PM MDT,tester@teaproject.org,Investor,5DFzp6FGWRkqm8Pm1KX9dWLoVyukeS51cTiQPNqUADEZMFZq,1,2,4,tester
-2021/07/06 5:13:58 PM MDT,satoshi@teaproject.org,Team,5DefkQb5cgkMqQ3Bx2w7qXQ6GYwTsJiv8UnfSUmhJShASUr6,0,2,4,satoshi: I am no body
-2021/07/06 5:13:58 PM MDT,vitalik@teaproject.org,Investor,5C8NwJMeuYRMcHC4cBF68noZBUBtWwLZsRuPF44eYaNPNNP9,1,1,7,vitalik: World computer
-2021/07/06 5:13:58 PM MDT,trump@teaproject.org,Investor,5EUD378hBnfriNCMMGRV5HdoBkcWL8gs7GUC2kopAN13jq3N,1,2,6,trump: Save America again
-2021/07/06 5:13:58 PM MDT,biden@teaproject.org,Investor,5Cg5AvoZRmo4awrUXtbERGKjZvKsP38hN21ihRpgnt96KgRp,1,6,1,biden: Come on man?
-2021/07/06 5:13:58 PM MDT,elon@teaproject.org,Investor,5Cz7xgnowebuiqV4TpGtWd8pRLHB5TMt8oZcK4TJ4FqMtDgV,0,1,0,elon: TEA is the currency on the Mars
-2021/07/06 5:13:58 PM MDT,zuckerberg@teaproject.org,Team,5EUerhVoDfH4ToTEYms1bptRgZcCbk2VCjVHWS2GxQ8bpUR7,2,2,4,zuckerberg: slavery cannot tolerate free speech
-2021/07/06 5:13:58 PM MDT,jacky.li@teaproject.org,Investor,5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP,2,4,8,tester
-2021/07/06 5:13:58 PM MDT,jacky.li@teaproject.org,Investor,5EtQMJ6mYtuzgtXiWCW8AjjxdHe4K3CUAWVkgU3agb2oKMGs,1,2,4,tester
+Timestamp,Email Address,DefrostScheduleType,"Your account address copied from your polkadot browser extension. Please double check this address. If it's wrong, the coupon will be sent to the wrong address.",Your Ethereum ERC20 address. This address will be where the USDT reward for every epoch is sent. It cannot be modified once the epoch starts.,A CML Amount,B CML Amount,C CML Amount
+8/10/2021 20:06:36,tester@teaproject.com,Investor,5DFzp6FGWRkqm8Pm1KX9dWLoVyukeS51cTiQPNqUADEZMFZq,0xba9d4199fab4f26efe3551d490e3821486f135ba,1,2,4
+8/10/2021 20:07:10,sudo@teaproject.org,Investor,5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP,0xba9d4199fab4f26efe3551d490e3821486f135ba,96,259,512
+8/10/2021 20:07:41,satoshi@teaproject.org,Investor,5DefkQb5cgkMqQ3Bx2w7qXQ6GYwTsJiv8UnfSUmhJShASUr6,0xba9d4199fab4f26efe3551d490e3821486f135ba,0,2,0
+8/10/2021 20:08:14,vitalik@teaproject.org,Investor,5C8NwJMeuYRMcHC4cBF68noZBUBtWwLZsRuPF44eYaNPNNP9,0xba9d4199fab4f26efe3551d490e3821486f135ba,0,0,4
+8/10/2021 20:08:56,trump@teaproject.org,Investor,5EUD378hBnfriNCMMGRV5HdoBkcWL8gs7GUC2kopAN13jq3N,0xba9d4199fab4f26efe3551d490e3821486f135ba,0,0,4
+8/10/2021 20:09:26,biden@teaproject.org,Investor,5Cg5AvoZRmo4awrUXtbERGKjZvKsP38hN21ihRpgnt96KgRp,0xba9d4199fab4f26efe3551d490e3821486f135ba,1,2,0
+8/10/2021 20:09:58,elon@teaproject.org,Investor,5Cz7xgnowebuiqV4TpGtWd8pRLHB5TMt8oZcK4TJ4FqMtDgV,0xba9d4199fab4f26efe3551d490e3821486f135ba,0,0,4
+8/10/2021 20:10:29,zuckerberg@teaproject.org,Investor,5EUerhVoDfH4ToTEYms1bptRgZcCbk2VCjVHWS2GxQ8bpUR7,0xba9d4199fab4f26efe3551d490e3821486f135ba,1,0,1
