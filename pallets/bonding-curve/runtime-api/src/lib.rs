@@ -96,5 +96,7 @@ sp_api::decl_runtime_apis! {
 			u32,
 			BlockNumber,
 			Vec<u64>)>;
+
+		fn cml_performance(cml_id: u64) -> (Option<u32>, Option<u32>, u32);
 	}
 }

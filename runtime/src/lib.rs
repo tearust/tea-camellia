@@ -1198,10 +1198,6 @@ impl_runtime_apis! {
 		fn staking_price_table() -> Vec<Balance> {
 			STAKING_PRICE_TABLE.to_vec()
 		}
-
-		fn cml_performance(cml_id: u64) -> (Option<u32>, u32) {
-			Cml::cml_performance(cml_id)
-		}
 	}
 
 	impl auction_runtime_api::AuctionApi<Block, AccountId> for Runtime {
@@ -1333,6 +1329,10 @@ impl_runtime_apis! {
 			BlockNumber,
 			Vec<u64>)> {
 			BondingCurve::list_candidate_miners(&who)
+		}
+
+		fn cml_performance(cml_id: u64) -> (Option<u32>, Option<u32>, u32) {
+			BondingCurve::cml_performance(cml_id)
 		}
 	}
 

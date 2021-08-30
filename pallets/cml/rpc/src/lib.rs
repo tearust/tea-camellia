@@ -27,11 +27,6 @@ pub trait CmlApi<BlockHash, AccountId> {
 
 	#[rpc(name = "cml_stakingPriceTable")]
 	fn staking_price_table(&self, at: Option<BlockHash>) -> Result<Vec<Price>>;
-
-	/// return a pair of values, first is current performance calculated by current block height,
-	/// the second is the peak performance.
-	#[rpc(name = "cml_cmlPerformance")]
-	fn cml_performance(&self, cml_id: u64, at: Option<BlockHash>) -> Result<(Option<u32>, u32)>;
 }
 
 pub struct CmlApiImpl<C, M> {
@@ -121,21 +116,5 @@ where
 			.staking_price_table(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result.iter().map(|v| Price(*v)).collect())
-	}
-
-	fn cml_performance(
-		&self,
-		cml_id: u64,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<(Option<u32>, u32)> {
-		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
-
-		let result = api
-			.cml_performance(&at, cml_id)
-			.map_err(runtime_error_into_rpc_err)?;
-		Ok(result)
 	}
 }

@@ -250,6 +250,23 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			})
 			.collect()
 	}
+
+	/// returned values:
+	/// - current performance calculated by current block height
+	/// - remaining performance
+	/// - peak performance
+	pub fn cml_performance(
+		cml_id: CmlId,
+	) -> (Option<Performance>, Option<Performance>, Performance) {
+		let current_block = frame_system::Pallet::<T>::block_number();
+		let (current_performance, peak_performance) =
+			T::CmlOperation::miner_performance(cml_id, &current_block);
+		let remaining_performance = current_performance.map(|performance| {
+			let hosted_performance = Self::cml_total_used_performance(cml_id);
+			performance.saturating_sub(hosted_performance)
+		});
+		(current_performance, remaining_performance, peak_performance)
+	}
 }
 
 #[cfg(test)]

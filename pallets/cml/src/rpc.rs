@@ -31,12 +31,6 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub fn current_mining_cml_list() -> Vec<u64> {
 		Self::current_mining_cmls()
 	}
-
-	/// return a pair of values, first is current performance calculated by current block height,
-	/// the second is the peak performance.
-	pub fn cml_performance(cml_id: CmlId) -> (Option<Performance>, Performance) {
-		Self::miner_performance(cml_id, &frame_system::Pallet::<T>::block_number())
-	}
 }
 
 #[cfg(test)]
