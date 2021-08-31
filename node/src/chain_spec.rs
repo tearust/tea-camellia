@@ -39,8 +39,10 @@ const GENESIS_BANK_OPERATION_ADDRESS: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvW
 const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn38446dhCpsi2mLHiFT";
 // address derived from [2u8; 32] that the corresponding private key we don't know
 const BONDING_CURVE_OPERATION_ADDRESS: &str = "5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt";
-// predefined "sudo" user in competition csv file
+// NPC is predefined "sudo" user in competition csv file, the following is address and initial amounts settings
 const BONDING_CURVE_NPC_ADDRESS: &str = "5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP";
+const BONDING_CURVE_NPC_INITIAL_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
+const BONDING_CURVE_NPC_INITIAL_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -370,6 +372,10 @@ fn testnet_genesis(
 		genesis_bank_operation_account.clone(),
 		INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
 	));
+	initial_balances.push((
+		bonding_curve_npc_account.clone(),
+		BONDING_CURVE_NPC_INITIAL_TEA_BALANCE,
+	));
 
 	let competition_users = genesis_coupons
 		.coupons
@@ -475,6 +481,10 @@ fn testnet_genesis(
 			operation_usd_amount: INITIAL_EXCHANGE_USD_BALANCE,
 			operation_tea_amount: INITIAL_EXCHANGE_TEA_BALANCE,
 			competition_users,
+			bonding_curve_npc: (
+				bonding_curve_npc_account.clone(),
+				BONDING_CURVE_NPC_INITIAL_USD_BALANCE,
+			),
 		},
 		pallet_bonding_curve: BondingCurveConfig {
 			operation_account: bonding_curve_operation_account,

@@ -128,6 +128,7 @@ pub mod genesis_exchange {
 		pub operation_usd_amount: BalanceOf<T>,
 		pub operation_tea_amount: BalanceOf<T>,
 		pub competition_users: Vec<(T::AccountId, BalanceOf<T>)>,
+		pub bonding_curve_npc: (T::AccountId, BalanceOf<T>),
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
@@ -137,6 +138,7 @@ pub mod genesis_exchange {
 				operation_usd_amount: Default::default(),
 				operation_tea_amount: Default::default(),
 				competition_users: Default::default(),
+				bonding_curve_npc: Default::default(),
 			}
 		}
 	}
@@ -146,14 +148,12 @@ pub mod genesis_exchange {
 			OperationAccount::<T>::set(self.operation_account.clone());
 			AMMCurveKCoefficient::<T>::set(self.operation_usd_amount * self.operation_tea_amount);
 
-			USDStore::<T>::insert(self.operation_account.clone(), &self.operation_usd_amount);
-			self.competition_users
-				.iter()
-				.for_each(|(user, balance)| USDStore::<T>::insert(user, balance));
-
-			self.competition_users
-				.iter()
-				.for_each(|(user, _)| CompetitionUsers::<T>::insert(user, ()));
+			USDStore::<T>::insert(&self.operation_account, &self.operation_usd_amount);
+			USDStore::<T>::insert(&self.bonding_curve_npc.0, &self.bonding_curve_npc.1);
+			self.competition_users.iter().for_each(|(user, balance)| {
+				USDStore::<T>::insert(user, balance);
+				CompetitionUsers::<T>::insert(user, ());
+			});
 
 			// initialize USD interest rate
 			USDInterestRate::<T>::set(300u32.into());
