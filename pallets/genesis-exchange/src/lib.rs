@@ -156,7 +156,7 @@ pub mod genesis_exchange {
 				.for_each(|(user, _)| CompetitionUsers::<T>::insert(user, ()));
 
 			// initialize USD interest rate
-			USDInterestRate::<T>::set(600u32.into());
+			USDInterestRate::<T>::set(300u32.into());
 		}
 	}
 
