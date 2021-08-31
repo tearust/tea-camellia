@@ -544,6 +544,11 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		total_amount: BalanceOf<T>,
 	) -> Result<(Vec<T::AccountId>, BalanceOf<T>), DispatchError> {
 		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
+		ensure!(
+			!host_count.is_zero(),
+			Error::<T>::NoHostingToDistributeMiner
+		);
+
 		let each_amount = total_amount / host_count.into();
 
 		let mut miners = Vec::new();
@@ -564,6 +569,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 	pub fn expense_inner(tapp_id: TAppId) {
 		let tapp = TAppBondingCurve::<T>::get(tapp_id);
+		if tapp.current_cost.is_zero() {
+			return;
+		}
+
 		match Self::calculate_given_received_tea_how_much_seller_give_away(
 			tapp_id,
 			tapp.current_cost,

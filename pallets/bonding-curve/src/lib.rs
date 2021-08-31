@@ -319,6 +319,8 @@ pub mod bonding_curve {
 		OnlyMiningCmlCanHost,
 		/// The CML is already hosting the given tapp
 		CmlIsAlreadyHosting,
+		/// There is no miner hosting the tapp so no need to distribute
+		NoHostingToDistributeMiner,
 	}
 
 	#[pallet::hooks]
