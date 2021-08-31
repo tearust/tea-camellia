@@ -252,6 +252,9 @@ pub mod bonding_curve {
 			BalanceOf<T>,
 		),
 
+		/// Fired after TApp has bankrupted
+		TAppBankrupted(TAppId),
+
 		/// Fired after each host arrange duration, automatically unhosted lists:
 		/// - Unhost tapp id
 		/// - Unhost CML id
@@ -528,6 +531,10 @@ pub mod bonding_curve {
 						sell_price,
 						TotalSupplyTable::<T>::get(tapp_id),
 					));
+
+					if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
+						Self::bankrupt_tapp(tapp_id);
+					}
 				},
 			)
 		}
@@ -616,13 +623,13 @@ pub mod bonding_curve {
 						Error::<T>::OperationAmountCanNotBeZero
 					);
 
-					let withdraw_tapp_amount =
+					let (withdraw_tapp_amount, _) =
 						Self::calculate_given_received_tea_how_much_seller_give_away(
 							tapp_id,
 							tapp.current_cost,
 						)?;
 					ensure!(
-						TotalSupplyTable::<T>::get(tapp_id) > withdraw_tapp_amount,
+						TotalSupplyTable::<T>::get(tapp_id) >= withdraw_tapp_amount,
 						Error::<T>::InsufficientTotalSupply
 					);
 					Ok(())

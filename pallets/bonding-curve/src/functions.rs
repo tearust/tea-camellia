@@ -389,7 +389,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn calculate_given_received_tea_how_much_seller_give_away(
 		tapp_id: TAppId,
 		tea_amount: BalanceOf<T>,
-	) -> Result<BalanceOf<T>, DispatchError> {
+	) -> Result<(BalanceOf<T>, bool), DispatchError> {
+		let mut is_reserved_tea_zero = false;
+
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_reserve_pool_tea = match tapp_item.sell_curve {
@@ -399,28 +401,34 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			}
 			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
 		};
-		ensure!(
-			tea_amount <= current_reserve_pool_tea,
-			Error::<T>::TAppInsufficientFreeBalance
-		);
+
+		let pay_amount = if current_reserve_pool_tea < tea_amount {
+			is_reserved_tea_zero = true;
+			current_reserve_pool_tea
+		} else {
+			tea_amount
+		};
 
 		let total_supply_after_sell_tapp_token = match tapp_item.sell_curve {
 			CurveType::UnsignedLinear => T::LinearCurve::pool_balance_reverse(
-				current_reserve_pool_tea.saturating_sub(tea_amount),
+				current_reserve_pool_tea.saturating_sub(pay_amount),
 				T::PoolBalanceReversePrecision::get(),
 			),
 			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance_reverse(
-				current_reserve_pool_tea.saturating_sub(tea_amount),
+				current_reserve_pool_tea.saturating_sub(pay_amount),
 				T::PoolBalanceReversePrecision::get(),
 			),
 			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance_reverse(
-				current_reserve_pool_tea.saturating_sub(tea_amount),
+				current_reserve_pool_tea.saturating_sub(pay_amount),
 				T::PoolBalanceReversePrecision::get(),
 			),
 		};
-		Ok(total_supply
-			.checked_sub(&total_supply_after_sell_tapp_token)
-			.ok_or(Error::<T>::SubtractionOverflow)?)
+		Ok((
+			total_supply
+				.checked_sub(&total_supply_after_sell_tapp_token)
+				.ok_or(Error::<T>::SubtractionOverflow)?,
+			is_reserved_tea_zero,
+		))
 	}
 
 	pub(crate) fn check_tapp_fields_length(
@@ -577,7 +585,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			tapp_id,
 			tapp.current_cost,
 		) {
-			Ok(withdraw_tapp_amount) => {
+			Ok((withdraw_tapp_amount, is_reserved_tea_zero)) => {
 				match Self::distribute_to_miners(tapp_id, tapp.current_cost) {
 					Ok((miners, each_amount)) => {
 						Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
@@ -600,12 +608,27 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 						log::error!("transfer free balance failed: {:?}", e);
 					}
 				}
+
+				if is_reserved_tea_zero {
+					Self::bankrupt_tapp(tapp_id);
+				}
 			}
 			Err(e) => {
 				// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 				log::error!("calculation failed: {:?}", e);
 			}
 		}
+	}
+
+	pub(crate) fn bankrupt_tapp(tapp_id: TAppId) {
+		Self::delete_tapp(tapp_id);
+		Self::deposit_event(Event::TAppBankrupted(tapp_id));
+	}
+
+	pub(crate) fn delete_tapp(tapp_id: TAppId) {
+		TAppCurrentHosts::<T>::iter_prefix(tapp_id)
+			.for_each(|(cml_id, _)| Self::unhost_tapp(tapp_id, cml_id));
+		TAppBondingCurve::<T>::remove(tapp_id);
 	}
 }
 

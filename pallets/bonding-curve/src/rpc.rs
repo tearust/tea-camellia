@@ -62,7 +62,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tea_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
 		match Self::calculate_given_received_tea_how_much_seller_give_away(tapp_id, tea_amount) {
-			Ok(balance) => balance,
+			Ok((balance, _)) => balance,
 			Err(e) => {
 				log::error!("calculate failed: {:?}", e);
 				Zero::zero()
