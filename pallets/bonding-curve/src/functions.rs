@@ -581,6 +581,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				match Self::distribute_to_miners(tapp_id, tapp.current_cost) {
 					Ok((miners, each_amount)) => {
 						Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
+						TAppBondingCurve::<T>::mutate(tapp_id, |tapp_item| {
+							tapp_item.current_cost = Zero::zero();
+						});
 
 						let (buy_price, sell_price) = Self::query_price(tapp_id);
 						Self::deposit_event(Event::TAppExpense(
