@@ -935,7 +935,7 @@ fn expense_should_fail_if_expense_amount_is_zero() {
 }
 
 #[test]
-fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
+fn expense_works_if_expense_amount_more_than_reserved_balance() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
@@ -958,7 +958,7 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 		let tapp_id = 1;
 
 		let cml_id = 11;
-		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 10000, 10000));
 		cml.set_owner(&miner);
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
@@ -968,16 +968,19 @@ fn expense_should_fail_if_expense_amount_more_than_reserved_balance() {
 			[1u8; 32],
 			b"miner_ip".to_vec()
 		));
+
+		frame_system::Pallet::<Test>::set_block_number(101);
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
 
-		let expense_amount = 1000000;
+		let expense_amount = 1_000_000;
 		TAppBondingCurve::<Test>::mutate(tapp_id, |tapp| tapp.current_cost = expense_amount);
 
 		<Test as Config>::Currency::make_free_balance_be(&user1, 0);
-		assert_noop!(
-			BondingCurve::expense(Origin::signed(user1), tapp_id),
-			Error::<Test>::TAppInsufficientFreeBalance
-		);
+		assert_ok!(BondingCurve::expense(Origin::signed(user1), tapp_id));
+
+		assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
+		assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
+		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 0);
 	})
 }
 

@@ -112,7 +112,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
 					*amount = amount.saturating_sub(tapp_amount);
 				});
-				Self::try_clean_tapp_related(who, tapp_id);
+				Self::try_clean_tapp_related(Some(who.clone()), tapp_id);
 
 				deposit_tea_amount
 			}
@@ -124,15 +124,25 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		}
 	}
 
-	pub fn try_clean_tapp_related(who: &T::AccountId, tapp_id: TAppId) {
-		if AccountTable::<T>::get(who, tapp_id).is_zero() {
-			AccountTable::<T>::remove(who, tapp_id);
+	pub fn try_clean_tapp_related(who: Option<T::AccountId>, tapp_id: TAppId) {
+		match who {
+			Some(who) => {
+				if AccountTable::<T>::get(&who, tapp_id).is_zero() {
+					AccountTable::<T>::remove(&who, tapp_id);
+				}
+			}
+			None => AccountTable::<T>::iter()
+				.filter(|(_, id, balance)| *id == tapp_id && balance.is_zero())
+				.for_each(|(acc, id, _)| AccountTable::<T>::remove(acc, id)),
 		}
+
 		if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
 			TotalSupplyTable::<T>::remove(tapp_id);
 			let item = TAppBondingCurve::<T>::take(tapp_id);
 			TAppNames::<T>::remove(item.name);
 			TAppTickers::<T>::remove(item.ticker);
+			TAppCurrentHosts::<T>::iter_prefix(tapp_id)
+				.for_each(|(cml_id, _)| Self::unhost_tapp(tapp_id, cml_id));
 		}
 	}
 
@@ -385,10 +395,15 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	}
 
 	/// calcualte given seller receive tea_amount of TEA, how much of tapp token this seller will give away
+	///
+	/// returns:
+	/// - really given tapp amount
+	/// - really payed tea amount
+	/// - is reserved tea zero
 	pub(crate) fn calculate_given_received_tea_how_much_seller_give_away(
 		tapp_id: TAppId,
 		tea_amount: BalanceOf<T>,
-	) -> Result<(BalanceOf<T>, bool), DispatchError> {
+	) -> Result<(BalanceOf<T>, BalanceOf<T>, bool), DispatchError> {
 		let mut is_reserved_tea_zero = false;
 
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
@@ -426,6 +441,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			total_supply
 				.checked_sub(&total_supply_after_sell_tapp_token)
 				.ok_or(Error::<T>::SubtractionOverflow)?,
+			pay_amount,
 			is_reserved_tea_zero,
 		))
 	}
@@ -535,15 +551,17 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		TAppBondingCurve::<T>::iter()
 			.filter(|(_, tapp)| tapp.host_performance.is_some())
 			.for_each(|(id, _)| {
-				TAppBondingCurve::<T>::mutate(id, |tapp| {
-					tapp.current_cost = tapp.current_cost.saturating_add(
-						T::HostCostCoefficient::get()
-							.saturating_mul(tapp.host_performance.unwrap().into()),
-					);
-				});
-
+				Self::accumulate_tapp_cost(id);
 				Self::expense_inner(id)
 			});
+	}
+
+	pub(crate) fn accumulate_tapp_cost(tapp_id: TAppId) {
+		TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
+			tapp.current_cost = tapp.current_cost.saturating_add(
+				T::HostCostCoefficient::get().saturating_mul(tapp.host_performance.unwrap().into()),
+			);
+		});
 	}
 
 	pub(crate) fn distribute_to_miners(
@@ -590,8 +608,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			tapp_id,
 			tapp.current_cost,
 		) {
-			Ok((withdraw_tapp_amount, is_reserved_tea_zero)) => {
-				match Self::distribute_to_miners(tapp_id, tapp.current_cost) {
+			Ok((withdraw_tapp_amount, distribute_tea_amount, is_reserved_tea_zero)) => {
+				match Self::distribute_to_miners(tapp_id, distribute_tea_amount) {
 					Ok(tapp_statements) => {
 						Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
 						TAppBondingCurve::<T>::mutate(tapp_id, |tapp_item| {
@@ -625,14 +643,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	}
 
 	pub(crate) fn bankrupt_tapp(tapp_id: TAppId) {
-		Self::delete_tapp(tapp_id);
+		Self::try_clean_tapp_related(None, tapp_id);
 		Self::deposit_event(Event::TAppBankrupted(tapp_id));
-	}
-
-	pub(crate) fn delete_tapp(tapp_id: TAppId) {
-		TAppCurrentHosts::<T>::iter_prefix(tapp_id)
-			.for_each(|(cml_id, _)| Self::unhost_tapp(tapp_id, cml_id));
-		TAppBondingCurve::<T>::remove(tapp_id);
 	}
 }
 
@@ -753,6 +765,33 @@ mod tests {
 
 			let amount = BondingCurve::calculate_sell_amount(tapp_id, 90_000_000);
 			assert_eq!(amount.unwrap(), 451910);
+		})
+	}
+
+	#[test]
+	fn accumulate_tapp_cost_works() {
+		new_test_ext().execute_with(|| {
+			let tapp_id = 1;
+			let performance = 1000u32;
+			TAppBondingCurve::<Test>::insert(
+				tapp_id,
+				TAppItem {
+					id: tapp_id,
+					buy_curve: CurveType::UnsignedSquareRoot_10,
+					sell_curve: CurveType::UnsignedSquareRoot_7,
+					host_performance: Some(performance),
+					max_allowed_hosts: Some(10),
+					..Default::default()
+				},
+			);
+
+			assert_eq!(TAppBondingCurve::<Test>::get(tapp_id).current_cost, 0);
+
+			BondingCurve::accumulate_tapp_cost(tapp_id);
+			assert_eq!(
+				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
+				HOST_COST_COEFFICIENT.saturating_mul(performance.into())
+			);
 		})
 	}
 

@@ -19,7 +19,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn collect_staking_info() {
+	pub fn collect_staking_info() {
 		MinerItemStore::<T>::iter().for_each(|(_, miner_item)| {
 			let cml = CmlStore::<T>::get(miner_item.cml_id);
 			let mut snapshot_items = Vec::new();
