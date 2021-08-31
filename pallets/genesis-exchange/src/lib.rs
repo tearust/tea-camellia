@@ -149,11 +149,11 @@ pub mod genesis_exchange {
 			AMMCurveKCoefficient::<T>::set(self.operation_usd_amount * self.operation_tea_amount);
 
 			USDStore::<T>::insert(&self.operation_account, &self.operation_usd_amount);
-			USDStore::<T>::insert(&self.bonding_curve_npc.0, &self.bonding_curve_npc.1);
 			self.competition_users.iter().for_each(|(user, balance)| {
 				USDStore::<T>::insert(user, balance);
 				CompetitionUsers::<T>::insert(user, ());
 			});
+			USDStore::<T>::insert(&self.bonding_curve_npc.0, &self.bonding_curve_npc.1);
 
 			// initialize USD interest rate
 			USDInterestRate::<T>::set(300u32.into());
