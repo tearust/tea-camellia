@@ -1,5 +1,4 @@
 use super::*;
-use pallet_cml::TreeProperties;
 
 pub(crate) const CALCULATION_PRECISION: u32 = 100000000;
 
@@ -550,7 +549,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn distribute_to_miners(
 		tapp_id: TAppId,
 		total_amount: BalanceOf<T>,
-	) -> Result<(Vec<T::AccountId>, BalanceOf<T>), DispatchError> {
+	) -> Result<Vec<(T::AccountId, CmlId, BalanceOf<T>)>, DispatchError> {
 		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 		ensure!(
 			!host_count.is_zero(),
@@ -559,20 +558,26 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 		let each_amount = total_amount / host_count.into();
 
-		let mut miners = Vec::new();
+		let mut tapp_statements = Vec::new();
 		for (cml_id, _) in TAppCurrentHosts::<T>::iter_prefix(tapp_id) {
-			let cml = T::CmlOperation::cml_by_id(&cml_id)?;
+			let staking_snapshots = T::CmlOperation::cml_staking_snapshots(cml_id);
+			let mut statements = T::CmlOperation::single_cml_staking_reward_statements(
+				cml_id,
+				&staking_snapshots,
+				each_amount,
+			);
 
-			let target = cml.owner().ok_or(Error::<T>::CmlOwnerIsNone)?;
-			T::CurrencyOperations::transfer(
-				&OperationAccount::<T>::get(),
-				target,
-				each_amount.clone(),
-				ExistenceRequirement::AllowDeath,
-			)?;
-			miners.push(target.clone());
+			for (account, _, amount) in statements.iter() {
+				T::CurrencyOperations::transfer(
+					&OperationAccount::<T>::get(),
+					account,
+					amount.clone(),
+					ExistenceRequirement::AllowDeath,
+				)?;
+			}
+			tapp_statements.append(&mut statements);
 		}
-		Ok((miners, each_amount))
+		Ok(tapp_statements)
 	}
 
 	pub fn expense_inner(tapp_id: TAppId) {
@@ -587,7 +592,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		) {
 			Ok((withdraw_tapp_amount, is_reserved_tea_zero)) => {
 				match Self::distribute_to_miners(tapp_id, tapp.current_cost) {
-					Ok((miners, each_amount)) => {
+					Ok(tapp_statements) => {
 						Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
 						TAppBondingCurve::<T>::mutate(tapp_id, |tapp_item| {
 							tapp_item.current_cost = Zero::zero();
@@ -596,8 +601,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 						let (buy_price, sell_price) = Self::query_price(tapp_id);
 						Self::deposit_event(Event::TAppExpense(
 							tapp_id,
-							miners,
-							each_amount,
+							tapp_statements,
 							buy_price,
 							sell_price,
 							TotalSupplyTable::<T>::get(tapp_id),

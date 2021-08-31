@@ -892,6 +892,14 @@ pub trait CmlOperation {
 		X: FnOnce() -> ServiceTaskPoint,
 		Y: Fn(CmlId) -> ServiceTaskPoint;
 
+	fn cml_staking_snapshots(cml_id: CmlId) -> Vec<StakingSnapshotItem<Self::AccountId>>;
+
+	fn single_cml_staking_reward_statements(
+		cml_id: CmlId,
+		snapshot_items: &Vec<StakingSnapshotItem<Self::AccountId>>,
+		miner_total_reward: Self::Balance,
+	) -> Vec<(Self::AccountId, CmlId, Self::Balance)>;
+
 	/// Get current mining cml list;
 	fn current_mining_cmls() -> Vec<CmlId>;
 

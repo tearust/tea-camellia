@@ -153,19 +153,37 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 				total_task_point,
 				performance.unwrap_or(0),
 			);
-			let total_staking_point =
-				T::StakingEconomics::miner_total_staking_weight(&snapshot_items);
 
-			for item in snapshot_items.iter() {
-				let reward = T::StakingEconomics::single_staking_reward(
-					miner_total_reward,
-					total_staking_point,
-					item,
-				);
-				reward_statements.push((item.owner.clone(), cml_id, reward));
-			}
+			reward_statements.append(&mut Self::single_cml_staking_reward_statements(
+				cml_id,
+				&snapshot_items,
+				miner_total_reward,
+			));
 		}
 
+		reward_statements
+	}
+
+	fn cml_staking_snapshots(cml_id: CmlId) -> Vec<StakingSnapshotItem<Self::AccountId>> {
+		ActiveStakingSnapshot::<T>::get(cml_id)
+	}
+
+	fn single_cml_staking_reward_statements(
+		cml_id: CmlId,
+		snapshot_items: &Vec<StakingSnapshotItem<Self::AccountId>>,
+		miner_total_reward: Self::Balance,
+	) -> Vec<(Self::AccountId, CmlId, Self::Balance)> {
+		let total_staking_point = T::StakingEconomics::miner_total_staking_weight(&snapshot_items);
+
+		let mut reward_statements = Vec::new();
+		for item in snapshot_items.iter() {
+			let reward = T::StakingEconomics::single_staking_reward(
+				miner_total_reward,
+				total_staking_point,
+				item,
+			);
+			reward_statements.push((item.owner.clone(), cml_id, reward));
+		}
 		reward_statements
 	}
 

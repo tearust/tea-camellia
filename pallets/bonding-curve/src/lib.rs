@@ -238,15 +238,13 @@ pub mod bonding_curve {
 
 		/// Fired after TApp expensed successfully, event parameters:
 		/// 1. TApp Id
-		/// 2. Payed Account Id list
-		/// 3. Payed TEA amount
-		/// 4. Buy price
-		/// 5. Sell price
-		/// 6. Total supply
+		/// 2. Statements of miner rewards
+		/// 3. Buy price
+		/// 4. Sell price
+		/// 5. Total supply
 		TAppExpense(
 			TAppId,
-			Vec<T::AccountId>,
-			BalanceOf<T>,
+			Vec<(T::AccountId, CmlId, BalanceOf<T>)>,
 			BalanceOf<T>,
 			BalanceOf<T>,
 			BalanceOf<T>,
