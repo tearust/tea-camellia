@@ -372,6 +372,13 @@ fn testnet_genesis(
 		genesis_bank_operation_account.clone(),
 		INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
 	));
+
+	if let Some(index) = initial_balances
+		.iter()
+		.position(|(acc, _)| acc.eq(&bonding_curve_npc_account))
+	{
+		initial_balances.remove(index);
+	}
 	initial_balances.push((
 		bonding_curve_npc_account.clone(),
 		BONDING_CURVE_NPC_INITIAL_TEA_BALANCE,
