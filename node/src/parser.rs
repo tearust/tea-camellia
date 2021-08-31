@@ -15,9 +15,6 @@ const B_CML_AMOUNT_INDEX: usize = 6;
 const C_CML_AMOUNT_INDEX: usize = 7;
 
 const COMPETITION_ADDRESS_INDEX: usize = 2;
-const COMPETITION_MAX_A_AMOUNT: u32 = 1;
-const COMPETITION_MAX_B_AMOUNT: u32 = 2;
-const COMPETITION_MAX_C_AMOUNT: u32 = 4;
 
 impl Cli {
 	pub fn parse_genesis_coupons(&self) -> Result<GenesisCoupons<AccountId>, String> {
@@ -111,10 +108,7 @@ where
 		}
 		coupon_accounts.insert(account.clone());
 
-		let a_amount = min(
-			parse_coupon_amount(record.get(A_CML_AMOUNT_INDEX)),
-			COMPETITION_MAX_A_AMOUNT,
-		);
+		let a_amount = parse_coupon_amount(record.get(A_CML_AMOUNT_INDEX));
 		if a_amount > 0 {
 			coupons.push(CouponConfig {
 				account: account.clone(),
@@ -124,10 +118,7 @@ where
 			});
 		}
 
-		let b_amount = min(
-			parse_coupon_amount(record.get(B_CML_AMOUNT_INDEX)),
-			COMPETITION_MAX_B_AMOUNT,
-		);
+		let b_amount = parse_coupon_amount(record.get(B_CML_AMOUNT_INDEX));
 		if b_amount > 0 {
 			coupons.push(CouponConfig {
 				account: account.clone(),
@@ -137,10 +128,7 @@ where
 			});
 		}
 
-		let c_amount = min(
-			parse_coupon_amount(record.get(C_CML_AMOUNT_INDEX)),
-			COMPETITION_MAX_C_AMOUNT,
-		);
+		let c_amount = parse_coupon_amount(record.get(C_CML_AMOUNT_INDEX));
 		if c_amount > 0 {
 			coupons.push(CouponConfig {
 				account: account.clone(),
