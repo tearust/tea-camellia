@@ -558,8 +558,11 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 	pub(crate) fn accumulate_tapp_cost(tapp_id: TAppId) {
 		TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
+			let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 			tapp.current_cost = tapp.current_cost.saturating_add(
-				T::HostCostCoefficient::get().saturating_mul(tapp.host_performance.unwrap().into()),
+				T::HostCostCoefficient::get()
+				.saturating_mul(tapp.host_performance.unwrap().into())
+				.saturating_mul(host_count.into()),
 			);
 		});
 	}
@@ -788,10 +791,19 @@ mod tests {
 			assert_eq!(TAppBondingCurve::<Test>::get(tapp_id).current_cost, 0);
 
 			BondingCurve::accumulate_tapp_cost(tapp_id);
+			// Right now, there is zero host. the cost should be zero too
 			assert_eq!(
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
-				HOST_COST_COEFFICIENT.saturating_mul(performance.into())
+				// HOST_COST_COEFFICIENT.saturating_mul(performance.into())
+				0
 			);
+
+			// TODO: add one host, the cost should be 1000*HostCostCoefficient
+			// todo!();
+			// TODO: Add second host, the cost should be 1000*HostCostCoefficient*2
+			// todo!();
+			// TODO: remove the first host, the cost should be 1000*HostCostCoefficient 
+			// todo!();
 		})
 	}
 
