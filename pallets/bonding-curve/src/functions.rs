@@ -561,8 +561,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 			tapp.current_cost = tapp.current_cost.saturating_add(
 				T::HostCostCoefficient::get()
-				.saturating_mul(tapp.host_performance.unwrap().into())
-				.saturating_mul(host_count.into()),
+					.saturating_mul(tapp.host_performance.unwrap().into())
+					.saturating_mul(host_count.into()),
 			);
 		});
 	}
@@ -665,8 +665,11 @@ where
 #[cfg(test)]
 mod tests {
 	use crate::mock::*;
+	use crate::tests::seed_from_lifespan;
 	use crate::*;
 	use bonding_curve_impl::approximately_equals;
+	use frame_support::assert_ok;
+	use pallet_cml::{CmlStore, UserCmlStore, CML};
 
 	const CENTS: node_primitives::Balance = 10_000_000_000;
 	const DOLLARS: node_primitives::Balance = 100 * CENTS;
@@ -774,20 +777,47 @@ mod tests {
 	#[test]
 	fn accumulate_tapp_cost_works() {
 		new_test_ext().execute_with(|| {
-			let tapp_id = 1;
-			let performance = 1000u32;
-			TAppBondingCurve::<Test>::insert(
-				tapp_id,
-				TAppItem {
-					id: tapp_id,
-					buy_curve: CurveType::UnsignedSquareRoot_10,
-					sell_curve: CurveType::UnsignedSquareRoot_7,
-					host_performance: Some(performance),
-					max_allowed_hosts: Some(10),
-					..Default::default()
-				},
-			);
+			EnableUserCreateTApp::<Test>::set(true);
+			let miner = 2;
+			let tapp_owner = 1;
+			<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
 
+			let cml_id = 11;
+			let cml_id2 = 22;
+			let performance = 1000u32;
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+			let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100, 10000));
+			UserCmlStore::<Test>::insert(miner, cml_id, ());
+			UserCmlStore::<Test>::insert(miner, cml_id2, ());
+			CmlStore::<Test>::insert(cml_id, cml);
+			CmlStore::<Test>::insert(cml_id2, cml2);
+
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner),
+				cml_id,
+				[1u8; 32],
+				b"miner_ip".to_vec()
+			));
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner),
+				cml_id2,
+				[2u8; 32],
+				b"miner_ip".to_vec()
+			));
+
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(tapp_owner),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				Some(performance),
+				Some(10),
+			));
+
+			let tapp_id = 1;
 			assert_eq!(TAppBondingCurve::<Test>::get(tapp_id).current_cost, 0);
 
 			BondingCurve::accumulate_tapp_cost(tapp_id);
@@ -798,12 +828,32 @@ mod tests {
 				0
 			);
 
-			// TODO: add one host, the cost should be 1000*HostCostCoefficient
-			// todo!();
-			// TODO: Add second host, the cost should be 1000*HostCostCoefficient*2
-			// todo!();
-			// TODO: remove the first host, the cost should be 1000*HostCostCoefficient 
-			// todo!();
+			// add one host, the cost should be 1000*HostCostCoefficient
+			TAppBondingCurve::<Test>::mutate(tapp_id, |tapp_item| tapp_item.current_cost = 0);
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+			BondingCurve::accumulate_tapp_cost(tapp_id);
+			assert_eq!(
+				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
+				HOST_COST_COEFFICIENT.saturating_mul(performance.into())
+			);
+
+			// Add second host, the cost should be 1000*HostCostCoefficient*2
+			TAppBondingCurve::<Test>::mutate(tapp_id, |tapp_item| tapp_item.current_cost = 0);
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id2, tapp_id));
+			BondingCurve::accumulate_tapp_cost(tapp_id);
+			assert_eq!(
+				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
+				HOST_COST_COEFFICIENT.saturating_mul((performance * 2).into())
+			);
+
+			// remove the first host, the cost should be 1000*HostCostCoefficient
+			TAppBondingCurve::<Test>::mutate(tapp_id, |tapp_item| tapp_item.current_cost = 0);
+			assert_ok!(BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id));
+			BondingCurve::accumulate_tapp_cost(tapp_id);
+			assert_eq!(
+				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
+				HOST_COST_COEFFICIENT.saturating_mul(performance.into())
+			);
 		})
 	}
 
