@@ -253,6 +253,52 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 	/// Returned item fields:
 	/// - CML Id
+	/// - Owner account
+	/// - life remaining
+	/// - CML current performance
+	/// - CML remaining performance
+	/// - CML peak performance
+	pub fn tapp_hosted_cmls(
+		tapp_id: TAppId,
+	) -> Vec<(
+		CmlId,
+		Option<T::AccountId>,
+		T::BlockNumber,
+		Option<Performance>,
+		Option<Performance>,
+		Performance,
+	)> {
+		let current_block = frame_system::Pallet::<T>::block_number();
+
+		TAppCurrentHosts::<T>::iter_prefix(tapp_id)
+			.map(|(cml_id, _)| {
+				let (owner, life_remain) = match T::CmlOperation::cml_by_id(&cml_id) {
+					Ok(cml) => {
+						let life_spends = current_block
+							.saturating_sub(*cml.get_plant_at().unwrap_or(&Zero::zero()));
+						(
+							cml.owner().cloned(),
+							cml.lifespan().saturating_sub(life_spends),
+						)
+					}
+					_ => (None, Zero::zero()),
+				};
+				let (current_performance, remaining_performance, peak_performance) =
+					Self::cml_performance(cml_id);
+				(
+					cml_id,
+					owner,
+					life_remain,
+					current_performance,
+					remaining_performance,
+					peak_performance,
+				)
+			})
+			.collect()
+	}
+
+	/// Returned item fields:
+	/// - CML Id
 	/// - CML remaining performance
 	/// - TApp Id
 	/// - TApp Ticker

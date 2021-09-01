@@ -1331,6 +1331,16 @@ impl_runtime_apis! {
 			BondingCurve::list_candidate_miners(&who)
 		}
 
+		fn tapp_hosted_cmls(tapp_id: u64) -> Vec<(
+			u64,
+			Option<AccountId>,
+			BlockNumber,
+			Option<u32>,
+			Option<u32>,
+			u32)> {
+			BondingCurve::tapp_hosted_cmls(tapp_id)
+		}
+
 		fn list_cml_hosting_tapps(cml_id: u64) -> Vec<(
 			u64,
 			Option<u32>,
