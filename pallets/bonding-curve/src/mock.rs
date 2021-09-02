@@ -127,6 +127,7 @@ pub const POOL_BALANCE_REVERSE_PRECISION: Balance = 10;
 pub const HOST_ARRANGE_DURATION: u64 = 1000;
 pub const HOST_COST_COLLECTION_DURATION: u64 = 100;
 pub const HOST_COST_COEFFICIENT: Balance = 10000;
+pub const CONSUME_NOTE_MAX_LENGTH: u32 = 140;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
@@ -138,6 +139,7 @@ parameter_types! {
 	pub const HostArrangeDuration: u64 = HOST_ARRANGE_DURATION;
 	pub const HostCostCollectionDuration: u64 = HOST_COST_COLLECTION_DURATION;
 	pub const HostCostCoefficient: Balance = HOST_COST_COEFFICIENT;
+	pub const ConsumeNoteMaxLength: u32 = CONSUME_NOTE_MAX_LENGTH;
 }
 
 impl pallet_bonding_curve::Config for Test {
@@ -157,6 +159,7 @@ impl pallet_bonding_curve::Config for Test {
 	type HostArrangeDuration = HostArrangeDuration;
 	type HostCostCollectionDuration = HostCostCollectionDuration;
 	type HostCostCoefficient = HostCostCoefficient;
+	type ConsumeNoteMaxLength = ConsumeNoteMaxLength;
 }
 
 pub const STAKING_PRICE: Balance = 1000;

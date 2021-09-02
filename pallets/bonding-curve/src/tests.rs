@@ -722,7 +722,8 @@ fn consume_works_large_tea() {
 		assert_ok!(BondingCurve::consume(
 			Origin::signed(user4),
 			tapp_id,
-			spend_tea
+			spend_tea,
+			None
 		));
 		let left_balance = <Test as Config>::Currency::free_balance(&user4);
 		// println!("2 {:?}", &left_balance);
@@ -740,7 +741,7 @@ fn consume_should_fail_if_tapp_not_exist() {
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
 		assert_noop!(
-			BondingCurve::consume(Origin::signed(user1), 1, 10000),
+			BondingCurve::consume(Origin::signed(user1), 1, 10000, None),
 			Error::<Test>::TAppIdNotExist
 		);
 	})
@@ -769,7 +770,7 @@ fn consume_should_fail_if_consume_amount_is_zero() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BondingCurve::consume(Origin::signed(user2), tapp_id, 0),
+			BondingCurve::consume(Origin::signed(user2), tapp_id, 0, None),
 			Error::<Test>::OperationAmountCanNotBeZero
 		);
 	})
@@ -798,8 +799,42 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 
 		let tapp_id = 1;
 		assert_noop!(
-			BondingCurve::consume(Origin::signed(user2), tapp_id, 1_000_000),
+			BondingCurve::consume(Origin::signed(user2), tapp_id, 1_000_000, None),
 			Error::<Test>::InsufficientFreeBalance
+		);
+	})
+}
+
+#[test]
+fn consume_should_fail_if_note_is_too_long() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user1 = 1;
+		let user2 = 2;
+		let tapp_amount1 = 1_000_000;
+		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(user1),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			tapp_amount1,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			None,
+			None,
+		));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::consume(
+				Origin::signed(user2),
+				tapp_id,
+				1_000_000,
+				Some(vec![1; CONSUME_NOTE_MAX_LENGTH as usize + 1])
+			),
+			Error::<Test>::ConsumeNoteIsTooLong
 		);
 	})
 }
@@ -849,7 +884,8 @@ fn consume_works() {
 		assert_ok!(BondingCurve::consume(
 			Origin::signed(user4),
 			tapp_id,
-			spend_tea
+			spend_tea,
+			Some(b"test notes".to_vec())
 		));
 		let left_balance = <Test as Config>::Currency::free_balance(&user4);
 		assert!(approximately_equals::<Test>(

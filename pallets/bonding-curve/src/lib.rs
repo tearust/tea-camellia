@@ -76,6 +76,9 @@ pub mod bonding_curve {
 		#[pallet::constant]
 		type PoolBalanceReversePrecision: Get<BalanceOf<Self>>;
 
+		#[pallet::constant]
+		type ConsumeNoteMaxLength: Get<u32>;
+
 		/// duration to arrange (mainly reduce hosting TApps according performance) cml
 		#[pallet::constant]
 		type HostArrangeDuration: Get<Self::BlockNumber>;
@@ -225,12 +228,14 @@ pub mod bonding_curve {
 		/// Fired after TApp consume successfully, event parameters:
 		/// 1. TApp Id
 		/// 2. Consumed TEA amount
-		/// 3. Buy price
-		/// 4. Sell price
-		/// 5. Total supply
+		/// 3. Consumed notes
+		/// 4. Buy price
+		/// 5. Sell price
+		/// 6. Total supply
 		TAppConsume(
 			TAppId,
 			BalanceOf<T>,
+			Option<Vec<u8>>,
 			BalanceOf<T>,
 			BalanceOf<T>,
 			BalanceOf<T>,
@@ -322,6 +327,8 @@ pub mod bonding_curve {
 		CmlIsAlreadyHosting,
 		/// There is no miner hosting the tapp so no need to distribute
 		NoHostingToDistributeMiner,
+		/// Consume note should not over the max length limitation
+		ConsumeNoteIsTooLong,
 	}
 
 	#[pallet::hooks]
@@ -542,6 +549,7 @@ pub mod bonding_curve {
 			sender: OriginFor<T>,
 			tapp_id: TAppId,
 			tea_amount: BalanceOf<T>,
+			note: Option<Vec<u8>>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
@@ -560,6 +568,12 @@ pub mod bonding_curve {
 						T::CurrencyOperations::free_balance(who) >= tea_amount,
 						Error::<T>::InsufficientFreeBalance,
 					);
+					if let Some(ref note) = note {
+						ensure!(
+							note.len() <= T::ConsumeNoteMaxLength::get() as usize,
+							Error::<T>::ConsumeNoteIsTooLong
+						);
+					}
 					Ok(())
 				},
 				|who| {
@@ -581,6 +595,7 @@ pub mod bonding_curve {
 							Self::deposit_event(Event::TAppConsume(
 								tapp_id,
 								tea_amount,
+								note.clone(),
 								buy_price,
 								sell_price,
 								TotalSupplyTable::<T>::get(tapp_id),
