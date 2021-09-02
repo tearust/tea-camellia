@@ -1499,6 +1499,91 @@ fn unhost_should_fail_if_cml_not_host_the_tapp() {
 	})
 }
 
+#[test]
+fn update_tapp_resource_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+
+		let tapp_id = 1;
+		assert!(!TAppResourceMap::<Test>::contains_key(tapp_id));
+
+		let cid = b"test cid".to_vec();
+		assert_ok!(BondingCurve::update_tapp_resource(
+			Origin::signed(tapp_owner),
+			tapp_id,
+			cid.clone()
+		));
+		assert!(TAppResourceMap::<Test>::contains_key(tapp_id));
+		assert_eq!(TAppResourceMap::<Test>::get(tapp_id), cid);
+	})
+}
+
+#[test]
+fn update_tapp_resource_should_fail_if_cid_is_too_long() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			BondingCurve::update_tapp_resource(
+				Origin::signed(1),
+				1,
+				vec![0; CID_MAX_LENGTH as usize + 1]
+			),
+			Error::<Test>::CidIsToLong
+		);
+	})
+}
+
+#[test]
+fn update_tapp_resource_should_fail_if_tapp_id_not_exist() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			BondingCurve::update_tapp_resource(Origin::signed(1), 1, b"test cid".to_vec(),),
+			Error::<Test>::TAppIdNotExist
+		);
+	})
+}
+
+#[test]
+fn update_tapp_resource_should_fail_if_user_is_not_tapp_owner() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let tapp_owner = 1;
+		let user = 2;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+
+		let tapp_id = 1;
+
+		let cid = b"test cid".to_vec();
+		assert_noop!(
+			BondingCurve::update_tapp_resource(Origin::signed(user), tapp_id, cid.clone()),
+			Error::<Test>::OnlyTAppOwnerAllowedToExpense
+		);
+	})
+}
+
 pub fn seed_from_lifespan(id: CmlId, lifespan: u32, performance: u32) -> Seed {
 	Seed {
 		id,

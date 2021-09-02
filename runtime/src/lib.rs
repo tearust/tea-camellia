@@ -900,6 +900,7 @@ parameter_types! {
 	pub const HostCostCollectionDuration: BlockNumber = 100;
 	pub const HostCostCoefficient: Balance = 100_000_000;
 	pub const ConsumeNoteMaxLength: u32 = 140;
+	pub const CidMaxLength: u32 = 100;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -920,6 +921,7 @@ impl pallet_bonding_curve::Config for Runtime {
 	type HostCostCollectionDuration = HostCostCollectionDuration;
 	type HostCostCoefficient = HostCostCoefficient;
 	type ConsumeNoteMaxLength = ConsumeNoteMaxLength;
+	type CidMaxLength = CidMaxLength;
 }
 
 parameter_types! {

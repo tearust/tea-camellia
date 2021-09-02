@@ -89,6 +89,9 @@ pub mod bonding_curve {
 		#[pallet::constant]
 		type HostCostCoefficient: Get<BalanceOf<Self>>;
 
+		#[pallet::constant]
+		type CidMaxLength: Get<u32>;
+
 		type LinearCurve: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
@@ -157,6 +160,10 @@ pub mod bonding_curve {
 	#[pallet::getter(fn tapp_current_hosted_cmls)]
 	pub type CmlHostingTApps<T: Config> =
 		StorageMap<_, Twox64Concat, CmlId, Vec<TAppId>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn tapp_resource_map)]
+	pub type TAppResourceMap<T: Config> = StorageMap<_, Twox64Concat, TAppId, Vec<u8>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -329,6 +336,10 @@ pub mod bonding_curve {
 		NoHostingToDistributeMiner,
 		/// Consume note should not over the max length limitation
 		ConsumeNoteIsTooLong,
+		/// Only the tapp owner is allowed to submit the `update_tapp_resource` extrinsic
+		OnlyTAppOwnerAllowedToUpdateResource,
+		/// The length of the cid parameter is longer than required
+		CidIsToLong,
 	}
 
 	#[pallet::hooks]
@@ -721,6 +732,39 @@ pub mod bonding_curve {
 				},
 				|_who| {
 					Self::unhost_tapp(tapp_id, cml_id);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn update_tapp_resource(
+			sender: OriginFor<T>,
+			tapp_id: TAppId,
+			cid: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						cid.len() <= T::CidMaxLength::get() as usize,
+						Error::<T>::CidIsToLong
+					);
+					ensure!(
+						TAppBondingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					let tapp = TAppBondingCurve::<T>::get(tapp_id);
+					ensure!(
+						who.eq(&tapp.owner),
+						Error::<T>::OnlyTAppOwnerAllowedToExpense
+					);
+
+					Ok(())
+				},
+				|_who| {
+					TAppResourceMap::<T>::insert(tapp_id, cid.clone());
 				},
 			)
 		}
