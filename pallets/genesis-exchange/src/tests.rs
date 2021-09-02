@@ -582,7 +582,7 @@ fn borrow_usd_should_if_initial_amount_larger_than_borrow_allowance() {
 
 		assert_noop!(
 			GenesisExchange::borrow_usd(Origin::signed(user), BORROW_ALLOWANCE + 1),
-			Error::<Test>::InitialBorrowAmountShouldLessThanBorrowAllowance
+			Error::<Test>::BorrowedDebtAmountHasOverThanMaxAllowed
 		);
 	})
 }
@@ -601,7 +601,7 @@ fn borrow_usd_should_if_borrowed_max_allowance_amount_usd_and_continue_borrow() 
 
 		assert_noop!(
 			GenesisExchange::borrow_usd(Origin::signed(user), 1),
-			Error::<Test>::UsdDebtReferenceAssetAmountIsLowerThanBorrowAllowance
+			Error::<Test>::BorrowedDebtAmountHasOverThanMaxAllowed
 		);
 	})
 }
@@ -610,27 +610,24 @@ fn borrow_usd_should_if_borrowed_max_allowance_amount_usd_and_continue_borrow() 
 fn if_asset_larger_than_max_borrow_allowance_user_borrowed_amount_should_lower_than_ratio_cap() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
-
 		assert_ok!(GenesisExchange::borrow_usd(
 			Origin::signed(user),
 			BORROW_ALLOWANCE
 		));
 		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE);
 		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE);
-
 		USDStore::<Test>::mutate(user, |amount| {
 			*amount = amount.saturating_add(BORROW_ALLOWANCE.into())
 		});
-
+		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE);
+		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE*2);
+		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), BORROW_ALLOWANCE));
+		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE*2);
+		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE*3);
 		assert_noop!(
-			GenesisExchange::borrow_usd(Origin::signed(user), BORROW_ALLOWANCE * 2),
+			GenesisExchange::borrow_usd(Origin::signed(user), 1),
 			Error::<Test>::BorrowedDebtAmountHasOverThanMaxAllowed
 		);
-
-		assert_ok!(GenesisExchange::borrow_usd(
-			Origin::signed(user),
-			BORROW_ALLOWANCE
-		));
 	})
 }
 

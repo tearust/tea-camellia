@@ -348,26 +348,12 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		amount: &BalanceOf<T>,
 	) -> DispatchResult {
 		let asset_amount = Self::usd_debt_reference_asset_amount(who);
-
-		if asset_amount < T::BorrowAllowance::get() {
-			ensure!(
-				amount.saturating_add(asset_amount) <= T::BorrowAllowance::get(),
-				Error::<T>::InitialBorrowAmountShouldLessThanBorrowAllowance
-			);
-			return Ok(());
+		let debt = USDDebt::<T>::get(who);
+		if	amount.saturating_add(debt) <= T::BorrowAllowance::get(){
+			return Ok(())
 		}
-
-		let ratio_base = asset_amount
-			.checked_sub(&T::BorrowAllowance::get())
-			.ok_or(Error::<T>::UsdDebtReferenceAssetAmountIsLowerThanBorrowAllowance)?;
 		ensure!(
-			!ratio_base.is_zero(),
-			Error::<T>::UsdDebtReferenceAssetAmountIsLowerThanBorrowAllowance
-		);
-
-		let debt = USDDebt::<T>::get(who).saturating_add(amount.clone());
-		ensure!(
-			debt * 10000u32.into() / ratio_base <= T::BorrowDebtRatioCap::get(),
+			T::BorrowDebtRatioCap::get().saturating_mul(asset_amount.saturating_sub(debt))/10000u32.into()  >= debt.saturating_add(*amount),
 			Error::<T>::BorrowedDebtAmountHasOverThanMaxAllowed
 		);
 		Ok(())
