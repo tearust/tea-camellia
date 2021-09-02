@@ -867,6 +867,8 @@ parameter_types! {
 	pub const CmlARedeemCouponCost: Balance =  2000 * DOLLARS;
 	pub const CmlBRedeemCouponCost: Balance =  1000 * DOLLARS;
 	pub const CmlCRedeemCouponCost: Balance =  500 * DOLLARS;
+	pub const BorrowAllowance: Balance = 20000 * DOLLARS;
+	pub const BorrowDebtRatioCap: Balance = 20000;
 }
 
 impl pallet_genesis_exchange::Config for Runtime {
@@ -883,6 +885,8 @@ impl pallet_genesis_exchange::Config for Runtime {
 	type CmlARedeemCouponCost = CmlARedeemCouponCost;
 	type CmlBRedeemCouponCost = CmlBRedeemCouponCost;
 	type CmlCRedeemCouponCost = CmlCRedeemCouponCost;
+	type BorrowAllowance = BorrowAllowance;
+	type BorrowDebtRatioCap = BorrowDebtRatioCap;
 }
 
 parameter_types! {
@@ -895,6 +899,7 @@ parameter_types! {
 	pub const HostArrangeDuration: BlockNumber = 1000;
 	pub const HostCostCollectionDuration: BlockNumber = 100;
 	pub const HostCostCoefficient: Balance = 100_000_000;
+	pub const ConsumeNoteMaxLength: u32 = 140;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -914,6 +919,7 @@ impl pallet_bonding_curve::Config for Runtime {
 	type HostArrangeDuration = HostArrangeDuration;
 	type HostCostCollectionDuration = HostCostCollectionDuration;
 	type HostCostCoefficient = HostCostCoefficient;
+	type ConsumeNoteMaxLength = ConsumeNoteMaxLength;
 }
 
 parameter_types! {

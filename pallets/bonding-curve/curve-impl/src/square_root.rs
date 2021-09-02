@@ -28,7 +28,7 @@ where
 		if area.is_zero() {
 			return Zero::zero();
 		}
-		
+
 		let mut times = 0;
 		let mut last_diff = Balance::zero();
 		let mut x_n: Balance = Balance::from(1_100_000u32) * Balance::from(1_000_000u32);
@@ -45,8 +45,8 @@ where
 					Zero::zero()
 				} else {
 					x_n.clone()
-						+ area.clone() / K.into() * 10u32.into() * 1_000_000u32.into() / x_n.integer_sqrt()
-						- x_n.clone() * 2u32.into() / 3u32.into()
+						+ area.clone() / K.into() * 10u32.into() * 1_000_000u32.into()
+							/ x_n.integer_sqrt() - x_n.clone() * 2u32.into() / 3u32.into()
 				}
 			};
 			// println!(

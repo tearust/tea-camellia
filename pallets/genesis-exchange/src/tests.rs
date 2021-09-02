@@ -562,6 +562,79 @@ fn borrow_usd_should_fail_if_borrowed_amount_is_overflow() {
 }
 
 #[test]
+fn borrow_usd_works_if_borrowed_amount_less_than_borrow_allowance() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		assert_ok!(GenesisExchange::borrow_usd(
+			Origin::signed(user),
+			BORROW_ALLOWANCE
+		));
+		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE);
+		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE);
+	})
+}
+
+#[test]
+fn borrow_usd_should_if_initial_amount_larger_than_borrow_allowance() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		assert_noop!(
+			GenesisExchange::borrow_usd(Origin::signed(user), BORROW_ALLOWANCE + 1),
+			Error::<Test>::InitialBorrowAmountShouldLessThanBorrowAllowance
+		);
+	})
+}
+
+#[test]
+fn borrow_usd_should_if_borrowed_max_allowance_amount_usd_and_continue_borrow() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		assert_ok!(GenesisExchange::borrow_usd(
+			Origin::signed(user),
+			BORROW_ALLOWANCE
+		));
+		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE);
+		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE);
+
+		assert_noop!(
+			GenesisExchange::borrow_usd(Origin::signed(user), 1),
+			Error::<Test>::UsdDebtReferenceAssetAmountIsLowerThanBorrowAllowance
+		);
+	})
+}
+
+#[test]
+fn if_asset_larger_than_max_borrow_allowance_user_borrowed_amount_should_lower_than_ratio_cap() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+
+		assert_ok!(GenesisExchange::borrow_usd(
+			Origin::signed(user),
+			BORROW_ALLOWANCE
+		));
+		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE);
+		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE);
+
+		USDStore::<Test>::mutate(user, |amount| {
+			*amount = amount.saturating_add(BORROW_ALLOWANCE.into())
+		});
+
+		assert_noop!(
+			GenesisExchange::borrow_usd(Origin::signed(user), BORROW_ALLOWANCE * 2),
+			Error::<Test>::BorrowedDebtAmountHasOverThanMaxAllowed
+		);
+
+		assert_ok!(GenesisExchange::borrow_usd(
+			Origin::signed(user),
+			BORROW_ALLOWANCE
+		));
+	})
+}
+
+#[test]
 fn repay_usd_debts_works() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
