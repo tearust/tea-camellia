@@ -867,6 +867,8 @@ parameter_types! {
 	pub const CmlARedeemCouponCost: Balance =  2000 * DOLLARS;
 	pub const CmlBRedeemCouponCost: Balance =  1000 * DOLLARS;
 	pub const CmlCRedeemCouponCost: Balance =  500 * DOLLARS;
+	pub const BorrowAllowance: Balance = 20000 * DOLLARS;
+	pub const BorrowDebtRatioCap: Balance = 20000;
 }
 
 impl pallet_genesis_exchange::Config for Runtime {
@@ -883,6 +885,8 @@ impl pallet_genesis_exchange::Config for Runtime {
 	type CmlARedeemCouponCost = CmlARedeemCouponCost;
 	type CmlBRedeemCouponCost = CmlBRedeemCouponCost;
 	type CmlCRedeemCouponCost = CmlCRedeemCouponCost;
+	type BorrowAllowance = BorrowAllowance;
+	type BorrowDebtRatioCap = BorrowDebtRatioCap;
 }
 
 parameter_types! {

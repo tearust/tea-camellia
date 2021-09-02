@@ -86,6 +86,13 @@ pub mod genesis_exchange {
 
 		#[pallet::constant]
 		type CmlCRedeemCouponCost: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type BorrowAllowance: Get<BalanceOf<Self>>;
+
+		/// Ratio cap ten thousand units(‱).
+		#[pallet::constant]
+		type BorrowDebtRatioCap: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -223,6 +230,13 @@ pub mod genesis_exchange {
 		RepayUSDAmountMoreThanDebtAmount,
 		/// Not enough USD amount to redeem coupons when draw lucky box
 		InsufficientUSDToRedeemCoupons,
+		/// User debt utilization needs to be below the debt / asset ratio of `BorrowDebtRatioCap`,
+		/// before any more COFFEE loans can be issued
+		BorrowedDebtAmountHasOverThanMaxAllowed,
+		/// User asset amount should larger than borrow borrow allowance
+		UsdDebtReferenceAssetAmountIsLowerThanBorrowAllowance,
+		/// If user asset amount is less than `BorrowAllowance` debt amount should less than borrow allowance
+		InitialBorrowAmountShouldLessThanBorrowAllowance,
 	}
 
 	#[pallet::hooks]
@@ -387,6 +401,7 @@ pub mod genesis_exchange {
 						USDStore::<T>::get(who).checked_add(&amount).is_some(),
 						Error::<T>::BorrowAmountHasOverflow,
 					);
+					Self::check_borrowed_amount(who, &amount)?;
 
 					Ok(())
 				},

@@ -158,6 +158,8 @@ pub const CML_C_MINING_MACHINE_COST: Balance = 500;
 pub const CML_A_REDEEM_COUPON_COST: Balance = 2000;
 pub const CML_B_REDEEM_COUPON_COST: Balance = 1000;
 pub const CML_C_REDEEM_COUPON_COST: Balance = 500;
+pub const BORROW_ALLOWANCE: Balance = 20000;
+pub const BORROW_DEBT_RATIO_CAP: Balance = 20000;
 
 parameter_types! {
 	pub const PER: Balance = PER_RATE;
@@ -168,6 +170,8 @@ parameter_types! {
 	pub const CmlARedeemCouponCost: Balance = CML_A_REDEEM_COUPON_COST;
 	pub const CmlBRedeemCouponCost: Balance = CML_B_REDEEM_COUPON_COST;
 	pub const CmlCRedeemCouponCost: Balance = CML_C_REDEEM_COUPON_COST;
+	pub const BorrowAllowance: Balance = BORROW_ALLOWANCE;
+	pub const BorrowDebtRatioCap: Balance = BORROW_DEBT_RATIO_CAP;
 }
 
 impl pallet_genesis_exchange::Config for Test {
@@ -184,6 +188,8 @@ impl pallet_genesis_exchange::Config for Test {
 	type CmlARedeemCouponCost = CmlARedeemCouponCost;
 	type CmlBRedeemCouponCost = CmlBRedeemCouponCost;
 	type CmlCRedeemCouponCost = CmlCRedeemCouponCost;
+	type BorrowAllowance = BorrowAllowance;
+	type BorrowDebtRatioCap = BorrowDebtRatioCap;
 }
 
 parameter_types! {
@@ -236,7 +242,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			.iter()
 			.map(|v| (*v, COMPETITION_USER_USD_AMOUNT))
 			.collect(),
-		bonding_curve_npc: (Default::default(), 0)
+		bonding_curve_npc: (Default::default(), 0),
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

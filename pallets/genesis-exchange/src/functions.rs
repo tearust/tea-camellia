@@ -342,6 +342,53 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		USDStore::<T>::insert(dest, dest_amount);
 		Ok(())
 	}
+
+	pub(crate) fn check_borrowed_amount(
+		who: &T::AccountId,
+		amount: &BalanceOf<T>,
+	) -> DispatchResult {
+		let asset_amount = Self::usd_debt_reference_asset_amount(who);
+
+		if asset_amount < T::BorrowAllowance::get() {
+			ensure!(
+				amount.saturating_add(asset_amount) <= T::BorrowAllowance::get(),
+				Error::<T>::InitialBorrowAmountShouldLessThanBorrowAllowance
+			);
+			return Ok(());
+		}
+
+		let ratio_base = asset_amount
+			.checked_sub(&T::BorrowAllowance::get())
+			.ok_or(Error::<T>::UsdDebtReferenceAssetAmountIsLowerThanBorrowAllowance)?;
+		ensure!(
+			!ratio_base.is_zero(),
+			Error::<T>::UsdDebtReferenceAssetAmountIsLowerThanBorrowAllowance
+		);
+
+		let debt = USDDebt::<T>::get(who).saturating_add(amount.clone());
+		ensure!(
+			debt * 10000u32.into() / ratio_base <= T::BorrowDebtRatioCap::get(),
+			Error::<T>::BorrowedDebtAmountHasOverThanMaxAllowed
+		);
+		Ok(())
+	}
+
+	fn usd_debt_reference_asset_amount(who: &T::AccountId) -> BalanceOf<T> {
+		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
+		let one_tea_dollar = Self::one_tea_dollar();
+
+		let usd_amount = USDStore::<T>::get(who);
+		let tea_amount = Self::single_user_tea_asset(who, &current_exchange_rate, &one_tea_dollar);
+		let cml_assets = Self::collect_cml_assets();
+		let cml_amount = match cml_assets.contains_key(who) {
+			true => cml_assets[who],
+			false => Zero::zero(),
+		};
+
+		usd_amount
+			.saturating_add(tea_amount)
+			.saturating_add(cml_amount)
+	}
 }
 
 #[cfg(test)]
