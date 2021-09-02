@@ -373,7 +373,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		Ok(())
 	}
 
-	fn usd_debt_reference_asset_amount(who: &T::AccountId) -> BalanceOf<T> {
+	pub(crate) fn usd_debt_reference_asset_amount(who: &T::AccountId) -> BalanceOf<T> {
 		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		let one_tea_dollar = Self::one_tea_dollar();
 

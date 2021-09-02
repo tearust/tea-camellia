@@ -1258,6 +1258,10 @@ impl_runtime_apis! {
 		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance)> {
 			GenesisExchange::user_asset_list()
 		}
+
+		fn usd_borrowed_ratio(who: &AccountId) -> Option<Balance> {
+			GenesisExchange::usd_borrowed_ratio(who)
+		}
 	}
 
 	impl bonding_curve_runtime_api::BondingCurveApi<Block, AccountId> for Runtime {

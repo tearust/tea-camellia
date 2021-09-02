@@ -161,6 +161,17 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		total_assets
 	}
 
+	pub fn usd_borrowed_ratio(who: &T::AccountId) -> Option<BalanceOf<T>> {
+		let asset_amount = Self::usd_debt_reference_asset_amount(who);
+		let ratio_base = asset_amount.saturating_sub(T::BorrowAllowance::get());
+
+		if ratio_base.is_zero() {
+			return None;
+		}
+
+		Some(USDDebt::<T>::get(who) * 10000u32.into() / ratio_base)
+	}
+
 	pub fn one_tea_dollar() -> BalanceOf<T> {
 		u128_to_balance::<T>(10_000_000_000 * 100)
 	}
