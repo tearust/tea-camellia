@@ -191,23 +191,43 @@ pub fn canary_testnet_config(
 	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
 ) -> Result<ChainSpec, String> {
+	// Canary Alice
 	const ROOT_PUB_STR: (&str, &str) = (
 		"d28a175da66df33a0b9573d90691bdb75470b11a1b640d3e359dcd1263306b12",
 		"a19ab5f7e9e57b51e346a462f6178c40bd08810133562b340d7759098786f856",
 	);
-	const ENDOWED_ACCOUNTS_PUB_STR: [(&str, &str); 4] = [
+	// initial 7+2 validator accounts
+	const ENDOWED_ACCOUNTS_PUB_STR: [(&str, &str); 7] = [
 		ROOT_PUB_STR,
+		// Canary Bob
 		(
 			"6a2e15ae634749343f528be99b2c652d562d83b29a767250accb7b8f8a897815",
 			"d8be5951a4ffa51c0c39c5869835dd999435edc7a9afd19784b71a63be77d382",
 		),
+		// Canary Charlie
 		(
 			"f641ccbee2c683f67bb45ae7108c811dcda078fdb8d1225085200a485dd38433",
 			"8d103f39de4ae64178f5458f09b63967d8c5632cd966cdf28c5da788c78570fd",
 		),
+		// Canary Dave
 		(
 			"ae948264f576389d41bc37f7861253363527233fc4be4995fa923439ba3e465e",
 			"185b7d09bf57d149e9b5ddee0e0ab37109c165ce75f34471725652043fc28569",
+		),
+		// Canary Eve
+		(
+			"8aa95b05807541333b1e813aac09324a2da8b3944f9ca0ec0d1ed1a3ce62156d",
+			"f67da55264b0fca59cf5e85e836a697e153c3cdc0a4cbbfad83854c8484b6bec",
+		),
+		// Canary Ferdie
+		(
+			"0680b9f25482187be19be68c55330e3e4c346bcfa74027efc3a34fea9eecb944",
+			"3acb32af2212577621266bd7983b09bff74f4adf33c6f5d7e96e81c43876c7f2",
+		),
+		// Canary George
+		(
+			"4269ae995ed87351689b3397d122c06c7f77bdf593074e31113b13300e360626",
+			"fd485a9e576d25999f05d2534fc8f52824bb180cad604cdfd734f92a4d846112",
 		),
 	];
 
