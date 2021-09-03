@@ -1,4 +1,11 @@
+use crate::square_root::k10::K10_AREAS;
+use crate::square_root::k7::K7_AREAS;
 use crate::*;
+
+const REFERENCE_POINTS_SIZE: usize = 1000;
+
+mod k10;
+mod k7;
 
 /// Implement equation: `y = k√x`
 ///
@@ -31,7 +38,7 @@ where
 
 		let mut times = 0;
 		let mut last_diff = Balance::zero();
-		let mut x_n: Balance = Balance::from(1_100_000u32) * Balance::from(1_000_000u32);
+		let mut x_n: Balance = Self::select_nearest_reference_point(&area);
 		let diff = |a: Balance, b: Balance| {
 			if a > b {
 				a - b
@@ -102,6 +109,40 @@ where
 	}
 }
 
+impl<Balance, const K: u32> UnsignedSquareRoot<Balance, K>
+where
+	Balance: AtLeast32BitUnsigned + Default + Clone + Debug,
+{
+	fn select_nearest_reference_point(area: &Balance) -> Balance {
+		const CENTS: u128 = 10_000_000_000;
+		const DOLLARS: u128 = 100 * CENTS;
+
+		let default_starter: Balance = Balance::from(1_100_000u32) * Balance::from(1_000_000u32);
+
+		let nearest_point = |areas: &[u128; REFERENCE_POINTS_SIZE]| {
+			let mut nearest_index = 0;
+			for i in 0..REFERENCE_POINTS_SIZE {
+				if Balance::try_from(areas[i]).unwrap_or(Zero::zero()) > *area {
+					break;
+				}
+				nearest_index = i;
+			}
+
+			match nearest_index {
+				0 => default_starter.clone(),
+				_ => Balance::try_from((nearest_index as u128) * 100 * DOLLARS)
+					.unwrap_or(Zero::zero()),
+			}
+		};
+
+		match K {
+			10 => nearest_point(&K10_AREAS),
+			7 => nearest_point(&K7_AREAS),
+			_ => default_starter,
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -109,6 +150,17 @@ mod tests {
 
 	const CENTS: node_primitives::Balance = 10_000_000_000;
 	const DOLLARS: node_primitives::Balance = 100 * CENTS;
+
+	#[test]
+	fn tests() {
+		type RootSquare_10 = UnsignedSquareRoot<Balance, 7>; // y = 10√x
+		for i in 1..=1000 {
+			println!(
+				"{},",
+				<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(i * 100 * DOLLARS),
+			);
+		}
+	}
 
 	#[test]
 	fn pool_balance_works() {
