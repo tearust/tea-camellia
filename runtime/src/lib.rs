@@ -1261,8 +1261,8 @@ impl_runtime_apis! {
 			GenesisExchange::user_asset_list()
 		}
 
-		fn usd_borrowed_ratio(who: &AccountId) -> Option<Balance> {
-			GenesisExchange::usd_borrowed_ratio(who)
+		fn user_borrowing_usd_margin(who: &AccountId) -> Balance {
+			GenesisExchange::user_borrowing_usd_margin(who)
 		}
 	}
 

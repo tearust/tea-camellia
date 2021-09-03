@@ -161,15 +161,17 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		total_assets
 	}
 
-	pub fn usd_borrowed_ratio(who: &T::AccountId) -> Option<BalanceOf<T>> {
+	pub fn user_borrowing_usd_margin(who: &T::AccountId) -> BalanceOf<T> {
 		let asset_amount = Self::usd_debt_reference_asset_amount(who);
-		let ratio_base = asset_amount.saturating_sub(T::BorrowAllowance::get());
+		let debt = USDDebt::<T>::get(who);
 
-		if ratio_base.is_zero() {
-			return None;
-		}
+		let max_allowed_debts = max(
+			T::BorrowDebtRatioCap::get().saturating_mul(asset_amount.saturating_sub(debt))
+				/ 10000u32.into(),
+			T::BorrowAllowance::get(),
+		);
 
-		Some(USDDebt::<T>::get(who) * 10000u32.into() / ratio_base)
+		max_allowed_debts.saturating_sub(debt)
 	}
 
 	pub fn one_tea_dollar() -> BalanceOf<T> {

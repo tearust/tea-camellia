@@ -37,6 +37,6 @@ sp_api::decl_runtime_apis! {
 		/// 7. Total account value
 		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance)>;
 
-		fn usd_borrowed_ratio(who: &AccountId) -> Option<Balance>;
+		fn user_borrowing_usd_margin(who: &AccountId) -> Balance;
 	}
 }

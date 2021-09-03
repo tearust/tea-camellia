@@ -50,8 +50,8 @@ pub trait GenesisExchangeApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price)>>;
 
-	#[rpc(name = "cml_usdBorrowedRatio")]
-	fn usd_borrowed_ratio(&self, who: AccountId, at: Option<BlockHash>) -> Result<Option<Price>>;
+	#[rpc(name = "cml_userBorrowingUsdMargin")]
+	fn user_borrowing_usd_margin(&self, who: AccountId, at: Option<BlockHash>) -> Result<Price>;
 }
 
 pub struct GenesisExchangeApiImpl<C, M> {
@@ -169,19 +169,19 @@ where
 			.collect())
 	}
 
-	fn usd_borrowed_ratio(
+	fn user_borrowing_usd_margin(
 		&self,
 		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Option<Price>> {
+	) -> Result<Price> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let result: Option<Balance> = api
-			.usd_borrowed_ratio(&at, &who)
+		let result: Balance = api
+			.user_borrowing_usd_margin(&at, &who)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(result.map(|balance| Price(balance)))
+		Ok(Price(result))
 	}
 }
