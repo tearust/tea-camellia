@@ -15,6 +15,7 @@ mod functions;
 mod mining;
 mod rpc;
 
+use bonding_curve_interface::BondingCurveOperation;
 use frame_support::{
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement},
@@ -59,6 +60,11 @@ pub mod genesis_exchange {
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 			BlockNumber = Self::BlockNumber,
+		>;
+
+		type BondingCurveOperation: BondingCurveOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
 		>;
 
 		/// Price-to-Earning Ratio

@@ -877,6 +877,7 @@ impl pallet_genesis_exchange::Config for Runtime {
 	type CmlOperation = Cml;
 	type CurrencyOperations = Utils;
 	type GenesisBankOperation = GenesisBank;
+	type BondingCurveOperation = BondingCurve;
 	type PER = PER;
 	type InterestPeriodLength = InterestPeriodLength;
 	type CmlAMiningMachineCost = CmlAMiningMachineCost;

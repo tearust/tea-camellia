@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use sp_runtime::traits::AtLeast32BitUnsigned;
+use sp_std::prelude::*;
 
 pub trait BondingCurveInterface<Balance>
 where
@@ -16,4 +17,15 @@ where
 
 	/// given the area (tea token) calculate how much x (tapp token) change
 	fn pool_balance_reverse(area: Balance, precision: Balance) -> Balance;
+}
+
+pub trait BondingCurveOperation {
+	type AccountId: Default;
+	type Balance: Default;
+
+	fn list_tapp_ids() -> Vec<u64>;
+
+	fn estimate_hosting_income_statements(
+		tapp_id: u64,
+	) -> Vec<(Self::AccountId, u64, Self::Balance)>;
 }

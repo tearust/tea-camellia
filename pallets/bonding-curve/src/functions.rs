@@ -2,6 +2,38 @@ use super::*;
 
 pub(crate) const CALCULATION_PRECISION: u32 = 100000000;
 
+impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T> {
+	type AccountId = T::AccountId;
+	type Balance = BalanceOf<T>;
+
+	fn list_tapp_ids() -> Vec<u64> {
+		TAppBondingCurve::<T>::iter().map(|(id, _)| id).collect()
+	}
+
+	fn estimate_hosting_income_statements(
+		tapp_id: u64,
+	) -> Vec<(Self::AccountId, CmlId, Self::Balance)> {
+		let tapp = TAppBondingCurve::<T>::get(tapp_id);
+		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
+		let tea_amount = tapp.current_cost.saturating_add(
+			T::HostCostCoefficient::get()
+				.saturating_mul(tapp.host_performance.unwrap().into())
+				.saturating_mul(host_count.into()),
+		);
+
+		if let Ok((_, distribute_tea_amount, _)) =
+			Self::calculate_given_received_tea_how_much_seller_give_away(tapp_id, tea_amount)
+		{
+			return match Self::distribute_to_miners(tapp_id, distribute_tea_amount, false) {
+				Ok(statements) => statements,
+				Err(_) => vec![],
+			};
+		}
+
+		vec![]
+	}
+}
+
 impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn need_arrange_host(height: T::BlockNumber) -> bool {
 		// offset with `InterestPeriodLength` - 3 to void overlapping with staking period
@@ -570,6 +602,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn distribute_to_miners(
 		tapp_id: TAppId,
 		total_amount: BalanceOf<T>,
+		do_transfer: bool,
 	) -> Result<Vec<(T::AccountId, CmlId, BalanceOf<T>)>, DispatchError> {
 		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 		ensure!(
@@ -588,14 +621,17 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				each_amount,
 			);
 
-			for (account, _, amount) in statements.iter() {
-				T::CurrencyOperations::transfer(
-					&OperationAccount::<T>::get(),
-					account,
-					amount.clone(),
-					ExistenceRequirement::AllowDeath,
-				)?;
+			if do_transfer {
+				for (account, _, amount) in statements.iter() {
+					T::CurrencyOperations::transfer(
+						&OperationAccount::<T>::get(),
+						account,
+						amount.clone(),
+						ExistenceRequirement::AllowDeath,
+					)?;
+				}
 			}
+
 			tapp_statements.append(&mut statements);
 		}
 		Ok(tapp_statements)
@@ -612,7 +648,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			tapp.current_cost,
 		) {
 			Ok((withdraw_tapp_amount, distribute_tea_amount, is_reserved_tea_zero)) => {
-				match Self::distribute_to_miners(tapp_id, distribute_tea_amount) {
+				match Self::distribute_to_miners(tapp_id, distribute_tea_amount, true) {
 					Ok(tapp_statements) => {
 						Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
 						TAppBondingCurve::<T>::mutate(tapp_id, |tapp_item| {

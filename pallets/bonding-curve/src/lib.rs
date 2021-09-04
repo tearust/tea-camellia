@@ -16,7 +16,7 @@ mod functions;
 mod rpc;
 mod types;
 
-use bonding_curve_interface::BondingCurveInterface;
+use bonding_curve_interface::{BondingCurveInterface, BondingCurveOperation};
 use codec::{Decode, Encode};
 use frame_support::{
 	pallet_prelude::*,

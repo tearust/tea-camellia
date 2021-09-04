@@ -1,4 +1,5 @@
 use crate as pallet_genesis_exchange;
+use bonding_curve_interface::BondingCurveOperation;
 use frame_benchmarking::frame_support::pallet_prelude::GenesisBuild;
 use frame_support::{parameter_types, traits::Currency};
 use frame_system as system;
@@ -13,6 +14,29 @@ use sp_runtime::{
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+
+pub struct BondingCurveOperationMock {}
+
+impl Default for BondingCurveOperationMock {
+	fn default() -> Self {
+		BondingCurveOperationMock {}
+	}
+}
+
+impl BondingCurveOperation for BondingCurveOperationMock {
+	type AccountId = u64;
+	type Balance = Balance;
+
+	fn list_tapp_ids() -> Vec<u64> {
+		vec![]
+	}
+
+	fn estimate_hosting_income_statements(
+		_tapp_id: u64,
+	) -> Vec<(Self::AccountId, u64, Self::Balance)> {
+		vec![]
+	}
+}
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -181,6 +205,7 @@ impl pallet_genesis_exchange::Config for Test {
 	type CmlOperation = Cml;
 	type PER = PER;
 	type GenesisBankOperation = GenesisBank;
+	type BondingCurveOperation = BondingCurveOperationMock;
 	type InterestPeriodLength = InterestPeriodLength;
 	type CmlAMiningMachineCost = CmlAMiningMachineCost;
 	type CmlBMiningMachineCost = CmlBMiningMachineCost;

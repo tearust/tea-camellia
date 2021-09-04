@@ -265,7 +265,29 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 			Self::new_or_add_assets(&user, reward_in_usd, &mut asset_usd_map);
 		}
+
+		let hosting_income_statements = Self::all_hosting_income_statements();
+		for (user, _, one_host_duration_reward) in hosting_income_statements {
+			if !CompetitionUsers::<T>::contains_key(&user) {
+				continue;
+			}
+
+			let reward_in_tea = Self::estimate_hosting_income_value(one_host_duration_reward);
+			let reward_in_usd = reward_in_tea * current_exchange_rate / one_tea_dollar;
+
+			Self::new_or_add_assets(&user, reward_in_usd, &mut asset_usd_map);
+		}
+
 		asset_usd_map
+	}
+
+	fn all_hosting_income_statements() -> Vec<(T::AccountId, u64, BalanceOf<T>)> {
+		let mut statements = Vec::new();
+		for tapp_id in T::BondingCurveOperation::list_tapp_ids() {
+			statements
+				.append(&mut T::BondingCurveOperation::estimate_hosting_income_statements(tapp_id));
+		}
+		statements
 	}
 
 	fn new_or_add_assets(
@@ -289,6 +311,15 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		} else {
 			Zero::zero()
 		}
+	}
+
+	fn estimate_hosting_income_value(one_host_duration_reward: BalanceOf<T>) -> BalanceOf<T> {
+		Self::hosting_reward_of_one_day(one_host_duration_reward) * T::PER::get()
+	}
+
+	fn hosting_reward_of_one_day(one_host_duration_reward: BalanceOf<T>) -> BalanceOf<T> {
+		// average block timespan is 6 seconds
+		one_host_duration_reward * (10u32 * 60u32 * 24u32 / 100u32).into()
 	}
 
 	fn estimate_cml_asset_value(single_block_reward: BalanceOf<T>) -> BalanceOf<T> {
