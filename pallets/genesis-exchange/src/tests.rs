@@ -620,10 +620,13 @@ fn if_asset_larger_than_max_borrow_allowance_user_borrowed_amount_should_lower_t
 			*amount = amount.saturating_add(BORROW_ALLOWANCE.into())
 		});
 		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE);
-		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE*2);
-		assert_ok!(GenesisExchange::borrow_usd(Origin::signed(user), BORROW_ALLOWANCE));
-		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE*2);
-		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE*3);
+		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE * 2);
+		assert_ok!(GenesisExchange::borrow_usd(
+			Origin::signed(user),
+			BORROW_ALLOWANCE
+		));
+		assert_eq!(USDDebt::<Test>::get(user), BORROW_ALLOWANCE * 2);
+		assert_eq!(USDStore::<Test>::get(user), BORROW_ALLOWANCE * 3);
 		assert_noop!(
 			GenesisExchange::borrow_usd(Origin::signed(user), 1),
 			Error::<Test>::BorrowedDebtAmountHasOverThanMaxAllowed
@@ -726,6 +729,51 @@ fn repay_usd_debts_should_fail_if_usd_amount_less_than_repay_amount() {
 		assert_noop!(
 			GenesisExchange::repay_usd_debts(Origin::signed(user), Some(200)),
 			Error::<Test>::InsufficientUSDToRepayDebts
+		);
+	})
+}
+
+#[test]
+fn register_for_competition_works() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let user2 = 2;
+
+		let erc20 = b"test erc20".to_vec();
+		let email = b"test email".to_vec();
+		assert_ok!(GenesisExchange::register_for_competition(
+			Origin::signed(user),
+			user2,
+			erc20.clone(),
+			email.clone(),
+		));
+
+		assert!(CompetitionUsers::<Test>::contains_key(user2));
+		assert_eq!(CompetitionUsers::<Test>::get(user2), (erc20, email))
+	})
+}
+
+#[test]
+fn register_for_competition_should_fail_if_already_registered() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let user2 = 2;
+
+		assert_ok!(GenesisExchange::register_for_competition(
+			Origin::signed(user),
+			user2,
+			b"test erc20".to_vec(),
+			b"test email".to_vec(),
+		));
+
+		assert_noop!(
+			GenesisExchange::register_for_competition(
+				Origin::signed(user),
+				user2,
+				b"test erc20".to_vec(),
+				b"test email".to_vec(),
+			),
+			Error::<Test>::CompetitionUserAlreadyRegistered
 		);
 	})
 }

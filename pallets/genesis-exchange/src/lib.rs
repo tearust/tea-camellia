@@ -122,7 +122,7 @@ pub mod genesis_exchange {
 	#[pallet::storage]
 	#[pallet::getter(fn competition_users)]
 	pub type CompetitionUsers<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, (), ValueQuery>;
+		StorageMap<_, Twox64Concat, T::AccountId, (Vec<u8>, Vec<u8>), ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn usd_debt)]
@@ -158,7 +158,8 @@ pub mod genesis_exchange {
 			USDStore::<T>::insert(&self.operation_account, &self.operation_usd_amount);
 			self.competition_users.iter().for_each(|(user, balance)| {
 				USDStore::<T>::insert(user, balance);
-				CompetitionUsers::<T>::insert(user, ());
+				let value: (Vec<u8>, Vec<u8>) = (vec![], vec![]);
+				CompetitionUsers::<T>::insert(user, value);
 			});
 			USDStore::<T>::insert(&self.bonding_curve_npc.0, &self.bonding_curve_npc.1);
 
@@ -237,6 +238,8 @@ pub mod genesis_exchange {
 		UsdDebtReferenceAssetAmountIsLowerThanBorrowAllowance,
 		/// If user asset amount is less than `BorrowAllowance` debt amount should less than borrow allowance
 		InitialBorrowAmountShouldLessThanBorrowAllowance,
+		/// The competition user has registered already
+		CompetitionUserAlreadyRegistered,
 	}
 
 	#[pallet::hooks]
@@ -468,6 +471,33 @@ pub mod genesis_exchange {
 					if USDStore::<T>::get(who).is_zero() {
 						USDStore::<T>::remove(who);
 					}
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn register_for_competition(
+			sender: OriginFor<T>,
+			user: T::AccountId,
+			erc20_address: Vec<u8>,
+			email_address: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|_who| {
+					ensure!(
+						!CompetitionUsers::<T>::contains_key(&user),
+						Error::<T>::CompetitionUserAlreadyRegistered
+					);
+					Ok(())
+				},
+				|_who| {
+					CompetitionUsers::<T>::insert(
+						&user,
+						(erc20_address.clone(), email_address.clone()),
+					);
 				},
 			)
 		}
