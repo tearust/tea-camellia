@@ -119,11 +119,13 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	/// 2. Projected  7 day mining income (USD)
 	/// 3. TEA Account balance (in USD)
 	/// 4. USD account balance
-	/// 5. genesis loan
-	/// 6. USD debt
-	/// 7. Total account value
+	/// 5. TApp token balance
+	/// 6. genesis loan
+	/// 7. USD debt
+	/// 8. Total account value
 	pub fn user_asset_list() -> Vec<(
 		T::AccountId,
+		BalanceOf<T>,
 		BalanceOf<T>,
 		BalanceOf<T>,
 		BalanceOf<T>,
@@ -135,6 +137,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let cml_assets = Self::collect_cml_assets();
 		let tea_assets = Self::collect_tea_assets();
 		let usd_assets = Self::collect_usd_assets();
+		let tapp_assets = Self::collect_tapp_token_assets();
 		let genesis_loan_credits = Self::collect_genesis_loan_credit();
 		let usd_debts = Self::collect_usd_debts();
 
@@ -143,6 +146,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			let cml = Self::amount_from_map(&user, &cml_assets);
 			let tea = Self::amount_from_map(&user, &tea_assets);
 			let usd = Self::amount_from_map(&user, &usd_assets);
+			let tapp_balance = Self::amount_from_map(&user, &tapp_assets);
 			let loan_credit = Self::amount_from_map(&user, &genesis_loan_credits);
 			let usd_debt = Self::amount_from_map(&user, &usd_debts);
 			let mut total: BalanceOf<T> = Zero::zero();
@@ -150,13 +154,23 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 				.saturating_add(cml)
 				.saturating_add(tea)
 				.saturating_add(usd)
+				.saturating_add(tapp_balance)
 				.saturating_sub(loan_credit)
 				.saturating_sub(usd_debt);
 
-			total_assets.push((user.clone(), cml, tea, usd, loan_credit, usd_debt, total));
+			total_assets.push((
+				user.clone(),
+				cml,
+				tea,
+				usd,
+				tapp_balance,
+				loan_credit,
+				usd_debt,
+				total,
+			));
 		}
 
-		total_assets.sort_by(|(_, _, _, _, _, _, a), (_, _, _, _, _, _, b)| a.cmp(b));
+		total_assets.sort_by(|(_, _, _, _, _, _, _, a), (_, _, _, _, _, _, _, b)| a.cmp(b));
 		total_assets.reverse();
 		total_assets
 	}
@@ -238,6 +252,38 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			/ *one_tea_dollar
 	}
 
+	pub(crate) fn collect_tapp_token_assets() -> BTreeMap<T::AccountId, BalanceOf<T>> {
+		let mut asset_usd_map = BTreeMap::new();
+
+		let mut sell_price_map = BTreeMap::new();
+		T::BondingCurveOperation::list_tapp_ids()
+			.iter()
+			.for_each(|id| {
+				let (_, sell_price) = T::BondingCurveOperation::current_price(*id);
+				sell_price_map.insert(*id, sell_price);
+			});
+
+		for (who, _) in CompetitionUsers::<T>::iter() {
+			let mut total_amount_in_tea: BalanceOf<T> = Zero::zero();
+			T::BondingCurveOperation::tapp_user_balances(&who)
+				.iter()
+				.for_each(|(tapp_id, balance)| {
+					let tea_amount = balance.saturating_mul(sell_price_map[tapp_id]);
+					total_amount_in_tea = total_amount_in_tea.saturating_add(tea_amount);
+				});
+
+			let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
+			let one_tea_dollar = Self::one_tea_dollar();
+			Self::new_or_add_assets(
+				&who,
+				total_amount_in_tea * current_exchange_rate / one_tea_dollar,
+				&mut asset_usd_map,
+			);
+		}
+
+		asset_usd_map
+	}
+
 	pub(crate) fn collect_cml_assets() -> BTreeMap<T::AccountId, BalanceOf<T>> {
 		let mut asset_usd_map = BTreeMap::new();
 		// calculate reward statement of current block, we assume each mining cml will get the
@@ -296,7 +342,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		asset_usd_map: &mut BTreeMap<T::AccountId, BalanceOf<T>>,
 	) {
 		if let Some(old) = asset_usd_map.remove(user) {
-			asset_usd_map.insert(user.clone(), old + amount);
+			asset_usd_map.insert(user.clone(), old.saturating_add(amount));
 		} else {
 			asset_usd_map.insert(user.clone(), amount);
 		}
@@ -699,6 +745,7 @@ mod tests {
 					COMPETITION_USER_USD_AMOUNT,
 					0,
 					0,
+					0,
 					COMPETITION_USER_USD_AMOUNT + 99 + 14399640008
 				)
 			);
@@ -709,6 +756,7 @@ mod tests {
 					7199820004,
 					299,
 					COMPETITION_USER_USD_AMOUNT,
+					0,
 					100097,
 					0,
 					COMPETITION_USER_USD_AMOUNT + 299 + 7199820004 - 100097
@@ -721,6 +769,7 @@ mod tests {
 					7199820004,
 					199,
 					COMPETITION_USER_USD_AMOUNT,
+					0,
 					300_292,
 					0,
 					COMPETITION_USER_USD_AMOUNT + 199 + 7199820004 - 300_292

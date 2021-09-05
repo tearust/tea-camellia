@@ -28,4 +28,8 @@ pub trait BondingCurveOperation {
 	fn estimate_hosting_income_statements(
 		tapp_id: u64,
 	) -> Vec<(Self::AccountId, u64, Self::Balance)>;
+
+	fn current_price(tapp_id: u64) -> (Self::Balance, Self::Balance);
+
+	fn tapp_user_balances(who: &Self::AccountId) -> Vec<(u64, Self::Balance)>;
 }

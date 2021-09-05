@@ -32,6 +32,14 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 
 		vec![]
 	}
+
+	fn current_price(tapp_id: u64) -> (Self::Balance, Self::Balance) {
+		Self::query_price(tapp_id)
+	}
+
+	fn tapp_user_balances(who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
+		AccountTable::<T>::iter_prefix(who).collect()
+	}
 }
 
 impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {

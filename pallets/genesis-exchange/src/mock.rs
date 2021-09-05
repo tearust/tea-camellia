@@ -36,6 +36,14 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 	) -> Vec<(Self::AccountId, u64, Self::Balance)> {
 		vec![]
 	}
+
+	fn current_price(_tapp_id: u64) -> (Self::Balance, Self::Balance) {
+		(0, 0)
+	}
+
+	fn tapp_user_balances(_who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
+		vec![]
+	}
 }
 
 // Configure a mock runtime to test the pallet.

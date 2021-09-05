@@ -32,10 +32,11 @@ sp_api::decl_runtime_apis! {
 		/// 2. Projected  7 day mining income (USD)
 		/// 3. TEA Account balance (in USD)
 		/// 4. USD account balance
-		/// 5. genesis loan
-		/// 6. USD debt
-		/// 7. Total account value
-		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance)>;
+		/// 5. TApp token balance
+		/// 6. genesis loan
+		/// 7. USD debt
+		/// 8. Total account value
+		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance, Balance)>;
 
 		fn user_borrowing_usd_margin(who: &AccountId) -> Balance;
 	}
