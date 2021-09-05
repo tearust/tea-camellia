@@ -467,6 +467,35 @@ fn buy_token_should_fail_if_free_balance_is_not_enough() {
 }
 
 #[test]
+fn buy_token_should_fail_if_total_supply_larger_than_max_allowed() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let owner = 1;
+		let user = 2;
+		let tapp_amount = 1_000_000;
+		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user, u128::MAX);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			tapp_amount,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			None,
+			None,
+		));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::buy_token(Origin::signed(user), tapp_id, TOTAL_SUPPLY_MAX_VALUE),
+			Error::<Test>::TotalSupplyOverTheMaxValue
+		);
+	})
+}
+
+#[test]
 fn sell_token_works() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);

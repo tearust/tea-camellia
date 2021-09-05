@@ -147,51 +147,51 @@ where
 mod tests {
 	use super::*;
 	use node_primitives::Balance;
+	use std::panic;
 
 	const CENTS: node_primitives::Balance = 10_000_000_000;
 	const DOLLARS: node_primitives::Balance = 100 * CENTS;
 
 	#[test]
 	fn tests() {
-		type RootSquare_10 = UnsignedSquareRoot<Balance, 7>; // y = 10√x
+		type RootSquare10 = UnsignedSquareRoot<Balance, 7>; // y = 10√x
 		for i in 1..=1000 {
 			println!(
 				"{},",
-				<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(i * 100 * DOLLARS),
+				<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(i * 100 * DOLLARS),
 			);
 		}
 	}
 
 	#[test]
 	fn pool_balance_works() {
-		#[allow(non_camel_case_types)]
-		type RootSquare_10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
+		type RootSquare10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
 		assert_eq!(
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(0),
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(0),
 			0
 		);
 		assert_eq!(
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(100000),
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(100000),
 			21
 		);
 		assert_eq!(
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(1000000),
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(1000000),
 			666
 		);
 		assert_eq!(
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(10000000),
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(10000000),
 			21080
 		);
 		assert_eq!(
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(100000000),
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(100000000),
 			666666
 		);
 		assert_eq!(
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS),
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS),
 			666666666666
 		);
 		assert_eq!(
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(100 * DOLLARS),
 			666666666666666
 		);
 
@@ -224,28 +224,27 @@ mod tests {
 	}
 	#[test]
 	fn combined_test_buy_sell_tapp_tokevin() {
-		#[allow(non_camel_case_types)]
-		type RootSquare_10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
-		type RootSquare_7 = UnsignedSquareRoot<Balance, 7>; // y = 7√x
-		let x = <RootSquare_10 as BondingCurveInterface<Balance>>::buy_price(DOLLARS);
+		type RootSquare10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
+		type RootSquare7 = UnsignedSquareRoot<Balance, 7>; // y = 7√x
+		let x = <RootSquare10 as BondingCurveInterface<Balance>>::buy_price(DOLLARS);
 		println!("K10 buy one token use T:{:?}/10000", &x / 100000000);
-		let x = <RootSquare_10 as BondingCurveInterface<Balance>>::buy_price(100 * DOLLARS);
+		let x = <RootSquare10 as BondingCurveInterface<Balance>>::buy_price(100 * DOLLARS);
 		println!("K10 buy 100 token use T:{:?}/10000", &x / 100000000);
-		let x = <RootSquare_7 as BondingCurveInterface<Balance>>::buy_price(DOLLARS);
+		let x = <RootSquare7 as BondingCurveInterface<Balance>>::buy_price(DOLLARS);
 		println!("K7 buy one token use T:{:?}/10000", &x / 100000000);
-		let x = <RootSquare_7 as BondingCurveInterface<Balance>>::buy_price(100 * DOLLARS);
+		let x = <RootSquare7 as BondingCurveInterface<Balance>>::buy_price(100 * DOLLARS);
 		println!("K7 buy 100 token use T:{:?}/10000", &x / 100000000);
-		let x = <RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS);
+		let x = <RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS);
 		println!(
 			"K10 when supply is 1 token, pool balance T is {:?}/10000",
-			x / 100000000 // <RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS)
+			x / 100000000 // <RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS)
 		);
 		println!(
 			"K10 now let us find how much token can receive when spending {:?}/10000 TEA. answer is {:?}/10000",
 			x / 100000000,
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance_reverse(x, 10) / 100000000
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance_reverse(x, 10) / 100000000
 		);
-		let x = <RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(100 * DOLLARS);
+		let x = <RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(100 * DOLLARS);
 		println!(
 			"K10 when supply is 100 token, pool balance T is {:?}/10000",
 			x / 100000000
@@ -253,22 +252,22 @@ mod tests {
 		println!(
 			"K10  now let us find how much token can receive when spending {:?}/10000 TEA. answer is {:?}/10000",
 			x / 100000000,
-			<RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance_reverse(x, 10)
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance_reverse(x, 10)
 				/ 100000000
 		);
 
-		let x = <RootSquare_7 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS);
+		let x = <RootSquare7 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS);
 		println!(
 			"K7 when supply is 1 token, pool balance T is {:?}/10000",
-			x / 100000000 // <RootSquare_10 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS)
+			x / 100000000 // <RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(DOLLARS)
 		);
 		println!(
 			"K7 now let us find how much token can receive when spending {:?}/10000 TEA. answer is {:?}/10000",
 			x / 100000000,
-			<RootSquare_7 as BondingCurveInterface<Balance>>::pool_balance_reverse(x, 10)
+			<RootSquare7 as BondingCurveInterface<Balance>>::pool_balance_reverse(x, 10)
 				/ 100000000
 		);
-		let x = <RootSquare_7 as BondingCurveInterface<Balance>>::pool_balance(100 * DOLLARS);
+		let x = <RootSquare7 as BondingCurveInterface<Balance>>::pool_balance(100 * DOLLARS);
 		println!(
 			"K7 when supply is 100 token, pool balance T is {:?}/10000",
 			x / 100000000
@@ -276,7 +275,7 @@ mod tests {
 		println!(
 			"K7  now let us find how much token can receive when spending {:?}/10000 TEA. answer is {:?}/10000",
 			x / 100000000,
-			<RootSquare_7 as BondingCurveInterface<Balance>>::pool_balance_reverse(x, 10) / 100000000
+			<RootSquare7 as BondingCurveInterface<Balance>>::pool_balance_reverse(x, 10) / 100000000
 		);
 	}
 
@@ -392,5 +391,25 @@ mod tests {
 			<RootSquare_7 as BondingCurveInterface<Balance>>::buy_price(10000 * DOLLARS),
 			70_000_000_000_000
 		);
+	}
+
+	#[test]
+	fn check_pool_balance_multiply_overflow() {
+		type RootSquare10 = UnsignedSquareRoot<Balance, 10>; // y = 10√x
+													 // 1e24 if safe
+		assert_eq!(
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(
+				1000000000000000000000000
+			),
+			666666666666666666666666666666
+		);
+
+		let result = panic::catch_unwind(|| {
+			<RootSquare10 as BondingCurveInterface<Balance>>::pool_balance(
+				1000000000000000000000000 * 10,
+			);
+		});
+		// should multiply overflow
+		assert!(result.is_err());
 	}
 }

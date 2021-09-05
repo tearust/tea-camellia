@@ -92,6 +92,9 @@ pub mod bonding_curve {
 		#[pallet::constant]
 		type CidMaxLength: Get<u32>;
 
+		#[pallet::constant]
+		type TotalSupplyMaxValue: Get<BalanceOf<Self>>;
+
 		type LinearCurve: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
@@ -340,6 +343,8 @@ pub mod bonding_curve {
 		OnlyTAppOwnerAllowedToUpdateResource,
 		/// The length of the cid parameter is longer than required
 		CidIsToLong,
+		/// Total supply will over the max value if buy given amount of tapp token
+		TotalSupplyOverTheMaxValue,
 	}
 
 	#[pallet::hooks]
@@ -489,6 +494,13 @@ pub mod bonding_curve {
 					ensure!(
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
+					);
+					ensure!(
+						TotalSupplyTable::<T>::get(tapp_id)
+							.checked_add(&tapp_amount)
+							.ok_or(Error::<T>::AddOverflow)?
+							< T::TotalSupplyMaxValue::get(),
+						Error::<T>::TotalSupplyOverTheMaxValue
 					);
 					Ok(())
 				},

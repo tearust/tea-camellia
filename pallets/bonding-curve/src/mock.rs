@@ -129,6 +129,7 @@ pub const HOST_COST_COLLECTION_DURATION: u64 = 100;
 pub const HOST_COST_COEFFICIENT: Balance = 10000;
 pub const CONSUME_NOTE_MAX_LENGTH: u32 = 140;
 pub const CID_MAX_LENGTH: u32 = 100;
+pub const TOTAL_SUPPLY_MAX_VALUE: Balance = 1000000000000000000000000;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
@@ -142,6 +143,7 @@ parameter_types! {
 	pub const HostCostCoefficient: Balance = HOST_COST_COEFFICIENT;
 	pub const ConsumeNoteMaxLength: u32 = CONSUME_NOTE_MAX_LENGTH;
 	pub const CidMaxLength: u32 = CID_MAX_LENGTH;
+	pub const TotalSupplyMaxValue: Balance = TOTAL_SUPPLY_MAX_VALUE;
 }
 
 impl pallet_bonding_curve::Config for Test {
@@ -163,6 +165,7 @@ impl pallet_bonding_curve::Config for Test {
 	type HostCostCoefficient = HostCostCoefficient;
 	type ConsumeNoteMaxLength = ConsumeNoteMaxLength;
 	type CidMaxLength = CidMaxLength;
+	type TotalSupplyMaxValue = TotalSupplyMaxValue;
 }
 
 pub const STAKING_PRICE: Balance = 1000;
