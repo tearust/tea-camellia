@@ -11,6 +11,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
+use tea_interface::TeaOperation;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -19,6 +20,20 @@ pub const IN_AUCTION_CML_ID: u64 = 99;
 pub const OPERATION_ACCOUNT: u64 = 100;
 pub const BANK_INITIAL_BALANCE: Balance = 100_000;
 pub const BANK_INITIAL_INTEREST_RATE: Balance = 10;
+
+pub struct TeaOperationMock {}
+
+impl Default for TeaOperationMock {
+	fn default() -> Self {
+		TeaOperationMock {}
+	}
+}
+
+impl TeaOperation for TeaOperationMock {
+	type AccountId = u64;
+
+	fn add_new_node(_machine_id: [u8; 32], _who: &Self::AccountId) {}
+}
 
 pub struct AuctionOperationMock {}
 
@@ -147,6 +162,7 @@ impl pallet_cml::Config for Test {
 	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
 	type SeedFreshDuration = SeedFreshDuration;
+	type TeaOperation = TeaOperationMock;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;

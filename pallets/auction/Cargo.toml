@@ -30,6 +30,7 @@ sp-core = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.gi
 sp-io = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 genesis-exchange-interface = { path = "../genesis-exchange/interface", default-features = false }
+tea-interface = { path = "../tea/interface", default-features = false }
 
 [features]
 default = ["std"]

@@ -34,6 +34,7 @@ use pallet_utils::{
 };
 use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
 use sp_std::{convert::TryInto, prelude::*};
+use tea_interface::TeaOperation;
 
 /// The balance type of this module.
 pub type BalanceOf<T> =
@@ -86,6 +87,8 @@ pub mod cml {
 			BlockNumber = Self::BlockNumber,
 			Balance = BalanceOf<Self>,
 		>;
+
+		type TeaOperation: TeaOperation<AccountId = Self::AccountId>;
 
 		/// Weight definition about all user related extrinsics.
 		type WeightInfo: WeightInfo;
@@ -583,6 +586,9 @@ pub mod cml {
 								status: MinerStatus::Active,
 							},
 						);
+
+						// todo verify machine id later
+						T::TeaOperation::add_new_node(machine_id, sender);
 					});
 				},
 			)

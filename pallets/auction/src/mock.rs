@@ -8,6 +8,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
+use tea_interface::TeaOperation;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -41,6 +42,20 @@ impl MiningOperation for MiningOperationMock {
 	}
 
 	fn redeem_coupons(_who: &Self::AccountId, _a_coupon: u32, _b_coupon: u32, _c_coupon: u32) {}
+}
+
+pub struct TeaOperationMock {}
+
+impl Default for TeaOperationMock {
+	fn default() -> Self {
+		TeaOperationMock {}
+	}
+}
+
+impl TeaOperation for TeaOperationMock {
+	type AccountId = u64;
+
+	fn add_new_node(_machine_id: [u8; 32], _who: &Self::AccountId) {}
 }
 
 // Configure a mock runtime to test the pallet.
@@ -109,6 +124,7 @@ impl pallet_cml::Config for Test {
 	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
 	type SeedFreshDuration = SeedFreshDuration;
+	type TeaOperation = TeaOperationMock;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;

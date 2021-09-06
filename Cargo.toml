@@ -28,4 +28,6 @@ members = [
 	'pallets/bonding-curve/rpc',
 	'pallets/bonding-curve/interface',
 	'pallets/bonding-curve/curve-impl',
+
+	'pallets/tea/interface',
 ]

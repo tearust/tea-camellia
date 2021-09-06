@@ -1,5 +1,21 @@
 use super::*;
 
+impl<T: tea::Config> TeaOperation for tea::Pallet<T> {
+	type AccountId = T::AccountId;
+
+	fn add_new_node(machine_id: [u8; 32], sender: &Self::AccountId) {
+		let current_block_number = frame_system::Pallet::<T>::block_number();
+
+		let mut new_node = Node::default();
+		new_node.tea_id = machine_id.clone();
+		new_node.create_time = current_block_number;
+		new_node.update_time = current_block_number;
+		Nodes::<T>::insert(machine_id, new_node.clone());
+
+		Self::deposit_event(Event::NewNodeJoined(sender.clone(), new_node));
+	}
+}
+
 impl<T: tea::Config> tea::Pallet<T> {
 	pub(crate) fn pop_existing_node(tea_id: &TeaPubKey) -> Node<T::BlockNumber> {
 		let old_node = Nodes::<T>::get(tea_id).unwrap();

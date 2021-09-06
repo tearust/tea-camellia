@@ -45,6 +45,7 @@ rand = '0.7.2'
 node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f'}
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '90cfb952f' }
 pallet-auction = { path = "../auction" }
+tea-interface = { path = "../tea/interface" }
 
 [features]
 default = ['std']

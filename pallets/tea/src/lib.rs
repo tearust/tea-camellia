@@ -25,6 +25,7 @@ use pallet_cml::Task;
 use pallet_utils::{extrinsic_procedure, CommonUtils};
 use sp_core::{ed25519, U256};
 use sp_std::prelude::*;
+use tea_interface::TeaOperation;
 use types::*;
 pub use weights::WeightInfo;
 
@@ -159,33 +160,6 @@ pub mod tea {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(T::WeightInfo::add_new_node())]
-		pub fn add_new_node(origin: OriginFor<T>, tea_id: TeaPubKey) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
-
-			extrinsic_procedure(
-				&sender,
-				|_sender| {
-					ensure!(
-						!Nodes::<T>::contains_key(&tea_id),
-						Error::<T>::NodeAlreadyExist
-					);
-					Ok(())
-				},
-				|sender| {
-					let current_block_number = frame_system::Pallet::<T>::block_number();
-
-					let mut new_node = Node::default();
-					new_node.tea_id = tea_id.clone();
-					new_node.create_time = current_block_number;
-					new_node.update_time = current_block_number;
-					Nodes::<T>::insert(tea_id, new_node.clone());
-
-					Self::deposit_event(Event::NewNodeJoined(sender.clone(), new_node));
-				},
-			)
-		}
-
 		#[pallet::weight(T::WeightInfo::update_node_profile())]
 		pub fn update_node_profile(
 			origin: OriginFor<T>,

@@ -1109,6 +1109,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "staking-economics",
+ "tea-interface",
 ]
 
 [[package]]
@@ -4291,6 +4292,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "tea-interface",
 ]
 
 [[package]]
@@ -4386,6 +4388,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "tea-interface",
 ]
 
 [[package]]
@@ -4427,6 +4430,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "tea-interface",
 ]
 
 [[package]]
@@ -4524,6 +4528,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "tea-interface",
 ]
 
 [[package]]
@@ -4554,6 +4559,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "tea-interface",
 ]
 
 [[package]]
@@ -4811,6 +4817,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "tea-interface",
 ]
 
 [[package]]
@@ -8271,6 +8278,15 @@ dependencies = [
  "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
+]
+
+[[package]]
+name = "tea-interface"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

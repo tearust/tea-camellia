@@ -817,6 +817,7 @@ impl pallet_cml::Config for Runtime {
 	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
 	type SeedFreshDuration = SeedFreshDuration;
+	type TeaOperation = Tea;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type MiningOperation = GenesisExchange;
