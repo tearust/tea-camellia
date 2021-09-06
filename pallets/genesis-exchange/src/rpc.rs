@@ -263,17 +263,18 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 				sell_price_map.insert(*id, sell_price);
 			});
 
+		let one_tea_dollar = Self::one_tea_dollar();
+		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		for (who, _) in CompetitionUsers::<T>::iter() {
 			let mut total_amount_in_tea: BalanceOf<T> = Zero::zero();
 			T::BondingCurveOperation::tapp_user_balances(&who)
 				.iter()
 				.for_each(|(tapp_id, balance)| {
-					let tea_amount = balance.saturating_mul(sell_price_map[tapp_id]);
+					let tea_amount =
+						balance.saturating_mul(sell_price_map[tapp_id]) / one_tea_dollar;
 					total_amount_in_tea = total_amount_in_tea.saturating_add(tea_amount);
 				});
 
-			let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
-			let one_tea_dollar = Self::one_tea_dollar();
 			Self::new_or_add_assets(
 				&who,
 				total_amount_in_tea * current_exchange_rate / one_tea_dollar,
