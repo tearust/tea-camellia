@@ -507,7 +507,7 @@ fn testnet_genesis(
 		pallet_genesis_bank: GenesisBankConfig {
 			operation_account: genesis_bank_operation_account,
 			bank_initial_balance: INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
-			bank_initial_interest_rate: 10,
+			bank_initial_interest_rate: 3, // bank initial interest rate is 0.03%
 		},
 		pallet_genesis_exchange: GenesisExchangeConfig {
 			operation_account: genesis_exchange_operation_account,
