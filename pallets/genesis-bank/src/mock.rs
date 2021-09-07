@@ -17,8 +17,10 @@ type Block = frame_system::mocking::MockBlock<Test>;
 pub const IN_AUCTION_CML_ID: u64 = 99;
 
 pub const OPERATION_ACCOUNT: u64 = 100;
-pub const BANK_INITIAL_BALANCE: Balance = 100_000;
-pub const BANK_INITIAL_INTEREST_RATE: Balance = 10;
+pub const CENTS: u128 = 10_000_000_000u128;
+pub const DOLLARS: u128 = 100u128 * CENTS;
+pub const BANK_INITIAL_BALANCE: Balance = 100_000 * DOLLARS;
+pub const BANK_INITIAL_INTEREST_RATE: Balance = 3;
 
 pub struct AuctionOperationMock {}
 
@@ -159,9 +161,9 @@ impl pallet_cml::Config for Test {
 
 pub const LOAN_TERM_DURATION: BlockNumber = 10000;
 pub const LOAN_BILLING_CYCLE: BlockNumber = 1000;
-pub const CML_A_LOAN_AMOUNT: Balance = 2000;
-pub const CML_B_LOAN_AMOUNT: Balance = 1000;
-pub const CML_C_LOAN_AMOUNT: Balance = 500;
+pub const CML_A_LOAN_AMOUNT: Balance = 2000 * DOLLARS;
+pub const CML_B_LOAN_AMOUNT: Balance = 1000 * DOLLARS;
+pub const CML_C_LOAN_AMOUNT: Balance = 500 * DOLLARS;
 
 parameter_types! {
 	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;

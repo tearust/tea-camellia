@@ -4,6 +4,49 @@ use frame_support::{assert_noop, assert_ok};
 use pallet_cml::{CmlId, CmlType, DefrostScheduleType, Error as CmlError, Seed, CML};
 
 #[test]
+fn update_interest_rate_amm_k_works() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			BANK_INITIAL_BALANCE
+		);
+		assert_eq!(
+			AMMCurveKCoefficient::<Test>::get(),
+			BANK_INITIAL_BALANCE * BANK_INITIAL_INTEREST_RATE
+		);
+
+		assert_ok!(GenesisBank::update_interest_rate_amm_k(
+			Origin::root(),
+			BANK_INITIAL_BALANCE * BANK_INITIAL_INTEREST_RATE * 2
+		));
+		GenesisBank::reset_interest_rate();
+		assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE * 2);
+
+		assert_ok!(GenesisBank::update_interest_rate_amm_k(
+			Origin::root(),
+			BANK_INITIAL_BALANCE * BANK_INITIAL_INTEREST_RATE * 10
+		));
+		GenesisBank::reset_interest_rate();
+		assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE * 10);
+
+		assert_ok!(GenesisBank::update_interest_rate_amm_k(
+			Origin::root(),
+			BANK_INITIAL_BALANCE * BANK_INITIAL_INTEREST_RATE / 2
+		));
+		GenesisBank::reset_interest_rate();
+		assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE / 2);
+
+		assert_ok!(GenesisBank::update_interest_rate_amm_k(
+			Origin::root(),
+			BANK_INITIAL_BALANCE * BANK_INITIAL_INTEREST_RATE / 10
+		));
+		GenesisBank::reset_interest_rate();
+		assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE / 10);
+	})
+}
+
+#[test]
 fn apply_loan_genesis_bank_works() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
