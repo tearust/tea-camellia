@@ -144,7 +144,7 @@ pub mod bonding_curve {
 
 	#[pallet::storage]
 	#[pallet::getter(fn operation_account)]
-	pub type OperationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+	pub type ReservedBalanceAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn enable_user_create_tapp)]
@@ -168,9 +168,26 @@ pub mod bonding_curve {
 	#[pallet::getter(fn tapp_resource_map)]
 	pub type TAppResourceMap<T: Config> = StorageMap<_, Twox64Concat, TAppId, Vec<u8>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn tapp_operation_accounts)]
+	pub type TAppOperationAccounts<T: Config> =
+		StorageMap<_, Twox64Concat, TAppId, T::AccountId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn user_topup_balances)]
+	pub type UserTopupBalances<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		Twox64Concat,
+		TAppId,
+		BalanceOf<T>,
+		ValueQuery,
+	>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub operation_account: T::AccountId,
+		pub reserved_balance_account: T::AccountId,
 		pub npc_account: T::AccountId,
 		pub user_create_tapp: bool,
 	}
@@ -178,7 +195,7 @@ pub mod bonding_curve {
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
-				operation_account: Default::default(),
+				reserved_balance_account: Default::default(),
 				npc_account: Default::default(),
 				user_create_tapp: false,
 			}
@@ -187,7 +204,7 @@ pub mod bonding_curve {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			OperationAccount::<T>::set(self.operation_account.clone());
+			ReservedBalanceAccount::<T>::set(self.reserved_balance_account.clone());
 			NPCAccount::<T>::set(self.npc_account.clone());
 
 			EnableUserCreateTApp::<T>::set(self.user_create_tapp);
@@ -345,6 +362,14 @@ pub mod bonding_curve {
 		CidIsToLong,
 		/// Total supply will over the max value if buy given amount of tapp token
 		TotalSupplyOverTheMaxValue,
+		/// Only tapp owner account is allowed to register operation account
+		OnlyTAppOwnerAllowedToRegisterOperationAccount,
+		/// TApp operation accounts has already exist
+		TAppOperationAccountAlreadyExist,
+		/// TApp operation accounts not exist so there is not ready to topup
+		TAppOperationAccountNotExist,
+		OnlyOperationAccountAllowedToWithdraw,
+		UserNotTopupedBefore,
 	}
 
 	#[pallet::hooks]
@@ -777,6 +802,120 @@ pub mod bonding_curve {
 				},
 				|_who| {
 					TAppResourceMap::<T>::insert(tapp_id, cid.clone());
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn register_tapp_opertion_account(
+			sender: OriginFor<T>,
+			tapp_id: TAppId,
+			account: T::AccountId,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						!TAppOperationAccounts::<T>::contains_key(tapp_id),
+						Error::<T>::TAppOperationAccountAlreadyExist
+					);
+					ensure!(
+						TAppBondingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					let tapp = TAppBondingCurve::<T>::get(tapp_id);
+					ensure!(
+						who.eq(&tapp.owner),
+						Error::<T>::OnlyTAppOwnerAllowedToRegisterOperationAccount
+					);
+
+					Ok(())
+				},
+				|_who| {
+					TAppOperationAccounts::<T>::insert(tapp_id, &account);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn topup(
+			sender: OriginFor<T>,
+			tapp_id: TAppId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						T::CurrencyOperations::free_balance(who) >= amount,
+						Error::<T>::InsufficientFreeBalance
+					);
+					ensure!(
+						TAppOperationAccounts::<T>::contains_key(tapp_id),
+						Error::<T>::TAppOperationAccountNotExist
+					);
+					Ok(())
+				},
+				|who| {
+					if let Err(e) = T::CurrencyOperations::transfer(
+						who,
+						&TAppOperationAccounts::<T>::get(tapp_id),
+						amount,
+						ExistenceRequirement::AllowDeath,
+					) {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("tapp topup transfer free balance failed: {:?}", e);
+						return;
+					}
+					UserTopupBalances::<T>::insert(who, tapp_id, amount);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn withdraw(
+			sender: OriginFor<T>,
+			tapp_id: TAppId,
+			user: T::AccountId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						who.eq(&TAppOperationAccounts::<T>::get(tapp_id)),
+						Error::<T>::OnlyOperationAccountAllowedToWithdraw
+					);
+					ensure!(
+						UserTopupBalances::<T>::contains_key(&user, tapp_id),
+						Error::<T>::UserNotTopupedBefore
+					);
+					ensure!(
+						T::CurrencyOperations::free_balance(&TAppOperationAccounts::<T>::get(
+							tapp_id
+						)) >= amount,
+						Error::<T>::InsufficientFreeBalance
+					);
+					Ok(())
+				},
+				|_who| {
+					if let Err(e) = T::CurrencyOperations::transfer(
+						&TAppOperationAccounts::<T>::get(tapp_id),
+						&user,
+						amount,
+						ExistenceRequirement::AllowDeath,
+					) {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("tapp topup transfer free balance failed: {:?}", e);
+						return;
+					}
+					UserTopupBalances::<T>::remove(&user, tapp_id);
 				},
 			)
 		}

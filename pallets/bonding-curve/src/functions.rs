@@ -79,7 +79,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 		T::CurrencyOperations::transfer(
 			who,
-			&OperationAccount::<T>::get(),
+			&ReservedBalanceAccount::<T>::get(),
 			reserved_tea_amount,
 			ExistenceRequirement::AllowDeath,
 		)?;
@@ -139,7 +139,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		match Self::calculate_sell_amount(tapp_id, tapp_amount) {
 			Ok(deposit_tea_amount) => {
 				if let Err(e) = T::CurrencyOperations::transfer(
-					&OperationAccount::<T>::get(),
+					&ReservedBalanceAccount::<T>::get(),
 					who,
 					deposit_tea_amount,
 					ExistenceRequirement::AllowDeath,
@@ -632,7 +632,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			if do_transfer {
 				for (account, _, amount) in statements.iter() {
 					T::CurrencyOperations::transfer(
-						&OperationAccount::<T>::get(),
+						&ReservedBalanceAccount::<T>::get(),
 						account,
 						amount.clone(),
 						ExistenceRequirement::AllowDeath,
@@ -747,7 +747,7 @@ mod tests {
 				DOLLARS - 666
 			);
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&ReservedBalanceAccount::<Test>::get()),
 				466
 			);
 
@@ -760,7 +760,7 @@ mod tests {
 				999999979586
 			);
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&ReservedBalanceAccount::<Test>::get()),
 				14756
 			);
 		})

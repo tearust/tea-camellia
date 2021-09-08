@@ -38,7 +38,8 @@ const GENESIS_BANK_OPERATION_ADDRESS: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvW
 // address derived from [1u8; 32] that the corresponding private key we don't know
 const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn38446dhCpsi2mLHiFT";
 // address derived from [2u8; 32] that the corresponding private key we don't know
-const BONDING_CURVE_OPERATION_ADDRESS: &str = "5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt";
+const BONDING_CURVE_RESERVED_BALANCE_ADDRESS: &str =
+	"5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt";
 // NPC is predefined "sudo" user in competition csv file, the following is address and initial amounts settings
 const BONDING_CURVE_NPC_ADDRESS: &str = "5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP";
 const BONDING_CURVE_NPC_INITIAL_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
@@ -386,8 +387,8 @@ fn testnet_genesis(
 		AccountId32::from_str(GENESIS_BANK_OPERATION_ADDRESS).unwrap();
 	let genesis_exchange_operation_account =
 		AccountId32::from_str(GENESIS_EXCHANGE_OPERATION_ADDRESS).unwrap();
-	let bonding_curve_operation_account =
-		AccountId32::from_str(BONDING_CURVE_OPERATION_ADDRESS).unwrap();
+	let bonding_curve_reserved_balance_account =
+		AccountId32::from_str(BONDING_CURVE_RESERVED_BALANCE_ADDRESS).unwrap();
 	let bonding_curve_npc_account = AccountId32::from_str(BONDING_CURVE_NPC_ADDRESS).unwrap();
 
 	initial_balances.push((
@@ -520,7 +521,7 @@ fn testnet_genesis(
 			),
 		},
 		pallet_bonding_curve: BondingCurveConfig {
-			operation_account: bonding_curve_operation_account,
+			reserved_balance_account: bonding_curve_reserved_balance_account,
 			npc_account: bonding_curve_npc_account,
 			user_create_tapp: false, // default disable user create tapp
 		},
