@@ -168,23 +168,6 @@ pub mod bonding_curve {
 	#[pallet::getter(fn tapp_resource_map)]
 	pub type TAppResourceMap<T: Config> = StorageMap<_, Twox64Concat, TAppId, Vec<u8>, ValueQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn tapp_operation_accounts)]
-	pub type TAppOperationAccounts<T: Config> =
-		StorageMap<_, Twox64Concat, TAppId, T::AccountId, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn user_topup_balances)]
-	pub type UserTopupBalances<T: Config> = StorageDoubleMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		Twox64Concat,
-		TAppId,
-		BalanceOf<T>,
-		ValueQuery,
-	>;
-
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
@@ -289,6 +272,20 @@ pub mod bonding_curve {
 		/// - Unhost tapp id
 		/// - Unhost CML id
 		TAppsUnhosted(Vec<(TAppId, CmlId)>),
+
+		/// Fired after topuped successfully, event parameters:
+		/// 1. TApp Id
+		/// 2. From account
+		/// 3. To account
+		/// 4. Topup amount
+		TAppTopup(TAppId, T::AccountId, T::AccountId, BalanceOf<T>),
+
+		/// Fired after withdraw successfully, event parameters:
+		/// 1. TApp Id
+		/// 2. From account
+		/// 3. To account
+		/// 4. Topup amount
+		TAppWithdraw(TAppId, T::AccountId, T::AccountId, BalanceOf<T>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -362,10 +359,6 @@ pub mod bonding_curve {
 		CidIsToLong,
 		/// Total supply will over the max value if buy given amount of tapp token
 		TotalSupplyOverTheMaxValue,
-		/// Only tapp owner account is allowed to register operation account
-		OnlyTAppOwnerAllowedToRegisterOperationAccount,
-		/// TApp operation accounts has already exist
-		TAppOperationAccountAlreadyExist,
 		/// TApp operation accounts not exist so there is not ready to topup
 		TAppOperationAccountNotExist,
 		OnlyOperationAccountAllowedToWithdraw,
@@ -806,42 +799,11 @@ pub mod bonding_curve {
 			)
 		}
 
-		#[pallet::weight(195_000_000)]
-		pub fn register_tapp_opertion_account(
-			sender: OriginFor<T>,
-			tapp_id: TAppId,
-			account: T::AccountId,
-		) -> DispatchResult {
-			let who = ensure_signed(sender)?;
-
-			extrinsic_procedure(
-				&who,
-				|who| {
-					ensure!(
-						!TAppOperationAccounts::<T>::contains_key(tapp_id),
-						Error::<T>::TAppOperationAccountAlreadyExist
-					);
-					ensure!(
-						TAppBondingCurve::<T>::contains_key(tapp_id),
-						Error::<T>::TAppIdNotExist
-					);
-					let tapp = TAppBondingCurve::<T>::get(tapp_id);
-					ensure!(
-						who.eq(&tapp.owner),
-						Error::<T>::OnlyTAppOwnerAllowedToRegisterOperationAccount
-					);
-
-					Ok(())
-				},
-				|_who| {
-					TAppOperationAccounts::<T>::insert(tapp_id, &account);
-				},
-			)
-		}
-
+		/// This is basically a normal transfer balance extrinsic, except emit a topup event
 		#[pallet::weight(195_000_000)]
 		pub fn topup(
 			sender: OriginFor<T>,
+			tapp_operation_account: T::AccountId,
 			tapp_id: TAppId,
 			amount: BalanceOf<T>,
 		) -> DispatchResult {
@@ -851,19 +813,19 @@ pub mod bonding_curve {
 				&who,
 				|who| {
 					ensure!(
-						T::CurrencyOperations::free_balance(who) >= amount,
-						Error::<T>::InsufficientFreeBalance
+						TAppBondingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
-						TAppOperationAccounts::<T>::contains_key(tapp_id),
-						Error::<T>::TAppOperationAccountNotExist
+						T::CurrencyOperations::free_balance(who) >= amount,
+						Error::<T>::InsufficientFreeBalance
 					);
 					Ok(())
 				},
 				|who| {
 					if let Err(e) = T::CurrencyOperations::transfer(
 						who,
-						&TAppOperationAccounts::<T>::get(tapp_id),
+						&tapp_operation_account,
 						amount,
 						ExistenceRequirement::AllowDeath,
 					) {
@@ -871,7 +833,13 @@ pub mod bonding_curve {
 						log::error!("tapp topup transfer free balance failed: {:?}", e);
 						return;
 					}
-					UserTopupBalances::<T>::insert(who, tapp_id, amount);
+
+					Self::deposit_event(Event::TAppTopup(
+						tapp_id,
+						who.clone(),
+						tapp_operation_account.clone(),
+						amount,
+					));
 				},
 			)
 		}
@@ -889,24 +857,18 @@ pub mod bonding_curve {
 				&who,
 				|who| {
 					ensure!(
-						who.eq(&TAppOperationAccounts::<T>::get(tapp_id)),
-						Error::<T>::OnlyOperationAccountAllowedToWithdraw
+						TAppBondingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
 					);
 					ensure!(
-						UserTopupBalances::<T>::contains_key(&user, tapp_id),
-						Error::<T>::UserNotTopupedBefore
-					);
-					ensure!(
-						T::CurrencyOperations::free_balance(&TAppOperationAccounts::<T>::get(
-							tapp_id
-						)) >= amount,
+						T::CurrencyOperations::free_balance(who) >= amount,
 						Error::<T>::InsufficientFreeBalance
 					);
 					Ok(())
 				},
-				|_who| {
+				|who| {
 					if let Err(e) = T::CurrencyOperations::transfer(
-						&TAppOperationAccounts::<T>::get(tapp_id),
+						who,
 						&user,
 						amount,
 						ExistenceRequirement::AllowDeath,
@@ -915,7 +877,13 @@ pub mod bonding_curve {
 						log::error!("tapp topup transfer free balance failed: {:?}", e);
 						return;
 					}
-					UserTopupBalances::<T>::remove(&user, tapp_id);
+
+					Self::deposit_event(Event::TAppTopup(
+						tapp_id,
+						who.clone(),
+						user.clone(),
+						amount,
+					));
 				},
 			)
 		}

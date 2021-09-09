@@ -1613,6 +1613,157 @@ fn update_tapp_resource_should_fail_if_user_is_not_tapp_owner() {
 	})
 }
 
+#[test]
+fn topup_and_withdraw_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let operation_account = 1;
+		let user = 2;
+		let tapp_owner = 3;
+		let initial_amount = 100000000;
+		<Test as Config>::Currency::make_free_balance_be(&operation_account, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, initial_amount);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+		let tapp_id = 1;
+
+		let transfer_amount = 10000;
+		assert_ok!(BondingCurve::topup(
+			Origin::signed(user),
+			tapp_id,
+			operation_account,
+			transfer_amount
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&operation_account),
+			initial_amount + transfer_amount
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			initial_amount - transfer_amount
+		);
+
+		assert_ok!(BondingCurve::withdraw(
+			Origin::signed(operation_account),
+			tapp_id,
+			user,
+			transfer_amount
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&operation_account),
+			initial_amount
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			initial_amount
+		);
+	})
+}
+
+#[test]
+fn topup_should_fail_if_tapp_not_exist() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			BondingCurve::topup(Origin::signed(2), 1, 3, 1000),
+			Error::<Test>::TAppIdNotExist
+		);
+	})
+}
+
+#[test]
+fn topup_should_fail_if_user_balance_is_not_enough() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let operation_account = 1;
+		let user = 2;
+		let tapp_owner = 3;
+		let initial_amount = 100000000;
+		<Test as Config>::Currency::make_free_balance_be(&operation_account, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, initial_amount);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+		let tapp_id = 1;
+
+		let transfer_amount = 200000000;
+		assert_noop!(
+			BondingCurve::topup(
+				Origin::signed(user),
+				tapp_id,
+				operation_account,
+				transfer_amount
+			),
+			Error::<Test>::InsufficientFreeBalance
+		);
+	})
+}
+
+#[test]
+fn withdraw_should_fail_if_tapp_not_exist() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			BondingCurve::withdraw(Origin::signed(2), 1, 3, 1000),
+			Error::<Test>::TAppIdNotExist
+		);
+	})
+}
+
+#[test]
+fn withdraw_should_fail_if_user_balance_is_not_enough() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let operation_account = 1;
+		let user = 2;
+		let tapp_owner = 3;
+		let initial_amount = 100000000;
+		<Test as Config>::Currency::make_free_balance_be(&operation_account, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, initial_amount);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			Some(1000),
+			Some(10),
+		));
+		let tapp_id = 1;
+
+		let transfer_amount = 200000000;
+		assert_noop!(
+			BondingCurve::withdraw(
+				Origin::signed(operation_account),
+				tapp_id,
+				user,
+				transfer_amount
+			),
+			Error::<Test>::InsufficientFreeBalance
+		);
+	})
+}
+
 pub fn seed_from_lifespan(id: CmlId, lifespan: u32, performance: u32) -> Seed {
 	Seed {
 		id,
