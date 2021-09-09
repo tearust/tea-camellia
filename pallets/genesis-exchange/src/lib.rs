@@ -142,6 +142,7 @@ pub mod genesis_exchange {
 		pub operation_tea_amount: BalanceOf<T>,
 		pub competition_users: Vec<(T::AccountId, BalanceOf<T>)>,
 		pub bonding_curve_npc: (T::AccountId, BalanceOf<T>),
+		pub initial_usd_interest_rate: BalanceOf<T>,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
@@ -152,6 +153,7 @@ pub mod genesis_exchange {
 				operation_tea_amount: Default::default(),
 				competition_users: Default::default(),
 				bonding_curve_npc: Default::default(),
+				initial_usd_interest_rate: Default::default(),
 			}
 		}
 	}
@@ -170,7 +172,7 @@ pub mod genesis_exchange {
 			USDStore::<T>::insert(&self.bonding_curve_npc.0, &self.bonding_curve_npc.1);
 
 			// initialize USD interest rate
-			USDInterestRate::<T>::set(300u32.into());
+			USDInterestRate::<T>::set(self.initial_usd_interest_rate);
 		}
 	}
 
@@ -267,13 +269,7 @@ pub mod genesis_exchange {
 			let root = ensure_root(sender)?;
 			extrinsic_procedure(
 				&root,
-				|_root| {
-					ensure!(
-						rate >= ((USDStore::<T>::iter().count() - 1) as u32).into(),
-						Error::<T>::USDInterestRateShouldLargerThanCompetitionsCount
-					);
-					Ok(())
-				},
+				|_root| Ok(()),
 				|_root| USDInterestRate::<T>::set(rate),
 			)
 		}

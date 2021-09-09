@@ -276,6 +276,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			.map(|v| (*v, COMPETITION_USER_USD_AMOUNT))
 			.collect(),
 		bonding_curve_npc: (Default::default(), 0),
+		initial_usd_interest_rate: 5,
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

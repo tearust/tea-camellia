@@ -7,25 +7,20 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	}
 
 	pub(crate) fn accumulate_usd_interest() {
-		let n = max(USDStore::<T>::iter().count() - 1, 1) as u32;
 		USDStore::<T>::iter()
 			.filter(|(user, _)| !user.eq(&OperationAccount::<T>::get()))
 			.for_each(|(user, _)| {
 				USDStore::<T>::mutate(user, |balance| {
-					// calculation details see https://github.com/tearust/tea-camellia/issues/43
-					*balance = balance.saturating_add(
-						*balance * USDInterestRate::<T>::get() / n.into() / 10000u32.into(),
-					);
+					*balance = balance
+						.saturating_add(*balance * USDInterestRate::<T>::get() / 10000u32.into());
 				});
 			});
 		USDDebt::<T>::iter()
 			.filter(|(user, _)| !user.eq(&OperationAccount::<T>::get()))
 			.for_each(|(user, _)| {
 				USDDebt::<T>::mutate(user, |balance| {
-					// calculation details see https://github.com/tearust/tea-camellia/issues/43
-					*balance = balance.saturating_add(
-						*balance * USDInterestRate::<T>::get() / n.into() / 10000u32.into(),
-					);
+					*balance = balance
+						.saturating_add(*balance * USDInterestRate::<T>::get() / 10000u32.into());
 				});
 			});
 	}
@@ -553,15 +548,13 @@ mod tests {
 			USDStore::<Test>::insert(user3, 30000000);
 			USDDebt::<Test>::insert(user3, 30000000);
 
-			// current 3 users plus endowed 4 accounts in mock.rs
-			assert_eq!(USDStore::<Test>::iter().count(), 8);
+			assert_eq!(USDInterestRate::<Test>::get(), 5);
 
 			GenesisExchange::accumulate_usd_interest();
-			let user1_amount = 10000000 + (10000000 * USDInterestRate::<Test>::get() / 7 / 10000);
-			let user2_amount = 20000000 + (20000000 * USDInterestRate::<Test>::get() / 7 / 10000);
-			let user3_amount = 30000000 + (30000000 * USDInterestRate::<Test>::get() / 7 / 10000);
-			let user2_debt_amount =
-				25000000 + (25000000 * USDInterestRate::<Test>::get() / 7 / 10000);
+			let user1_amount = 10000000 + (10000000 * USDInterestRate::<Test>::get() / 10000);
+			let user2_amount = 20000000 + (20000000 * USDInterestRate::<Test>::get() / 10000);
+			let user3_amount = 30000000 + (30000000 * USDInterestRate::<Test>::get() / 10000);
+			let user2_debt_amount = 25000000 + (25000000 * USDInterestRate::<Test>::get() / 10000);
 			assert_eq!(USDStore::<Test>::get(user1), user1_amount);
 			assert_eq!(USDDebt::<Test>::get(user1), user1_amount);
 
@@ -574,30 +567,29 @@ mod tests {
 			GenesisExchange::accumulate_usd_interest();
 			assert_eq!(
 				USDStore::<Test>::get(user1),
-				user1_amount + (user1_amount * USDInterestRate::<Test>::get() / 7 / 10000)
+				user1_amount + (user1_amount * USDInterestRate::<Test>::get() / 10000)
 			);
 			assert_eq!(
 				USDDebt::<Test>::get(user1),
-				user1_amount + (user1_amount * USDInterestRate::<Test>::get() / 7 / 10000)
+				user1_amount + (user1_amount * USDInterestRate::<Test>::get() / 10000)
 			);
 
 			assert_eq!(
 				USDStore::<Test>::get(user2),
-				user2_amount + (user2_amount * USDInterestRate::<Test>::get() / 7 / 10000)
+				user2_amount + (user2_amount * USDInterestRate::<Test>::get() / 10000)
 			);
 			assert_eq!(
 				USDDebt::<Test>::get(user2),
-				user2_debt_amount
-					+ (user2_debt_amount * USDInterestRate::<Test>::get() / 7 / 10000)
+				user2_debt_amount + (user2_debt_amount * USDInterestRate::<Test>::get() / 10000)
 			);
 
 			assert_eq!(
 				USDStore::<Test>::get(user3),
-				user3_amount + (user3_amount * USDInterestRate::<Test>::get() / 7 / 10000)
+				user3_amount + (user3_amount * USDInterestRate::<Test>::get() / 10000)
 			);
 			assert_eq!(
 				USDDebt::<Test>::get(user3),
-				user3_amount + (user3_amount * USDInterestRate::<Test>::get() / 7 / 10000)
+				user3_amount + (user3_amount * USDInterestRate::<Test>::get() / 10000)
 			);
 		})
 	}
