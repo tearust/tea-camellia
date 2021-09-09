@@ -289,6 +289,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	.unwrap();
 
 	pallet_cml::GenesisConfig::<Test> {
+		initial_task_point_base: 10000,
 		genesis_seeds: init_genesis([1; 32]),
 		genesis_coupons: GenesisCoupons {
 			coupons: vec![

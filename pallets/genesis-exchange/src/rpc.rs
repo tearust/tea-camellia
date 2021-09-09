@@ -1,6 +1,5 @@
 use super::*;
 
-const TASK_POINT_BASE: u32 = 1000;
 // precision is 1-(18)0 about 0.1 CENT
 const K_COEFFICIENT_TOLERANCE_PRECISION: u128 = 1000000000000000000;
 // precision is 1-(23)0 about 0.33 DOLLAR
@@ -290,13 +289,14 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		// calculate reward statement of current block, we assume each mining cml will get the
 		// mining change equally, and each mining task point are same.
 		let mining_cmls_count = T::CmlOperation::current_mining_cmls().iter().count() as u32;
+		let task_point_base = T::CmlOperation::task_point_base();
 		let cml_reward_statements = T::CmlOperation::estimate_reward_statements(
 			|| mining_cmls_count,
 			|_cml_id| {
 				if mining_cmls_count == 0 {
-					TASK_POINT_BASE
+					task_point_base
 				} else {
-					TASK_POINT_BASE / mining_cmls_count
+					task_point_base / mining_cmls_count
 				}
 			},
 		);

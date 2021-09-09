@@ -503,6 +503,7 @@ fn testnet_genesis(
 		pallet_cml: CmlConfig {
 			genesis_coupons,
 			genesis_seeds,
+			initial_task_point_base: 2000,
 		},
 		pallet_genesis_bank: GenesisBankConfig {
 			operation_account: genesis_bank_operation_account,

@@ -12,7 +12,7 @@ pub mod index;
 #[cfg(test)]
 mod test;
 
-const TASK_POINT_BASE: Balance = 1000;
+const TASK_POINT_BASE: Balance = 10000;
 const PERFORMANCE_BASE: Balance = 10000;
 
 pub struct TeaStakingEconomics {}

@@ -182,10 +182,16 @@ pub mod cml {
 	#[pallet::getter(fn enable_transfer_coupon)]
 	pub type EnableTransferCoupon<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	/// Tast point coefficient, per 10000 points will mining 1TEA.
+	#[pallet::storage]
+	#[pallet::getter(fn task_point_base)]
+	pub type TaskPointBase<T: Config> = StorageValue<_, ServiceTaskPoint, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub genesis_coupons: GenesisCoupons<T::AccountId>,
 		pub genesis_seeds: GenesisSeeds,
+		pub initial_task_point_base: u32,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
@@ -193,6 +199,7 @@ pub mod cml {
 			GenesisConfig {
 				genesis_coupons: GenesisCoupons::default(),
 				genesis_seeds: GenesisSeeds::default(),
+				initial_task_point_base: Default::default(),
 			}
 		}
 	}
@@ -202,6 +209,7 @@ pub mod cml {
 			// disable transfer coupon by default
 			EnableTransferCoupon::<T>::set(false);
 
+			TaskPointBase::<T>::set(self.initial_task_point_base);
 			crate::functions::init_from_genesis_coupons::<T>(&self.genesis_coupons);
 			crate::functions::init_from_genesis_seeds::<T>(&self.genesis_seeds);
 		}
@@ -911,6 +919,8 @@ pub trait CmlOperation {
 	) -> (Option<Performance>, Performance);
 
 	fn user_coupon_list(who: &Self::AccountId, schedule_type: DefrostScheduleType) -> Vec<Coupon>;
+
+	fn task_point_base() -> ServiceTaskPoint;
 }
 
 /// Operations to calculate staking rewards.
