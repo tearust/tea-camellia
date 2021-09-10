@@ -878,7 +878,7 @@ pub mod bonding_curve {
 						return;
 					}
 
-					Self::deposit_event(Event::TAppTopup(
+					Self::deposit_event(Event::TAppWithdraw(
 						tapp_id,
 						who.clone(),
 						user.clone(),
