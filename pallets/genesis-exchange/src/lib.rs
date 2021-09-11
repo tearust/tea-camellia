@@ -109,6 +109,10 @@ pub mod genesis_exchange {
 	#[pallet::getter(fn operation_account)]
 	pub type OperationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn npc_account)]
+	pub type NPCAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+
 	/// AMM curve coefficient k: `x * y = k`, k initialized when genesis build.
 	#[pallet::storage]
 	#[pallet::getter(fn amm_curve_k_coefficient)]
@@ -138,6 +142,7 @@ pub mod genesis_exchange {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub operation_account: T::AccountId,
+		pub npc_account: T::AccountId,
 		pub operation_usd_amount: BalanceOf<T>,
 		pub operation_tea_amount: BalanceOf<T>,
 		pub competition_users: Vec<(T::AccountId, BalanceOf<T>)>,
@@ -149,6 +154,7 @@ pub mod genesis_exchange {
 		fn default() -> Self {
 			GenesisConfig {
 				operation_account: Default::default(),
+				npc_account: Default::default(),
 				operation_usd_amount: Default::default(),
 				operation_tea_amount: Default::default(),
 				competition_users: Default::default(),
@@ -161,6 +167,7 @@ pub mod genesis_exchange {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			OperationAccount::<T>::set(self.operation_account.clone());
+			NPCAccount::<T>::set(self.npc_account.clone());
 			AMMCurveKCoefficient::<T>::set(self.operation_usd_amount * self.operation_tea_amount);
 
 			USDStore::<T>::insert(&self.operation_account, &self.operation_usd_amount);
@@ -248,6 +255,8 @@ pub mod genesis_exchange {
 		InitialBorrowAmountShouldLessThanBorrowAllowance,
 		/// The competition user has registered already
 		CompetitionUserAlreadyRegistered,
+		/// Only allowed NPC account to register new competition user
+		OnlyAllowedNpcAccountToRegister,
 	}
 
 	#[pallet::hooks]
@@ -488,10 +497,14 @@ pub mod genesis_exchange {
 
 			extrinsic_procedure(
 				&who,
-				|_who| {
+				|who| {
 					ensure!(
 						!CompetitionUsers::<T>::contains_key(&user),
 						Error::<T>::CompetitionUserAlreadyRegistered
+					);
+					ensure!(
+						who.eq(&NPCAccount::<T>::get()),
+						Error::<T>::OnlyAllowedNpcAccountToRegister
 					);
 					Ok(())
 				},

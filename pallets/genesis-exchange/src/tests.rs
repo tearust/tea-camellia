@@ -736,13 +736,12 @@ fn repay_usd_debts_should_fail_if_usd_amount_less_than_repay_amount() {
 #[test]
 fn register_for_competition_works() {
 	new_test_ext().execute_with(|| {
-		let user = 1;
 		let user2 = 2;
 
 		let erc20 = b"test erc20".to_vec();
 		let email = b"test email".to_vec();
 		assert_ok!(GenesisExchange::register_for_competition(
-			Origin::signed(user),
+			Origin::signed(NPC_ACCOUNT),
 			user2,
 			erc20.clone(),
 			email.clone(),
@@ -754,13 +753,33 @@ fn register_for_competition_works() {
 }
 
 #[test]
-fn register_for_competition_should_fail_if_already_registered() {
+fn register_for_competition_should_fail_if_user_is_not_npc_accout() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 		let user2 = 2;
 
+		let erc20 = b"test erc20".to_vec();
+		let email = b"test email".to_vec();
+		assert_noop!(
+			GenesisExchange::register_for_competition(
+				Origin::signed(user),
+				user2,
+				erc20.clone(),
+				email.clone(),
+			),
+			Error::<Test>::OnlyAllowedNpcAccountToRegister
+		);
+		assert!(!CompetitionUsers::<Test>::contains_key(user2));
+	})
+}
+
+#[test]
+fn register_for_competition_should_fail_if_already_registered() {
+	new_test_ext().execute_with(|| {
+		let user2 = 2;
+
 		assert_ok!(GenesisExchange::register_for_competition(
-			Origin::signed(user),
+			Origin::signed(NPC_ACCOUNT),
 			user2,
 			b"test erc20".to_vec(),
 			b"test email".to_vec(),
@@ -768,7 +787,7 @@ fn register_for_competition_should_fail_if_already_registered() {
 
 		assert_noop!(
 			GenesisExchange::register_for_competition(
-				Origin::signed(user),
+				Origin::signed(NPC_ACCOUNT),
 				user2,
 				b"test erc20".to_vec(),
 				b"test email".to_vec(),

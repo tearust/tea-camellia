@@ -255,6 +255,7 @@ pub const OPERATION_ACCOUNT: u64 = 100;
 pub const COMPETITION_USERS1: u64 = 101;
 pub const COMPETITION_USERS2: u64 = 102;
 pub const COMPETITION_USERS3: u64 = 103;
+pub const NPC_ACCOUNT: u64 = 111;
 
 pub const BANK_OPERATION_ACCOUNT: u64 = 200;
 pub const BANK_INITIAL_BALANCE: Balance = 100_000;
@@ -269,6 +270,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	pallet_genesis_exchange::GenesisConfig::<Test> {
 		operation_account: OPERATION_ACCOUNT,
+		npc_account: NPC_ACCOUNT,
 		operation_tea_amount: OPERATION_TEA_AMOUNT,
 		operation_usd_amount: OPERATION_USD_AMOUNT,
 		competition_users: vec![COMPETITION_USERS1, COMPETITION_USERS2, COMPETITION_USERS3]

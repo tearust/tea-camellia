@@ -512,6 +512,7 @@ fn testnet_genesis(
 		},
 		pallet_genesis_exchange: GenesisExchangeConfig {
 			operation_account: genesis_exchange_operation_account,
+			npc_account: bonding_curve_npc_account.clone(),
 			operation_usd_amount: INITIAL_EXCHANGE_USD_BALANCE,
 			operation_tea_amount: INITIAL_EXCHANGE_TEA_BALANCE,
 			competition_users,
