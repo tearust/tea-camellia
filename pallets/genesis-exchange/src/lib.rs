@@ -257,6 +257,8 @@ pub mod genesis_exchange {
 		CompetitionUserAlreadyRegistered,
 		/// Only allowed NPC account to register new competition user
 		OnlyAllowedNpcAccountToRegister,
+		/// Only allowed competition account to borrow USD
+		OnlyAllowedCompetitionUserBorrowUSD,
 	}
 
 	#[pallet::hooks]
@@ -414,6 +416,10 @@ pub mod genesis_exchange {
 					ensure!(
 						USDStore::<T>::get(who).checked_add(&amount).is_some(),
 						Error::<T>::BorrowAmountHasOverflow,
+					);
+					ensure!(
+						CompetitionUsers::<T>::contains_key(who),
+						Error::<T>::OnlyAllowedCompetitionUserBorrowUSD
 					);
 					Self::check_borrowed_amount(who, &amount)?;
 
