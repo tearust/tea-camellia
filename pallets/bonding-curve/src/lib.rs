@@ -279,13 +279,6 @@ pub mod bonding_curve {
 		/// 3. To account
 		/// 4. Topup amount
 		TAppTopup(TAppId, T::AccountId, T::AccountId, BalanceOf<T>),
-
-		/// Fired after withdraw successfully, event parameters:
-		/// 1. TApp Id
-		/// 2. From account
-		/// 3. To account
-		/// 4. Topup amount
-		TAppWithdraw(TAppId, T::AccountId, T::AccountId, BalanceOf<T>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -838,50 +831,6 @@ pub mod bonding_curve {
 						tapp_id,
 						who.clone(),
 						tapp_operation_account.clone(),
-						amount,
-					));
-				},
-			)
-		}
-
-		#[pallet::weight(195_000_000)]
-		pub fn withdraw(
-			sender: OriginFor<T>,
-			tapp_id: TAppId,
-			user: T::AccountId,
-			amount: BalanceOf<T>,
-		) -> DispatchResult {
-			let who = ensure_signed(sender)?;
-
-			extrinsic_procedure(
-				&who,
-				|who| {
-					ensure!(
-						TAppBondingCurve::<T>::contains_key(tapp_id),
-						Error::<T>::TAppIdNotExist
-					);
-					ensure!(
-						T::CurrencyOperations::free_balance(who) >= amount,
-						Error::<T>::InsufficientFreeBalance
-					);
-					Ok(())
-				},
-				|who| {
-					if let Err(e) = T::CurrencyOperations::transfer(
-						who,
-						&user,
-						amount,
-						ExistenceRequirement::AllowDeath,
-					) {
-						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-						log::error!("tapp topup transfer free balance failed: {:?}", e);
-						return;
-					}
-
-					Self::deposit_event(Event::TAppWithdraw(
-						tapp_id,
-						who.clone(),
-						user.clone(),
 						amount,
 					));
 				},
