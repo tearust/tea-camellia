@@ -23,7 +23,7 @@ use frame_support::{
 	traits::{Currency, ExistenceRequirement},
 };
 use frame_system::pallet_prelude::*;
-use pallet_cml::{CmlId, CmlOperation, MiningProperties, Performance};
+use pallet_cml::{CmlId, CmlOperation, MachineId, MiningProperties, Performance};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating, Zero},
@@ -268,6 +268,12 @@ pub mod bonding_curve {
 		/// Fired after TApp has bankrupted
 		TAppBankrupted(TAppId),
 
+		/// Fired after host successfully, automatically unhosted lists:
+		/// - Unhost tapp id
+		/// - Unhost CML id
+		/// - Unhost CML machine id
+		TAppsHosted(TAppId, CmlId, MachineId),
+
 		/// Fired after each host arrange duration, automatically unhosted lists:
 		/// - Unhost tapp id
 		/// - Unhost CML id
@@ -340,6 +346,8 @@ pub mod bonding_curve {
 		CmlOwnerIsNone,
 		/// It's not allowed for the CML that not start mining to host
 		OnlyMiningCmlCanHost,
+		/// Cml machine id not exist
+		CmlMachineIdIsNone,
 		/// The CML is already hosting the given tapp
 		CmlIsAlreadyHosting,
 		/// There is no miner hosting the tapp so no need to distribute
@@ -715,6 +723,7 @@ pub mod bonding_curve {
 
 					let cml = T::CmlOperation::cml_by_id(&cml_id)?;
 					ensure!(cml.is_mining(), Error::<T>::OnlyMiningCmlCanHost);
+					ensure!(cml.machine_id().is_some(), Error::<T>::CmlMachineIdIsNone);
 
 					let current_block = frame_system::Pallet::<T>::block_number();
 					let (current_performance, _) =
@@ -729,7 +738,15 @@ pub mod bonding_curve {
 				},
 				|_who| {
 					TAppCurrentHosts::<T>::insert(tapp_id, cml_id, ());
-					CmlHostingTApps::<T>::mutate(cml_id, |tapp_ids| tapp_ids.push(tapp_id))
+					CmlHostingTApps::<T>::mutate(cml_id, |tapp_ids| tapp_ids.push(tapp_id));
+
+					if let Ok(cml) = T::CmlOperation::cml_by_id(&cml_id) {
+						Self::deposit_event(Event::TAppsHosted(
+							tapp_id,
+							cml_id,
+							cml.machine_id().unwrap().clone(),
+						));
+					}
 				},
 			)
 		}
