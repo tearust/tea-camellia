@@ -269,8 +269,10 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			T::BondingCurveOperation::tapp_user_balances(&who)
 				.iter()
 				.for_each(|(tapp_id, balance)| {
-					let tea_amount =
-						balance.saturating_mul(sell_price_map[tapp_id]) / one_tea_dollar;
+					let tea_amount = match sell_price_map.get(&tapp_id) {
+						Some(amount) => balance.saturating_mul(amount.clone()) / one_tea_dollar,
+						None => Zero::zero(),
+					};
 					total_amount_in_tea = total_amount_in_tea.saturating_add(tea_amount);
 				});
 
