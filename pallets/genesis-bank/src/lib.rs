@@ -210,6 +210,22 @@ pub mod genesis_bank {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000_000)]
+		pub fn update_interest_rate_amm_k(
+			sender: OriginFor<T>,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_root| Ok(()),
+				|_root| {
+					AMMCurveKCoefficient::<T>::set(amount);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
 		pub fn close_bank(sender: OriginFor<T>, height: T::BlockNumber) -> DispatchResult {
 			let root = ensure_root(sender)?;
 

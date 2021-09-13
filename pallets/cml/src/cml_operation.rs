@@ -229,6 +229,10 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 				.collect(),
 		}
 	}
+
+	fn task_point_base() -> ServiceTaskPoint {
+		TaskPointBase::<T>::get()
+	}
 }
 
 #[cfg(test)]

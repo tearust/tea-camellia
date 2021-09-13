@@ -504,14 +504,16 @@ fn testnet_genesis(
 		pallet_cml: CmlConfig {
 			genesis_coupons,
 			genesis_seeds,
+			initial_task_point_base: 2000,
 		},
 		pallet_genesis_bank: GenesisBankConfig {
 			operation_account: genesis_bank_operation_account,
 			bank_initial_balance: INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
-			bank_initial_interest_rate: 10,
+			bank_initial_interest_rate: 3, // bank initial interest rate is 0.03%
 		},
 		pallet_genesis_exchange: GenesisExchangeConfig {
 			operation_account: genesis_exchange_operation_account,
+			npc_account: bonding_curve_npc_account.clone(),
 			operation_usd_amount: INITIAL_EXCHANGE_USD_BALANCE,
 			operation_tea_amount: INITIAL_EXCHANGE_TEA_BALANCE,
 			competition_users,
@@ -519,6 +521,7 @@ fn testnet_genesis(
 				bonding_curve_npc_account.clone(),
 				BONDING_CURVE_NPC_INITIAL_USD_BALANCE,
 			),
+			initial_usd_interest_rate: 5, // let initial usd interest rate be 0.05%
 		},
 		pallet_bonding_curve: BondingCurveConfig {
 			reserved_balance_account: bonding_curve_reserved_balance_account,

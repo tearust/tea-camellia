@@ -109,6 +109,10 @@ pub mod genesis_exchange {
 	#[pallet::getter(fn operation_account)]
 	pub type OperationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn npc_account)]
+	pub type NPCAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+
 	/// AMM curve coefficient k: `x * y = k`, k initialized when genesis build.
 	#[pallet::storage]
 	#[pallet::getter(fn amm_curve_k_coefficient)]
@@ -138,20 +142,24 @@ pub mod genesis_exchange {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub operation_account: T::AccountId,
+		pub npc_account: T::AccountId,
 		pub operation_usd_amount: BalanceOf<T>,
 		pub operation_tea_amount: BalanceOf<T>,
 		pub competition_users: Vec<(T::AccountId, BalanceOf<T>)>,
 		pub bonding_curve_npc: (T::AccountId, BalanceOf<T>),
+		pub initial_usd_interest_rate: BalanceOf<T>,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
 				operation_account: Default::default(),
+				npc_account: Default::default(),
 				operation_usd_amount: Default::default(),
 				operation_tea_amount: Default::default(),
 				competition_users: Default::default(),
 				bonding_curve_npc: Default::default(),
+				initial_usd_interest_rate: Default::default(),
 			}
 		}
 	}
@@ -159,6 +167,7 @@ pub mod genesis_exchange {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			OperationAccount::<T>::set(self.operation_account.clone());
+			NPCAccount::<T>::set(self.npc_account.clone());
 			AMMCurveKCoefficient::<T>::set(self.operation_usd_amount * self.operation_tea_amount);
 
 			USDStore::<T>::insert(&self.operation_account, &self.operation_usd_amount);
@@ -170,7 +179,7 @@ pub mod genesis_exchange {
 			USDStore::<T>::insert(&self.bonding_curve_npc.0, &self.bonding_curve_npc.1);
 
 			// initialize USD interest rate
-			USDInterestRate::<T>::set(300u32.into());
+			USDInterestRate::<T>::set(self.initial_usd_interest_rate);
 		}
 	}
 
@@ -246,6 +255,10 @@ pub mod genesis_exchange {
 		InitialBorrowAmountShouldLessThanBorrowAllowance,
 		/// The competition user has registered already
 		CompetitionUserAlreadyRegistered,
+		/// Only allowed NPC account to register new competition user
+		OnlyAllowedNpcAccountToRegister,
+		/// Only allowed competition account to borrow USD
+		OnlyAllowedCompetitionUserBorrowUSD,
 	}
 
 	#[pallet::hooks]
@@ -267,13 +280,7 @@ pub mod genesis_exchange {
 			let root = ensure_root(sender)?;
 			extrinsic_procedure(
 				&root,
-				|_root| {
-					ensure!(
-						rate >= ((USDStore::<T>::iter().count() - 1) as u32).into(),
-						Error::<T>::USDInterestRateShouldLargerThanCompetitionsCount
-					);
-					Ok(())
-				},
+				|_root| Ok(()),
 				|_root| USDInterestRate::<T>::set(rate),
 			)
 		}
@@ -410,6 +417,10 @@ pub mod genesis_exchange {
 						USDStore::<T>::get(who).checked_add(&amount).is_some(),
 						Error::<T>::BorrowAmountHasOverflow,
 					);
+					ensure!(
+						CompetitionUsers::<T>::contains_key(who),
+						Error::<T>::OnlyAllowedCompetitionUserBorrowUSD
+					);
 					Self::check_borrowed_amount(who, &amount)?;
 
 					Ok(())
@@ -492,10 +503,14 @@ pub mod genesis_exchange {
 
 			extrinsic_procedure(
 				&who,
-				|_who| {
+				|who| {
 					ensure!(
 						!CompetitionUsers::<T>::contains_key(&user),
 						Error::<T>::CompetitionUserAlreadyRegistered
+					);
+					ensure!(
+						who.eq(&NPCAccount::<T>::get()),
+						Error::<T>::OnlyAllowedNpcAccountToRegister
 					);
 					Ok(())
 				},

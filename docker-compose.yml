@@ -3,7 +3,7 @@ version: "3.2"
 services:
   build:
     container_name: tea-camellia-build 
-    image: paritytech/ci-linux:production
+    image: paritytech/ci-linux:staging-1.54.0
     network_mode: "host"
     working_dir: /tearust/tea-camellia
     environment:
@@ -13,7 +13,7 @@ services:
     command: bash -c "cargo build --release --target-dir /tearust/tea-camellia/docker/target"
   fast:
     container_name: tea-camellia-fast
-    image: paritytech/ci-linux:production
+    image: paritytech/ci-linux:staging-1.54.0
     network_mode: "host"
     working_dir: /tearust/tea-camellia
     environment:

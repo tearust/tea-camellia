@@ -236,6 +236,7 @@ impl ExtBuilder {
 		pallet_cml::GenesisConfig::<Test> {
 			genesis_seeds: self.seeds,
 			genesis_coupons: self.coupons,
+			initial_task_point_base: 10000,
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

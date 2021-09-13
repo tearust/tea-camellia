@@ -900,7 +900,7 @@ parameter_types! {
 	pub const PoolBalanceReversePrecision: Balance = 10;
 	pub const HostArrangeDuration: BlockNumber = 1000;
 	pub const HostCostCollectionDuration: BlockNumber = 100;
-	pub const HostCostCoefficient: Balance = 100_000_000;
+	pub const HostCostCoefficient: Balance = 1_000_000_000;
 	pub const ConsumeNoteMaxLength: u32 = 140;
 	pub const CidMaxLength: u32 = 100;
 	pub const TotalSupplyMaxValue: Balance = 1000000000000000000000000;

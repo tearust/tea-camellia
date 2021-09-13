@@ -337,11 +337,11 @@ mod tests {
 
 			assert_eq!(
 				GenesisBank::cml_need_to_pay(&id, false),
-				100_000 + 100_000 * 10 / 10000
+				100_000 + 100_000 * BANK_INITIAL_INTEREST_RATE / 10000
 			);
 			assert_eq!(
 				GenesisBank::cml_need_to_pay(&id, true),
-				100_000 * 10 / 10000
+				100_000 * BANK_INITIAL_INTEREST_RATE / 10000
 			);
 		})
 	}
@@ -353,28 +353,28 @@ mod tests {
 				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
 				BANK_INITIAL_BALANCE
 			);
-			assert_eq!(InterestRate::<Test>::get(), 10);
+			assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE);
 
 			<Test as Config>::Currency::make_free_balance_be(
 				&OperationAccount::<Test>::get(),
 				BANK_INITIAL_BALANCE / 2,
 			);
 			GenesisBank::reset_interest_rate();
-			assert_eq!(InterestRate::<Test>::get(), 20);
+			assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE * 2);
 
 			<Test as Config>::Currency::make_free_balance_be(
 				&OperationAccount::<Test>::get(),
 				BANK_INITIAL_BALANCE * 2,
 			);
 			GenesisBank::reset_interest_rate();
-			assert_eq!(InterestRate::<Test>::get(), 5);
+			assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE / 2);
 
 			<Test as Config>::Currency::make_free_balance_be(
 				&OperationAccount::<Test>::get(),
 				BANK_INITIAL_BALANCE * 2 / 10,
 			);
 			GenesisBank::reset_interest_rate();
-			assert_eq!(InterestRate::<Test>::get(), 50);
+			assert_eq!(InterestRate::<Test>::get(), BANK_INITIAL_INTEREST_RATE * 5);
 		})
 	}
 
