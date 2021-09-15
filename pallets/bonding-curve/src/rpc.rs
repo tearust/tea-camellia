@@ -384,7 +384,8 @@ mod tests {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			));
 			let (buy_price, sell_price) = BondingCurve::query_price(1);
 			assert_eq!(buy_price, 100000000000000);
@@ -400,7 +401,8 @@ mod tests {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			));
 			let (buy_price, sell_price) = BondingCurve::query_price(2);
 			assert_eq!(buy_price, 1000000000000000);

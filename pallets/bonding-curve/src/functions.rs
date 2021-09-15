@@ -1,4 +1,5 @@
 use super::*;
+use pallet_cml::TreeProperties;
 
 pub(crate) const CALCULATION_PRECISION: u32 = 100000000;
 
@@ -188,18 +189,25 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 	pub(crate) fn distribute_to_investors(tapp_id: TAppId, distributing_amount: BalanceOf<T>) {
 		// todo replace total amount with total supply later if calculation result is correct
-		let (investors, total_amount) = Self::tapp_investors(tapp_id);
-		if !approximately_equals::<T>(
-			total_amount,
-			TotalSupplyTable::<T>::get(tapp_id),
-			CALCULATION_PRECISION.into(),
-		) {
-			log::error!(
-				"distributing calculate total amount error: calculated result is: {:?}, \
-				total supply is {:?}",
-				total_amount,
-				TotalSupplyTable::<T>::get(tapp_id)
-			);
+		let (investors, mut total_amount) = Self::tapp_investors(tapp_id);
+
+		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
+			BillingMode::FixedHostingToken(_) => {
+				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(|(_, amount)| {
+					total_amount = total_amount.saturating_add(amount);
+				});
+
+				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(
+					|(account, reserved_amount)| {
+						AccountTable::<T>::mutate(account, tapp_id, |user_amount| {
+							*user_amount = user_amount.saturating_add(
+								distributing_amount * reserved_amount / total_amount,
+							);
+						});
+					},
+				);
+			}
+			_ => {}
 		}
 
 		investors.iter().for_each(|account| {
@@ -517,23 +525,52 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 	pub(crate) fn check_host_creating(
 		max_allowed_hosts: u32,
-		_fixed_token_mode: bool,
-		reward_per_performance: BalanceOf<T>,
+		fixed_token_mode: bool,
+		reward_per_performance: &Option<BalanceOf<T>>,
+		stake_token_amount: &Option<BalanceOf<T>>,
 	) -> DispatchResult {
 		ensure!(
 			max_allowed_hosts >= T::MinTappHostsCount::get(),
 			Error::<T>::MaxAllowedHostShouldLargerEqualThanMinAllowedHosts,
 		);
-		ensure!(
-			!reward_per_performance.is_zero(),
-			Error::<T>::RewardPerPerformanceShouldNotBeZero
-		);
+
+		if fixed_token_mode {
+			ensure!(
+				stake_token_amount.is_some(),
+				Error::<T>::StakeTokenIsNoneInFixedTokenMode
+			);
+			ensure!(
+				!stake_token_amount.unwrap().is_zero(),
+				Error::<T>::RewardPerPerformanceShouldNotBeZero
+			);
+		} else {
+			ensure!(
+				reward_per_performance.is_some(),
+				Error::<T>::RewardPerPerformanceIsNoneInFixedFeeMode
+			);
+			ensure!(
+				!reward_per_performance.unwrap().is_zero(),
+				Error::<T>::RewardPerPerformanceShouldNotBeZero
+			);
+		}
 
 		Ok(())
 	}
 
 	pub(crate) fn unhost_tapp(tapp_id: TAppId, cml_id: CmlId) {
 		TAppCurrentHosts::<T>::remove(tapp_id, cml_id);
+
+		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
+			BillingMode::FixedHostingToken(_) => {
+				if let Ok(cml) = T::CmlOperation::cml_by_id(&cml_id) {
+					if let Some(owner) = cml.owner() {
+						TAppReservedBalance::<T>::remove(tapp_id, owner);
+					}
+				}
+			}
+			_ => {}
+		}
+
 		CmlHostingTApps::<T>::mutate(cml_id, |array| {
 			if let Some(index) = array.iter().position(|x| *x == tapp_id) {
 				array.remove(index);
@@ -700,7 +737,7 @@ where
 #[cfg(test)]
 mod tests {
 	use crate::mock::*;
-	use crate::tests::seed_from_lifespan;
+	use crate::tests::{create_default_tapp, seed_from_lifespan};
 	use crate::*;
 	use bonding_curve_impl::approximately_equals;
 	use frame_support::assert_ok;
@@ -841,18 +878,7 @@ mod tests {
 				b"miner_ip".to_vec()
 			));
 
-			assert_ok!(BondingCurve::create_new_tapp(
-				Origin::signed(tapp_owner),
-				b"test name".to_vec(),
-				b"tea".to_vec(),
-				1_000_000,
-				b"test detail".to_vec(),
-				b"https://teaproject.org".to_vec(),
-				10,
-				TAppType::Twitter,
-				true,
-				1000
-			));
+			assert_ok!(create_default_tapp(tapp_owner));
 
 			let tapp_id = 1;
 			assert_eq!(TAppBondingCurve::<Test>::get(tapp_id).current_cost, 0);

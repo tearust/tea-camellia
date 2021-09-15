@@ -56,7 +56,8 @@ fn create_new_tapp_works() {
 			10,
 			TAppType::Twitter,
 			true,
-			1000
+			None,
+			Some(1000)
 		));
 
 		// this is the first tapp so tapp id is 1
@@ -84,35 +85,12 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user = 1;
-		let tapp_name = "test name";
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user),
-			tapp_name.as_bytes().to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user));
 
 		assert_noop!(
-			BondingCurve::create_new_tapp(
-				Origin::signed(user),
-				tapp_name.as_bytes().to_vec(),
-				b"tea".to_vec(),
-				1_000_000,
-				b"test detail".to_vec(),
-				b"https://teaproject.org".to_vec(),
-				10,
-				TAppType::Twitter,
-				true,
-				1000
-			),
+			create_default_tapp(user),
 			Error::<Test>::TAppNameAlreadyExist
 		);
 	})
@@ -126,18 +104,7 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 		let ticker = b"tea";
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user),
-			b"test name".to_vec(),
-			ticker.to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user));
 
 		assert_noop!(
 			BondingCurve::create_new_tapp(
@@ -150,7 +117,8 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::TAppTickerAlreadyExist
 		);
@@ -165,18 +133,7 @@ fn create_new_tapp_should_fail_if_not_allowed_user_create_tapp() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
 		assert_noop!(
-			BondingCurve::create_new_tapp(
-				Origin::signed(user),
-				b"test name".to_vec(),
-				b"tea".to_vec(),
-				1_000_000,
-				b"test detail".to_vec(),
-				b"https://teaproject.org".to_vec(),
-				10,
-				TAppType::Twitter,
-				true,
-				1000
-			),
+			create_default_tapp(user),
 			Error::<Test>::NotAllowedNormalUserCreateTApp,
 		);
 	})
@@ -200,7 +157,8 @@ fn create_new_tapp_should_fail_if_max_allowed_host_lower_than_min_allowed_host_c
 				MIN_TAPP_HOSTS_AMOUNT - 1,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::MaxAllowedHostShouldLargerEqualThanMinAllowedHosts,
 		);
@@ -224,8 +182,9 @@ fn create_new_tapp_should_fail_if_reward_per_performance() {
 				b"https://teaproject.org".to_vec(),
 				10,
 				TAppType::Twitter,
-				true,
-				0
+				false,
+				Some(0),
+				None,
 			),
 			Error::<Test>::RewardPerPerformanceShouldNotBeZero,
 		);
@@ -250,7 +209,8 @@ fn create_new_tapp_should_fail_if_name_is_too_long() {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::TAppTickerIsTooLong,
 		);
@@ -275,7 +235,8 @@ fn create_new_tapp_should_fail_if_name_is_too_short() {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::TAppTickerIsTooShort,
 		);
@@ -300,7 +261,8 @@ fn create_new_tapp_should_fail_if_detail_is_too_long() {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::TAppDetailIsTooLong,
 		);
@@ -325,7 +287,8 @@ fn create_new_tapp_should_fail_if_link_is_too_long() {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::TAppLinkIsTooLong,
 		);
@@ -350,7 +313,8 @@ fn create_new_tapp_should_fail_if_free_balance_is_not_enough() {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::InsufficientFreeBalance,
 		);
@@ -375,7 +339,8 @@ fn create_new_tapp_should_fail_if_tapp_amount_is_too_low() {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::BuyTeaAmountCanNotBeZero,
 		);
@@ -400,7 +365,8 @@ fn create_new_tapp_should_fail_if_ticker_is_too_long() {
 				10,
 				TAppType::Twitter,
 				true,
-				1000
+				None,
+				Some(1000)
 			),
 			Error::<Test>::TAppNameIsTooLong
 		);
@@ -417,18 +383,7 @@ fn buy_token_works() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::buy_token(
@@ -463,22 +418,10 @@ fn buy_token_should_fail_if_tapp_amount_is_zero() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -494,22 +437,10 @@ fn buy_token_should_fail_if_tapp_amount_is_too_low() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -525,22 +456,10 @@ fn buy_token_should_fail_if_free_balance_is_not_enough() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, 0);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -556,22 +475,10 @@ fn buy_token_should_fail_if_total_supply_larger_than_max_allowed() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, u128::MAX);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -591,18 +498,7 @@ fn sell_token_works() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::buy_token(
@@ -637,18 +533,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 
 		let name = b"test name".to_vec();
 		let ticker = b"tea".to_vec();
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			name.clone(),
-			ticker.clone(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::sell_token(
@@ -690,18 +575,7 @@ fn sell_token_should_fail_if_tapp_amount_is_not_enough() {
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -717,22 +591,10 @@ fn sell_token_should_fail_if_tapp_amount_is_zero() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -748,22 +610,10 @@ fn sell_token_should_fail_if_tapp_amount_is_too_low() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let owner = 1;
 		let user = 2;
-		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -781,18 +631,7 @@ fn sell_token_should_fail_if_tapp_total_supply_is_not_enough() {
 		let tapp_amount = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
 		// should never happen, set here just to cover the test case.
@@ -819,18 +658,7 @@ fn consume_works_large_tea() {
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user4, 100 * DOLLARS);
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user1),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount1,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user1));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::buy_token(
@@ -882,22 +710,10 @@ fn consume_should_fail_if_consume_amount_is_zero() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
 		let user2 = 2;
-		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user1),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount1,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user1));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -913,22 +729,10 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
 		let user2 = 2;
-		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, 0);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user1),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount1,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user1));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -944,22 +748,10 @@ fn consume_should_fail_if_note_is_too_long() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
 		let user2 = 2;
-		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user1),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount1,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user1));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -989,18 +781,7 @@ fn consume_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user1),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount1,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user1));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::buy_token(
@@ -1058,21 +839,9 @@ fn expense_should_fail_if_sender_is_not_tapp_owner() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
 		let user2 = 2;
-		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user1),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount1,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user1));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -1087,21 +856,9 @@ fn expense_should_fail_if_expense_amount_is_zero() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
-		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user1),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount1,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user1));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -1117,22 +874,10 @@ fn expense_works_if_expense_amount_more_than_reserved_balance() {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user1 = 1;
 		let miner = 2;
-		let tapp_amount1 = 1_000_000;
 		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&miner, DOLLARS);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(user1),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			tapp_amount1,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(user1));
 
 		let tapp_id = 1;
 
@@ -1184,18 +929,7 @@ fn host_works() {
 			b"miner_ip".to_vec()
 		));
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
@@ -1276,18 +1010,7 @@ fn host_should_fail_if_cml_is_already_hosting() {
 			b"miner_ip".to_vec()
 		));
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
@@ -1340,7 +1063,8 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			1,
 			TAppType::Twitter,
 			true,
-			1000
+			None,
+			Some(1000)
 		));
 
 		let tapp_id = 1;
@@ -1384,7 +1108,8 @@ fn host_should_fail_if_cml_is_full_load() {
 			1,
 			TAppType::Twitter,
 			true,
-			1000
+			None,
+			Some(1000)
 		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
@@ -1396,7 +1121,8 @@ fn host_should_fail_if_cml_is_full_load() {
 			1,
 			TAppType::Twitter,
 			true,
-			1000
+			None,
+			Some(1000)
 		));
 
 		let tapp_id = 1;
@@ -1423,18 +1149,7 @@ fn host_should_fail_if_cml_is_not_mining() {
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 
 		let tapp_id = 1;
 		assert_noop!(
@@ -1465,18 +1180,7 @@ fn unhost_works() {
 			b"miner_ip".to_vec()
 		));
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
@@ -1513,18 +1217,7 @@ fn unhost_should_fail_if_cml_not_belongs_to_user() {
 			b"miner_ip".to_vec()
 		));
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
@@ -1586,18 +1279,7 @@ fn unhost_should_fail_if_cml_not_host_the_tapp() {
 			b"miner_ip".to_vec()
 		));
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
 			b"test name2".to_vec(),
@@ -1608,7 +1290,8 @@ fn unhost_should_fail_if_cml_not_host_the_tapp() {
 			10,
 			TAppType::Twitter,
 			true,
-			1000
+			None,
+			Some(1000)
 		));
 
 		let tapp_id = 1;
@@ -1629,18 +1312,7 @@ fn update_tapp_resource_works() {
 		let tapp_owner = 1;
 		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 
 		let tapp_id = 1;
 		assert!(!TAppResourceMap::<Test>::contains_key(tapp_id));
@@ -1688,18 +1360,7 @@ fn update_tapp_resource_should_fail_if_user_is_not_tapp_owner() {
 		let user = 2;
 		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 
 		let tapp_id = 1;
 
@@ -1723,18 +1384,7 @@ fn topup_works() {
 		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
 		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, initial_amount);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 		let tapp_id = 1;
 
 		let transfer_amount = 10000;
@@ -1777,18 +1427,7 @@ fn topup_should_fail_if_user_balance_is_not_enough() {
 		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
 		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, initial_amount);
 
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			10,
-			TAppType::Twitter,
-			true,
-			1000
-		));
+		assert_ok!(create_default_tapp(tapp_owner));
 		let tapp_id = 1;
 
 		let transfer_amount = 200000000;
@@ -1802,6 +1441,22 @@ fn topup_should_fail_if_user_balance_is_not_enough() {
 			Error::<Test>::InsufficientFreeBalance
 		);
 	})
+}
+
+pub fn create_default_tapp(tapp_owner: u64) -> DispatchResult {
+	BondingCurve::create_new_tapp(
+		Origin::signed(tapp_owner),
+		b"test name".to_vec(),
+		b"tea".to_vec(),
+		1_000_000,
+		b"test detail".to_vec(),
+		b"https://teaproject.org".to_vec(),
+		10,
+		TAppType::Twitter,
+		true,
+		None,
+		Some(1000),
+	)
 }
 
 pub fn seed_from_lifespan(id: CmlId, lifespan: u32, performance: u32) -> Seed {

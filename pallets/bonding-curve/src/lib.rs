@@ -171,6 +171,17 @@ pub mod bonding_curve {
 	#[pallet::getter(fn tapp_resource_map)]
 	pub type TAppResourceMap<T: Config> = StorageMap<_, Twox64Concat, TAppId, Vec<u8>, ValueQuery>;
 
+	#[pallet::storage]
+	pub type TAppReservedBalance<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		TAppId,
+		Twox64Concat,
+		T::AccountId,
+		BalanceOf<T>,
+		ValueQuery,
+	>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
@@ -361,6 +372,12 @@ pub mod bonding_curve {
 		TotalSupplyOverTheMaxValue,
 		/// Reward per performance should not be zero
 		RewardPerPerformanceShouldNotBeZero,
+		/// Stake token should not be zero
+		StakeTokenShouldNotBeZero,
+		/// Stake token should not be none in fixed token mode
+		StakeTokenIsNoneInFixedTokenMode,
+		/// Reward per performance should not be none in fixed fee mode
+		RewardPerPerformanceIsNoneInFixedFeeMode,
 	}
 
 	#[pallet::hooks]
@@ -411,7 +428,8 @@ pub mod bonding_curve {
 			max_allowed_hosts: u32,
 			tapp_type: TAppType,
 			fixed_token_mode: bool,
-			reward_per_performance: BalanceOf<T>,
+			reward_per_performance: Option<BalanceOf<T>>,
+			stake_token_amount: Option<BalanceOf<T>>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let buy_curve = CurveType::UnsignedSquareRoot_10;
@@ -457,7 +475,8 @@ pub mod bonding_curve {
 					Self::check_host_creating(
 						max_allowed_hosts,
 						fixed_token_mode,
-						reward_per_performance,
+						&reward_per_performance,
+						&stake_token_amount,
 					)?;
 					Ok(())
 				},
@@ -467,8 +486,12 @@ pub mod bonding_curve {
 					TAppTickers::<T>::insert(&ticker, id);
 
 					let billing_mode = match fixed_token_mode {
-						true => BillingMode::FixedHostingToken(reward_per_performance),
-						false => BillingMode::FixedHostingFee(reward_per_performance),
+						true => BillingMode::FixedHostingToken(
+							stake_token_amount.unwrap_or(Zero::zero()),
+						),
+						false => BillingMode::FixedHostingFee(
+							reward_per_performance.unwrap_or(Zero::zero()),
+						),
 					};
 					TAppBondingCurve::<T>::insert(
 						id,
@@ -740,9 +763,18 @@ pub mod bonding_curve {
 					);
 					Ok(())
 				},
-				|_who| {
+				|who| {
 					TAppCurrentHosts::<T>::insert(tapp_id, cml_id, ());
 					CmlHostingTApps::<T>::mutate(cml_id, |tapp_ids| tapp_ids.push(tapp_id));
+
+					match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
+						BillingMode::FixedHostingToken(token_amount) => {
+							TAppReservedBalance::<T>::mutate(tapp_id, who, |amount| {
+								*amount = amount.saturating_add(token_amount);
+							});
+						}
+						_ => {}
+					}
 
 					if let Ok(cml) = T::CmlOperation::cml_by_id(&cml_id) {
 						Self::deposit_event(Event::TAppsHosted(
