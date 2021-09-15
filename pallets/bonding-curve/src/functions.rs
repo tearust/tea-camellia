@@ -17,7 +17,7 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 		let tea_amount = tapp.current_cost.saturating_add(
 			T::HostCostCoefficient::get()
-				.saturating_mul(tapp.host_performance.unwrap().into())
+				.saturating_mul(tapp.host_performance().into())
 				.saturating_mul(host_count.into()),
 		);
 
@@ -516,26 +516,18 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	}
 
 	pub(crate) fn check_host_creating(
-		host_performance: Option<Performance>,
-		max_allowed_hosts: Option<u32>,
+		max_allowed_hosts: u32,
+		_fixed_token_mode: bool,
+		reward_per_performance: BalanceOf<T>,
 	) -> DispatchResult {
 		ensure!(
-			(host_performance.is_some() && max_allowed_hosts.is_some())
-				|| (host_performance.is_none() && max_allowed_hosts.is_none()),
-			Error::<T>::HostPerformanceAndMaxAllowedHostMustBePaired
+			max_allowed_hosts >= T::MinTappHostsCount::get(),
+			Error::<T>::MaxAllowedHostShouldLargerEqualThanMinAllowedHosts,
 		);
-		if let Some(performance) = host_performance {
-			ensure!(
-				!performance.is_zero(),
-				Error::<T>::PerformanceValueShouldNotBeZero,
-			);
-		}
-		if let Some(max_allowed_hosts) = max_allowed_hosts {
-			ensure!(
-				!max_allowed_hosts.is_zero(),
-				Error::<T>::MaxAllowedHostShouldNotBeZero,
-			);
-		}
+		ensure!(
+			!reward_per_performance.is_zero(),
+			Error::<T>::RewardPerPerformanceShouldNotBeZero
+		);
 
 		Ok(())
 	}
@@ -578,18 +570,17 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn cml_total_used_performance(cml_id: CmlId) -> Performance {
 		let mut total: Performance = Zero::zero();
 		for tapp_id in CmlHostingTApps::<T>::get(cml_id).iter() {
-			total = total.saturating_add(
-				TAppBondingCurve::<T>::get(tapp_id)
-					.host_performance
-					.unwrap_or_default(),
-			);
+			total = total.saturating_add(TAppBondingCurve::<T>::get(tapp_id).host_performance());
 		}
 		total
 	}
 
 	pub(crate) fn collect_host_cost() {
 		TAppBondingCurve::<T>::iter()
-			.filter(|(_, tapp)| tapp.host_performance.is_some())
+			.filter(|(_, tapp)| match tapp.billing_mode {
+				BillingMode::FixedHostingFee(_) => true,
+				_ => false,
+			})
 			.for_each(|(id, _)| {
 				Self::accumulate_tapp_cost(id);
 				Self::expense_inner(id)
@@ -601,7 +592,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 			tapp.current_cost = tapp.current_cost.saturating_add(
 				T::HostCostCoefficient::get()
-					.saturating_mul(tapp.host_performance.unwrap().into())
+					.saturating_mul(tapp.host_performance().into())
 					.saturating_mul(host_count.into()),
 			);
 		});
@@ -857,8 +848,10 @@ mod tests {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				Some(performance),
-				Some(10),
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			));
 
 			let tapp_id = 1;

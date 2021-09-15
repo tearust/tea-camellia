@@ -904,6 +904,7 @@ parameter_types! {
 	pub const ConsumeNoteMaxLength: u32 = 140;
 	pub const CidMaxLength: u32 = 100;
 	pub const TotalSupplyMaxValue: Balance = 1000000000000000000000000;
+	pub const MinTappHostsCount: u32 = 3;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -926,6 +927,7 @@ impl pallet_bonding_curve::Config for Runtime {
 	type ConsumeNoteMaxLength = ConsumeNoteMaxLength;
 	type CidMaxLength = CidMaxLength;
 	type TotalSupplyMaxValue = TotalSupplyMaxValue;
+	type MinTappHostsCount = MinTappHostsCount;
 }
 
 parameter_types! {
@@ -1365,7 +1367,7 @@ impl_runtime_apis! {
 			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,
-			Option<u32>)> {
+			u32)> {
 			BondingCurve::list_cml_hosting_tapps(cml_id)
 		}
 

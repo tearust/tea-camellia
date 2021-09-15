@@ -102,6 +102,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				let (buy_price, sell_price) = Self::query_price(id);
 				let total_supply = TotalSupplyTable::<T>::get(id);
 
+				let host_performance = item.host_performance();
 				(
 					item.name,
 					id,
@@ -112,9 +113,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					item.owner,
 					item.detail,
 					item.link,
-					item.host_performance.unwrap_or_default(),
+					host_performance,
 					TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
-					item.max_allowed_hosts.unwrap_or_default(),
+					item.max_allowed_hosts,
 				)
 			})
 			.collect()
@@ -152,6 +153,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				let (_, sell_price) = Self::query_price(id);
 				let item = TAppBondingCurve::<T>::get(id);
 
+				let host_performance = item.host_performance();
 				(
 					item.name,
 					id,
@@ -161,9 +163,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					item.owner,
 					item.detail,
 					item.link,
-					item.host_performance.unwrap_or_default(),
+					host_performance,
 					TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
-					item.max_allowed_hosts.unwrap_or_default(),
+					item.max_allowed_hosts,
 				)
 			})
 			.collect()
@@ -176,9 +178,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - Owner
 	/// - Detail
 	/// - Link
-	/// - Host performance requirement (return zero if is none)
-	/// - current hosts (return zero if is none)
-	/// - max hosts (return zero if is none)
+	/// - Host performance requirement
+	/// - current hosts
+	/// - max hosts
 	pub fn tapp_details(
 		tapp_id: TAppId,
 	) -> (
@@ -194,6 +196,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	) {
 		let item = TAppBondingCurve::<T>::get(tapp_id);
 
+		let host_performance = item.host_performance();
 		(
 			item.name,
 			tapp_id,
@@ -201,9 +204,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			item.owner,
 			item.detail,
 			item.link,
-			item.host_performance.unwrap_or_default(),
+			host_performance,
 			TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
-			item.max_allowed_hosts.unwrap_or_default(),
+			item.max_allowed_hosts,
 		)
 	}
 
@@ -316,13 +319,14 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Vec<u8>,
 		Vec<u8>,
 		Vec<u8>,
-		Option<Performance>,
+		Performance,
 	)> {
 		let (_, remaining_performance, _) = Self::cml_performance(cml_id);
 		CmlHostingTApps::<T>::get(cml_id)
 			.iter()
 			.map(|tapp_id| {
 				let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
+				let host_performance = tapp_item.host_performance();
 				(
 					cml_id,
 					remaining_performance.clone(),
@@ -331,7 +335,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					tapp_item.name,
 					tapp_item.detail,
 					tapp_item.link,
-					tapp_item.host_performance,
+					host_performance,
 				)
 			})
 			.collect()
@@ -377,8 +381,10 @@ mod tests {
 				DOLLARS * 10_000,
 				vec![],
 				vec![],
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			));
 			let (buy_price, sell_price) = BondingCurve::query_price(1);
 			assert_eq!(buy_price, 100000000000000);
@@ -391,8 +397,10 @@ mod tests {
 				DOLLARS * 1_000_000,
 				vec![],
 				vec![],
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			));
 			let (buy_price, sell_price) = BondingCurve::query_price(2);
 			assert_eq!(buy_price, 1000000000000000);

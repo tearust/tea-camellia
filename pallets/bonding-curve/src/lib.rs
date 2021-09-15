@@ -95,6 +95,9 @@ pub mod bonding_curve {
 		#[pallet::constant]
 		type TotalSupplyMaxValue: Get<BalanceOf<Self>>;
 
+		#[pallet::constant]
+		type MinTappHostsCount: Get<u32>;
+
 		type LinearCurve: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
@@ -328,14 +331,10 @@ pub mod bonding_curve {
 		NotAllowedNormalUserCreateTApp,
 		/// Only the tapp owner is allowed to submit the `expense` extrinsic
 		OnlyTAppOwnerAllowedToExpense,
-		/// Host performance and max allowed host number should both have value or both be none
-		HostPerformanceAndMaxAllowedHostMustBePaired,
 		/// Performance value should greater than 0
 		PerformanceValueShouldNotBeZero,
 		/// If specify the maximum allowed host count, it should be greater than 0
-		MaxAllowedHostShouldNotBeZero,
-		/// The tapp is not supported to be hosted, that usually means the tapp is not need long running.
-		TAppNotSupportToHost,
+		MaxAllowedHostShouldLargerEqualThanMinAllowedHosts,
 		/// The tapp already has desired count of hosts that can not be hosted anymore
 		TAppHostsIsFull,
 		/// The CML machine is full loan that can not host anymore
@@ -360,10 +359,8 @@ pub mod bonding_curve {
 		CidIsToLong,
 		/// Total supply will over the max value if buy given amount of tapp token
 		TotalSupplyOverTheMaxValue,
-		/// TApp operation accounts not exist so there is not ready to topup
-		TAppOperationAccountNotExist,
-		OnlyOperationAccountAllowedToWithdraw,
-		UserNotTopupedBefore,
+		/// Reward per performance should not be zero
+		RewardPerPerformanceShouldNotBeZero,
 	}
 
 	#[pallet::hooks]
@@ -411,8 +408,10 @@ pub mod bonding_curve {
 			init_fund: BalanceOf<T>,
 			detail: Vec<u8>,
 			link: Vec<u8>,
-			host_performance: Option<Performance>,
-			max_allowed_hosts: Option<u32>,
+			max_allowed_hosts: u32,
+			tapp_type: TAppType,
+			fixed_token_mode: bool,
+			reward_per_performance: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let buy_curve = CurveType::UnsignedSquareRoot_10;
@@ -455,13 +454,22 @@ pub mod bonding_curve {
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
 					);
-					Self::check_host_creating(host_performance, max_allowed_hosts)?;
+					Self::check_host_creating(
+						max_allowed_hosts,
+						fixed_token_mode,
+						reward_per_performance,
+					)?;
 					Ok(())
 				},
 				|who| {
 					let id = Self::next_id();
 					TAppNames::<T>::insert(&tapp_name, id);
 					TAppTickers::<T>::insert(&ticker, id);
+
+					let billing_mode = match fixed_token_mode {
+						true => BillingMode::FixedHostingToken(reward_per_performance),
+						false => BillingMode::FixedHostingFee(reward_per_performance),
+					};
 					TAppBondingCurve::<T>::insert(
 						id,
 						TAppItem {
@@ -473,9 +481,10 @@ pub mod bonding_curve {
 							sell_curve,
 							detail: detail.clone(),
 							link: link.clone(),
-							host_performance,
 							max_allowed_hosts,
-							current_cost: Zero::zero(),
+							tapp_type,
+							billing_mode,
+							..Default::default()
 						},
 					);
 					Self::buy_token_inner(who, id, init_fund);
@@ -707,17 +716,12 @@ pub mod bonding_curve {
 					);
 					let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 					ensure!(
-						tapp_item.host_performance.is_some()
-							&& tapp_item.max_allowed_hosts.is_some(),
-						Error::<T>::TAppNotSupportToHost
-					);
-					ensure!(
 						!TAppCurrentHosts::<T>::contains_key(tapp_id, cml_id),
 						Error::<T>::CmlIsAlreadyHosting
 					);
 					ensure!(
 						TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
-							< tapp_item.max_allowed_hosts.unwrap() as usize,
+							< tapp_item.max_allowed_hosts as usize,
 						Error::<T>::TAppHostsIsFull
 					);
 
@@ -731,7 +735,7 @@ pub mod bonding_curve {
 					ensure!(
 						current_performance.unwrap_or(0)
 							>= Self::cml_total_used_performance(cml_id)
-								.saturating_add(tapp_item.host_performance.unwrap()),
+								.saturating_add(tapp_item.host_performance()),
 						Error::<T>::CmlMachineIsFullLoad
 					);
 					Ok(())

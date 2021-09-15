@@ -53,8 +53,10 @@ fn create_new_tapp_works() {
 			init_fund,
 			detail.as_bytes().to_vec(),
 			link.as_bytes().to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		// this is the first tapp so tapp id is 1
@@ -92,8 +94,10 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		assert_noop!(
@@ -104,8 +108,10 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::TAppNameAlreadyExist
 		);
@@ -127,8 +133,10 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		assert_noop!(
@@ -139,8 +147,10 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::TAppTickerAlreadyExist
 		);
@@ -162,10 +172,62 @@ fn create_new_tapp_should_fail_if_not_allowed_user_create_tapp() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::NotAllowedNormalUserCreateTApp,
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_max_allowed_host_lower_than_min_allowed_host_count() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				MIN_TAPP_HOSTS_AMOUNT - 1,
+				TAppType::Twitter,
+				true,
+				1000
+			),
+			Error::<Test>::MaxAllowedHostShouldLargerEqualThanMinAllowedHosts,
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_reward_per_performance() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				0
+			),
+			Error::<Test>::RewardPerPerformanceShouldNotBeZero,
 		);
 	})
 }
@@ -185,8 +247,10 @@ fn create_new_tapp_should_fail_if_name_is_too_long() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::TAppTickerIsTooLong,
 		);
@@ -208,8 +272,10 @@ fn create_new_tapp_should_fail_if_name_is_too_short() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::TAppTickerIsTooShort,
 		);
@@ -231,8 +297,10 @@ fn create_new_tapp_should_fail_if_detail_is_too_long() {
 				1_000_000,
 				[1; TAPP_DETAIL_MAX_LENGTH as usize + 1].to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::TAppDetailIsTooLong,
 		);
@@ -254,8 +322,10 @@ fn create_new_tapp_should_fail_if_link_is_too_long() {
 				1_000_000,
 				b"test detail".to_vec(),
 				[1; TAPP_LINK_MAX_LENGTH as usize + 1].to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::TAppLinkIsTooLong,
 		);
@@ -277,8 +347,10 @@ fn create_new_tapp_should_fail_if_free_balance_is_not_enough() {
 				1000000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::InsufficientFreeBalance,
 		);
@@ -300,8 +372,10 @@ fn create_new_tapp_should_fail_if_tapp_amount_is_too_low() {
 				1000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::BuyTeaAmountCanNotBeZero,
 		);
@@ -323,8 +397,10 @@ fn create_new_tapp_should_fail_if_ticker_is_too_long() {
 				1_000_000,
 				b"test detail".to_vec(),
 				b"https://teaproject.org".to_vec(),
-				None,
-				None,
+				10,
+				TAppType::Twitter,
+				true,
+				1000
 			),
 			Error::<Test>::TAppNameIsTooLong
 		);
@@ -348,8 +424,10 @@ fn buy_token_works() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -396,8 +474,10 @@ fn buy_token_should_fail_if_tapp_amount_is_zero() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -425,8 +505,10 @@ fn buy_token_should_fail_if_tapp_amount_is_too_low() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -454,8 +536,10 @@ fn buy_token_should_fail_if_free_balance_is_not_enough() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -483,8 +567,10 @@ fn buy_token_should_fail_if_total_supply_larger_than_max_allowed() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -512,8 +598,10 @@ fn sell_token_works() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -556,8 +644,10 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -607,8 +697,10 @@ fn sell_token_should_fail_if_tapp_amount_is_not_enough() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -636,8 +728,10 @@ fn sell_token_should_fail_if_tapp_amount_is_zero() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -665,8 +759,10 @@ fn sell_token_should_fail_if_tapp_amount_is_too_low() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -692,8 +788,10 @@ fn sell_token_should_fail_if_tapp_total_supply_is_not_enough() {
 			tapp_amount,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -728,8 +826,10 @@ fn consume_works_large_tea() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -793,8 +893,10 @@ fn consume_should_fail_if_consume_amount_is_zero() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -822,8 +924,10 @@ fn consume_should_fail_if_free_balance_is_not_enough() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -851,8 +955,10 @@ fn consume_should_fail_if_note_is_too_long() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -890,8 +996,10 @@ fn consume_works() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -960,8 +1068,10 @@ fn expense_should_fail_if_sender_is_not_tapp_owner() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -987,8 +1097,10 @@ fn expense_should_fail_if_expense_amount_is_zero() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			None,
-			None,
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1016,8 +1128,10 @@ fn expense_works_if_expense_amount_more_than_reserved_balance() {
 			tapp_amount1,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1077,8 +1191,10 @@ fn host_works() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1140,46 +1256,6 @@ fn host_should_fail_if_tapp_not_exist() {
 }
 
 #[test]
-fn host_should_fail_if_not_supported_for_hosting() {
-	new_test_ext().execute_with(|| {
-		EnableUserCreateTApp::<Test>::set(true);
-		let miner = 2;
-		let tapp_owner = 1;
-		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
-		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
-
-		let cml_id = 11;
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
-		UserCmlStore::<Test>::insert(miner, cml_id, ());
-		CmlStore::<Test>::insert(cml_id, cml);
-
-		assert_ok!(Cml::start_mining(
-			Origin::signed(miner),
-			cml_id,
-			[1u8; 32],
-			b"miner_ip".to_vec()
-		));
-
-		assert_ok!(BondingCurve::create_new_tapp(
-			Origin::signed(tapp_owner),
-			b"test name".to_vec(),
-			b"tea".to_vec(),
-			1_000_000,
-			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
-			None,
-			None,
-		));
-
-		let tapp_id = 1;
-		assert_noop!(
-			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id),
-			Error::<Test>::TAppNotSupportToHost
-		);
-	})
-}
-
-#[test]
 fn host_should_fail_if_cml_is_already_hosting() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
@@ -1207,8 +1283,10 @@ fn host_should_fail_if_cml_is_already_hosting() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(1),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1259,8 +1337,10 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(1),
+			1,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1301,8 +1381,10 @@ fn host_should_fail_if_cml_is_full_load() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(1),
+			1,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
@@ -1311,8 +1393,10 @@ fn host_should_fail_if_cml_is_full_load() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(1),
+			1,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1346,8 +1430,10 @@ fn host_should_fail_if_cml_is_not_mining() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(1),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1386,8 +1472,10 @@ fn unhost_works() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1432,8 +1520,10 @@ fn unhost_should_fail_if_cml_not_belongs_to_user() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1503,8 +1593,10 @@ fn unhost_should_fail_if_cml_not_host_the_tapp() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
@@ -1513,8 +1605,10 @@ fn unhost_should_fail_if_cml_not_host_the_tapp() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1542,8 +1636,10 @@ fn update_tapp_resource_works() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1599,8 +1695,10 @@ fn update_tapp_resource_should_fail_if_user_is_not_tapp_owner() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 
 		let tapp_id = 1;
@@ -1632,8 +1730,10 @@ fn topup_works() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 		let tapp_id = 1;
 
@@ -1684,8 +1784,10 @@ fn topup_should_fail_if_user_balance_is_not_enough() {
 			1_000_000,
 			b"test detail".to_vec(),
 			b"https://teaproject.org".to_vec(),
-			Some(1000),
-			Some(10),
+			10,
+			TAppType::Twitter,
+			true,
+			1000
 		));
 		let tapp_id = 1;
 

@@ -198,7 +198,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,
-			Option<u32>,
+			u32,
 		)>,
 	>;
 
@@ -558,7 +558,7 @@ where
 			Vec<u8>,
 			Vec<u8>,
 			Vec<u8>,
-			Option<u32>,
+			u32,
 		)>,
 	> {
 		let api = self.client.runtime_api();

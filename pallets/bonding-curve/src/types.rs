@@ -11,6 +11,25 @@ pub enum CurveType {
 	UnsignedSquareRoot_7,
 }
 
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+pub enum TAppType {
+	YouTube,
+	Reddit,
+	Twitter,
+}
+
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+pub enum BillingMode<Balance> {
+	FixedHostingFee(Balance),
+	FixedHostingToken(Balance),
+}
+
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+pub enum TAppStatus {
+	Active,
+	Pending,
+}
+
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct TAppItem<AccountId, Balance> {
 	pub id: TAppId,
@@ -21,9 +40,21 @@ pub struct TAppItem<AccountId, Balance> {
 	pub sell_curve: CurveType,
 	pub detail: Vec<u8>,
 	pub link: Vec<u8>,
-	pub host_performance: Option<Performance>,
-	pub max_allowed_hosts: Option<u32>,
+	pub max_allowed_hosts: u32,
 	pub current_cost: Balance,
+	pub status: TAppStatus,
+	pub tapp_type: TAppType,
+	pub billing_mode: BillingMode<Balance>,
+}
+
+impl<AccountId, Balance> TAppItem<AccountId, Balance> {
+	pub fn host_performance(&self) -> Performance {
+		match self.tapp_type {
+			TAppType::YouTube => 3000,
+			TAppType::Reddit => 2000,
+			TAppType::Twitter => 1000,
+		}
+	}
 }
 
 impl<AccountId, Balance> Default for TAppItem<AccountId, Balance>
@@ -41,9 +72,11 @@ where
 			sell_curve: CurveType::UnsignedLinear,
 			detail: vec![],
 			link: vec![],
-			host_performance: Default::default(),
 			max_allowed_hosts: Default::default(),
 			current_cost: Default::default(),
+			status: TAppStatus::Pending,
+			tapp_type: TAppType::Twitter,
+			billing_mode: BillingMode::FixedHostingToken(Default::default()),
 		}
 	}
 }
