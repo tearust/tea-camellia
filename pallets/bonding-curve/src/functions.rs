@@ -188,6 +188,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			let item = TAppBondingCurve::<T>::take(tapp_id);
 			TAppNames::<T>::remove(item.name);
 			TAppTickers::<T>::remove(item.ticker);
+			TAppApprovedLinks::<T>::mutate(item.link, |(tapp_id, _)| *tapp_id = None);
 			TAppCurrentHosts::<T>::iter_prefix(tapp_id)
 				.for_each(|(cml_id, _)| Self::unhost_tapp(tapp_id, cml_id));
 		}

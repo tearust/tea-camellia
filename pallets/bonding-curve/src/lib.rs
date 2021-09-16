@@ -98,6 +98,9 @@ pub mod bonding_curve {
 		#[pallet::constant]
 		type HostLockingBlockHeight: Get<Self::BlockNumber>;
 
+		#[pallet::constant]
+		type TAppLinkDescriptionMaxLength: Get<u32>;
+
 		type LinearCurve: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
@@ -170,6 +173,10 @@ pub mod bonding_curve {
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_resource_map)]
 	pub type TAppResourceMap<T: Config> = StorageMap<_, Twox64Concat, TAppId, Vec<u8>, ValueQuery>;
+
+	#[pallet::storage]
+	pub type TAppApprovedLinks<T: Config> =
+		StorageMap<_, Twox64Concat, Vec<u8>, (Option<TAppId>, Vec<u8>), ValueQuery>;
 
 	#[pallet::storage]
 	pub type TAppReservedBalance<T: Config> = StorageDoubleMap<
@@ -382,6 +389,16 @@ pub mod bonding_curve {
 		RewardPerPerformanceIsNoneInFixedFeeMode,
 		/// Should unlock after host locking block height
 		HostLockingBlockHeightNotReached,
+		/// Only NPC account allowed to register link url
+		OnlyNPCAccountAllowedToRegisterLinkUrl,
+		/// Link url already registered
+		LinkUrlAlreadyExist,
+		/// Link description is too long
+		LinkDescriptionIsTooLong,
+		/// Only registered link are allowed to create tapp
+		LinkNotInApprovedList,
+		/// Link already used by other tapp
+		LinkAlreadyBeUsed,
 	}
 
 	#[pallet::hooks]
@@ -417,6 +434,43 @@ pub mod bonding_curve {
 					if let Some(ref npc_account) = npc_account {
 						NPCAccount::<T>::set(npc_account.clone());
 					}
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn register_tapp_link(
+			sender: OriginFor<T>,
+			link_url: Vec<u8>,
+			link_description: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						who.eq(&NPCAccount::<T>::get()),
+						Error::<T>::OnlyNPCAccountAllowedToRegisterLinkUrl
+					);
+					ensure!(
+						link_url.len() <= T::TAppLinkMaxLength::get() as usize,
+						Error::<T>::TAppLinkIsTooLong
+					);
+					ensure!(
+						link_description.len() <= T::TAppLinkDescriptionMaxLength::get() as usize,
+						Error::<T>::LinkDescriptionIsTooLong
+					);
+					ensure!(
+						!TAppApprovedLinks::<T>::contains_key(&link_url),
+						Error::<T>::LinkUrlAlreadyExist
+					);
+					Ok(())
+				},
+				|_who| {
+					let (tapp_id, description): (Option<TAppId>, Vec<u8>) =
+						(None, link_description.clone());
+					TAppApprovedLinks::<T>::insert(&link_url, (tapp_id, description));
 				},
 			)
 		}
@@ -467,6 +521,14 @@ pub mod bonding_curve {
 						!init_fund.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
+					ensure!(
+						TAppApprovedLinks::<T>::contains_key(&link),
+						Error::<T>::LinkNotInApprovedList
+					);
+					ensure!(
+						TAppApprovedLinks::<T>::get(&link).0.is_none(),
+						Error::<T>::LinkAlreadyBeUsed
+					);
 					let deposit_tea_amount =
 						Self::calculate_increase_amount_from_raise_curve_total_supply(
 							buy_curve,
@@ -493,6 +555,7 @@ pub mod bonding_curve {
 					let id = Self::next_id();
 					TAppNames::<T>::insert(&tapp_name, id);
 					TAppTickers::<T>::insert(&ticker, id);
+					TAppApprovedLinks::<T>::mutate(&link, |(tapp_id, _)| *tapp_id = Some(id));
 
 					let billing_mode = match fixed_token_mode {
 						true => BillingMode::FixedHostingToken(

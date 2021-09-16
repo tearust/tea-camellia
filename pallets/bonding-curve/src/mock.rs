@@ -146,6 +146,7 @@ pub const CID_MAX_LENGTH: u32 = 100;
 pub const TOTAL_SUPPLY_MAX_VALUE: Balance = 1000000000000000000000000;
 pub const MIN_TAPP_HOSTS_AMOUNT: u32 = 1;
 pub const HOST_LOCKING_BLOCK_HEIGHT: u64 = 1000;
+pub const TAPP_LINK_DESCRIPTION_MAX_LENGTH: u32 = 140;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
@@ -161,6 +162,7 @@ parameter_types! {
 	pub const TotalSupplyMaxValue: Balance = TOTAL_SUPPLY_MAX_VALUE;
 	pub const MinTappHostsCount: u32 = MIN_TAPP_HOSTS_AMOUNT;
 	pub const HostLockingBlockHeight: u64 = HOST_LOCKING_BLOCK_HEIGHT;
+	pub const TAppLinkDescriptionMaxLength: u32 = TAPP_LINK_DESCRIPTION_MAX_LENGTH;
 }
 
 impl pallet_bonding_curve::Config for Test {
@@ -184,6 +186,7 @@ impl pallet_bonding_curve::Config for Test {
 	type TotalSupplyMaxValue = TotalSupplyMaxValue;
 	type MinTappHostsCount = MinTappHostsCount;
 	type HostLockingBlockHeight = HostLockingBlockHeight;
+	type TAppLinkDescriptionMaxLength = TAppLinkDescriptionMaxLength;
 }
 
 pub const STAKING_PRICE: Balance = 1000;

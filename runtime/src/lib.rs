@@ -905,6 +905,7 @@ parameter_types! {
 	pub const TotalSupplyMaxValue: Balance = 1000000000000000000000000;
 	pub const MinTappHostsCount: u32 = 3;
 	pub const HostLockingBlockHeight: BlockNumber = 1000;
+	pub const TAppLinkDescriptionMaxLength: u32 = 140;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -928,6 +929,7 @@ impl pallet_bonding_curve::Config for Runtime {
 	type TotalSupplyMaxValue = TotalSupplyMaxValue;
 	type MinTappHostsCount = MinTappHostsCount;
 	type HostLockingBlockHeight = HostLockingBlockHeight;
+	type TAppLinkDescriptionMaxLength = TAppLinkDescriptionMaxLength;
 }
 
 parameter_types! {

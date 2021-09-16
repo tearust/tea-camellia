@@ -374,13 +374,21 @@ mod tests {
 			EnableUserCreateTApp::<Test>::set(true);
 			<Test as Config>::Currency::make_free_balance_be(&1, DOLLARS * DOLLARS);
 
+			let npc = NPCAccount::<Test>::get();
+			let link = b"https://teaproject.org".to_vec();
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				link.clone(),
+				"test description".into(),
+			));
+
 			assert_ok!(BondingCurve::create_new_tapp(
 				Origin::signed(1),
 				b"test".to_vec(),
 				b"test".to_vec(),
 				DOLLARS * 10_000,
 				vec![],
-				vec![],
+				link,
 				10,
 				TAppType::Twitter,
 				true,
@@ -391,13 +399,19 @@ mod tests {
 			assert_eq!(buy_price, 100000000000000);
 			assert_eq!(sell_price, 70000000000000);
 
+			let link2 = b"https://tearust.org".to_vec();
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				link2.clone(),
+				"test description2".into(),
+			));
 			assert_ok!(BondingCurve::create_new_tapp(
 				Origin::signed(1),
 				b"test2".to_vec(),
 				b"test2".to_vec(),
 				DOLLARS * 1_000_000,
 				vec![],
-				vec![],
+				link2,
 				10,
 				TAppType::Twitter,
 				true,

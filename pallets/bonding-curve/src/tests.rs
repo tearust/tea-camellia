@@ -35,6 +35,84 @@ fn set_tapp_creation_settings_should_fail_if_not_root_user() {
 }
 
 #[test]
+fn register_tapp_link_works() {
+	new_test_ext().execute_with(|| {
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
+	})
+}
+
+#[test]
+fn normal_user_register_tapp_link_should_fail() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		assert_noop!(
+			BondingCurve::register_tapp_link(
+				Origin::signed(user1),
+				"https://teaproject.org".into(),
+				"test description".into()
+			),
+			Error::<Test>::OnlyNPCAccountAllowedToRegisterLinkUrl
+		);
+	})
+}
+
+#[test]
+fn register_tapp_link_should_fail_if_tapp_link_is_too_long() {
+	new_test_ext().execute_with(|| {
+		let npc = NPCAccount::<Test>::get();
+		assert_noop!(
+			BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				[0; TAPP_LINK_MAX_LENGTH as usize + 1].to_vec(),
+				"test description".into()
+			),
+			Error::<Test>::TAppLinkIsTooLong
+		);
+	})
+}
+
+#[test]
+fn register_tapp_link_should_fail_if_tapp_link_desc_is_too_long() {
+	new_test_ext().execute_with(|| {
+		let npc = NPCAccount::<Test>::get();
+		assert_noop!(
+			BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				"https://teaproject.org".into(),
+				[0; TAPP_LINK_DESCRIPTION_MAX_LENGTH as usize + 1].to_vec(),
+			),
+			Error::<Test>::LinkDescriptionIsTooLong
+		);
+	})
+}
+
+#[test]
+fn register_tapp_link_should_fail_if_link_already_exist() {
+	new_test_ext().execute_with(|| {
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
+
+		assert_noop!(
+			BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				"https://teaproject.org".into(),
+				"test description".into()
+			),
+			Error::<Test>::LinkUrlAlreadyExist
+		);
+	})
+}
+
+#[test]
 fn create_new_fixed_fee_tapp_works() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
@@ -46,6 +124,12 @@ fn create_new_fixed_fee_tapp_works() {
 		let init_fund = 1000000;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user),
 			tapp_name.as_bytes().to_vec(),
@@ -96,6 +180,12 @@ fn create_new_fixed_token_tapp_works() {
 		let init_fund = 1000000;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user),
 			tapp_name.as_bytes().to_vec(),
@@ -142,7 +232,19 @@ fn npc_create_new_tapp_should_fail_if_enable_user_create_tapp_is_true() {
 		<Test as Config>::Currency::make_free_balance_be(&npc, 100000000);
 
 		assert_noop!(
-			create_default_tapp(npc),
+			BondingCurve::create_new_tapp(
+				Origin::signed(npc),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+			),
 			Error::<Test>::NotAllowedNPCCreateTApp
 		);
 	})
@@ -158,7 +260,19 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 		assert_ok!(create_default_tapp(user));
 
 		assert_noop!(
-			create_default_tapp(user),
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+			),
 			Error::<Test>::TAppNameAlreadyExist
 		);
 	})
@@ -201,7 +315,19 @@ fn create_new_tapp_should_fail_if_not_allowed_user_create_tapp() {
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
 		assert_noop!(
-			create_default_tapp(user),
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+			),
 			Error::<Test>::NotAllowedNormalUserCreateTApp,
 		);
 	})
@@ -214,6 +340,12 @@ fn create_new_tapp_should_fail_if_max_allowed_host_lower_than_min_allowed_host_c
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_noop!(
 			BondingCurve::create_new_tapp(
 				Origin::signed(user),
@@ -240,6 +372,12 @@ fn create_new_tapp_should_fail_if_stake_token_is_none_in_fixed_token_mode() {
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_noop!(
 			BondingCurve::create_new_tapp(
 				Origin::signed(user),
@@ -260,12 +398,60 @@ fn create_new_tapp_should_fail_if_stake_token_is_none_in_fixed_token_mode() {
 }
 
 #[test]
+fn create_new_tapp_should_fail_if_link_not_in_approve_list() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+			),
+			Error::<Test>::LinkNotInApprovedList,
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_link_already_be_used() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_ok!(create_default_tapp(user));
+
+		assert_noop!(
+			create_default_tapp(user),
+			Error::<Test>::LinkUrlAlreadyExist,
+		);
+	})
+}
+
+#[test]
 fn create_new_tapp_should_fail_if_stake_token_is_zero_in_fixed_token_mode() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_noop!(
 			BondingCurve::create_new_tapp(
 				Origin::signed(user),
@@ -292,6 +478,12 @@ fn create_new_tapp_should_fail_if_reward_per_performance_is_none_in_fixed_fee_mo
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_noop!(
 			BondingCurve::create_new_tapp(
 				Origin::signed(user),
@@ -318,6 +510,12 @@ fn create_new_tapp_should_fail_if_reward_per_performance_is_zero_in_fixed_fee_mo
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_noop!(
 			BondingCurve::create_new_tapp(
 				Origin::signed(user),
@@ -448,6 +646,12 @@ fn create_new_tapp_should_fail_if_free_balance_is_not_enough() {
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 0);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_noop!(
 			BondingCurve::create_new_tapp(
 				Origin::signed(user),
@@ -474,6 +678,12 @@ fn create_new_tapp_should_fail_if_tapp_amount_is_too_low() {
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 0);
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_noop!(
 			BondingCurve::create_new_tapp(
 				Origin::signed(user),
@@ -682,12 +892,17 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		assert_ok!(create_default_tapp(owner));
 
 		let tapp_id = 1;
+
+		let link = b"https://teaproject.org".to_vec();
+		assert_eq!(TAppApprovedLinks::<Test>::get(&link).0, Some(tapp_id));
+
 		assert_ok!(BondingCurve::sell_token(
 			Origin::signed(owner),
 			tapp_id,
 			tapp_amount
 		));
 
+		assert_eq!(TAppApprovedLinks::<Test>::get(&link).0, None);
 		assert!(!AccountTable::<Test>::contains_key(&owner, tapp_id));
 		assert!(!TotalSupplyTable::<Test>::contains_key(tapp_id));
 		assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
@@ -984,6 +1199,13 @@ fn consume_works_with_miner() {
 		<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&miner1, DOLLARS);
 		<Test as Config>::Currency::make_free_balance_be(&miner2, DOLLARS);
+
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user1),
 			b"test name".to_vec(),
@@ -1246,6 +1468,12 @@ fn host_works_with_fixed_fee() {
 			b"miner_ip".to_vec()
 		));
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
 			b"test name".to_vec(),
@@ -1474,6 +1702,12 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			b"miner_ip".to_vec()
 		));
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
 			b"test name".to_vec(),
@@ -1519,6 +1753,12 @@ fn host_should_fail_if_cml_is_full_load() {
 			b"miner_ip".to_vec()
 		));
 
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into()
+		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
 			b"test name".to_vec(),
@@ -1532,13 +1772,21 @@ fn host_should_fail_if_cml_is_full_load() {
 			None,
 			Some(1000)
 		));
+
+		let npc = NPCAccount::<Test>::get();
+		let link2 = b"https://tearust.org".to_vec();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			link2.clone(),
+			"test description".into(),
+		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
 			b"test name2".to_vec(),
 			b"tea2".to_vec(),
 			1_000_000,
 			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
+			link2,
 			1,
 			TAppType::Twitter,
 			true,
@@ -1740,13 +1988,21 @@ fn unhost_should_fail_if_cml_not_host_the_tapp() {
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
+
+		let npc = NPCAccount::<Test>::get();
+		let link = b"https://tearust.org".to_vec();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			link.clone(),
+			"test description".into(),
+		));
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(tapp_owner),
 			b"test name2".to_vec(),
 			b"tea2".to_vec(),
 			1_000_000,
 			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
+			link,
 			10,
 			TAppType::Twitter,
 			true,
@@ -1904,13 +2160,17 @@ fn topup_should_fail_if_user_balance_is_not_enough() {
 }
 
 pub fn create_default_tapp(tapp_owner: u64) -> DispatchResult {
+	let npc = NPCAccount::<Test>::get();
+	let link = b"https://teaproject.org".to_vec();
+	BondingCurve::register_tapp_link(Origin::signed(npc), link.clone(), "test description".into())?;
+
 	BondingCurve::create_new_tapp(
 		Origin::signed(tapp_owner),
 		b"test name".to_vec(),
 		b"tea".to_vec(),
 		1_000_000,
 		b"test detail".to_vec(),
-		b"https://teaproject.org".to_vec(),
+		link,
 		10,
 		TAppType::Twitter,
 		true,
