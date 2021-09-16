@@ -18,6 +18,9 @@ pub struct Cli {
 
 	#[structopt(long)]
 	pub genesis_seed: Option<String>,
+
+	#[structopt(long, default_value = "7")]
+	pub initial_validator_count: u32,
 }
 
 #[derive(Debug, StructOpt)]

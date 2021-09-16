@@ -53,6 +53,7 @@ impl SubstrateCli for Cli {
 				self.genesis_seed(),
 			)?),
 			"canary" => Box::new(chain_spec::canary_testnet_config(
+				self.initial_validator_count,
 				self.parse_genesis_coupons()?,
 				self.genesis_seed(),
 			)?),

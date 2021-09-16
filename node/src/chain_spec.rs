@@ -189,6 +189,7 @@ pub fn development_config(
 }
 
 pub fn canary_testnet_config(
+	initial_validator_count: u32,
 	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
 ) -> Result<ChainSpec, String> {
@@ -231,13 +232,17 @@ pub fn canary_testnet_config(
 			"fd485a9e576d25999f05d2534fc8f52824bb180cad604cdfd734f92a4d846112",
 		),
 	];
+	if initial_validator_count > 7 {
+		return Err("initial validator count should less than 7".into());
+	}
 
 	let endowed_accounts: Vec<AccountId> = ENDOWED_ACCOUNTS_PUB_STR
+		[0..initial_validator_count as usize]
 		.iter()
 		.map(|v| get_account_id_from_hex_string::<sr25519::Public>(v.0))
 		.collect();
 	let root_account = get_account_id_from_hex_string::<sr25519::Public>(ROOT_PUB_STR.0);
-	let initial_authorities = ENDOWED_ACCOUNTS_PUB_STR
+	let initial_authorities = ENDOWED_ACCOUNTS_PUB_STR[0..initial_validator_count as usize]
 		.iter()
 		.map(|v| authority_keys_from_hex_string(v.0, v.1))
 		.collect();
