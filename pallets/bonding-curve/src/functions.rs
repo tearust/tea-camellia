@@ -582,6 +582,26 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				array.remove(index);
 			}
 		});
+
+		Self::try_deactive_tapp(tapp_id);
+	}
+
+	pub(crate) fn try_active_tapp(tapp_id: TAppId) {
+		if TAppBondingCurve::<T>::get(tapp_id).status == TAppStatus::Pending
+			&& TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
+				>= T::MinTappHostsCount::get() as usize
+		{
+			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| tapp.status = TAppStatus::Active);
+		}
+	}
+
+	pub(crate) fn try_deactive_tapp(tapp_id: TAppId) {
+		if TAppBondingCurve::<T>::get(tapp_id).status == TAppStatus::Active
+			&& TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
+				< T::MinTappHostsCount::get() as usize
+		{
+			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| tapp.status = TAppStatus::Pending);
+		}
 	}
 
 	pub(crate) fn unhost_last_tapp(cml_id: CmlId) -> Option<TAppId> {

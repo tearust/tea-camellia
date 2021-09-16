@@ -762,6 +762,7 @@ pub mod bonding_curve {
 				},
 				|who| {
 					TAppCurrentHosts::<T>::insert(tapp_id, cml_id, ());
+					Self::try_active_tapp(tapp_id);
 					CmlHostingTApps::<T>::mutate(cml_id, |tapp_ids| tapp_ids.push(tapp_id));
 
 					match TAppBondingCurve::<T>::get(tapp_id).billing_mode {

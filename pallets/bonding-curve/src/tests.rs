@@ -1247,8 +1247,16 @@ fn host_works_with_fixed_fee() {
 		));
 
 		let tapp_id = 1;
+		assert_eq!(
+			TAppBondingCurve::<Test>::get(tapp_id).status,
+			TAppStatus::Pending
+		);
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
 
+		assert_eq!(
+			TAppBondingCurve::<Test>::get(tapp_id).status,
+			TAppStatus::Active
+		);
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
@@ -1280,8 +1288,16 @@ fn host_works_fixed_token() {
 		assert_ok!(create_default_tapp(tapp_owner));
 
 		let tapp_id = 1;
+		assert_eq!(
+			TAppBondingCurve::<Test>::get(tapp_id).status,
+			TAppStatus::Pending
+		);
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
 
+		assert_eq!(
+			TAppBondingCurve::<Test>::get(tapp_id).status,
+			TAppStatus::Active
+		);
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
@@ -1576,12 +1592,20 @@ fn unhost_works() {
 		let tapp_id = 1;
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
 
+		assert_eq!(
+			TAppBondingCurve::<Test>::get(tapp_id).status,
+			TAppStatus::Active
+		);
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
 
 		assert_ok!(BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id));
 
+		assert_eq!(
+			TAppBondingCurve::<Test>::get(tapp_id).status,
+			TAppStatus::Pending
+		);
 		assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 0);
 	})
