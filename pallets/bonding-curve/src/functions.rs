@@ -541,7 +541,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			);
 			ensure!(
 				!stake_token_amount.unwrap().is_zero(),
-				Error::<T>::RewardPerPerformanceShouldNotBeZero
+				Error::<T>::StakeTokenShouldNotBeZero
 			);
 		} else {
 			ensure!(

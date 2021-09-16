@@ -35,7 +35,7 @@ fn set_tapp_creation_settings_should_fail_if_not_root_user() {
 }
 
 #[test]
-fn create_new_tapp_works() {
+fn create_new_fixed_fee_tapp_works() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user = 1;
@@ -55,6 +55,56 @@ fn create_new_tapp_works() {
 			link.as_bytes().to_vec(),
 			10,
 			TAppType::Twitter,
+			false,
+			Some(10000),
+			None,
+		));
+
+		// this is the first tapp so tapp id is 1
+		let tapp_id = 1;
+		assert_eq!(LastTAppId::<Test>::get(), tapp_id);
+		assert_eq!(AccountTable::<Test>::get(user, tapp_id), init_fund);
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
+		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
+		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
+		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
+		assert_eq!(tapp_item.id, tapp_id);
+		assert_eq!(tapp_item.buy_curve, CurveType::UnsignedSquareRoot_10);
+		assert_eq!(tapp_item.sell_curve, CurveType::UnsignedSquareRoot_7);
+		assert_eq!(tapp_item.owner, user);
+		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
+		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
+		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
+		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99999534);
+		assert_eq!(tapp_item.max_allowed_hosts, 10);
+		assert_eq!(tapp_item.billing_mode, BillingMode::FixedHostingFee(10000));
+		assert_eq!(tapp_item.tapp_type, TAppType::Twitter);
+		assert_eq!(tapp_item.status, TAppStatus::Pending);
+	})
+}
+
+#[test]
+fn create_new_fixed_token_tapp_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		let tapp_name = "test name";
+		let ticker = "tea";
+		let detail = "test detail";
+		let link = "https://teaproject.org";
+		let init_fund = 1000000;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(user),
+			tapp_name.as_bytes().to_vec(),
+			ticker.as_bytes().to_vec(),
+			init_fund,
+			detail.as_bytes().to_vec(),
+			link.as_bytes().to_vec(),
+			10,
+			TAppType::Reddit,
 			true,
 			None,
 			Some(1000)
@@ -77,6 +127,10 @@ fn create_new_tapp_works() {
 		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
 		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
 		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99999534);
+		assert_eq!(tapp_item.max_allowed_hosts, 10);
+		assert_eq!(tapp_item.billing_mode, BillingMode::FixedHostingToken(1000));
+		assert_eq!(tapp_item.tapp_type, TAppType::Reddit);
+		assert_eq!(tapp_item.status, TAppStatus::Pending);
 	})
 }
 
@@ -166,7 +220,85 @@ fn create_new_tapp_should_fail_if_max_allowed_host_lower_than_min_allowed_host_c
 }
 
 #[test]
-fn create_new_tapp_should_fail_if_reward_per_performance() {
+fn create_new_tapp_should_fail_if_stake_token_is_none_in_fixed_token_mode() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				None,
+			),
+			Error::<Test>::StakeTokenIsNoneInFixedTokenMode,
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_stake_token_is_zero_in_fixed_token_mode() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(0),
+			),
+			Error::<Test>::StakeTokenShouldNotBeZero,
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_reward_per_performance_is_none_in_fixed_fee_mode() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				false,
+				None,
+				None,
+			),
+			Error::<Test>::RewardPerPerformanceIsNoneInFixedFeeMode,
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_reward_per_performance_is_zero_in_fixed_fee_mode() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user = 1;
@@ -820,6 +952,177 @@ fn consume_works() {
 }
 
 #[test]
+fn consume_works_with_miner() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user1 = 1;
+		let user2 = 2;
+		let user3 = 3;
+		let user4 = 4;
+		let miner1 = 5;
+		let miner2 = 6;
+		let tapp_amount1 = 1_000_000;
+		let tapp_amount2 = 2_000_000;
+		let tapp_amount3 = 4_000_000;
+		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&miner1, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&miner2, DOLLARS);
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(user1),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			10,
+			TAppType::Twitter,
+			true,
+			None,
+			Some(1_000_000),
+		));
+
+		let cml_id1 = 11;
+		let cml_id2 = 22;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100, 10000));
+		let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100, 10000));
+		UserCmlStore::<Test>::insert(miner1, cml_id1, ());
+		UserCmlStore::<Test>::insert(miner2, cml_id2, ());
+		CmlStore::<Test>::insert(cml_id1, cml);
+		CmlStore::<Test>::insert(cml_id2, cml2);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner1),
+			cml_id1,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner2),
+			cml_id2,
+			[2u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::buy_token(
+			Origin::signed(user2),
+			tapp_id,
+			tapp_amount2
+		));
+		assert_ok!(BondingCurve::buy_token(
+			Origin::signed(user3),
+			tapp_id,
+			tapp_amount3
+		));
+		assert_ok!(BondingCurve::host(Origin::signed(miner1), cml_id1, tapp_id));
+		assert_ok!(BondingCurve::host(Origin::signed(miner2), cml_id2, tapp_id));
+		// total supply only including staking amount
+		assert_eq!(
+			TotalSupplyTable::<Test>::get(tapp_id),
+			tapp_amount1 + tapp_amount2 + tapp_amount3
+		);
+
+		let spend_tea = 1000000;
+		assert_ok!(BondingCurve::consume(
+			Origin::signed(user4),
+			tapp_id,
+			spend_tea,
+			Some(b"test notes".to_vec())
+		));
+		let left_balance = <Test as Config>::Currency::free_balance(&user4);
+		assert!(approximately_equals::<Test>(
+			left_balance,
+			DOLLARS - spend_tea,
+			10,
+		));
+		assert_eq!(
+			AccountTable::<Test>::get(user1, tapp_id),
+			13901475 + 1_000_000
+		);
+		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 29802950);
+		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 59605901);
+		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), 13901475);
+		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), 13901475);
+		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 132113278)
+	})
+}
+
+#[test]
+fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user1 = 1;
+		let user2 = 1;
+		let miner1 = 5;
+		let miner2 = 6;
+		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&miner1, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&miner2, DOLLARS);
+		assert_ok!(create_default_tapp(user1));
+
+		let cml_id1 = 11;
+		let cml_id2 = 22;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100, 10000));
+		let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100, 10000));
+		UserCmlStore::<Test>::insert(miner1, cml_id1, ());
+		UserCmlStore::<Test>::insert(miner2, cml_id2, ());
+		CmlStore::<Test>::insert(cml_id1, cml);
+		CmlStore::<Test>::insert(cml_id2, cml2);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner1),
+			cml_id1,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner2),
+			cml_id2,
+			[2u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::host(Origin::signed(miner1), cml_id1, tapp_id));
+		assert_ok!(BondingCurve::host(Origin::signed(miner2), cml_id2, tapp_id));
+
+		let spend_tea = 1000000;
+		assert_ok!(BondingCurve::consume(
+			Origin::signed(user2),
+			tapp_id,
+			spend_tea,
+			Some(b"test notes".to_vec())
+		));
+		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), 129842);
+		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner1), 1000);
+		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), 129842);
+		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner2), 1000);
+
+		assert_ok!(BondingCurve::sell_token(
+			Origin::signed(miner1),
+			tapp_id,
+			129842
+		));
+		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), 0);
+		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner1), 1000);
+		// can not sell reserved token
+		assert_noop!(
+			BondingCurve::sell_token(Origin::signed(miner1), tapp_id, 1000),
+			Error::<Test>::InsufficientTAppToken
+		);
+
+		// can not sell tapp token mixed with reserved token
+		assert_noop!(
+			BondingCurve::sell_token(Origin::signed(miner2), tapp_id, 129842 + 1000),
+			Error::<Test>::InsufficientTAppToken
+		);
+	})
+}
+
+#[test]
 fn expense_should_fail_if_tapp_not_exist() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
@@ -909,7 +1212,52 @@ fn expense_works_if_expense_amount_more_than_reserved_balance() {
 }
 
 #[test]
-fn host_works() {
+fn host_works_with_fixed_fee() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(tapp_owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			10,
+			TAppType::Twitter,
+			false,
+			Some(1000),
+			None,
+		));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+
+		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
+		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
+		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
+		assert!(!TAppReservedBalance::<Test>::contains_key(tapp_id, miner));
+	})
+}
+
+#[test]
+fn host_works_fixed_token() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let miner = 2;
@@ -937,6 +1285,49 @@ fn host_works() {
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
+		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner), 1000);
+	})
+}
+
+#[test]
+fn fixed_token_host_works_with_miner_hosts_multi_times() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 20000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let cml_id2 = 12;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id2, ());
+		CmlStore::<Test>::insert(cml_id2, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id2,
+			[2u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(create_default_tapp(tapp_owner));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id2, tapp_id));
+
+		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner), 2000);
 	})
 }
 
