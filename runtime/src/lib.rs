@@ -904,6 +904,7 @@ parameter_types! {
 	pub const CidMaxLength: u32 = 100;
 	pub const TotalSupplyMaxValue: Balance = 1000000000000000000000000;
 	pub const MinTappHostsCount: u32 = 3;
+	pub const HostLockingBlockHeight: BlockNumber = 1000;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -926,6 +927,7 @@ impl pallet_bonding_curve::Config for Runtime {
 	type CidMaxLength = CidMaxLength;
 	type TotalSupplyMaxValue = TotalSupplyMaxValue;
 	type MinTappHostsCount = MinTappHostsCount;
+	type HostLockingBlockHeight = HostLockingBlockHeight;
 }
 
 parameter_types! {

@@ -95,6 +95,9 @@ pub mod bonding_curve {
 		#[pallet::constant]
 		type MinTappHostsCount: Get<u32>;
 
+		#[pallet::constant]
+		type HostLockingBlockHeight: Get<Self::BlockNumber>;
+
 		type LinearCurve: BondingCurveInterface<BalanceOf<Self>>;
 
 		#[allow(non_camel_case_types)]
@@ -157,7 +160,7 @@ pub mod bonding_curve {
 	#[pallet::storage]
 	#[pallet::getter(fn cml_hosting_tapps)]
 	pub type TAppCurrentHosts<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, TAppId, Twox64Concat, CmlId, (), ValueQuery>;
+		StorageDoubleMap<_, Twox64Concat, TAppId, Twox64Concat, CmlId, T::BlockNumber, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_current_hosted_cmls)]
@@ -375,6 +378,8 @@ pub mod bonding_curve {
 		StakeTokenIsNoneInFixedTokenMode,
 		/// Reward per performance should not be none in fixed fee mode
 		RewardPerPerformanceIsNoneInFixedFeeMode,
+		/// Should unlock after host locking block height
+		HostLockingBlockHeightNotReached,
 	}
 
 	#[pallet::hooks]
@@ -725,6 +730,7 @@ pub mod bonding_curve {
 		#[pallet::weight(195_000_000)]
 		pub fn host(sender: OriginFor<T>, cml_id: CmlId, tapp_id: TAppId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
+			let current_block = frame_system::Pallet::<T>::block_number();
 
 			extrinsic_procedure(
 				&who,
@@ -749,7 +755,6 @@ pub mod bonding_curve {
 					ensure!(cml.is_mining(), Error::<T>::OnlyMiningCmlCanHost);
 					ensure!(cml.machine_id().is_some(), Error::<T>::CmlMachineIdIsNone);
 
-					let current_block = frame_system::Pallet::<T>::block_number();
 					let (current_performance, _) =
 						T::CmlOperation::miner_performance(cml_id, &current_block);
 					ensure!(
@@ -761,7 +766,7 @@ pub mod bonding_curve {
 					Ok(())
 				},
 				|who| {
-					TAppCurrentHosts::<T>::insert(tapp_id, cml_id, ());
+					TAppCurrentHosts::<T>::insert(tapp_id, cml_id, current_block);
 					Self::try_active_tapp(tapp_id);
 					CmlHostingTApps::<T>::mutate(cml_id, |tapp_ids| tapp_ids.push(tapp_id));
 
@@ -800,6 +805,14 @@ pub mod bonding_curve {
 					ensure!(
 						TAppCurrentHosts::<T>::contains_key(tapp_id, cml_id),
 						Error::<T>::CmlNotHostTheTApp
+					);
+
+					let current_block = frame_system::Pallet::<T>::block_number();
+					ensure!(
+						current_block
+							>= TAppCurrentHosts::<T>::get(tapp_id, cml_id)
+								+ T::HostLockingBlockHeight::get(),
+						Error::<T>::HostLockingBlockHeightNotReached
 					);
 
 					Ok(())

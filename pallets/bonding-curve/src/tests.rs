@@ -1576,7 +1576,7 @@ fn unhost_works() {
 		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
 
 		let cml_id = 11;
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 10000, 10000));
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
@@ -1600,6 +1600,7 @@ fn unhost_works() {
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
 
+		frame_system::Pallet::<Test>::set_block_number(1001);
 		assert_ok!(BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id));
 
 		assert_eq!(
@@ -1608,6 +1609,36 @@ fn unhost_works() {
 		);
 		assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 0);
+	})
+}
+
+#[test]
+fn unhost_should_fail_if_not_after_locking_block_height() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(create_default_tapp(tapp_owner));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+		assert_noop!(
+			BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::HostLockingBlockHeightNotReached
+		);
 	})
 }
 

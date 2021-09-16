@@ -888,8 +888,8 @@ mod tests {
 			let cml_id = 11;
 			let cml_id2 = 22;
 			let performance = 1000u32;
-			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
-			let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100, 10000));
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 10000, 10000));
+			let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 10000, 10000));
 			UserCmlStore::<Test>::insert(miner, cml_id, ());
 			UserCmlStore::<Test>::insert(miner, cml_id2, ());
 			CmlStore::<Test>::insert(cml_id, cml);
@@ -939,6 +939,7 @@ mod tests {
 				HOST_COST_COEFFICIENT.saturating_mul((performance * 2).into())
 			);
 
+			frame_system::Pallet::<Test>::set_block_number(1001);
 			// remove the first host, the cost should be 1000*HostCostCoefficient
 			TAppBondingCurve::<Test>::mutate(tapp_id, |tapp_item| tapp_item.current_cost = 0);
 			assert_ok!(BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id));
