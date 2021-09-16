@@ -68,6 +68,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	#[rpc(name = "bonding_listTApps")]
 	fn list_tapps(
 		&self,
+		active_only: bool,
 		at: Option<BlockHash>,
 	) -> Result<
 		Vec<(
@@ -334,6 +335,7 @@ where
 
 	fn list_tapps(
 		&self,
+		active_only: bool,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<
 		Vec<(
@@ -369,7 +371,8 @@ where
 			u32,
 			u32,
 			u32,
-		)> = api.list_tapps(&at).map_err(runtime_error_into_rpc_err)?;
+		)> = api.list_tapps(&at, active_only)
+			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result
 			.iter()
 			.map(

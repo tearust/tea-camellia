@@ -1295,7 +1295,7 @@ impl_runtime_apis! {
 			BondingCurve::estimate_required_token_when_sell(tapp_id, tea_amount)
 		}
 
-		fn list_tapps() -> Vec<(
+		fn list_tapps(active_only: bool) -> Vec<(
 			Vec<u8>,
 			u64,
 			Vec<u8>,
@@ -1309,7 +1309,7 @@ impl_runtime_apis! {
 			u32,
 			u32,
 		)> {
-			BondingCurve::list_tapps()
+			BondingCurve::list_tapps(active_only)
 		}
 
 		fn list_user_assets(who: AccountId) -> Vec<(

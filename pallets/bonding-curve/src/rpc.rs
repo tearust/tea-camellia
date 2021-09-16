@@ -83,7 +83,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - Host performance requirement (return zero if is none)
 	/// - current hosts (return zero if is none)
 	/// - max hosts (return zero if is none)
-	pub fn list_tapps() -> Vec<(
+	pub fn list_tapps(
+		active_only: bool,
+	) -> Vec<(
 		Vec<u8>,
 		TAppId,
 		Vec<u8>,
@@ -98,6 +100,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		u32,
 	)> {
 		TAppBondingCurve::<T>::iter()
+			.filter(|(_, item)| match active_only {
+				true => item.status == TAppStatus::Active,
+				false => true,
+			})
 			.map(|(id, item)| {
 				let (buy_price, sell_price) = Self::query_price(id);
 				let total_supply = TotalSupplyTable::<T>::get(id);
