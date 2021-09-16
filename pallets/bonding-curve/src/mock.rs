@@ -141,7 +141,6 @@ pub const TAPP_LINK_MAX_LENGTH: u32 = 100;
 pub const POOL_BALANCE_REVERSE_PRECISION: Balance = 10;
 pub const HOST_ARRANGE_DURATION: u64 = 1000;
 pub const HOST_COST_COLLECTION_DURATION: u64 = 100;
-pub const HOST_COST_COEFFICIENT: Balance = 10000;
 pub const CONSUME_NOTE_MAX_LENGTH: u32 = 140;
 pub const CID_MAX_LENGTH: u32 = 100;
 pub const TOTAL_SUPPLY_MAX_VALUE: Balance = 1000000000000000000000000;
@@ -156,7 +155,6 @@ parameter_types! {
 	pub const PoolBalanceReversePrecision: Balance = POOL_BALANCE_REVERSE_PRECISION;
 	pub const HostArrangeDuration: u64 = HOST_ARRANGE_DURATION;
 	pub const HostCostCollectionDuration: u64 = HOST_COST_COLLECTION_DURATION;
-	pub const HostCostCoefficient: Balance = HOST_COST_COEFFICIENT;
 	pub const ConsumeNoteMaxLength: u32 = CONSUME_NOTE_MAX_LENGTH;
 	pub const CidMaxLength: u32 = CID_MAX_LENGTH;
 	pub const TotalSupplyMaxValue: Balance = TOTAL_SUPPLY_MAX_VALUE;
@@ -179,7 +177,6 @@ impl pallet_bonding_curve::Config for Test {
 	type PoolBalanceReversePrecision = PoolBalanceReversePrecision;
 	type HostArrangeDuration = HostArrangeDuration;
 	type HostCostCollectionDuration = HostCostCollectionDuration;
-	type HostCostCoefficient = HostCostCoefficient;
 	type ConsumeNoteMaxLength = ConsumeNoteMaxLength;
 	type CidMaxLength = CidMaxLength;
 	type TotalSupplyMaxValue = TotalSupplyMaxValue;

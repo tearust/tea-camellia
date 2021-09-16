@@ -15,20 +15,26 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 		tapp_id: u64,
 	) -> Vec<(Self::AccountId, CmlId, Self::Balance)> {
 		let tapp = TAppBondingCurve::<T>::get(tapp_id);
-		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
-		let tea_amount = tapp.current_cost.saturating_add(
-			T::HostCostCoefficient::get()
-				.saturating_mul(tapp.host_performance().into())
-				.saturating_mul(host_count.into()),
-		);
+		match tapp.billing_mode {
+			BillingMode::FixedHostingFee(reward_per_performance) => {
+				let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
+				let tea_amount = tapp.current_cost.saturating_add(
+					reward_per_performance
+						.saturating_mul(tapp.host_performance().into())
+						.saturating_mul(host_count.into()),
+				);
 
-		if let Ok((_, distribute_tea_amount, _)) =
-			Self::calculate_given_received_tea_how_much_seller_give_away(tapp_id, tea_amount)
-		{
-			return match Self::distribute_to_miners(tapp_id, distribute_tea_amount, false) {
-				Ok(statements) => statements,
-				Err(_) => vec![],
-			};
+				if let Ok((_, distribute_tea_amount, _)) =
+					Self::calculate_given_received_tea_how_much_seller_give_away(
+						tapp_id, tea_amount,
+					) {
+					return match Self::distribute_to_miners(tapp_id, distribute_tea_amount, false) {
+						Ok(statements) => statements,
+						Err(_) => vec![],
+					};
+				}
+			}
+			_ => {}
 		}
 
 		vec![]
@@ -618,17 +624,20 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				BillingMode::FixedHostingFee(_) => true,
 				_ => false,
 			})
-			.for_each(|(id, _)| {
-				Self::accumulate_tapp_cost(id);
-				Self::expense_inner(id)
+			.for_each(|(id, tapp)| match tapp.billing_mode {
+				BillingMode::FixedHostingFee(reward_per_performance) => {
+					Self::accumulate_tapp_cost(id, reward_per_performance);
+					Self::expense_inner(id)
+				}
+				_ => {}
 			});
 	}
 
-	pub(crate) fn accumulate_tapp_cost(tapp_id: TAppId) {
+	pub(crate) fn accumulate_tapp_cost(tapp_id: TAppId, reward_per_performance: BalanceOf<T>) {
 		TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
 			let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 			tapp.current_cost = tapp.current_cost.saturating_add(
-				T::HostCostCoefficient::get()
+				reward_per_performance
 					.saturating_mul(tapp.host_performance().into())
 					.saturating_mul(host_count.into()),
 			);
@@ -850,6 +859,7 @@ mod tests {
 	fn accumulate_tapp_cost_works() {
 		new_test_ext().execute_with(|| {
 			EnableUserCreateTApp::<Test>::set(true);
+			pub const HOST_COST_COEFFICIENT: u128 = 10000;
 			let miner = 2;
 			let tapp_owner = 1;
 			<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
@@ -883,7 +893,7 @@ mod tests {
 			let tapp_id = 1;
 			assert_eq!(TAppBondingCurve::<Test>::get(tapp_id).current_cost, 0);
 
-			BondingCurve::accumulate_tapp_cost(tapp_id);
+			BondingCurve::accumulate_tapp_cost(tapp_id, HOST_COST_COEFFICIENT);
 			// Right now, there is zero host. the cost should be zero too
 			assert_eq!(
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
@@ -894,7 +904,7 @@ mod tests {
 			// add one host, the cost should be 1000*HostCostCoefficient
 			TAppBondingCurve::<Test>::mutate(tapp_id, |tapp_item| tapp_item.current_cost = 0);
 			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
-			BondingCurve::accumulate_tapp_cost(tapp_id);
+			BondingCurve::accumulate_tapp_cost(tapp_id, HOST_COST_COEFFICIENT);
 			assert_eq!(
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
 				HOST_COST_COEFFICIENT.saturating_mul(performance.into())
@@ -903,7 +913,7 @@ mod tests {
 			// Add second host, the cost should be 1000*HostCostCoefficient*2
 			TAppBondingCurve::<Test>::mutate(tapp_id, |tapp_item| tapp_item.current_cost = 0);
 			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id2, tapp_id));
-			BondingCurve::accumulate_tapp_cost(tapp_id);
+			BondingCurve::accumulate_tapp_cost(tapp_id, HOST_COST_COEFFICIENT);
 			assert_eq!(
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
 				HOST_COST_COEFFICIENT.saturating_mul((performance * 2).into())
@@ -912,7 +922,7 @@ mod tests {
 			// remove the first host, the cost should be 1000*HostCostCoefficient
 			TAppBondingCurve::<Test>::mutate(tapp_id, |tapp_item| tapp_item.current_cost = 0);
 			assert_ok!(BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id));
-			BondingCurve::accumulate_tapp_cost(tapp_id);
+			BondingCurve::accumulate_tapp_cost(tapp_id, HOST_COST_COEFFICIENT);
 			assert_eq!(
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
 				HOST_COST_COEFFICIENT.saturating_mul(performance.into())

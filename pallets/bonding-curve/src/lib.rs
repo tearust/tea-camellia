@@ -87,9 +87,6 @@ pub mod bonding_curve {
 		type HostCostCollectionDuration: Get<Self::BlockNumber>;
 
 		#[pallet::constant]
-		type HostCostCoefficient: Get<BalanceOf<Self>>;
-
-		#[pallet::constant]
 		type CidMaxLength: Get<u32>;
 
 		#[pallet::constant]
