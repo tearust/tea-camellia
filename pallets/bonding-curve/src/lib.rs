@@ -175,10 +175,17 @@ pub mod bonding_curve {
 	pub type TAppResourceMap<T: Config> = StorageMap<_, Twox64Concat, TAppId, Vec<u8>, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn tapp_approved_links)]
 	pub type TAppApprovedLinks<T: Config> =
 		StorageMap<_, Twox64Concat, Vec<u8>, (Option<TAppId>, Vec<u8>), ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn tapp_last_activity)]
+	pub type TAppLastActivity<T: Config> =
+		StorageMap<_, Twox64Concat, TAppId, (u64, T::BlockNumber), ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn tapp_reserved_balance)]
 	pub type TAppReservedBalance<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
@@ -399,6 +406,8 @@ pub mod bonding_curve {
 		LinkNotInApprovedList,
 		/// Link already used by other tapp
 		LinkAlreadyBeUsed,
+		/// Only NPC account allowed to update activity
+		OnlyNPCAccountAllowedToUpdateActivity,
 	}
 
 	#[pallet::hooks]
@@ -434,6 +443,34 @@ pub mod bonding_curve {
 					if let Some(ref npc_account) = npc_account {
 						NPCAccount::<T>::set(npc_account.clone());
 					}
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn update_tapp_last_activity(
+			sender: OriginFor<T>,
+			tapp_id: TAppId,
+			activity_data: u64,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						who.eq(&NPCAccount::<T>::get()),
+						Error::<T>::OnlyNPCAccountAllowedToUpdateActivity
+					);
+					ensure!(
+						TAppBondingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					Ok(())
+				},
+				|_who| {
+					let current_block = frame_system::Pallet::<T>::block_number();
+					TAppLastActivity::<T>::insert(tapp_id, (activity_data, current_block));
 				},
 			)
 		}

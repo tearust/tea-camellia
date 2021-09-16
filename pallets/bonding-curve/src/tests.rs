@@ -35,6 +35,58 @@ fn set_tapp_creation_settings_should_fail_if_not_root_user() {
 }
 
 #[test]
+fn update_tapp_last_activity_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+
+		let npc = NPCAccount::<Test>::get();
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+		assert_ok!(create_default_tapp(user));
+
+		let tapp_id = 1;
+
+		let block_number = 100;
+		let activity_data = 43;
+		frame_system::Pallet::<Test>::set_block_number(block_number);
+		assert_ok!(BondingCurve::update_tapp_last_activity(
+			Origin::signed(npc),
+			tapp_id,
+			activity_data
+		));
+
+		assert_eq!(
+			TAppLastActivity::<Test>::get(tapp_id),
+			(activity_data, block_number)
+		);
+	})
+}
+
+#[test]
+fn normal_user_update_tapp_last_activity_should_fail() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+
+		let user = 1;
+		assert_noop!(
+			BondingCurve::update_tapp_last_activity(Origin::signed(user), 1, 22),
+			Error::<Test>::OnlyNPCAccountAllowedToUpdateActivity
+		);
+	})
+}
+
+#[test]
+fn update_tapp_last_activity_should_fail_if_tapp_not_exist() {
+	new_test_ext().execute_with(|| {
+		let npc = NPCAccount::<Test>::get();
+		assert_noop!(
+			BondingCurve::update_tapp_last_activity(Origin::signed(npc), 1, 22),
+			Error::<Test>::TAppIdNotExist
+		);
+	})
+}
+
+#[test]
 fn register_tapp_link_works() {
 	new_test_ext().execute_with(|| {
 		let npc = NPCAccount::<Test>::get();
