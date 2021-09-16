@@ -526,7 +526,7 @@ fn testnet_genesis(
 		pallet_bonding_curve: BondingCurveConfig {
 			reserved_balance_account: bonding_curve_reserved_balance_account,
 			npc_account: bonding_curve_npc_account,
-			user_create_tapp: false, // default disable user create tapp
+			user_create_tapp: true, // default enable user create tapp
 		},
 	}
 }

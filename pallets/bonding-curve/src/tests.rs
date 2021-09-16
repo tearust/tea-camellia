@@ -135,6 +135,20 @@ fn create_new_fixed_token_tapp_works() {
 }
 
 #[test]
+fn npc_create_new_tapp_should_fail_if_enable_user_create_tapp_is_true() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let npc: u64 = NPCAccount::<Test>::get();
+		<Test as Config>::Currency::make_free_balance_be(&npc, 100000000);
+
+		assert_noop!(
+			create_default_tapp(npc),
+			Error::<Test>::NotAllowedNPCCreateTApp
+		);
+	})
+}
+
+#[test]
 fn create_new_tapp_should_fail_if_name_already_exist() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);

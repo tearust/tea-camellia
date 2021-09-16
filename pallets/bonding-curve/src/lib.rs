@@ -340,6 +340,8 @@ pub mod bonding_curve {
 		AddOverflow,
 		/// It is forbidden for normal user to create tapp
 		NotAllowedNormalUserCreateTApp,
+		/// It is forbidden for NPC to create tapp
+		NotAllowedNPCCreateTApp,
 		/// Only the tapp owner is allowed to submit the `expense` extrinsic
 		OnlyTAppOwnerAllowedToExpense,
 		/// Performance value should greater than 0
@@ -444,6 +446,11 @@ pub mod bonding_curve {
 						ensure!(
 							who.eq(&NPCAccount::<T>::get()),
 							Error::<T>::NotAllowedNormalUserCreateTApp
+						);
+					} else {
+						ensure!(
+							!who.eq(&NPCAccount::<T>::get()),
+							Error::<T>::NotAllowedNPCCreateTApp
 						);
 					}
 
