@@ -266,7 +266,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		for (who, _) in CompetitionUsers::<T>::iter() {
 			let mut total_amount_in_tea: BalanceOf<T> = Zero::zero();
-			T::BondingCurveOperation::tapp_user_balances(&who)
+			T::BondingCurveOperation::tapp_user_token_asset(&who)
 				.iter()
 				.for_each(|(tapp_id, balance)| {
 					let tea_amount = match sell_price_map.get(&tapp_id) {

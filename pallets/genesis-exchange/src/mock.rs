@@ -56,7 +56,7 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 		(0, 0)
 	}
 
-	fn tapp_user_balances(_who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
+	fn tapp_user_token_asset(_who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
 		vec![]
 	}
 }

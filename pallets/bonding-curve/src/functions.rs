@@ -44,8 +44,13 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 		Self::query_price(tapp_id)
 	}
 
-	fn tapp_user_balances(who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
-		AccountTable::<T>::iter_prefix(who).collect()
+	fn tapp_user_token_asset(who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
+		let mut staking_asset: Vec<(u64, Self::Balance)> =
+			AccountTable::<T>::iter_prefix(who).collect();
+		TAppReservedBalance::<T>::iter()
+			.filter(|(_, account, _)| account.eq(who))
+			.for_each(|(tapp_id, _, balance)| staking_asset.push((tapp_id, balance)));
+		staking_asset
 	}
 }
 
