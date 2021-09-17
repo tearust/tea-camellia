@@ -363,6 +363,16 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		});
 		(current_performance, remaining_performance, peak_performance)
 	}
+
+	/// Returned item fields:
+	/// - Link url
+	/// - Tapp id, if not created based on the link value will be none
+	/// - Link description
+	pub fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>)> {
+		TAppApprovedLinks::<T>::iter()
+			.map(|(link, (tapp_id, description))| (link, tapp_id, description))
+			.collect()
+	}
 }
 
 #[cfg(test)]

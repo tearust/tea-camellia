@@ -1376,6 +1376,10 @@ impl_runtime_apis! {
 		fn cml_performance(cml_id: u64) -> (Option<u32>, Option<u32>, u32) {
 			BondingCurve::cml_performance(cml_id)
 		}
+
+		fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>)> {
+			BondingCurve::approved_links()
+		}
 	}
 
 	impl fg_primitives::GrandpaApi<Block> for Runtime {
