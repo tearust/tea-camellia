@@ -81,8 +81,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - Detail
 	/// - Link
 	/// - Host performance requirement (return zero if is none)
-	/// - current hosts (return zero if is none)
-	/// - max hosts (return zero if is none)
+	/// - (current hosts (return zero if is none), max hosts (return zero if is none))
 	/// - active block number (return none if not active)
 	pub fn list_tapps(
 		active_only: bool,
@@ -97,8 +96,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Vec<u8>,
 		Vec<u8>,
 		Performance,
-		u32,
-		u32,
+		(u32, u32),
 		Option<T::BlockNumber>,
 	)> {
 		TAppBondingCurve::<T>::iter()
@@ -126,8 +124,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					item.detail,
 					item.link,
 					host_performance,
-					TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
-					item.max_allowed_hosts,
+					(
+						TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
+						item.max_allowed_hosts,
+					),
 					active_height,
 				)
 			})

@@ -1306,8 +1306,7 @@ impl_runtime_apis! {
 			Vec<u8>,
 			Vec<u8>,
 			u32,
-			u32,
-			u32,
+			(u32, u32),
 			Option<BlockNumber>,
 		)> {
 			BondingCurve::list_tapps(active_only)

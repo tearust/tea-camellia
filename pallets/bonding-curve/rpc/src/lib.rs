@@ -63,8 +63,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - Detail
 	/// - Link
 	/// - Host performance requirement (return zero if is none)
-	/// - current hosts (return zero if is none)
-	/// - max hosts (return zero if is none)
+	/// - (current hosts (return zero if is none), max hosts (return zero if is none))
 	/// - active block number (return none if not active)
 	#[rpc(name = "bonding_listTApps")]
 	fn list_tapps(
@@ -83,8 +82,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 			Vec<u8>,
 			Vec<u8>,
 			u32,
-			u32,
-			u32,
+			(u32, u32),
 			Option<BlockNumber>,
 		)>,
 	>;
@@ -359,8 +357,7 @@ where
 			Vec<u8>,
 			Vec<u8>,
 			u32,
-			u32,
-			u32,
+			(u32, u32),
 			Option<BlockNumber>,
 		)>,
 	> {
@@ -380,8 +377,7 @@ where
 			Vec<u8>,
 			Vec<u8>,
 			u32,
-			u32,
-			u32,
+			(u32, u32),
 			Option<BlockNumber>,
 		)> = api.list_tapps(&at, active_only)
 			.map_err(runtime_error_into_rpc_err)?;
@@ -399,8 +395,7 @@ where
 					detail,
 					link,
 					performance,
-					current_hosts,
-					max_hosts,
+					hosts_pair,
 					active_height,
 				)| {
 					(
@@ -414,8 +409,7 @@ where
 						detail.clone(),
 						link.clone(),
 						*performance,
-						*current_hosts,
-						*max_hosts,
+						hosts_pair.clone(),
 						active_height.clone(),
 					)
 				},
