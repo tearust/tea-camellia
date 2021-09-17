@@ -1549,7 +1549,7 @@ fn host_works_with_fixed_fee() {
 
 		assert_eq!(
 			TAppBondingCurve::<Test>::get(tapp_id).status,
-			TAppStatus::Active
+			TAppStatus::Active(0)
 		);
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
@@ -1590,7 +1590,7 @@ fn host_works_fixed_token() {
 
 		assert_eq!(
 			TAppBondingCurve::<Test>::get(tapp_id).status,
-			TAppStatus::Active
+			TAppStatus::Active(0)
 		);
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
@@ -1908,7 +1908,7 @@ fn unhost_works() {
 
 		assert_eq!(
 			TAppBondingCurve::<Test>::get(tapp_id).status,
-			TAppStatus::Active
+			TAppStatus::Active(0)
 		);
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);

@@ -83,6 +83,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - Host performance requirement (return zero if is none)
 	/// - current hosts (return zero if is none)
 	/// - max hosts (return zero if is none)
+	/// - active block number (return none if not active)
 	pub fn list_tapps(
 		active_only: bool,
 	) -> Vec<(
@@ -98,16 +99,21 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Performance,
 		u32,
 		u32,
+		Option<T::BlockNumber>,
 	)> {
 		TAppBondingCurve::<T>::iter()
 			.filter(|(_, item)| match active_only {
-				true => item.status == TAppStatus::Active,
+				true => item.status != TAppStatus::Pending,
 				false => true,
 			})
 			.map(|(id, item)| {
 				let (buy_price, sell_price) = Self::query_price(id);
 				let total_supply = TotalSupplyTable::<T>::get(id);
 
+				let active_height: Option<T::BlockNumber> = match item.status {
+					TAppStatus::Active(height) => Some(height),
+					_ => None,
+				};
 				let host_performance = item.host_performance();
 				(
 					item.name,
@@ -122,6 +128,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					host_performance,
 					TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
 					item.max_allowed_hosts,
+					active_height,
 				)
 			})
 			.collect()

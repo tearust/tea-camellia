@@ -1308,6 +1308,7 @@ impl_runtime_apis! {
 			u32,
 			u32,
 			u32,
+			Option<BlockNumber>,
 		)> {
 			BondingCurve::list_tapps(active_only)
 		}

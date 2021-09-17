@@ -25,13 +25,13 @@ pub enum BillingMode<Balance> {
 }
 
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
-pub enum TAppStatus {
-	Active,
+pub enum TAppStatus<BlockNumber> {
+	Active(BlockNumber),
 	Pending,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct TAppItem<AccountId, Balance> {
+pub struct TAppItem<AccountId, Balance, BlockNumber> {
 	pub id: TAppId,
 	pub name: Vec<u8>,
 	pub ticker: Vec<u8>,
@@ -42,12 +42,12 @@ pub struct TAppItem<AccountId, Balance> {
 	pub link: Vec<u8>,
 	pub max_allowed_hosts: u32,
 	pub current_cost: Balance,
-	pub status: TAppStatus,
+	pub status: TAppStatus<BlockNumber>,
 	pub tapp_type: TAppType,
 	pub billing_mode: BillingMode<Balance>,
 }
 
-impl<AccountId, Balance> TAppItem<AccountId, Balance> {
+impl<AccountId, Balance, BlockNumber> TAppItem<AccountId, Balance, BlockNumber> {
 	pub fn host_performance(&self) -> Performance {
 		match self.tapp_type {
 			TAppType::YouTube => 3000,
@@ -57,7 +57,7 @@ impl<AccountId, Balance> TAppItem<AccountId, Balance> {
 	}
 }
 
-impl<AccountId, Balance> Default for TAppItem<AccountId, Balance>
+impl<AccountId, Balance, BlockNumber> Default for TAppItem<AccountId, Balance, BlockNumber>
 where
 	AccountId: Default,
 	Balance: AtLeast32BitUnsigned + Default,

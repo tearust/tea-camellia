@@ -133,8 +133,13 @@ pub mod bonding_curve {
 
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_bonding_curve)]
-	pub type TAppBondingCurve<T: Config> =
-		StorageMap<_, Twox64Concat, TAppId, TAppItem<T::AccountId, BalanceOf<T>>, ValueQuery>;
+	pub type TAppBondingCurve<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		TAppId,
+		TAppItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_names)]

@@ -597,16 +597,25 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			&& TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
 				>= T::MinTappHostsCount::get() as usize
 		{
-			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| tapp.status = TAppStatus::Active);
+			let current_block = frame_system::Pallet::<T>::block_number();
+			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
+				tapp.status = TAppStatus::Active(current_block)
+			});
 		}
 	}
 
 	pub(crate) fn try_deactive_tapp(tapp_id: TAppId) {
-		if TAppBondingCurve::<T>::get(tapp_id).status == TAppStatus::Active
-			&& TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
-				< T::MinTappHostsCount::get() as usize
-		{
-			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| tapp.status = TAppStatus::Pending);
+		match TAppBondingCurve::<T>::get(tapp_id).status {
+			TAppStatus::Active(_) => {
+				if TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
+					< T::MinTappHostsCount::get() as usize
+				{
+					TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
+						tapp.status = TAppStatus::Pending
+					});
+				}
+			}
+			_ => {}
 		}
 	}
 

@@ -34,6 +34,7 @@ sp_api::decl_runtime_apis! {
 		/// - Host performance requirement (return zero if is none)
 		/// - current hosts (return zero if is none)
 		/// - max hosts (return zero if is none)
+		/// - active block number (return none if not active)
 		fn list_tapps(active_only: bool) -> Vec<(
 			Vec<u8>,
 			u64,
@@ -47,6 +48,7 @@ sp_api::decl_runtime_apis! {
 			u32,
 			u32,
 			u32,
+			Option<BlockNumber>,
 		)>;
 
 		/// Returned item fields:

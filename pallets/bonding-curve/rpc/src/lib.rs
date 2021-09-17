@@ -65,6 +65,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - Host performance requirement (return zero if is none)
 	/// - current hosts (return zero if is none)
 	/// - max hosts (return zero if is none)
+	/// - active block number (return none if not active)
 	#[rpc(name = "bonding_listTApps")]
 	fn list_tapps(
 		&self,
@@ -84,6 +85,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 			u32,
 			u32,
 			u32,
+			Option<BlockNumber>,
 		)>,
 	>;
 
@@ -359,6 +361,7 @@ where
 			u32,
 			u32,
 			u32,
+			Option<BlockNumber>,
 		)>,
 	> {
 		let api = self.client.runtime_api();
@@ -379,6 +382,7 @@ where
 			u32,
 			u32,
 			u32,
+			Option<BlockNumber>,
 		)> = api.list_tapps(&at, active_only)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result
@@ -397,6 +401,7 @@ where
 					performance,
 					current_hosts,
 					max_hosts,
+					active_height,
 				)| {
 					(
 						name.clone(),
@@ -411,6 +416,7 @@ where
 						*performance,
 						*current_hosts,
 						*max_hosts,
+						active_height.clone(),
 					)
 				},
 			)
