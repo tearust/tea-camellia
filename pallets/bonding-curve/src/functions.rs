@@ -24,7 +24,7 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 						.saturating_mul(host_count.into()),
 				);
 
-				if let Ok((_, distribute_tea_amount, _)) =
+				if let Ok((_, distribute_tea_amount)) =
 					Self::calculate_given_received_tea_how_much_seller_give_away(
 						tapp_id, tea_amount,
 					) {
@@ -471,9 +471,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn calculate_given_received_tea_how_much_seller_give_away(
 		tapp_id: TAppId,
 		tea_amount: BalanceOf<T>,
-	) -> Result<(BalanceOf<T>, BalanceOf<T>, bool), DispatchError> {
-		let mut is_reserved_tea_zero = false;
-
+	) -> Result<(BalanceOf<T>, BalanceOf<T>), DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_reserve_pool_tea = match tapp_item.sell_curve {
@@ -485,7 +483,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		};
 
 		let pay_amount = if current_reserve_pool_tea < tea_amount {
-			is_reserved_tea_zero = true;
 			current_reserve_pool_tea
 		} else {
 			tea_amount
@@ -510,7 +507,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				.checked_sub(&total_supply_after_sell_tapp_token)
 				.ok_or(Error::<T>::SubtractionOverflow)?,
 			pay_amount,
-			is_reserved_tea_zero,
 		))
 	}
 
@@ -743,7 +739,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			tapp_id,
 			tapp.current_cost,
 		) {
-			Ok((withdraw_tapp_amount, distribute_tea_amount, is_reserved_tea_zero)) => {
+			Ok((withdraw_tapp_amount, distribute_tea_amount)) => {
 				match Self::distribute_to_miners(tapp_id, distribute_tea_amount, true) {
 					Ok(tapp_statements) => {
 						Self::collect_with_investors(tapp_id, withdraw_tapp_amount);
@@ -772,9 +768,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					}
 				}
 
-				if is_reserved_tea_zero {
-					Self::try_bankrupt_tapp(tapp_id);
-				}
+				Self::try_bankrupt_tapp(tapp_id);
 			}
 			Err(e) => {
 				// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
@@ -1149,7 +1143,103 @@ mod tests {
 			assert_eq!(CmlHostingTApps::<Test>::get(cml_id2).len(), 0);
 			assert!(!TAppApprovedLinks::<Test>::get(&link1).tapp_id.is_some());
 			assert!(!TAppApprovedLinks::<Test>::get(&link1).creator.is_some());
-			// assert!(!TAppLastActivity::<Test>::contains_key(tapp_id));
+			assert!(!TAppLastActivity::<Test>::contains_key(tapp_id));
+			assert_eq!(TAppReservedBalance::<Test>::iter_prefix(tapp_id).count(), 0);
+		})
+	}
+
+	#[test]
+	fn expense_to_bankrust_works() {
+		new_test_ext().execute_with(|| {
+			EnableUserCreateTApp::<Test>::set(true);
+			let user1 = 1;
+			let user2 = 2;
+			let user3 = 3;
+			let user4 = 4;
+			let miner1 = 5;
+			let miner2 = 6;
+			let tapp_amount2 = 2_000_000;
+			let tapp_amount3 = 4_000_000;
+			<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
+			<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
+			<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
+			<Test as Config>::Currency::make_free_balance_be(&user4, DOLLARS);
+			<Test as Config>::Currency::make_free_balance_be(&miner1, DOLLARS);
+			<Test as Config>::Currency::make_free_balance_be(&miner2, DOLLARS);
+
+			let npc = NPCAccount::<Test>::get();
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				"https://teaproject.org".into(),
+				"test description".into(),
+				None,
+			));
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(user1),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1_000_000),
+			));
+
+			let cml_id1 = 11;
+			let cml_id2 = 22;
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100, 10000));
+			let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100, 10000));
+			UserCmlStore::<Test>::insert(miner1, cml_id1, ());
+			UserCmlStore::<Test>::insert(miner2, cml_id2, ());
+			CmlStore::<Test>::insert(cml_id1, cml);
+			CmlStore::<Test>::insert(cml_id2, cml2);
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner1),
+				cml_id1,
+				[1u8; 32],
+				b"miner_ip".to_vec()
+			));
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner2),
+				cml_id2,
+				[2u8; 32],
+				b"miner_ip".to_vec()
+			));
+
+			let tapp_id = 1;
+			assert_ok!(BondingCurve::buy_token(
+				Origin::signed(user2),
+				tapp_id,
+				tapp_amount2
+			));
+			assert_ok!(BondingCurve::buy_token(
+				Origin::signed(user3),
+				tapp_id,
+				tapp_amount3
+			));
+			assert_ok!(BondingCurve::host(Origin::signed(miner1), cml_id1, tapp_id));
+			assert_ok!(BondingCurve::host(Origin::signed(miner2), cml_id2, tapp_id));
+
+			TAppBondingCurve::<Test>::mutate(tapp_id, |tapp_item| {
+				tapp_item.current_cost = 1000000 * DOLLARS
+			});
+			BondingCurve::expense_inner(tapp_id);
+
+			assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 0);
+
+			assert!(!AccountTable::<Test>::contains_key(user1, tapp_id));
+			assert!(!AccountTable::<Test>::contains_key(user2, tapp_id));
+			assert!(!AccountTable::<Test>::contains_key(user3, tapp_id));
+			assert!(!AccountTable::<Test>::contains_key(miner1, tapp_id));
+			assert!(!AccountTable::<Test>::contains_key(miner2, tapp_id));
+			assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
+			assert_eq!(TAppCurrentHosts::<Test>::iter_prefix(tapp_id).count(), 0);
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id1).len(), 0);
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id2).len(), 0);
+			assert!(!TAppLastActivity::<Test>::contains_key(tapp_id));
 			assert_eq!(TAppReservedBalance::<Test>::iter_prefix(tapp_id).count(), 0);
 		})
 	}

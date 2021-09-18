@@ -852,7 +852,7 @@ pub mod bonding_curve {
 						Error::<T>::OperationAmountCanNotBeZero
 					);
 
-					let (withdraw_tapp_amount, _, _) =
+					let (withdraw_tapp_amount, _) =
 						Self::calculate_given_received_tea_how_much_seller_give_away(
 							tapp_id,
 							tapp.current_cost,
