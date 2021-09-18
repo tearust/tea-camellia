@@ -741,12 +741,18 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 						});
 
 						let (buy_price, sell_price) = Self::query_price(tapp_id);
+						let is_fix_token_mode =
+							match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
+								BillingMode::FixedHostingToken(_) => true,
+								_ => false,
+							};
 						Self::deposit_event(Event::TAppExpense(
 							tapp_id,
 							tapp_statements,
 							buy_price,
 							sell_price,
 							TotalSupplyTable::<T>::get(tapp_id),
+							is_fix_token_mode,
 						));
 					}
 					Err(e) => {

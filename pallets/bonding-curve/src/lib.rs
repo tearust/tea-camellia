@@ -290,12 +290,14 @@ pub mod bonding_curve {
 		/// 3. Buy price
 		/// 4. Sell price
 		/// 5. Total supply
+		/// 6. Is fix token mode
 		TAppExpense(
 			TAppId,
 			Vec<(T::AccountId, CmlId, BalanceOf<T>)>,
 			BalanceOf<T>,
 			BalanceOf<T>,
 			BalanceOf<T>,
+			bool,
 		),
 
 		/// Fired after TApp has bankrupted
