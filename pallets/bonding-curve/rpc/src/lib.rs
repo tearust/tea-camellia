@@ -147,6 +147,9 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 		u32,
 		u32,
 		u32,
+		Price,
+		Price,
+		Price,
 	)>;
 
 	/// Returned item fields:
@@ -509,16 +512,44 @@ where
 		u32,
 		u32,
 		u32,
+		Price,
+		Price,
+		Price,
 	)> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let result = api
-			.tapp_details(&at, tapp_id)
+		let (
+			name,
+			tapp_id,
+			ticker,
+			owner,
+			detail,
+			link,
+			host_performance,
+			current_hosts,
+			max_hosts,
+			total_supply,
+			buy_price,
+			sell_price,
+		) = api.tapp_details(&at, tapp_id)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(result)
+		Ok((
+			name,
+			tapp_id,
+			ticker,
+			owner,
+			detail,
+			link,
+			host_performance,
+			current_hosts,
+			max_hosts,
+			Price(total_supply),
+			Price(buy_price),
+			Price(sell_price),
+		))
 	}
 
 	fn list_candidate_miners(

@@ -198,6 +198,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - Host performance requirement
 	/// - current hosts
 	/// - max hosts
+	/// - Total supply
+	/// - Token buy price
+	/// - Token sell price
 	pub fn tapp_details(
 		tapp_id: TAppId,
 	) -> (
@@ -210,8 +213,13 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Performance,
 		u32,
 		u32,
+		BalanceOf<T>,
+		BalanceOf<T>,
+		BalanceOf<T>,
 	) {
 		let item = TAppBondingCurve::<T>::get(tapp_id);
+		let (buy_price, sell_price) = Self::query_price(tapp_id);
+		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 
 		let host_performance = item.host_performance();
 		(
@@ -224,6 +232,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			host_performance,
 			TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
 			item.max_allowed_hosts,
+			total_supply,
+			buy_price,
+			sell_price,
 		)
 	}
 

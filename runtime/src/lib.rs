@@ -1339,6 +1339,9 @@ impl_runtime_apis! {
 			u32,
 			u32,
 			u32,
+			Balance,
+			Balance,
+			Balance,
 		) {
 			BondingCurve::tapp_details(tapp_id)
 		}

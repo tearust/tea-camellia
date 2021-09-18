@@ -83,6 +83,9 @@ sp_api::decl_runtime_apis! {
 			u32,
 			u32,
 			u32,
+			Balance,
+			Balance,
+			Balance,
 		);
 
 		/// Returned item fields:
