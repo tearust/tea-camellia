@@ -754,9 +754,7 @@ pub mod bonding_curve {
 						TotalSupplyTable::<T>::get(tapp_id),
 					));
 
-					if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
-						Self::bankrupt_tapp(tapp_id);
-					}
+					Self::try_bankrupt_tapp(tapp_id);
 				},
 			)
 		}

@@ -164,8 +164,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
 					*amount = amount.saturating_sub(tapp_amount);
 				});
-				Self::try_clean_tapp_related(Some(who.clone()), tapp_id);
 
+				if AccountTable::<T>::get(&who, tapp_id).is_zero() {
+					AccountTable::<T>::remove(&who, tapp_id);
+				}
 				deposit_tea_amount
 			}
 			Err(e) => {
@@ -176,31 +178,33 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		}
 	}
 
-	pub fn try_clean_tapp_related(who: Option<T::AccountId>, tapp_id: TAppId) {
-		match who {
-			Some(who) => {
-				if AccountTable::<T>::get(&who, tapp_id).is_zero() {
-					AccountTable::<T>::remove(&who, tapp_id);
-				}
-			}
-			None => AccountTable::<T>::iter()
-				.filter(|(_, id, balance)| *id == tapp_id && balance.is_zero())
-				.for_each(|(acc, id, _)| AccountTable::<T>::remove(acc, id)),
+	pub fn try_clean_tapp_related(tapp_id: TAppId) -> bool {
+		if !TotalSupplyTable::<T>::get(tapp_id).is_zero() {
+			return false;
 		}
 
-		if TotalSupplyTable::<T>::get(tapp_id).is_zero() {
-			TotalSupplyTable::<T>::remove(tapp_id);
-			let item = TAppBondingCurve::<T>::take(tapp_id);
-			TAppNames::<T>::remove(item.name);
-			TAppTickers::<T>::remove(item.ticker);
-			TAppApprovedLinks::<T>::mutate(item.link, |tapp_info| {
-				tapp_info.tapp_id = None;
-				tapp_info.creator = None;
-			});
-			TAppCurrentHosts::<T>::iter_prefix(tapp_id).for_each(|(cml_id, _)| {
-				Self::unhost_tapp(tapp_id, cml_id);
-			});
-		}
+		TotalSupplyTable::<T>::remove(tapp_id);
+		let need_remove_keypair: Vec<(T::AccountId, TAppId)> = AccountTable::<T>::iter()
+			.filter(|(_, id, _)| *id == tapp_id)
+			.map(|(acc, id, _)| (acc, id))
+			.collect();
+		need_remove_keypair
+			.iter()
+			.for_each(|(acc, id)| AccountTable::<T>::remove(acc, id));
+
+		let item = TAppBondingCurve::<T>::take(tapp_id);
+		TAppNames::<T>::remove(item.name);
+		TAppTickers::<T>::remove(item.ticker);
+		TAppApprovedLinks::<T>::mutate(item.link, |tapp_info| {
+			tapp_info.tapp_id = None;
+			tapp_info.creator = None;
+		});
+		TAppCurrentHosts::<T>::iter_prefix(tapp_id).for_each(|(cml_id, _)| {
+			Self::unhost_tapp(tapp_id, cml_id);
+		});
+		TAppReservedBalance::<T>::remove_prefix(tapp_id);
+		TAppLastActivity::<T>::remove(tapp_id);
+		true
 	}
 
 	pub(crate) fn distribute_to_investors(tapp_id: TAppId, distributing_amount: BalanceOf<T>) {
@@ -769,7 +773,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				}
 
 				if is_reserved_tea_zero {
-					Self::bankrupt_tapp(tapp_id);
+					Self::try_bankrupt_tapp(tapp_id);
 				}
 			}
 			Err(e) => {
@@ -779,9 +783,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		}
 	}
 
-	pub(crate) fn bankrupt_tapp(tapp_id: TAppId) {
-		Self::try_clean_tapp_related(None, tapp_id);
-		Self::deposit_event(Event::TAppBankrupted(tapp_id));
+	pub(crate) fn try_bankrupt_tapp(tapp_id: TAppId) {
+		if Self::try_clean_tapp_related(tapp_id) {
+			Self::deposit_event(Event::TAppBankrupted(tapp_id));
+		}
 	}
 }
 
@@ -981,6 +986,171 @@ mod tests {
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
 				HOST_COST_COEFFICIENT.saturating_mul(performance.into())
 			);
+		})
+	}
+
+	#[test]
+	fn try_clean_tapp_related_works() {
+		new_test_ext().execute_with(|| {
+			EnableUserCreateTApp::<Test>::set(true);
+
+			let owner1 = 11;
+			let owner2 = 12;
+			let owner3 = 13;
+			let user1 = 21;
+			let user2 = 22;
+			let user3 = 23;
+			let miner1 = 31;
+			let miner2 = 32;
+			<Test as Config>::Currency::make_free_balance_be(&owner1, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&owner2, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&owner3, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&user1, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&user2, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&user3, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&miner1, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&miner2, 100000000);
+
+			let npc = NPCAccount::<Test>::get();
+			let link1 = b"https://teaproject.org".to_vec();
+			let link2 = b"https://teaproject2.org".to_vec();
+			let link3 = b"https://teaproject3.org".to_vec();
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				link1.clone(),
+				"test description".into(),
+				Some(owner1),
+			));
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				link2.clone(),
+				"test description".into(),
+				None,
+			));
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				link3.clone(),
+				"test description".into(),
+				None,
+			));
+
+			let name1 = b"test name1".to_vec();
+			let ticker1 = b"tea1".to_vec();
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(owner1),
+				name1.clone(),
+				ticker1.clone(),
+				1_000_000,
+				b"test detail".to_vec(),
+				link1.clone(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+			));
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(owner1),
+				b"test name2".to_vec(),
+				b"tea2".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				link2,
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+			));
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(owner1),
+				b"test name3".to_vec(),
+				b"tea3".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				link3,
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+			));
+
+			let tapp_id = 1;
+			assert_ok!(BondingCurve::buy_token(
+				Origin::signed(user1),
+				tapp_id,
+				1000
+			));
+			assert_ok!(BondingCurve::buy_token(
+				Origin::signed(user2),
+				tapp_id,
+				1000
+			));
+			assert_ok!(BondingCurve::buy_token(
+				Origin::signed(user3),
+				tapp_id,
+				1000
+			));
+
+			let cml_id1 = 11;
+			let cml_id2 = 22;
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100, 10000));
+			let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100, 10000));
+			UserCmlStore::<Test>::insert(miner1, cml_id1, ());
+			UserCmlStore::<Test>::insert(miner2, cml_id2, ());
+			CmlStore::<Test>::insert(cml_id1, cml);
+			CmlStore::<Test>::insert(cml_id2, cml2);
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner1),
+				cml_id1,
+				[1u8; 32],
+				b"miner_ip".to_vec()
+			));
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner2),
+				cml_id2,
+				[2u8; 32],
+				b"miner_ip".to_vec()
+			));
+			assert_ok!(BondingCurve::host(Origin::signed(miner1), cml_id1, tapp_id));
+			assert_ok!(BondingCurve::host(Origin::signed(miner2), cml_id2, tapp_id));
+
+			TAppLastActivity::<Test>::insert(tapp_id, (3, 1));
+
+			assert!(!TotalSupplyTable::<Test>::get(tapp_id).is_zero());
+			assert!(AccountTable::<Test>::contains_key(owner1, tapp_id));
+			assert!(AccountTable::<Test>::contains_key(user1, tapp_id));
+			assert!(AccountTable::<Test>::contains_key(user2, tapp_id));
+			assert!(AccountTable::<Test>::contains_key(user3, tapp_id));
+			assert!(TAppBondingCurve::<Test>::contains_key(tapp_id));
+			assert!(TAppNames::<Test>::contains_key(&name1));
+			assert!(TAppTickers::<Test>::contains_key(&ticker1));
+			assert_eq!(TAppCurrentHosts::<Test>::iter_prefix(tapp_id).count(), 2);
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id1).len(), 1);
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id2).len(), 1);
+			assert!(TAppApprovedLinks::<Test>::get(&link1).tapp_id.is_some());
+			assert!(TAppApprovedLinks::<Test>::get(&link1).creator.is_some());
+			assert!(TAppLastActivity::<Test>::contains_key(tapp_id));
+			assert_eq!(TAppReservedBalance::<Test>::iter_prefix(tapp_id).count(), 2);
+
+			TotalSupplyTable::<Test>::insert(tapp_id, 0);
+			BondingCurve::try_clean_tapp_related(tapp_id);
+
+			assert!(!AccountTable::<Test>::contains_key(owner1, tapp_id));
+			assert!(!AccountTable::<Test>::contains_key(user1, tapp_id));
+			assert!(!AccountTable::<Test>::contains_key(user2, tapp_id));
+			assert!(!AccountTable::<Test>::contains_key(user3, tapp_id));
+			assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
+			assert!(!TAppNames::<Test>::contains_key(&name1));
+			assert!(!TAppTickers::<Test>::contains_key(&ticker1));
+			assert_eq!(TAppCurrentHosts::<Test>::iter_prefix(tapp_id).count(), 0);
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id1).len(), 0);
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id2).len(), 0);
+			assert!(!TAppApprovedLinks::<Test>::get(&link1).tapp_id.is_some());
+			assert!(!TAppApprovedLinks::<Test>::get(&link1).creator.is_some());
+			// assert!(!TAppLastActivity::<Test>::contains_key(tapp_id));
+			assert_eq!(TAppReservedBalance::<Test>::iter_prefix(tapp_id).count(), 0);
 		})
 	}
 
