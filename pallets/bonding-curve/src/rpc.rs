@@ -146,6 +146,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - Host performance requirement (return zero if is none)
 	/// - current hosts (return zero if is none)
 	/// - max hosts (return zero if is none)
+	/// - Total supply
 	pub fn list_user_assets(
 		who: &T::AccountId,
 	) -> Vec<(
@@ -160,11 +161,13 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Performance,
 		u32,
 		u32,
+		BalanceOf<T>,
 	)> {
 		AccountTable::<T>::iter_prefix(who)
 			.map(|(id, amount)| {
 				let (_, sell_price) = Self::query_price(id);
 				let item = TAppBondingCurve::<T>::get(id);
+				let total_supply = TotalSupplyTable::<T>::get(id);
 
 				let host_performance = item.host_performance();
 				(
@@ -179,6 +182,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					host_performance,
 					TAppCurrentHosts::<T>::iter_prefix(item.id).count() as u32,
 					item.max_allowed_hosts,
+					total_supply,
 				)
 			})
 			.collect()

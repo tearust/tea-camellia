@@ -99,6 +99,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - Host performance requirement (return zero if is none)
 	/// - current hosts (return zero if is none)
 	/// - max hosts (return zero if is none)
+	/// - Total supply
 	#[rpc(name = "bonding_listUserAssets")]
 	fn list_user_assets(
 		&self,
@@ -117,6 +118,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 			u32,
 			u32,
 			u32,
+			Price,
 		)>,
 	>;
 
@@ -434,6 +436,7 @@ where
 			u32,
 			u32,
 			u32,
+			Price,
 		)>,
 	> {
 		let api = self.client.runtime_api();
@@ -453,6 +456,7 @@ where
 			u32,
 			u32,
 			u32,
+			Balance,
 		)> = api.list_user_assets(&at, who)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result
@@ -470,6 +474,7 @@ where
 					performance,
 					current_hosts,
 					max_hosts,
+					total_supply,
 				)| {
 					(
 						name.clone(),
@@ -483,6 +488,7 @@ where
 						*performance,
 						*current_hosts,
 						*max_hosts,
+						Price(*total_supply),
 					)
 				},
 			)

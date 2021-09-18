@@ -1324,6 +1324,7 @@ impl_runtime_apis! {
 			u32,
 			u32,
 			u32,
+			Balance,
 		)> {
 			BondingCurve::list_user_assets(&who)
 		}
