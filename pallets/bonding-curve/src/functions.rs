@@ -194,8 +194,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			TAppNames::<T>::remove(item.name);
 			TAppTickers::<T>::remove(item.ticker);
 			TAppApprovedLinks::<T>::mutate(item.link, |(tapp_id, _)| *tapp_id = None);
-			TAppCurrentHosts::<T>::iter_prefix(tapp_id)
-				.for_each(|(cml_id, _)| Self::unhost_tapp(tapp_id, cml_id));
+			TAppCurrentHosts::<T>::iter_prefix(tapp_id).for_each(|(cml_id, _)| {
+				Self::unhost_tapp(tapp_id, cml_id);
+			});
 		}
 	}
 
@@ -569,7 +570,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn unhost_tapp(tapp_id: TAppId, cml_id: CmlId) {
+	pub(crate) fn unhost_tapp(tapp_id: TAppId, cml_id: CmlId) -> bool {
 		TAppCurrentHosts::<T>::remove(tapp_id, cml_id);
 
 		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
@@ -589,10 +590,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			}
 		});
 
-		Self::try_deactive_tapp(tapp_id);
+		Self::try_deactive_tapp(tapp_id)
 	}
 
-	pub(crate) fn try_active_tapp(tapp_id: TAppId) {
+	pub(crate) fn try_active_tapp(tapp_id: TAppId) -> bool {
 		if TAppBondingCurve::<T>::get(tapp_id).status == TAppStatus::Pending
 			&& TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
 				>= T::MinTappHostsCount::get() as usize
@@ -601,10 +602,12 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
 				tapp.status = TAppStatus::Active(current_block)
 			});
+			return true;
 		}
+		false
 	}
 
-	pub(crate) fn try_deactive_tapp(tapp_id: TAppId) {
+	pub(crate) fn try_deactive_tapp(tapp_id: TAppId) -> bool {
 		match TAppBondingCurve::<T>::get(tapp_id).status {
 			TAppStatus::Active(_) => {
 				if TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
@@ -613,10 +616,12 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
 						tapp.status = TAppStatus::Pending
 					});
+					return true;
 				}
 			}
 			_ => {}
 		}
+		false
 	}
 
 	pub(crate) fn unhost_last_tapp(cml_id: CmlId) -> Option<TAppId> {
@@ -642,7 +647,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			}
 		});
 
-		Self::deposit_event(Event::TAppsUnhosted(unhosted_list));
+		Self::deposit_event(Event::TAppsAutoUnhosted(unhosted_list));
 	}
 
 	pub(crate) fn cml_total_used_performance(cml_id: CmlId) -> Performance {

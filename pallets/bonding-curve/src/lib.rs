@@ -302,15 +302,22 @@ pub mod bonding_curve {
 		TAppBankrupted(TAppId),
 
 		/// Fired after host successfully, automatically unhosted lists:
+		/// - Host tapp id
+		/// - Host CML id
+		/// - Host CML machine id
+		/// - TApp became active
+		TAppsHosted(TAppId, CmlId, MachineId, bool),
+
+		/// Fired after host successfully, automatically unhosted lists:
 		/// - Unhost tapp id
 		/// - Unhost CML id
-		/// - Unhost CML machine id
-		TAppsHosted(TAppId, CmlId, MachineId),
+		/// - TApp became pending
+		TAppsUnhosted(TAppId, CmlId, bool),
 
 		/// Fired after each host arrange duration, automatically unhosted lists:
 		/// - Unhost tapp id
 		/// - Unhost CML id
-		TAppsUnhosted(Vec<(TAppId, CmlId)>),
+		TAppsAutoUnhosted(Vec<(TAppId, CmlId)>),
 
 		/// Fired after topuped successfully, event parameters:
 		/// 1. TApp Id
@@ -879,7 +886,7 @@ pub mod bonding_curve {
 				},
 				|who| {
 					TAppCurrentHosts::<T>::insert(tapp_id, cml_id, current_block);
-					Self::try_active_tapp(tapp_id);
+					let became_active = Self::try_active_tapp(tapp_id);
 					CmlHostingTApps::<T>::mutate(cml_id, |tapp_ids| tapp_ids.push(tapp_id));
 
 					match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
@@ -896,6 +903,7 @@ pub mod bonding_curve {
 							tapp_id,
 							cml_id,
 							cml.machine_id().unwrap().clone(),
+							became_active,
 						));
 					}
 				},
@@ -930,7 +938,9 @@ pub mod bonding_curve {
 					Ok(())
 				},
 				|_who| {
-					Self::unhost_tapp(tapp_id, cml_id);
+					let became_pending = Self::unhost_tapp(tapp_id, cml_id);
+
+					Self::deposit_event(Event::TAppsUnhosted(tapp_id, cml_id, became_pending));
 				},
 			)
 		}
