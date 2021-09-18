@@ -240,12 +240,14 @@ pub mod bonding_curve {
 		/// 1. TApp Id
 		/// 2. Bought Account Id
 		/// 3. Bought TEA amount
-		/// 4. Buy price
-		/// 5. Sell price
-		/// 6. Total supply
+		/// 4. Token amount
+		/// 5. Buy price
+		/// 6. Sell price
+		/// 7. Total supply
 		TokenBought(
 			TAppId,
 			T::AccountId,
+			BalanceOf<T>,
 			BalanceOf<T>,
 			BalanceOf<T>,
 			BalanceOf<T>,
@@ -256,12 +258,14 @@ pub mod bonding_curve {
 		/// 1. TApp Id
 		/// 2. Sold Account Id
 		/// 3. Sold TEA amount
-		/// 4. Buy price
-		/// 5. Sell price
-		/// 6. Total supply
+		/// 4. Token amount
+		/// 5. Buy price
+		/// 6. Sell price
+		/// 7. Total supply
 		TokenSold(
 			TAppId,
 			T::AccountId,
+			BalanceOf<T>,
 			BalanceOf<T>,
 			BalanceOf<T>,
 			BalanceOf<T>,
@@ -271,12 +275,14 @@ pub mod bonding_curve {
 		/// Fired after TApp consume successfully, event parameters:
 		/// 1. TApp Id
 		/// 2. Consumed TEA amount
-		/// 3. Consumed notes
-		/// 4. Buy price
-		/// 5. Sell price
-		/// 6. Total supply
+		/// 3. Token amount
+		/// 4. Consumed notes
+		/// 5. Buy price
+		/// 6. Sell price
+		/// 7. Total supply
 		TAppConsume(
 			TAppId,
+			BalanceOf<T>,
 			BalanceOf<T>,
 			Option<Vec<u8>>,
 			BalanceOf<T>,
@@ -698,6 +704,7 @@ pub mod bonding_curve {
 						tapp_id,
 						who.clone(),
 						deposit_tea_amount,
+						tapp_amount,
 						buy_price,
 						sell_price,
 						TotalSupplyTable::<T>::get(tapp_id),
@@ -741,6 +748,7 @@ pub mod bonding_curve {
 						tapp_id,
 						who.clone(),
 						sold_amount,
+						tapp_amount,
 						buy_price,
 						sell_price,
 						TotalSupplyTable::<T>::get(tapp_id),
@@ -804,6 +812,7 @@ pub mod bonding_curve {
 							Self::deposit_event(Event::TAppConsume(
 								tapp_id,
 								tea_amount,
+								deposit_tapp_amount,
 								note.clone(),
 								buy_price,
 								sell_price,
