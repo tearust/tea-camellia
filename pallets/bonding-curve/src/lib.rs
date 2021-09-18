@@ -422,6 +422,8 @@ pub mod bonding_curve {
 		LinkAlreadyBeUsed,
 		/// Only NPC account allowed to update activity
 		OnlyNPCAccountAllowedToUpdateActivity,
+		/// Stake token amount and reward per performance should not both exist
+		StakeTokenAmountAndRewardPerPerformanceCannotBothExist,
 	}
 
 	#[pallet::hooks]

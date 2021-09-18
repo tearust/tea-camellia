@@ -546,6 +546,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			max_allowed_hosts >= T::MinTappHostsCount::get(),
 			Error::<T>::MaxAllowedHostShouldLargerEqualThanMinAllowedHosts,
 		);
+		ensure!(
+			!(stake_token_amount.is_some() && reward_per_performance.is_some()),
+			Error::<T>::StakeTokenAmountAndRewardPerPerformanceCannotBothExist
+		);
 
 		if fixed_token_mode {
 			ensure!(
