@@ -224,8 +224,10 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - Tapp id, if not created based on the link value will be none
 	/// - Link description
 	#[rpc(name = "cml_approvedLinks")]
-	fn approved_links(&self, at: Option<BlockHash>)
-		-> Result<Vec<(Vec<u8>, Option<u64>, Vec<u8>)>>;
+	fn approved_links(
+		&self,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)>>;
 }
 
 pub struct BondingCurveApiImpl<C, M> {
@@ -639,7 +641,7 @@ where
 	fn approved_links(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<(Vec<u8>, Option<u64>, Vec<u8>)>> {
+	) -> Result<Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.

@@ -1381,7 +1381,7 @@ impl_runtime_apis! {
 			BondingCurve::cml_performance(cml_id)
 		}
 
-		fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>)> {
+		fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)> {
 			BondingCurve::approved_links()
 		}
 	}

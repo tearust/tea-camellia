@@ -390,9 +390,17 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - Link url
 	/// - Tapp id, if not created based on the link value will be none
 	/// - Link description
-	pub fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>)> {
+	/// - Creator
+	pub fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<T::AccountId>)> {
 		TAppApprovedLinks::<T>::iter()
-			.map(|(link, (tapp_id, description))| (link, tapp_id, description))
+			.map(|(link, link_info)| {
+				(
+					link,
+					link_info.tapp_id,
+					link_info.description,
+					link_info.creator,
+				)
+			})
 			.collect()
 	}
 }
@@ -418,6 +426,7 @@ mod tests {
 				Origin::signed(npc),
 				link.clone(),
 				"test description".into(),
+				None,
 			));
 
 			assert_ok!(BondingCurve::create_new_tapp(
@@ -442,6 +451,7 @@ mod tests {
 				Origin::signed(npc),
 				link2.clone(),
 				"test description2".into(),
+				None,
 			));
 			assert_ok!(BondingCurve::create_new_tapp(
 				Origin::signed(1),

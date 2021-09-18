@@ -182,7 +182,7 @@ pub mod bonding_curve {
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_approved_links)]
 	pub type TAppApprovedLinks<T: Config> =
-		StorageMap<_, Twox64Concat, Vec<u8>, (Option<TAppId>, Vec<u8>), ValueQuery>;
+		StorageMap<_, Twox64Concat, Vec<u8>, ApprovedLinkInfo<T::AccountId>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_last_activity)]
@@ -424,6 +424,8 @@ pub mod bonding_curve {
 		OnlyNPCAccountAllowedToUpdateActivity,
 		/// Stake token amount and reward per performance should not both exist
 		StakeTokenAmountAndRewardPerPerformanceCannotBothExist,
+		/// Link that created by a user can only be used to created by the user himself
+		UserReservedLink,
 	}
 
 	#[pallet::hooks]
@@ -496,6 +498,7 @@ pub mod bonding_curve {
 			sender: OriginFor<T>,
 			link_url: Vec<u8>,
 			link_description: Vec<u8>,
+			creator: Option<T::AccountId>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
@@ -521,9 +524,14 @@ pub mod bonding_curve {
 					Ok(())
 				},
 				|_who| {
-					let (tapp_id, description): (Option<TAppId>, Vec<u8>) =
-						(None, link_description.clone());
-					TAppApprovedLinks::<T>::insert(&link_url, (tapp_id, description));
+					TAppApprovedLinks::<T>::insert(
+						&link_url,
+						ApprovedLinkInfo {
+							tapp_id: None,
+							description: link_description.clone(),
+							creator: creator.clone(),
+						},
+					);
 				},
 			)
 		}
@@ -578,10 +586,12 @@ pub mod bonding_curve {
 						TAppApprovedLinks::<T>::contains_key(&link),
 						Error::<T>::LinkNotInApprovedList
 					);
-					ensure!(
-						TAppApprovedLinks::<T>::get(&link).0.is_none(),
-						Error::<T>::LinkAlreadyBeUsed
-					);
+					let link_info = TAppApprovedLinks::<T>::get(&link);
+					ensure!(link_info.tapp_id.is_none(), Error::<T>::LinkAlreadyBeUsed);
+					if let Some(creator) = link_info.creator {
+						ensure!(creator.eq(who), Error::<T>::UserReservedLink);
+					}
+
 					let deposit_tea_amount =
 						Self::calculate_increase_amount_from_raise_curve_total_supply(
 							buy_curve,
@@ -608,7 +618,7 @@ pub mod bonding_curve {
 					let id = Self::next_id();
 					TAppNames::<T>::insert(&tapp_name, id);
 					TAppTickers::<T>::insert(&ticker, id);
-					TAppApprovedLinks::<T>::mutate(&link, |(tapp_id, _)| *tapp_id = Some(id));
+					TAppApprovedLinks::<T>::mutate(&link, |link_info| link_info.tapp_id = Some(id));
 
 					let billing_mode = match fixed_token_mode {
 						true => BillingMode::FixedHostingToken(

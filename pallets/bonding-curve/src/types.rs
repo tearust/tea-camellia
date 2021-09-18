@@ -47,6 +47,23 @@ pub struct TAppItem<AccountId, Balance, BlockNumber> {
 	pub billing_mode: BillingMode<Balance>,
 }
 
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub struct ApprovedLinkInfo<AccountId> {
+	pub tapp_id: Option<TAppId>,
+	pub description: Vec<u8>,
+	pub creator: Option<AccountId>,
+}
+
+impl<AccountId> Default for ApprovedLinkInfo<AccountId> {
+	fn default() -> Self {
+		Self {
+			tapp_id: None,
+			description: Default::default(),
+			creator: None,
+		}
+	}
+}
+
 impl<AccountId, Balance, BlockNumber> TAppItem<AccountId, Balance, BlockNumber> {
 	pub fn host_performance(&self) -> Performance {
 		match self.tapp_type {
