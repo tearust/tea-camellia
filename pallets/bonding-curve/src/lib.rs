@@ -274,14 +274,16 @@ pub mod bonding_curve {
 
 		/// Fired after TApp consume successfully, event parameters:
 		/// 1. TApp Id
-		/// 2. Consumed TEA amount
-		/// 3. Token amount
-		/// 4. Consumed notes
-		/// 5. Buy price
-		/// 6. Sell price
-		/// 7. Total supply
+		/// 2. Consume Account Id
+		/// 3. Consumed TEA amount
+		/// 4. Token amount
+		/// 5. Consumed notes
+		/// 6. Buy price
+		/// 7. Sell price
+		/// 8. Total supply
 		TAppConsume(
 			TAppId,
+			T::AccountId,
 			BalanceOf<T>,
 			BalanceOf<T>,
 			Option<Vec<u8>>,
@@ -811,6 +813,7 @@ pub mod bonding_curve {
 							let (buy_price, sell_price) = Self::query_price(tapp_id);
 							Self::deposit_event(Event::TAppConsume(
 								tapp_id,
+								who.clone(),
 								tea_amount,
 								deposit_tapp_amount,
 								note.clone(),
