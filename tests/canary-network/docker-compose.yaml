@@ -1,13 +1,115 @@
 version: "3.1"
+
+networks:
+  alice-network:
+    internal: true
+  bob-network:
+    internal: true
+  charlie-network:
+    internal: true
+  dave-network:
+    internal: true
+  eve-network:
+    internal: true
+  ferdie-network:
+    internal: true
+  blockchain-network:
 services:
-  layer1:
-    image: tearust/tea-camellia:fast-0.2.1
-    container_name: layer1
+  ##################    Layer1   #######################
+  layer1-alice:
+    image: tearust/tea-camellia:fast-0.3.8
+    container_name: layer1-alice
     ports:
       - 9944:9944
       - 9933:9933
-      - 30333:30333
+    command: bash -c "tea-camellia --validator --chain canary --name alice --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all --genesis-coupons-path /tea-camellia/test.csv"
     volumes:
-      - .layer1:/root/.local
+      - .layer1/alice:/root/.local
       - ./data:/tea-camellia
-    command: bash -c "tea-camellia --chain local --genesis-seed tearust-fast-0.2.1 --ws-external --rpc-external --rpc-cors all --bootnodes /ip4/81.70.93.215/tcp/30333/p2p/12D3KooWMYhaBN5Kq2DyAmk7Ao4FSspdP1bC9JdypBUPSQ5JXi9m --bootnodes /ip4/139.198.14.230/tcp/30333/p2p/12D3KooWJyMCoHwmLjcC3XQBZBydsjahWorLw91xcxQsJqrGpzNK --competition-coupons-path /tea-camellia/competition.csv"
+    networks:
+      - alice-network
+      - blockchain-network
+
+  layer1-bob:
+    image: tearust/tea-camellia:fast-0.3.8
+    container_name: layer1-bob
+    ports:
+      - 9943:9944
+      - 9932:9933
+    command: bash -c "tea-camellia --validator --chain canary --name bob --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all --genesis-coupons-path /tea-camellia/test.csv"
+    volumes:
+      - .layer1/bob:/root/.local
+      - ./data:/tea-camellia
+    networks:
+      - bob-network
+      - blockchain-network
+
+  layer1-charlie:
+    image: tearust/tea-camellia:fast-0.3.8
+    container_name: layer1-charlie
+    ports:
+      - 9942:9944
+      - 9931:9933
+    command: bash -c "tea-camellia --validator --chain canary --name charlie --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all --genesis-coupons-path /tea-camellia/test.csv"
+    volumes:
+      - .layer1/charlie:/root/.local
+      - ./data:/tea-camellia
+    networks:
+      - charlie-network
+      - blockchain-network
+
+  layer1-dave:
+    image: tearust/tea-camellia:fast-0.3.8
+    container_name: layer1-dave
+    ports:
+      - 9941:9944
+      - 9930:9933
+    command: bash -c "tea-camellia --validator --chain canary --name dave --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all --genesis-coupons-path /tea-camellia/test.csv"
+    volumes:
+      - .layer1/dave:/root/.local
+      - ./data:/tea-camellia
+    networks:
+      - dave-network
+      - blockchain-network
+
+  layer1-eve:
+    image: tearust/tea-camellia:fast-0.3.8
+    container_name: layer1-eve
+    ports:
+      - 9940:9944
+      - 9929:9933
+    command: bash -c "tea-camellia --validator --chain canary --name eve --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all --genesis-coupons-path /tea-camellia/test.csv"
+    volumes:
+      - .layer1/eve:/root/.local
+      - ./data:/tea-camellia
+    networks:
+      - eve-network
+      - blockchain-network
+
+  layer1-ferdie:
+    image: tearust/tea-camellia:fast-0.3.8
+    container_name: layer1-ferdie
+    ports:
+      - 9939:9944
+      - 9928:9933
+    volumes:
+      - .layer1/ferdie:/root/.local
+      - ./data:/tea-camellia
+    command: bash -c "tea-camellia --validator --chain canary --name ferdie --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all --genesis-coupons-path /tea-camellia/test.csv"
+    networks:
+      - ferdie-network
+      - blockchain-network
+
+  layer1-george:
+    image: tearust/tea-camellia:fast-0.3.8
+    container_name: layer1-george
+    ports:
+      - 9938:9944
+      - 9927:9933
+    volumes:
+      - .layer1/george:/root/.local
+      - ./data:/tea-camellia
+    command: bash -c "tea-camellia --validator --chain canary --name george --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all --genesis-coupons-path /tea-camellia/test.csv"
+    networks:
+      - ferdie-network
+      - blockchain-network
