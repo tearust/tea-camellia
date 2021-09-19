@@ -451,41 +451,6 @@ pub mod bonding_curve {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000_000)]
-		pub fn clean_died_host_machines(sender: OriginFor<T>) -> DispatchResult {
-			let who = ensure_signed(sender)?;
-
-			extrinsic_procedure(
-				&who,
-				|who| {
-					ensure!(
-						who.eq(&NPCAccount::<T>::get()),
-						Error::<T>::NotAllowedNormalUserCreateTApp
-					);
-					Ok(())
-				},
-				|_who| {
-					let current_block = frame_system::Pallet::<T>::block_number();
-					TAppBondingCurve::<T>::iter().for_each(|(tapp_id, _)| {
-						TAppCurrentHosts::<T>::iter_prefix(tapp_id).for_each(|(cml_id, _)| {
-							match T::CmlOperation::cml_by_id(&cml_id) {
-								Ok(cml) => {
-									if cml.should_dead(&current_block) || !cml.is_mining() {
-										TAppCurrentHosts::<T>::remove(tapp_id, cml_id);
-										CmlHostingTApps::<T>::remove(cml_id);
-									}
-								}
-								Err(_) => {
-									TAppCurrentHosts::<T>::remove(tapp_id, cml_id);
-									CmlHostingTApps::<T>::remove(cml_id);
-								}
-							}
-						})
-					});
-				},
-			)
-		}
-
-		#[pallet::weight(195_000_000)]
 		pub fn tapp_creation_settings(
 			sender: OriginFor<T>,
 			enable_create: Option<bool>,
@@ -1000,7 +965,7 @@ pub mod bonding_curve {
 					Ok(())
 				},
 				|_who| {
-					let became_pending = Self::unhost_tapp(tapp_id, cml_id);
+					let became_pending = Self::unhost_tapp(tapp_id, cml_id, false);
 
 					Self::deposit_event(Event::TAppsUnhosted(tapp_id, cml_id, became_pending));
 				},

@@ -200,7 +200,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			tapp_info.creator = None;
 		});
 		TAppCurrentHosts::<T>::iter_prefix(tapp_id).for_each(|(cml_id, _)| {
-			Self::unhost_tapp(tapp_id, cml_id);
+			Self::unhost_tapp(tapp_id, cml_id, false);
 		});
 		TAppReservedBalance::<T>::remove_prefix(tapp_id);
 		TAppLastActivity::<T>::remove(tapp_id);
@@ -577,7 +577,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Ok(())
 	}
 
-	pub(crate) fn unhost_tapp(tapp_id: TAppId, cml_id: CmlId) -> bool {
+	pub(crate) fn unhost_tapp(tapp_id: TAppId, cml_id: CmlId, cml_dead: bool) -> bool {
 		TAppCurrentHosts::<T>::remove(tapp_id, cml_id);
 
 		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
@@ -591,11 +591,15 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			_ => {}
 		}
 
-		CmlHostingTApps::<T>::mutate(cml_id, |array| {
-			if let Some(index) = array.iter().position(|x| *x == tapp_id) {
-				array.remove(index);
-			}
-		});
+		if cml_dead {
+			CmlHostingTApps::<T>::remove(cml_id);
+		} else {
+			CmlHostingTApps::<T>::mutate(cml_id, |array| {
+				if let Some(index) = array.iter().position(|x| *x == tapp_id) {
+					array.remove(index);
+				}
+			});
+		}
 
 		Self::try_deactive_tapp(tapp_id)
 	}
@@ -633,7 +637,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 	pub(crate) fn unhost_last_tapp(cml_id: CmlId) -> Option<TAppId> {
 		if let Some(last_tapp) = CmlHostingTApps::<T>::get(cml_id).last() {
-			Self::unhost_tapp(*last_tapp, cml_id);
+			Self::unhost_tapp(*last_tapp, cml_id, false);
 			return Some(*last_tapp);
 		}
 		None
@@ -641,6 +645,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 	pub(crate) fn arrange_host() {
 		let current_block = frame_system::Pallet::<T>::block_number();
+		Self::try_clean_died_host_machines(&current_block);
+
 		let mining_cmls = T::CmlOperation::current_mining_cmls();
 
 		let mut unhosted_list = Vec::new();
@@ -655,6 +661,24 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		});
 
 		Self::deposit_event(Event::TAppsAutoUnhosted(unhosted_list));
+	}
+
+	pub(crate) fn try_clean_died_host_machines(current_block: &T::BlockNumber) {
+		TAppBondingCurve::<T>::iter().for_each(|(tapp_id, _)| {
+			TAppCurrentHosts::<T>::iter_prefix(tapp_id).for_each(|(cml_id, _)| {
+				match T::CmlOperation::cml_by_id(&cml_id) {
+					Ok(cml) => {
+						if cml.should_dead(current_block) || !cml.is_mining() {
+							Self::unhost_tapp(tapp_id, cml_id, true);
+						}
+					}
+					Err(_) => {
+						// error means cml is already dead and removed from cml store
+						Self::unhost_tapp(tapp_id, cml_id, true);
+					}
+				}
+			})
+		});
 	}
 
 	pub(crate) fn cml_total_used_performance(cml_id: CmlId) -> Performance {
@@ -1241,6 +1265,74 @@ mod tests {
 			assert_eq!(CmlHostingTApps::<Test>::get(cml_id2).len(), 0);
 			assert!(!TAppLastActivity::<Test>::contains_key(tapp_id));
 			assert_eq!(TAppReservedBalance::<Test>::iter_prefix(tapp_id).count(), 0);
+		})
+	}
+
+	#[test]
+	fn clean_died_host_machines_works() {
+		new_test_ext().execute_with(|| {
+			EnableUserCreateTApp::<Test>::set(true);
+			let miner = 2;
+			let tapp_owner = 1;
+			<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+			let cml_id = 11;
+			let cml_id2 = 22;
+			let cml_id4 = 44;
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+			let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 1000, 10000));
+			let cml4 = CML::from_genesis_seed(seed_from_lifespan(cml_id4, 1000, 10000));
+			UserCmlStore::<Test>::insert(miner, cml_id, ());
+			UserCmlStore::<Test>::insert(miner, cml_id2, ());
+			UserCmlStore::<Test>::insert(miner, cml_id4, ());
+			CmlStore::<Test>::insert(cml_id, cml);
+			CmlStore::<Test>::insert(cml_id2, cml2);
+			CmlStore::<Test>::insert(cml_id4, cml4);
+
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner),
+				cml_id,
+				[1u8; 32],
+				b"miner_ip".to_vec()
+			));
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner),
+				cml_id2,
+				[2u8; 32],
+				b"miner_ip".to_vec()
+			));
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner),
+				cml_id4,
+				[4u8; 32],
+				b"miner_ip".to_vec()
+			));
+
+			assert_ok!(create_default_tapp(tapp_owner));
+
+			let tapp_id = 1;
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id2, tapp_id));
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id4, tapp_id));
+			// assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner), 3000);
+
+			let cml_id3 = 33;
+			TAppCurrentHosts::<Test>::insert(tapp_id, cml_id3, 10);
+
+			assert_ok!(Cml::stop_mining(Origin::signed(miner), cml_id4, [4u8; 32]));
+			BondingCurve::try_clean_died_host_machines(&200);
+
+			assert_eq!(TAppCurrentHosts::<Test>::iter_prefix(tapp_id).count(), 1);
+			assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
+			assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id2));
+			assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id3));
+			assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id4));
+			assert!(!CmlHostingTApps::<Test>::contains_key(cml_id));
+			assert!(CmlHostingTApps::<Test>::contains_key(cml_id2));
+			assert!(!CmlHostingTApps::<Test>::contains_key(cml_id3));
+			assert!(!CmlHostingTApps::<Test>::contains_key(cml_id4));
+			// assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner), 1000);
 		})
 	}
 
