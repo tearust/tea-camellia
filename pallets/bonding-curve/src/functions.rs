@@ -49,7 +49,13 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 			AccountTable::<T>::iter_prefix(who).collect();
 		TAppReservedBalance::<T>::iter()
 			.filter(|(_, account, _)| account.eq(who))
-			.for_each(|(tapp_id, _, balance)| staking_asset.push((tapp_id, balance)));
+			.for_each(|(tapp_id, _, balances)| {
+				let mut total_balance: BalanceOf<T> = Zero::zero();
+				for (balance, _) in balances {
+					total_balance = total_balance.saturating_add(balance);
+				}
+				staking_asset.push((tapp_id, total_balance));
+			});
 		staking_asset
 	}
 }
@@ -213,17 +219,24 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
 			BillingMode::FixedHostingToken(_) => {
-				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(|(_, amount)| {
-					total_amount = total_amount.saturating_add(amount);
+				// todo improve me
+				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(|(_, amount_list)| {
+					amount_list.iter().for_each(|(balance, _)| {
+						total_amount = total_amount.saturating_add(balance.clone());
+					});
 				});
 
 				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(
-					|(account, reserved_amount)| {
-						AccountTable::<T>::mutate(account, tapp_id, |user_amount| {
-							*user_amount = user_amount.saturating_add(
-								distributing_amount * reserved_amount / total_amount,
-							);
-						});
+					|(account, reserved_amount_list)| {
+						reserved_amount_list
+							.iter()
+							.for_each(|(reserved_amount, _)| {
+								AccountTable::<T>::mutate(&account, tapp_id, |user_amount| {
+									*user_amount = user_amount.saturating_add(
+										distributing_amount * (*reserved_amount) / total_amount,
+									);
+								});
+							})
 					},
 				);
 			}
@@ -582,11 +595,17 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
 			BillingMode::FixedHostingToken(_) => {
-				if let Ok(cml) = T::CmlOperation::cml_by_id(&cml_id) {
-					if let Some(owner) = cml.owner() {
-						TAppReservedBalance::<T>::remove(tapp_id, owner);
-					}
-				}
+				// todo improve me
+				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(
+					|(account, balance_list)| {
+						let updated_list: Vec<(BalanceOf<T>, CmlId)> = balance_list
+							.iter()
+							.filter(|(_, cml)| *cml != cml_id)
+							.map(|(balance, cml)| (balance.clone(), *cml))
+							.collect();
+						TAppReservedBalance::<T>::insert(tapp_id, account, updated_list);
+					},
+				);
 			}
 			_ => {}
 		}
@@ -1315,7 +1334,7 @@ mod tests {
 			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
 			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id2, tapp_id));
 			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id4, tapp_id));
-			// assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner), 3000);
+			assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner).len(), 3);
 
 			let cml_id3 = 33;
 			TAppCurrentHosts::<Test>::insert(tapp_id, cml_id3, 10);
@@ -1332,7 +1351,11 @@ mod tests {
 			assert!(CmlHostingTApps::<Test>::contains_key(cml_id2));
 			assert!(!CmlHostingTApps::<Test>::contains_key(cml_id3));
 			assert!(!CmlHostingTApps::<Test>::contains_key(cml_id4));
-			// assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner), 1000);
+			assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner).len(), 1);
+			assert_eq!(
+				TAppReservedBalance::<Test>::get(tapp_id, miner)[0],
+				(1000, cml_id2)
+			);
 		})
 	}
 

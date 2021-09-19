@@ -1458,9 +1458,15 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 			Some(b"test notes".to_vec())
 		));
 		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), 129842);
-		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner1), 1000);
+		assert_eq!(
+			TAppReservedBalance::<Test>::get(tapp_id, miner1)[0],
+			(1000, cml_id1)
+		);
 		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), 129842);
-		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner2), 1000);
+		assert_eq!(
+			TAppReservedBalance::<Test>::get(tapp_id, miner2)[0],
+			(1000, cml_id2)
+		);
 
 		assert_ok!(BondingCurve::sell_token(
 			Origin::signed(miner1),
@@ -1468,7 +1474,10 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 			129842
 		));
 		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), 0);
-		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner1), 1000);
+		assert_eq!(
+			TAppReservedBalance::<Test>::get(tapp_id, miner1)[0],
+			(1000, cml_id1)
+		);
 		// can not sell reserved token
 		assert_noop!(
 			BondingCurve::sell_token(Origin::signed(miner1), tapp_id, 1000),
@@ -1669,7 +1678,10 @@ fn host_works_fixed_token() {
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
-		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner), 1000);
+		assert_eq!(
+			TAppReservedBalance::<Test>::get(tapp_id, miner)[0],
+			(1000, cml_id)
+		);
 	})
 }
 
@@ -1711,7 +1723,15 @@ fn fixed_token_host_works_with_miner_hosts_multi_times() {
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
 		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id2, tapp_id));
 
-		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner), 2000);
+		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner).len(), 2);
+		assert_eq!(
+			TAppReservedBalance::<Test>::get(tapp_id, miner)[0],
+			(1000, cml_id)
+		);
+		assert_eq!(
+			TAppReservedBalance::<Test>::get(tapp_id, miner)[1],
+			(1000, cml_id2)
+		);
 	})
 }
 

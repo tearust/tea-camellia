@@ -197,7 +197,7 @@ pub mod bonding_curve {
 		TAppId,
 		Twox64Concat,
 		T::AccountId,
-		BalanceOf<T>,
+		Vec<(BalanceOf<T>, CmlId)>,
 		ValueQuery,
 	>;
 
@@ -919,7 +919,7 @@ pub mod bonding_curve {
 					match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
 						BillingMode::FixedHostingToken(token_amount) => {
 							TAppReservedBalance::<T>::mutate(tapp_id, who, |amount| {
-								*amount = amount.saturating_add(token_amount);
+								amount.push((token_amount, cml_id));
 							});
 						}
 						_ => {}
