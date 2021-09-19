@@ -2289,6 +2289,74 @@ fn topup_should_fail_if_user_balance_is_not_enough() {
 	})
 }
 
+#[test]
+fn clean_died_host_machines_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml_id2 = 22;
+		let cml_id4 = 44;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
+		let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 1000, 10000));
+		let cml4 = CML::from_genesis_seed(seed_from_lifespan(cml_id4, 1000, 10000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		UserCmlStore::<Test>::insert(miner, cml_id2, ());
+		UserCmlStore::<Test>::insert(miner, cml_id4, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+		CmlStore::<Test>::insert(cml_id2, cml2);
+		CmlStore::<Test>::insert(cml_id4, cml4);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id2,
+			[2u8; 32],
+			b"miner_ip".to_vec()
+		));
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id4,
+			[4u8; 32],
+			b"miner_ip".to_vec()
+		));
+
+		assert_ok!(create_default_tapp(tapp_owner));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id2, tapp_id));
+		assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id4, tapp_id));
+
+		let cml_id3 = 33;
+		TAppCurrentHosts::<Test>::insert(tapp_id, cml_id3, 10);
+
+		frame_system::Pallet::<Test>::set_block_number(200);
+		assert_ok!(Cml::stop_mining(Origin::signed(miner), cml_id4, [4u8; 32]));
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::clean_died_host_machines(Origin::signed(npc)));
+
+		assert_eq!(TAppCurrentHosts::<Test>::iter_prefix(tapp_id).count(), 1);
+		assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
+		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id2));
+		assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id3));
+		assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id4));
+		assert!(!CmlHostingTApps::<Test>::contains_key(cml_id));
+		assert!(CmlHostingTApps::<Test>::contains_key(cml_id2));
+		assert!(!CmlHostingTApps::<Test>::contains_key(cml_id3));
+		assert!(!CmlHostingTApps::<Test>::contains_key(cml_id4));
+	})
+}
+
 pub fn create_default_tapp(tapp_owner: u64) -> DispatchResult {
 	let npc = NPCAccount::<Test>::get();
 	let link = b"https://teaproject.org".to_vec();

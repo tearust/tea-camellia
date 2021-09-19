@@ -23,7 +23,7 @@ use frame_support::{
 	traits::{Currency, ExistenceRequirement},
 };
 use frame_system::pallet_prelude::*;
-use pallet_cml::{CmlId, CmlOperation, MachineId, MiningProperties, Performance};
+use pallet_cml::{CmlId, CmlOperation, MachineId, MiningProperties, Performance, TreeProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating, Zero},
@@ -392,6 +392,8 @@ pub mod bonding_curve {
 		CmlOwnerIsNone,
 		/// It's not allowed for the CML that not start mining to host
 		OnlyMiningCmlCanHost,
+		/// It's not allowed for the CML that already dead to host
+		DeadedCmlCanNotHost,
 		/// Cml machine id not exist
 		CmlMachineIdIsNone,
 		/// The CML is already hosting the given tapp
@@ -448,6 +450,41 @@ pub mod bonding_curve {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(195_000_000)]
+		pub fn clean_died_host_machines(sender: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						who.eq(&NPCAccount::<T>::get()),
+						Error::<T>::NotAllowedNormalUserCreateTApp
+					);
+					Ok(())
+				},
+				|_who| {
+					let current_block = frame_system::Pallet::<T>::block_number();
+					TAppBondingCurve::<T>::iter().for_each(|(tapp_id, _)| {
+						TAppCurrentHosts::<T>::iter_prefix(tapp_id).for_each(|(cml_id, _)| {
+							match T::CmlOperation::cml_by_id(&cml_id) {
+								Ok(cml) => {
+									if cml.should_dead(&current_block) || !cml.is_mining() {
+										TAppCurrentHosts::<T>::remove(tapp_id, cml_id);
+										CmlHostingTApps::<T>::remove(cml_id);
+									}
+								}
+								Err(_) => {
+									TAppCurrentHosts::<T>::remove(tapp_id, cml_id);
+									CmlHostingTApps::<T>::remove(cml_id);
+								}
+							}
+						})
+					});
+				},
+			)
+		}
+
 		#[pallet::weight(195_000_000)]
 		pub fn tapp_creation_settings(
 			sender: OriginFor<T>,
@@ -893,6 +930,10 @@ pub mod bonding_curve {
 
 					let cml = T::CmlOperation::cml_by_id(&cml_id)?;
 					ensure!(cml.is_mining(), Error::<T>::OnlyMiningCmlCanHost);
+					ensure!(
+						!cml.should_dead(&current_block),
+						Error::<T>::DeadedCmlCanNotHost
+					);
 					ensure!(cml.machine_id().is_some(), Error::<T>::CmlMachineIdIsNone);
 
 					let (current_performance, _) =
