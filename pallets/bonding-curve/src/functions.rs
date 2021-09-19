@@ -58,6 +58,10 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 			});
 		staking_asset
 	}
+
+	fn is_cml_hosting(cml_id: u64) -> bool {
+		!CmlHostingTApps::<T>::get(cml_id).is_empty()
+	}
 }
 
 impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
@@ -844,7 +848,7 @@ mod tests {
 	use crate::tests::{create_default_tapp, seed_from_lifespan};
 	use crate::*;
 	use bonding_curve_impl::approximately_equals;
-	use frame_support::assert_ok;
+	use frame_support::{assert_noop, assert_ok};
 	use pallet_cml::{CmlStore, UserCmlStore, CML};
 
 	const CENTS: node_primitives::Balance = 10_000_000_000;
@@ -1339,22 +1343,29 @@ mod tests {
 			let cml_id3 = 33;
 			TAppCurrentHosts::<Test>::insert(tapp_id, cml_id3, 10);
 
-			assert_ok!(Cml::stop_mining(Origin::signed(miner), cml_id4, [4u8; 32]));
+			assert_noop!(
+				Cml::stop_mining(Origin::signed(miner), cml_id4, [4u8; 32]),
+				pallet_cml::Error::<Test>::CannotStopMiningWhenHostingTApp
+			);
 			BondingCurve::try_clean_died_host_machines(&200);
 
-			assert_eq!(TAppCurrentHosts::<Test>::iter_prefix(tapp_id).count(), 1);
+			assert_eq!(TAppCurrentHosts::<Test>::iter_prefix(tapp_id).count(), 2);
 			assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 			assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id2));
 			assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id3));
-			assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id4));
+			assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id4));
 			assert!(!CmlHostingTApps::<Test>::contains_key(cml_id));
 			assert!(CmlHostingTApps::<Test>::contains_key(cml_id2));
 			assert!(!CmlHostingTApps::<Test>::contains_key(cml_id3));
-			assert!(!CmlHostingTApps::<Test>::contains_key(cml_id4));
-			assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner).len(), 1);
+			assert!(CmlHostingTApps::<Test>::contains_key(cml_id4));
+			assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner).len(), 2);
 			assert_eq!(
 				TAppReservedBalance::<Test>::get(tapp_id, miner)[0],
 				(1000, cml_id2)
+			);
+			assert_eq!(
+				TAppReservedBalance::<Test>::get(tapp_id, miner)[1],
+				(1000, cml_id4)
 			);
 		})
 	}

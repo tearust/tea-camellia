@@ -216,6 +216,7 @@ impl pallet_cml::Config for Test {
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type StopMiningPunishment = StopMiningPunishment;
 	type MiningOperation = MiningOperationMock;
+	type BondingCurveOperation = BondingCurve;
 	type WeightInfo = ();
 }
 

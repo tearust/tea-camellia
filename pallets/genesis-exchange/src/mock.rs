@@ -59,6 +59,10 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 	fn tapp_user_token_asset(_who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
 		vec![]
 	}
+
+	fn is_cml_hosting(_cml_id: u64) -> bool {
+		false
+	}
 }
 
 // Configure a mock runtime to test the pallet.

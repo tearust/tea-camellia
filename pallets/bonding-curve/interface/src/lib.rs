@@ -32,4 +32,6 @@ pub trait BondingCurveOperation {
 	fn current_price(tapp_id: u64) -> (Self::Balance, Self::Balance);
 
 	fn tapp_user_token_asset(who: &Self::AccountId) -> Vec<(u64, Self::Balance)>;
+
+	fn is_cml_hosting(cml_id: u64) -> bool;
 }

@@ -21,6 +21,7 @@ pub use types::*;
 pub use weights::WeightInfo;
 
 use auction_interface::AuctionOperation;
+use bonding_curve_interface::BondingCurveOperation;
 use frame_support::{
 	dispatch::DispatchResult,
 	ensure,
@@ -89,6 +90,11 @@ pub mod cml {
 		>;
 
 		type TeaOperation: TeaOperation<AccountId = Self::AccountId>;
+
+		type BondingCurveOperation: BondingCurveOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+		>;
 
 		/// Weight definition about all user related extrinsics.
 		type WeightInfo: WeightInfo;
@@ -332,6 +338,8 @@ pub mod cml {
 		CmlInvalidStatusConversion,
 		/// Not enough free balance to pay for each of the staking accounts.
 		InsufficientFreeBalanceToPayForPunishment,
+		/// Can not stop mining when hosting tapp
+		CannotStopMiningWhenHostingTApp,
 	}
 
 	#[pallet::hooks]
@@ -626,6 +634,10 @@ pub mod cml {
 							>= T::StopMiningPunishment::get()
 								* Self::customer_staking_length(sender, &cml).into(),
 						Error::<T>::InsufficientFreeBalanceToPayForPunishment,
+					);
+					ensure!(
+						!T::BondingCurveOperation::is_cml_hosting(cml_id),
+						Error::<T>::CannotStopMiningWhenHostingTApp,
 					);
 					Ok(())
 				},

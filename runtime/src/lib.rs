@@ -822,6 +822,7 @@ impl pallet_cml::Config for Runtime {
 	type CurrencyOperations = Utils;
 	type MiningOperation = GenesisExchange;
 	type AuctionOperation = Auction;
+	type BondingCurveOperation = BondingCurve;
 	type StakingEconomics = staking_economics::TeaStakingEconomics;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
