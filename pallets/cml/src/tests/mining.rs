@@ -671,6 +671,33 @@ fn stop_mining_should_fail_if_machine_id_not_exist_in_miner_item_store() {
 }
 
 #[test]
+fn stop_mining_should_fail_if_is_hosting() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = HOSTING_CML_ID;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec()
+		));
+
+		assert_noop!(
+			Cml::stop_mining(Origin::signed(miner), cml_id, machine_id),
+			Error::<Test>::CannotStopMiningWhenHostingTApp
+		);
+	})
+}
+
+#[test]
 fn dummy_ra_task_works() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;

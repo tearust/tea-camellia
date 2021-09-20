@@ -22,6 +22,7 @@ type Block = frame_system::mocking::MockBlock<Test>;
 // same as mock implementation of StakingEconomics in "staking.rs" file
 pub const DOLLARS: node_primitives::Balance = 100000;
 pub const INVALID_MINING_CML_ID: u64 = 99;
+pub const HOSTING_CML_ID: u64 = 98;
 
 pub struct BondingCurveOperationMock {}
 
@@ -53,8 +54,8 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 		vec![]
 	}
 
-	fn is_cml_hosting(_cml_id: u64) -> bool {
-		false
+	fn is_cml_hosting(cml_id: u64) -> bool {
+		HOSTING_CML_ID == cml_id
 	}
 }
 
