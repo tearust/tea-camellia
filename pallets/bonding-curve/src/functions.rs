@@ -218,41 +218,51 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	}
 
 	pub(crate) fn distribute_to_investors(tapp_id: TAppId, distributing_amount: BalanceOf<T>) {
-		// todo replace total amount with total supply later if calculation result is correct
 		let (investors, mut total_amount) = Self::tapp_investors(tapp_id);
+
+		let mut consume_statements: Vec<(T::AccountId, BalanceOf<T>, bool)> = Vec::new();
 
 		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
 			BillingMode::FixedHostingToken(_) => {
-				// todo improve me
-				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(|(_, amount_list)| {
-					amount_list.iter().for_each(|(balance, _)| {
-						total_amount = total_amount.saturating_add(balance.clone());
-					});
-				});
+				let mut account_reserved_balance: BTreeMap<T::AccountId, BalanceOf<T>> =
+					BTreeMap::new();
 
 				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(
-					|(account, reserved_amount_list)| {
-						reserved_amount_list
-							.iter()
-							.for_each(|(reserved_amount, _)| {
-								AccountTable::<T>::mutate(&account, tapp_id, |user_amount| {
-									*user_amount = user_amount.saturating_add(
-										distributing_amount * (*reserved_amount) / total_amount,
-									);
-								});
-							})
+					|(account, amount_list)| {
+						let mut account_balance: BalanceOf<T> = Zero::zero();
+						amount_list.iter().for_each(|(balance, _)| {
+							total_amount = total_amount.saturating_add(balance.clone());
+							account_balance = account_balance.saturating_add(balance.clone());
+						});
+						account_reserved_balance.insert(account, account_balance);
 					},
 				);
+
+				account_reserved_balance
+					.iter()
+					.for_each(|(account, reserved_amount)| {
+						AccountTable::<T>::mutate(&account, tapp_id, |user_amount| {
+							let reward = distributing_amount * (*reserved_amount) / total_amount;
+							*user_amount = user_amount.saturating_add(reward.clone());
+							consume_statements.push((account.clone(), reward, false));
+						});
+					});
 			}
 			_ => {}
 		}
 
 		investors.iter().for_each(|account| {
 			AccountTable::<T>::mutate(account, tapp_id, |user_amount| {
-				*user_amount =
-					user_amount.saturating_add(distributing_amount * (*user_amount) / total_amount);
+				let reward = distributing_amount * (*user_amount) / total_amount;
+				*user_amount = user_amount.saturating_add(reward.clone());
+				consume_statements.push((account.clone(), reward, true));
 			});
 		});
+
+		Self::deposit_event(Event::TAppConsumeRewardStatements(
+			tapp_id,
+			consume_statements,
+		));
 
 		TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
 			*amount = amount.saturating_add(distributing_amount);

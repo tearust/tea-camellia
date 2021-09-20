@@ -29,7 +29,10 @@ use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating, Zero},
 	RuntimeDebug,
 };
-use sp_std::{collections::btree_set::BTreeSet, prelude::*};
+use sp_std::{
+	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+	prelude::*,
+};
 
 /// The balance type of this module.
 pub type BalanceOf<T> =
@@ -291,6 +294,14 @@ pub mod bonding_curve {
 			BalanceOf<T>,
 			BalanceOf<T>,
 		),
+
+		/// Fired after TApp consume successfully, event parameters:
+		/// 1. TApp Id
+		/// 2. Consume statements, each item including three items:
+		///		a. Account Id
+		///		b. Token reward balance
+		///		c. Is from investor, if false means rewards is from miner hosting token reward
+		TAppConsumeRewardStatements(TAppId, Vec<(T::AccountId, BalanceOf<T>, bool)>),
 
 		/// Fired after TApp expensed successfully, event parameters:
 		/// 1. TApp Id
