@@ -217,6 +217,21 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		true
 	}
 
+	pub(crate) fn user_tapp_total_reserved_balance(
+		tapp_id: TAppId,
+		who: &T::AccountId,
+	) -> BalanceOf<T> {
+		let mut account_balance: BalanceOf<T> = Zero::zero();
+		TAppReservedBalance::<T>::iter_prefix(tapp_id)
+			.filter(|(account, _)| account.eq(who))
+			.for_each(|(_, amount_list)| {
+				amount_list.iter().for_each(|(balance, _)| {
+					account_balance = account_balance.saturating_add(balance.clone());
+				});
+			});
+		account_balance
+	}
+
 	pub(crate) fn distribute_to_investors(tapp_id: TAppId, distributing_amount: BalanceOf<T>) {
 		let (investors, mut total_amount) = Self::tapp_investors(tapp_id);
 
