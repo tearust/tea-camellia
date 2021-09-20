@@ -1395,6 +1395,72 @@ mod tests {
 		})
 	}
 
+	#[test]
+	fn arrange_host_works() {
+		new_test_ext().execute_with(|| {
+			EnableUserCreateTApp::<Test>::set(true);
+			let miner = 2;
+			let tapp_owner = 1;
+			<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&miner, 1000000);
+
+			let cml_id = 11;
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 2000));
+			UserCmlStore::<Test>::insert(miner, cml_id, ());
+			CmlStore::<Test>::insert(cml_id, cml);
+
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner),
+				cml_id,
+				[1u8; 32],
+				b"miner_ip".to_vec()
+			));
+
+			frame_system::Pallet::<Test>::set_block_number(40);
+			let (performance, _) = Cml::miner_performance(cml_id, &40);
+			assert_eq!(performance, Some(2000));
+
+			assert_ok!(create_default_tapp(tapp_owner));
+			let npc = NPCAccount::<Test>::get();
+			let link = b"https://teaproject2.org".to_vec();
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				link.clone(),
+				"test description".into(),
+				None,
+			));
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(tapp_owner),
+				b"test name2".to_vec(),
+				b"tea2".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				link,
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+			));
+
+			let tapp_id = 1;
+			let tapp_id2 = 2;
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id2));
+
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 2);
+
+			frame_system::Pallet::<Test>::set_block_number(60);
+			let (performance, _) = Cml::miner_performance(cml_id, &60);
+			assert_eq!(performance, Some(1400));
+
+			BondingCurve::arrange_host();
+
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
+		})
+	}
+
 	// #[test]
 	// fn calculate_given_received_tea_how_much_seller_give_away_works() {
 	// 	new_test_ext().execute_with(|| {
