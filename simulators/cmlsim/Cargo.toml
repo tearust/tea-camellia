@@ -25,4 +25,5 @@ staking-economics = { path = '../../pallets/cml/staking-economics'}
 genesis-exchange-interface = { path = "../../pallets/genesis-exchange/interface" }
 auction-interface = { path = "../../pallets/auction/interface" }
 tea-interface = { path = "../../pallets/tea/interface" }
+bonding-curve-interface = { path = "../../pallets/bonding-curve/interface" }
 
