@@ -4276,6 +4276,7 @@ name = "pallet-auction"
 version = "3.0.0"
 dependencies = [
  "auction-interface",
+ "bonding-curve-interface",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -4509,6 +4510,7 @@ name = "pallet-genesis-bank"
 version = "0.0.1"
 dependencies = [
  "auction-interface",
+ "bonding-curve-interface",
  "ed25519-dalek",
  "frame-benchmarking",
  "frame-support",

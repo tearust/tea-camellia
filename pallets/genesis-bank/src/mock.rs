@@ -1,5 +1,6 @@
 use crate as pallet_genesis_bank;
 use auction_interface::AuctionOperation;
+use bonding_curve_interface::BondingCurveOperation;
 use frame_benchmarking::frame_support::pallet_prelude::GenesisBuild;
 use frame_benchmarking::frame_support::sp_runtime::DispatchResult;
 use frame_support::{parameter_types, traits::Currency};
@@ -22,6 +23,41 @@ pub const CENTS: u128 = 10_000_000_000u128;
 pub const DOLLARS: u128 = 100u128 * CENTS;
 pub const BANK_INITIAL_BALANCE: Balance = 100_000 * DOLLARS;
 pub const BANK_INITIAL_INTEREST_RATE: Balance = 3;
+
+pub struct BondingCurveOperationMock {}
+
+impl Default for BondingCurveOperationMock {
+	fn default() -> Self {
+		BondingCurveOperationMock {}
+	}
+}
+
+impl BondingCurveOperation for BondingCurveOperationMock {
+	type AccountId = u64;
+	type Balance = Balance;
+
+	fn list_tapp_ids() -> Vec<u64> {
+		vec![]
+	}
+
+	fn estimate_hosting_income_statements(
+		_tapp_id: u64,
+	) -> Vec<(Self::AccountId, u64, Self::Balance)> {
+		vec![]
+	}
+
+	fn current_price(_tapp_id: u64) -> (Self::Balance, Self::Balance) {
+		(0, 0)
+	}
+
+	fn tapp_user_token_asset(_who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
+		vec![]
+	}
+
+	fn is_cml_hosting(_cml_id: u64) -> bool {
+		false
+	}
+}
 
 pub struct TeaOperationMock {}
 
@@ -172,6 +208,7 @@ impl pallet_cml::Config for Test {
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type StopMiningPunishment = StopMiningPunishment;
 	type MiningOperation = MiningOperationMock;
+	type BondingCurveOperation = BondingCurveOperationMock;
 	type WeightInfo = ();
 }
 

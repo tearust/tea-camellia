@@ -1,4 +1,5 @@
 use crate as pallet_auction;
+use bonding_curve_interface::BondingCurveOperation;
 use frame_support::parameter_types;
 use frame_system as system;
 use genesis_exchange_interface::MiningOperation;
@@ -12,6 +13,42 @@ use tea_interface::TeaOperation;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+
+pub struct BondingCurveOperationMock {}
+
+impl Default for BondingCurveOperationMock {
+	fn default() -> Self {
+		BondingCurveOperationMock {}
+	}
+}
+
+impl BondingCurveOperation for BondingCurveOperationMock {
+	type AccountId = u64;
+	type Balance = Balance;
+
+	fn list_tapp_ids() -> Vec<u64> {
+		vec![]
+	}
+
+	fn estimate_hosting_income_statements(
+		_tapp_id: u64,
+	) -> Vec<(Self::AccountId, u64, Self::Balance)> {
+		vec![]
+	}
+
+	fn current_price(_tapp_id: u64) -> (Self::Balance, Self::Balance) {
+		(0, 0)
+	}
+
+	fn tapp_user_token_asset(_who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
+		vec![]
+	}
+
+	fn is_cml_hosting(_cml_id: u64) -> bool {
+		false
+	}
+}
+
 pub struct MiningOperationMock {}
 
 impl Default for MiningOperationMock {
@@ -132,6 +169,7 @@ impl pallet_cml::Config for Test {
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type StopMiningPunishment = StopMiningPunishment;
 	type MiningOperation = MiningOperationMock;
+	type BondingCurveOperation = BondingCurveOperationMock;
 	type WeightInfo = ();
 }
 
