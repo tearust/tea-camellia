@@ -36,6 +36,11 @@ impl<T: auction::Config> auction::Pallet<T> {
 			_ => (Default::default(), false),
 		}
 	}
+
+	pub fn penalty_amount(auction_id: AuctionId, who: &T::AccountId) -> BalanceOf<T> {
+		let bid_item = BidStore::<T>::get(who, auction_id);
+		Self::calculate_penalty_amount(&bid_item)
+	}
 }
 
 #[cfg(test)]

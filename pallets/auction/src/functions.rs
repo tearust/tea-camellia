@@ -256,6 +256,18 @@ impl<T: auction::Config> auction::Pallet<T> {
 		who: &T::AccountId,
 		bid_item: &BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 	) {
+		let total = Self::bid_total_price(bid_item);
+		let penalty_amount = Self::calculate_penalty_amount(bid_item);
+
+		if !penalty_amount.is_zero() {
+			T::CurrencyOperations::slash_reserved(who, penalty_amount);
+		}
+		T::CurrencyOperations::unreserve(who, total.saturating_sub(penalty_amount));
+	}
+
+	pub(crate) fn calculate_penalty_amount(
+		bid_item: &BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+	) -> BalanceOf<T> {
 		let (highest_account, highest_price) = Self::highest_bid(&bid_item.auction_id);
 		let penalty_amount = match highest_price >= bid_item.price {
 			true => Zero::zero(),
@@ -270,12 +282,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 			}
 		};
 
-		let total = Self::bid_total_price(bid_item);
-
-		if !penalty_amount.is_zero() {
-			T::CurrencyOperations::slash_reserved(who, penalty_amount);
-		}
-		T::CurrencyOperations::unreserve(who, total.saturating_sub(penalty_amount));
+		penalty_amount
 	}
 
 	pub fn delete_bid(
