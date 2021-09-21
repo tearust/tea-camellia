@@ -212,7 +212,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		TAppCurrentHosts::<T>::iter_prefix(tapp_id).for_each(|(cml_id, _)| {
 			Self::unhost_tapp(tapp_id, cml_id, false);
 		});
-		TAppReservedBalance::<T>::remove_prefix(tapp_id);
+		TAppReservedBalance::<T>::remove_prefix(tapp_id, None);
 		TAppLastActivity::<T>::remove(tapp_id);
 		true
 	}

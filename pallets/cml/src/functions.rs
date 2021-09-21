@@ -66,8 +66,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 		LuckyDrawBox::<T>::mutate(CmlType::C, DefrostScheduleType::Investor, remove_handler);
 		LuckyDrawBox::<T>::mutate(CmlType::C, DefrostScheduleType::Team, remove_handler);
 
-		InvestorCouponStore::<T>::remove_all();
-		TeamCouponStore::<T>::remove_all();
+		InvestorCouponStore::<T>::remove_all(None);
+		TeamCouponStore::<T>::remove_all(None);
 	}
 
 	pub(crate) fn try_kill_cml(block_number: T::BlockNumber) -> Vec<CmlId> {
@@ -289,7 +289,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 		let mut salt = vec![cml_type as u8];
 		salt.append(&mut index.to_le_bytes().to_vec());
 
-		let rand_value = T::CommonUtils::generate_random(who.clone(), &salt);
+		let rand_value =
+			sp_core::U256::from(T::CommonUtils::generate_random(who.clone(), &salt).as_bytes());
 		let (_, div_mod) = rand_value.div_mod(sp_core::U256::from(box_len));
 		div_mod.as_u32()
 	}

@@ -44,8 +44,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn clear_staking_info() {
-		ActiveStakingSnapshot::<T>::remove_all();
-		MiningCmlTaskPoints::<T>::remove_all();
+		ActiveStakingSnapshot::<T>::remove_all(None);
+		MiningCmlTaskPoints::<T>::remove_all(None);
 	}
 
 	pub(crate) fn calculate_staking() {

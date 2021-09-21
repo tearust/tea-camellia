@@ -6,7 +6,6 @@ members = [
 	'node',
 	'runtime',
 	'pallets/*',
-	'simulators/*',
 
 	'pallets/cml/runtime-api',
 	'pallets/cml/rpc',

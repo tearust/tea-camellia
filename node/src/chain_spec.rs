@@ -424,27 +424,27 @@ fn testnet_genesis(
 
 	let num_endowed_accounts = endowed_accounts.len();
 	GenesisConfig {
-		frame_system: SystemConfig {
+		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
 			changes_trie_config: Default::default(),
 		},
-		pallet_balances: BalancesConfig {
+		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
 			balances: initial_balances,
 		},
-		pallet_babe: BabeConfig {
+		babe: BabeConfig {
 			authorities: vec![],
 			epoch_config: Some(camellia_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
-		pallet_grandpa: GrandpaConfig {
+		grandpa: GrandpaConfig {
 			authorities: vec![],
 		},
-		pallet_sudo: SudoConfig {
+		sudo: SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
 		},
-		pallet_session: SessionConfig {
+		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
 				.map(|x| {
@@ -456,7 +456,7 @@ fn testnet_genesis(
 				})
 				.collect::<Vec<_>>(),
 		},
-		pallet_staking: StakingConfig {
+		staking: StakingConfig {
 			stakers: initial_authorities
 				.iter()
 				.map(|x| {
@@ -474,9 +474,9 @@ fn testnet_genesis(
 			slash_reward_fraction: Perbill::from_percent(10),
 			..Default::default()
 		},
-		pallet_im_online: ImOnlineConfig { keys: vec![] },
-		pallet_authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
-		pallet_elections_phragmen: ElectionsConfig {
+		im_online: ImOnlineConfig { keys: vec![] },
+		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
+		elections: ElectionsConfig {
 			members: endowed_accounts
 				.iter()
 				.take((num_endowed_accounts + 1) / 2)
@@ -484,8 +484,8 @@ fn testnet_genesis(
 				.map(|member| (member, INITIAL_VALIDATOR_BALANCE))
 				.collect(),
 		},
-		pallet_collective_Instance1: CouncilConfig::default(),
-		pallet_collective_Instance2: TechnicalCommitteeConfig {
+		council: CouncilConfig::default(),
+		technical_committee: TechnicalCommitteeConfig {
 			members: endowed_accounts
 				.iter()
 				.take((num_endowed_accounts + 1) / 2)
@@ -493,11 +493,11 @@ fn testnet_genesis(
 				.collect(),
 			phantom: Default::default(),
 		},
-		pallet_membership_Instance1: Default::default(),
-		pallet_democracy: DemocracyConfig::default(),
-		pallet_treasury: Default::default(),
+		technical_membership: Default::default(),
+		democracy: DemocracyConfig::default(),
+		treasury: Default::default(),
 
-		pallet_tea: TeaConfig {
+		tea: TeaConfig {
 			builtin_nodes: vec![
 				hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b"),
 				hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596"),
@@ -506,17 +506,17 @@ fn testnet_genesis(
 				hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
 			],
 		},
-		pallet_cml: CmlConfig {
+		cml: CmlConfig {
 			genesis_coupons,
 			genesis_seeds,
 			initial_task_point_base: 2000,
 		},
-		pallet_genesis_bank: GenesisBankConfig {
+		genesis_bank: GenesisBankConfig {
 			operation_account: genesis_bank_operation_account,
 			bank_initial_balance: INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
 			bank_initial_interest_rate: 3, // bank initial interest rate is 0.03%
 		},
-		pallet_genesis_exchange: GenesisExchangeConfig {
+		genesis_exchange: GenesisExchangeConfig {
 			operation_account: genesis_exchange_operation_account,
 			npc_account: bonding_curve_npc_account.clone(),
 			operation_usd_amount: INITIAL_EXCHANGE_USD_BALANCE,
@@ -528,7 +528,7 @@ fn testnet_genesis(
 			),
 			initial_usd_interest_rate: 5, // let initial usd interest rate be 0.05%
 		},
-		pallet_bonding_curve: BondingCurveConfig {
+		bonding_curve: BondingCurveConfig {
 			reserved_balance_account: bonding_curve_reserved_balance_account,
 			npc_account: bonding_curve_npc_account,
 			user_create_tapp: true, // default enable user create tapp

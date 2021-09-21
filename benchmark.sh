@@ -13,8 +13,8 @@ function generate_weight() {
     #--steps            # Number of samples across component ranges
     #--repeat           # Number of times we repeat a benchmark
     #--header           # Specify header file to insert into head of output file
-    #--output           # Output benchmark results into a folder or file
-    ./target/release/tea-camellia benchmark \
+    #--output          # Output benchmark results into a folder or file
+    ./target/debug/tea-camellia benchmark \
         --chain=dev \
         --execution=wasm \
         --wasm-execution=compiled \

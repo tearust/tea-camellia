@@ -4,14 +4,9 @@ use sp_runtime::traits::Zero;
 impl<T: utils::Config> CommonUtils for utils::Pallet<T> {
 	type AccountId = T::AccountId;
 
-	fn generate_random(sender: Self::AccountId, salt: &RandomSalt) -> U256 {
-		let random_seed = <pallet_randomness_collective_flip::Module<T>>::random_seed();
-		let payload = (
-			random_seed,
-			sender,
-			salt,
-			frame_system::Pallet::<T>::block_number(),
-		);
+	fn generate_random(sender: Self::AccountId, salt: &RandomSalt) -> H256 {
+		let random_seed = T::RandomnessSource::random_seed();
+		let payload = (random_seed, sender, salt);
 		payload.using_encoded(blake2_256).into()
 	}
 }

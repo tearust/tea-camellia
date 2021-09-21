@@ -36,7 +36,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 		}
 	}
 
-	pub(crate) fn select_ra_nodes(tea_id: &TeaPubKey, _seed: U256) -> Vec<(TeaPubKey, bool)> {
+	pub(crate) fn select_ra_nodes(tea_id: &TeaPubKey, _seed: H256) -> Vec<(TeaPubKey, bool)> {
 		if Self::is_builtin_node(tea_id) {
 			return Vec::new();
 		}

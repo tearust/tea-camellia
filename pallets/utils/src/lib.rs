@@ -25,7 +25,7 @@ use frame_support::{
 	weights::Weight,
 };
 use frame_system::pallet_prelude::*;
-use sp_core::U256;
+use sp_core::H256;
 use sp_io::hashing::blake2_256;
 use sp_std::prelude::*;
 use types::*;
@@ -55,6 +55,8 @@ pub mod utils {
 		type Reward: OnUnbalanced<PositiveImbalanceOf<Self>>;
 		/// Handler for the unbalanced decrement when slashing
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
+
+		type RandomnessSource: Randomness<H256, Self::BlockNumber>;
 	}
 
 	#[pallet::pallet]

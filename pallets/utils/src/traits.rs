@@ -3,7 +3,7 @@ use super::*;
 pub trait CommonUtils {
 	type AccountId;
 
-	fn generate_random(sender: Self::AccountId, salt: &RandomSalt) -> U256;
+	fn generate_random(sender: Self::AccountId, salt: &RandomSalt) -> H256;
 }
 
 /// Operations about currency that used in Tea Camellia.

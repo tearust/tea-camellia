@@ -23,7 +23,7 @@ use frame_support::{dispatch::DispatchResult, pallet_prelude::*, sp_runtime::tra
 use frame_system::pallet_prelude::*;
 use pallet_cml::Task;
 use pallet_utils::{extrinsic_procedure, CommonUtils};
-use sp_core::{ed25519, U256};
+use sp_core::{ed25519, H256};
 use sp_std::prelude::*;
 use tea_interface::TeaOperation;
 use types::*;
