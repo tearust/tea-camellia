@@ -350,7 +350,7 @@ where
 
 	fn staking_weight(&self) -> StakingWeight {
 		match self.intrinsic.cml_type {
-			CmlType::A => 3,
+			CmlType::A => 4,
 			CmlType::B => 2,
 			CmlType::C => 1,
 		}

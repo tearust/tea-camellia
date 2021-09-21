@@ -242,11 +242,11 @@ mod tests {
 			assert_eq!(snapshot1[0].weight, 1);
 			assert_eq!(snapshot1[0].staking_at, 0);
 			assert_eq!(snapshot1[1].owner, 3);
-			assert_eq!(snapshot1[1].weight, 3);
+			assert_eq!(snapshot1[1].weight, 4);
 			assert_eq!(snapshot1[1].staking_at, 1);
 			assert_eq!(snapshot1[2].owner, 5);
-			assert_eq!(snapshot1[2].weight, 3);
-			assert_eq!(snapshot1[2].staking_at, 4);
+			assert_eq!(snapshot1[2].weight, 4);
+			assert_eq!(snapshot1[2].staking_at, 5);
 
 			let snapshot2 = ActiveStakingSnapshot::<Test>::get(cml_id2);
 			assert_eq!(snapshot2.len(), 2);

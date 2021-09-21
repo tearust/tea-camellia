@@ -5,7 +5,7 @@ use sp_std::prelude::*;
 
 /// Types of weight:
 /// - Balance: 1
-/// - A class cml: 3
+/// - A class cml: 4
 /// - B class cml: 2
 /// - C class cml: 1
 pub type StakingWeight = u32;
