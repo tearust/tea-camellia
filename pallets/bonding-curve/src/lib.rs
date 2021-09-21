@@ -301,7 +301,11 @@ pub mod bonding_curve {
 		///		a. Account Id
 		///		b. Token reward balance
 		///		c. Is from investor, if false means rewards is from miner hosting token reward
-		TAppConsumeRewardStatements(TAppId, Vec<(T::AccountId, BalanceOf<T>, bool)>),
+		///		d. If from miner hosting token reward return the mining CmlId, otherwise return none
+		TAppConsumeRewardStatements(
+			TAppId,
+			Vec<(T::AccountId, BalanceOf<T>, bool, Option<CmlId>)>,
+		),
 
 		/// Fired after TApp expensed successfully, event parameters:
 		/// 1. TApp Id

@@ -235,7 +235,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn distribute_to_investors(tapp_id: TAppId, distributing_amount: BalanceOf<T>) {
 		let (investors, mut total_amount) = Self::tapp_investors(tapp_id);
 
-		let mut consume_statements: Vec<(T::AccountId, BalanceOf<T>, bool)> = Vec::new();
+		let mut consume_statements: Vec<(T::AccountId, BalanceOf<T>, bool, Option<CmlId>)> =
+			Vec::new();
 
 		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
 			BillingMode::FixedHostingToken(_) => {
@@ -245,9 +246,16 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(
 					|(account, amount_list)| {
 						let mut account_balance: BalanceOf<T> = Zero::zero();
-						amount_list.iter().for_each(|(balance, _)| {
+						amount_list.iter().for_each(|(balance, cml_id)| {
 							total_amount = total_amount.saturating_add(balance.clone());
 							account_balance = account_balance.saturating_add(balance.clone());
+
+							consume_statements.push((
+								account.clone(),
+								balance.clone(),
+								false,
+								Some(*cml_id),
+							));
 						});
 						account_reserved_balance.insert(account, account_balance);
 					},
@@ -259,7 +267,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 						AccountTable::<T>::mutate(&account, tapp_id, |user_amount| {
 							let reward = distributing_amount * (*reserved_amount) / total_amount;
 							*user_amount = user_amount.saturating_add(reward.clone());
-							consume_statements.push((account.clone(), reward, false));
 						});
 					});
 			}
@@ -270,7 +277,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			AccountTable::<T>::mutate(account, tapp_id, |user_amount| {
 				let reward = distributing_amount * (*user_amount) / total_amount;
 				*user_amount = user_amount.saturating_add(reward.clone());
-				consume_statements.push((account.clone(), reward, true));
+				consume_statements.push((account.clone(), reward, true, None));
 			});
 		});
 
