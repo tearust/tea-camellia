@@ -24,8 +24,11 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
 	}
 );
+
+impl pallet_randomness_collective_flip::Config for Test {}
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -68,15 +71,19 @@ impl pallet_utils::Config for Test {
 	type Currency = Balances;
 	type Reward = ();
 	type Slash = ();
+	type RandomnessSource = RandomnessCollectiveFlip;
 }
 
 parameter_types! {
 	pub const ExistentialDeposit: u128 = EXISTENTIAL_DEPOSIT;
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Test {
 	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 	type Balance = Balance;
 	type Event = Event;
 	type DustRemoval = ();

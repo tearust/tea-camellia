@@ -147,8 +147,11 @@ frame_support::construct_runtime!(
 		Cml: pallet_cml::{Pallet, Call, Storage, Event<T>},
 		GenesisBank: pallet_genesis_bank::{Pallet, Call, Storage, Event<T>},
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
 	}
 );
+
+impl pallet_randomness_collective_flip::Config for Test {}
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -242,10 +245,13 @@ impl pallet_genesis_bank::Config for Test {
 parameter_types! {
 	pub const ExistentialDeposit: u128 = 1;
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Test {
 	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 	type Balance = Balance;
 	type Event = Event;
 	type DustRemoval = ();
@@ -259,6 +265,7 @@ impl pallet_utils::Config for Test {
 	type Currency = Balances;
 	type Reward = ();
 	type Slash = ();
+	type RandomnessSource = RandomnessCollectiveFlip;
 }
 
 // Build genesis storage according to the mock runtime.

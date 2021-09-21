@@ -28,6 +28,7 @@ genesis-bank-interface = { path = "../genesis-bank/interface", default-features 
 [dev-dependencies]
 sp-core = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
 sp-io = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
+pallet-randomness-collective-flip = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
 genesis-exchange-interface = { path = "../genesis-exchange/interface" }
 tea-interface = { path = "../tea/interface" }

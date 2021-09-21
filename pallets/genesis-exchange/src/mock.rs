@@ -79,8 +79,11 @@ frame_support::construct_runtime!(
 		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Storage, Event<T>},
 		GenesisBank: pallet_genesis_bank::{Pallet, Call, Storage, Event<T>},
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
 	}
 );
+
+impl pallet_randomness_collective_flip::Config for Test {}
 
 pub const LOAN_TERM_DURATION: BlockNumber = 10000;
 pub const LOAN_BILLING_CYCLE: BlockNumber = 1000;
@@ -249,10 +252,13 @@ impl pallet_genesis_exchange::Config for Test {
 parameter_types! {
 	pub const ExistentialDeposit: u128 = 1;
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Test {
 	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 	type Balance = Balance;
 	type Event = Event;
 	type DustRemoval = ();
@@ -266,6 +272,7 @@ impl pallet_utils::Config for Test {
 	type Currency = Balances;
 	type Reward = ();
 	type Slash = ();
+	type RandomnessSource = RandomnessCollectiveFlip;
 }
 
 pub const OPERATION_USD_AMOUNT: Balance = 40_000 * 10_000_000_000 * 100;

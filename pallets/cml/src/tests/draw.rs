@@ -33,7 +33,7 @@ fn draw_cmls_from_coupon_works() {
 				.count(),
 			3 + 4 + 5
 		);
-		System::assert_last_event(Event::pallet_cml(CmlEvent::DrawCmls(1, 3 + 4 + 5)));
+		System::assert_last_event(CmlEvent::DrawCmls(1, 3 + 4 + 5).into());
 	})
 }
 

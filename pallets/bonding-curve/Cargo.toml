@@ -23,7 +23,6 @@ sp-core = {default-features = false, version = '3.0.0', git = 'https://github.co
 sp-io = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
 frame-support = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
 frame-system = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
-pallet-randomness-collective-flip = { default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
 sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
 
 # Only used in benchmarking to generate random contract code
@@ -41,6 +40,7 @@ ed25519-dalek = "1.0.0"
 rand = '0.7.2'
 node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
+pallet-randomness-collective-flip = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
 bonding-curve-impl = { path = "./curve-impl" }
 auction-interface = { path = '../auction/interface' }
 genesis-exchange-interface = { path = '../genesis-exchange/interface' }

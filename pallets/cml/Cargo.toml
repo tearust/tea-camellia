@@ -38,6 +38,7 @@ serde = { version = "1.0.101", optional = true }
 [dev-dependencies]
 sp-io = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
 pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
+pallet-randomness-collective-flip = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
 
 [features]
 default = ["std"]
