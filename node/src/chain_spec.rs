@@ -2,16 +2,19 @@ use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisCoupons, GenesisSeeds},
-	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, BondingCurveConfig,
-	CmlConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisBankConfig, GenesisConfig,
-	GenesisExchangeConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, Signature, StakerStatus,
-	StakingConfig, SudoConfig, SystemConfig, TeaConfig, TechnicalCommitteeConfig, WASM_BINARY,
+	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, Block,
+	BondingCurveConfig, CmlConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
+	GenesisBankConfig, GenesisConfig, GenesisExchangeConfig, GrandpaConfig, ImOnlineConfig,
+	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
+	TechnicalCommitteeConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use jsonrpc_core::serde_json;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use sc_chain_spec::ChainSpecExtension;
 use sc_service::{ChainType, Properties};
+use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
@@ -48,8 +51,23 @@ const BONDING_CURVE_NPC_INITIAL_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
+/// Node `ChainSpec` extensions.
+///
+/// Additional parameters for some Substrate core modules,
+/// customizable from the chain spec.
+#[derive(Default, Clone, Serialize, Deserialize, ChainSpecExtension)]
+#[serde(rename_all = "camelCase")]
+pub struct Extensions {
+	/// Block numbers with known hashes.
+	pub fork_blocks: sc_client_api::ForkBlocks<Block>,
+	/// Known bad block hashes.
+	pub bad_blocks: sc_client_api::BadBlocks<Block>,
+	/// The light sync state extension used by the sync-state rpc.
+	pub light_sync_state: sc_sync_state_rpc::LightSyncStateExtension,
+}
+
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
 /// Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -184,7 +202,7 @@ pub fn development_config(
 		// Properties
 		Some(get_properties("TEA")),
 		// Extensions
-		None,
+		Default::default(),
 	))
 }
 
@@ -367,7 +385,7 @@ pub fn testnet_config(
 		// Properties
 		None,
 		// Extensions
-		None,
+		Default::default(),
 	))
 }
 
