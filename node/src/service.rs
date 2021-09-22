@@ -208,6 +208,7 @@ pub fn new_full_base(
 		&sc_consensus_babe::BabeLink<Block>,
 	),
 ) -> Result<NewFullBase, ServiceError> {
+	config.impl_name = "tea-layer1".into();
 	// todo enable offchain worker later
 	config.offchain_worker.enabled = false;
 
@@ -291,8 +292,10 @@ pub fn new_full_base(
 			telemetry.as_ref().map(|x| x.handle()),
 		);
 
-		let can_author_with =
-			sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
+		// todo ignore author runtime and node version for now
+		// let can_author_with =
+		// 	sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
+		let can_author_with = sp_consensus::AlwaysCanAuthor {};
 
 		let client_clone = client.clone();
 		let slot_duration = babe_link.config().slot_duration();
