@@ -208,6 +208,9 @@ pub fn new_full_base(
 		&sc_consensus_babe::BabeLink<Block>,
 	),
 ) -> Result<NewFullBase, ServiceError> {
+	// todo enable offchain worker later
+	config.offchain_worker.enabled = false;
+
 	let sc_service::PartialComponents {
 		client,
 		backend,
