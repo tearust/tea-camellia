@@ -8,16 +8,16 @@ edition = "2018"
 
 [dependencies]
 codec = {default-features = false, package = "parity-scale-codec", version = "2.0.0" }
-jsonrpc-core = "15.1.0"
-jsonrpc-core-client = "15.1.0"
-jsonrpc-derive = "15.1.0"
+jsonrpc-core = '18.0.0'
+jsonrpc-core-client = "18.0.0"
+jsonrpc-derive = "18.0.0"
 serde = { version = "1.0", features = ["derive"], optional = true }
 
-node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
-sp-api = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
-sp-blockchain = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
-sp-rpc = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
-sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
+sp-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
+sp-blockchain = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
+sp-rpc = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
+sp-runtime = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
 
 bonding-curve-runtime-api = {default-features = false, path = '../runtime-api'}
 

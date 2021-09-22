@@ -7,6 +7,7 @@ use camellia_runtime::{
 	GenesisExchangeConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, Signature, StakerStatus,
 	StakingConfig, SudoConfig, SystemConfig, TeaConfig, TechnicalCommitteeConfig, WASM_BINARY,
 };
+use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use jsonrpc_core::serde_json;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -14,7 +15,6 @@ use sc_service::{ChainType, Properties};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
-use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,

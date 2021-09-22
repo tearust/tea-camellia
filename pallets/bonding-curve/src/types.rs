@@ -2,7 +2,7 @@ use super::*;
 
 pub type TAppId = u64;
 
-#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum CurveType {
 	UnsignedLinear,
 	#[allow(non_camel_case_types)]
@@ -11,26 +11,26 @@ pub enum CurveType {
 	UnsignedSquareRoot_7,
 }
 
-#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum TAppType {
 	YouTube,
 	Reddit,
 	Twitter,
 }
 
-#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum BillingMode<Balance> {
 	FixedHostingFee(Balance),
 	FixedHostingToken(Balance),
 }
 
-#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum TAppStatus<BlockNumber> {
 	Active(BlockNumber),
 	Pending,
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct TAppItem<AccountId, Balance, BlockNumber> {
 	pub id: TAppId,
 	pub name: Vec<u8>,
@@ -47,7 +47,7 @@ pub struct TAppItem<AccountId, Balance, BlockNumber> {
 	pub billing_mode: BillingMode<Balance>,
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct ApprovedLinkInfo<AccountId> {
 	pub tapp_id: Option<TAppId>,
 	pub description: Vec<u8>,

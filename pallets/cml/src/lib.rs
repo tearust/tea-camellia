@@ -33,6 +33,7 @@ use genesis_exchange_interface::MiningOperation;
 use pallet_utils::{
 	extrinsic_procedure, extrinsic_procedure_with_weight, CommonUtils, CurrencyOperations,
 };
+use scale_info::TypeInfo;
 use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
 use sp_std::{convert::TryInto, prelude::*};
 use tea_interface::TeaOperation;
@@ -63,7 +64,7 @@ pub mod cml {
 		/// Fresh seed duration, if a fresh seed stays over than the duration can't active (including planting
 		///	and mining) any more.
 		#[pallet::constant]
-		type SeedFreshDuration: Get<Self::BlockNumber>;
+		type SeedFreshDuration: Get<Self::BlockNumber> + TypeInfo;
 
 		/// Length of a staking window, staking rewards will be dispathed at the end of the staking period.
 		#[pallet::constant]
@@ -226,7 +227,6 @@ pub mod cml {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId", CmlId = "CmlId")]
 	pub enum Event<T: Config> {
 		/// Event fired after user drawed CMLs from lucky draw box successfully.
 		///

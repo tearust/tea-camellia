@@ -185,7 +185,6 @@ pub mod genesis_exchange {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId")]
 	pub enum Event<T: Config> {
 		/// Event fired after buy tea (from usd) successfully.
 		///

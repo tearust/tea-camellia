@@ -2,11 +2,12 @@ use super::param::*;
 use crate::{CmlId, CmlType};
 use codec::{Decode, Encode};
 use node_primitives::BlockNumber;
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_std::prelude::*;
 
-#[derive(Encode, Decode, Clone, Debug)]
+#[derive(Encode, Decode, Clone, Debug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Seed {
 	pub id: CmlId, //seq id starting from 0, this is also the camellia id.
@@ -51,7 +52,7 @@ impl Default for Seed {
 	}
 }
 
-#[derive(Encode, Decode, Clone, Debug)]
+#[derive(Encode, Decode, Clone, Debug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct GenesisSeeds {
 	pub a_seeds: Vec<Seed>,
@@ -59,7 +60,7 @@ pub struct GenesisSeeds {
 	pub c_seeds: Vec<Seed>,
 }
 
-#[derive(Encode, Decode, PartialEq, Clone, Copy, Debug)]
+#[derive(Encode, Decode, PartialEq, Clone, Copy, Debug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum DefrostScheduleType {
 	Investor,

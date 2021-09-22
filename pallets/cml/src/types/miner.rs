@@ -1,18 +1,19 @@
 use crate::CmlId;
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
 pub type MachineId = [u8; 32];
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum MinerStatus {
 	Active,
 	Offline,
 	// ...
 }
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct MinerItem {
 	pub cml_id: CmlId,
 	pub id: MachineId,

@@ -475,7 +475,7 @@ where
 	AccountId: PartialEq + Clone,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 	Balance: Clone,
-	FreshDuration: Get<BlockNumber>,
+	FreshDuration: Get<BlockNumber> + TypeInfo,
 {
 	let mut cml_list = Vec::new();
 	let mut investor_draw_box = Vec::new();

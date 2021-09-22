@@ -3,18 +3,18 @@ use super::*;
 // all types of ID should encode as Vec<u8>
 pub type AssetId = Vec<u8>;
 
-#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum AssetType {
 	CML,
 }
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct AssetUniqueId {
 	pub asset_type: AssetType,
 	pub inner_id: AssetId,
 }
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct Loan<AccountId, BlockNumber, Balance>
 where
 	AccountId: Default + PartialEq + Clone,
@@ -47,7 +47,7 @@ where
 	}
 }
 
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum BankError {
 	/// Asset id convert to cml id with invalid length.
 	ConvertToCmlIdLengthMismatch,

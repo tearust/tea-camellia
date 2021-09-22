@@ -2,6 +2,7 @@
 
 use codec::{Decode, Encode};
 use node_primitives::BlockNumber;
+use scale_info::TypeInfo;
 
 #[cfg(not(feature = "fast"))]
 pub const GENESIS_SEED_A_COUNT: u64 = 10;
@@ -62,7 +63,7 @@ pub const BASE_PERFORMANCE_C: Performance = 10000;
 ///the random deviation in percentage. for the lifespan of an Camellia
 pub const PERFORMANCE_DEVIATION: u8 = 10; //This means a deviation between +5% and -5% for an individual camellia performance
 
-#[derive(Encode, Decode, Clone, Debug)]
+#[derive(Encode, Decode, Clone, Debug, TypeInfo)]
 pub struct DefrostSchedule {
 	cliff: BlockNumber,
 	interval: BlockNumber,

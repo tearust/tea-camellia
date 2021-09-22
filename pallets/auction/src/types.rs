@@ -1,12 +1,12 @@
 // use codec::FullCodec;
 use codec::{Decode, Encode};
+use pallet_cml::CmlId;
+use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
+use sp_std::cmp::{Eq, PartialEq};
 use sp_std::prelude::*;
 
-use pallet_cml::CmlId;
-use sp_std::cmp::{Eq, PartialEq};
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum AuctionStatus {
 	Normal,
 	/// If auction fee is not payed for the next window, auction status will be set to suspend,
@@ -17,7 +17,7 @@ pub enum AuctionStatus {
 
 pub type AuctionId = u64;
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct AuctionItem<AccountId, Balance, BlockNumber>
 where
 	AccountId: Default,
@@ -35,7 +35,7 @@ where
 	pub auto_renew: bool,
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct BidItem<AccountId, Balance, BlockNumber> {
 	pub auction_id: AuctionId,
 	pub user: AccountId,

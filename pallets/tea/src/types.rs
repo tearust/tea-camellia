@@ -1,4 +1,5 @@
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
 use sp_std::prelude::*;
 
 /// Url is a normal literal string.
@@ -17,7 +18,7 @@ pub type Cid = Vec<u8>;
 /// Signature data signed by supported types of keys.
 pub type Signature = Vec<u8>;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub enum NodeStatus {
 	Pending,
 	Active,
@@ -25,7 +26,7 @@ pub enum NodeStatus {
 	Invalid,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub struct Node<BlockNumber>
 where
 	BlockNumber: Default,
@@ -60,7 +61,7 @@ where
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub struct RaResult {
 	pub tea_id: TeaPubKey,
 	pub target_tea_id: TeaPubKey,
@@ -68,7 +69,7 @@ pub struct RaResult {
 	pub target_status: NodeStatus,
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub struct RuntimeActivity<BlockNumber> {
 	pub tea_id: TeaPubKey,
 	pub cid: Option<Cid>,

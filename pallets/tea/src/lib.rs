@@ -95,7 +95,6 @@ pub mod tea {
 		StorageMap<_, Twox64Concat, TeaPubKey, RuntimeActivity<T::BlockNumber>>;
 
 	#[pallet::event]
-	#[pallet::metadata(T::AccountId = "AccountId", T::BlockNumber = "BlockNumber")]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Fired after register node successfully.

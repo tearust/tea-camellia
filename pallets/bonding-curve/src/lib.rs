@@ -25,6 +25,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use pallet_cml::{CmlId, CmlOperation, MachineId, MiningProperties, Performance, TreeProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating, Zero},
 	RuntimeDebug,

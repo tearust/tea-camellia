@@ -1,5 +1,6 @@
 use crate::CmlId;
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
@@ -14,13 +15,13 @@ pub type ServiceTaskPoint = u32;
 
 pub type StakingIndex = u32;
 
-#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum StakingCategory {
 	Tea,
 	Cml,
 }
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingItem<AccountId, Balance> {
 	pub owner: AccountId,
 	pub category: StakingCategory,
@@ -28,7 +29,7 @@ pub struct StakingItem<AccountId, Balance> {
 	pub cml: Option<CmlId>,
 }
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingSnapshotItem<AccountId> {
 	pub owner: AccountId,
 	pub weight: StakingWeight,

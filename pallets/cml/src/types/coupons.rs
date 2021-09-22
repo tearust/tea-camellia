@@ -1,17 +1,18 @@
 use crate::{CmlType, DefrostScheduleType};
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
-#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct Coupon {
 	pub amount: u32,
 	pub cml_type: CmlType,
 }
 
-#[derive(Encode, Decode, PartialEq, Clone, Debug)]
+#[derive(Encode, Decode, PartialEq, Clone, Debug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct CouponConfig<AccountId> {
 	pub account: AccountId,
@@ -20,7 +21,7 @@ pub struct CouponConfig<AccountId> {
 	pub amount: u32,
 }
 
-#[derive(Encode, Decode, Clone, Debug)]
+#[derive(Encode, Decode, Clone, Debug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct GenesisCoupons<AccountId> {
 	pub coupons: Vec<CouponConfig<AccountId>>,

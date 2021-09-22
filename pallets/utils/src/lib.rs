@@ -15,7 +15,6 @@ mod tests;
 mod functions;
 pub mod traits;
 mod types;
-
 use frame_support::{
 	dispatch::DispatchResultWithPostInfo,
 	pallet_prelude::*,

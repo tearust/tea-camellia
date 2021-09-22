@@ -25,6 +25,7 @@ use frame_system::pallet_prelude::*;
 use genesis_bank_interface::GenesisBankOperation;
 use pallet_cml::{CmlId, CmlOperation, CmlType, SeedProperties};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
+use scale_info::TypeInfo;
 use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
 use sp_std::prelude::*;
 

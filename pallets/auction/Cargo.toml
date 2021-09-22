@@ -11,13 +11,14 @@ edition = "2018"
 log = "0.4.8"
 serde = { version = "1.0.124", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '83808aa' }
-sp-std = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '83808aa' }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, rev = '7f41e24f5' }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false, rev = '7f41e24f5' }
 
-frame-support = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '83808aa' }
-frame-system = { git = "https://github.com/paritytech/substrate", version = '3.0.0', default-features = false, rev = '83808aa' }
-node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '83808aa'}
-frame-benchmarking = { version = "3.1.0", default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, rev = '7f41e24f5' }
+frame-system = { git = "https://github.com/paritytech/substrate", default-features = false, rev = '7f41e24f5' }
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
+frame-benchmarking = { default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5' }
 
 pallet-cml = { path = "../cml", version="3.0.0", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
@@ -26,10 +27,10 @@ auction-interface = { path = "./interface", default-features = false }
 genesis-bank-interface = { path = "../genesis-bank/interface", default-features = false }
 
 [dev-dependencies]
-sp-core = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
-sp-io = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
-pallet-randomness-collective-flip = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
-pallet-balances = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '83808aa' }
+sp-core = { git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5' }
+sp-io = { git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5' }
+pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5' }
+pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5' }
 genesis-exchange-interface = { path = "../genesis-exchange/interface" }
 tea-interface = { path = "../tea/interface" }
 bonding-curve-interface = { path = "../bonding-curve/interface" }

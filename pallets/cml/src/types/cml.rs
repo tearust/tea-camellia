@@ -6,6 +6,7 @@ use crate::{
 use codec::{Decode, Encode};
 use frame_support::sp_runtime::traits::AtLeast32BitUnsigned;
 use frame_support::traits::Get;
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::RuntimeDebug;
@@ -14,7 +15,7 @@ use sp_std::prelude::*;
 
 pub type CmlId = u64;
 
-#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug)]
+#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CmlType {
 	A,
@@ -22,7 +23,7 @@ pub enum CmlType {
 	C,
 }
 
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum CmlError {
 	/// Defrost time should have value when defrost.
 	CmlDefrostTimeIsNone,
@@ -63,7 +64,7 @@ pub enum CmlError {
 }
 pub type CmlResult = Result<(), CmlError>;
 
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum CmlStatus<BlockNumber>
 where
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
@@ -120,7 +121,7 @@ where
 	}
 }
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct CML<AccountId, BlockNumber, Balance, FreshDuration>
 where
 	AccountId: PartialEq + Clone,
