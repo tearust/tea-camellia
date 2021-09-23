@@ -161,10 +161,9 @@ pub fn development_config(
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
-		// Name
-		"Tearust-camellia Development",
-		// ID
-		"TEA",
+		// Name (spec_name)
+		"tea-layer1",
+		"tea-layer1",
 		ChainType::Development,
 		move || {
 			let genesis_seeds = init_genesis(seed);
@@ -276,8 +275,6 @@ pub fn canary_testnet_config(
 		.collect();
 
 	testnet_config(
-		"TEA-Camellia Canary",
-		"tea_canary",
 		genesis_coupons,
 		seed,
 		endowed_accounts,
@@ -310,8 +307,6 @@ pub fn local_testnet_config(
 		generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
 
 	testnet_config(
-		"TEA-Camellia Local",
-		"tea_local",
 		genesis_coupons,
 		seed,
 		endowed_accounts,
@@ -325,8 +320,6 @@ pub fn local_testnet_config(
 }
 
 pub fn testnet_config(
-	name: &str,
-	id: &str,
 	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
 	endowed_accounts: Vec<AccountId>,
@@ -345,9 +338,8 @@ pub fn testnet_config(
 
 	Ok(ChainSpec::from_genesis(
 		// Name
-		name,
-		// ID
-		id,
+		"tea-layer1",
+		"tea-layer1",
 		ChainType::Local,
 		move || {
 			let mut endowed_balances = endowed_balances.clone();
