@@ -2,10 +2,12 @@
 
 //! Service implementation. Specialized wrapper over substrate service.
 
+use crate::rpc;
 use camellia_runtime::RuntimeApi;
 use futures::prelude::*;
 use node_executor::ExecutorDispatch;
 use node_primitives::Block;
+use node_rpc::FullDeps;
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use sc_executor::NativeElseWasmExecutor;
@@ -155,7 +157,7 @@ pub fn new_partial(
 		let chain_spec = config.chain_spec.cloned_box();
 
 		let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
-			let deps = node_rpc::FullDeps {
+			let deps = FullDeps {
 				client: client.clone(),
 				pool: pool.clone(),
 				select_chain: select_chain.clone(),
@@ -175,7 +177,7 @@ pub fn new_partial(
 				},
 			};
 
-			node_rpc::create_full(deps).map_err(Into::into)
+			rpc::create_full(deps).map_err(Into::into)
 		};
 
 		(rpc_extensions_builder, rpc_setup)
