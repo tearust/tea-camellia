@@ -43,6 +43,7 @@ frame-benchmarking = {default-features = false, optional = true, git = 'https://
 frame-executive = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 frame-support = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 frame-system = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+frame-try-runtime = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 frame-system-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 frame-system-rpc-runtime-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 frame-election-provider-support = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
@@ -146,15 +147,16 @@ std = [
 	'sp-std/std',
 	'sp-transaction-pool/std',
 	'sp-version/std',
-    'sp-staking/std',
+  'sp-staking/std',
 	'sp-authority-discovery/std',
-    'sp-npos-elections/std',
+  'sp-npos-elections/std',
 
 	'frame-executive/std',
 	'frame-support/std',
 	'frame-system-rpc-runtime-api/std',
 	'frame-system/std',
 	'frame-election-provider-support/std',
+	'frame-try-runtime/std',
 
 	'pallet-babe/std',
 	'pallet-balances/std',
@@ -166,12 +168,12 @@ std = [
 	'pallet-transaction-payment/std',
 	'pallet-session/std',
 	'pallet-staking/std',
-    'pallet-authorship/std',
+  'pallet-authorship/std',
 	'pallet-offences/std',
-    'pallet-im-online/std',
+  'pallet-im-online/std',
 	'pallet-authority-discovery/std',
 	'pallet-elections-phragmen/std',
-    'pallet-election-provider-multi-phase/std',
+  'pallet-election-provider-multi-phase/std',
 	'pallet-collective/std',
   'pallet-membership/std',
 	'pallet-scheduler/std',
@@ -187,17 +189,57 @@ std = [
 
 	'pallet-tea/std',
 	'pallet-cml/std',
-  	'pallet-auction/std',
+  'pallet-auction/std',
 	'pallet-utils/std',
+	'pallet-genesis-bank/std',
+	'pallet-genesis-exchange/std',
+	'pallet-bonding-curve/std',
+
 	'cml-runtime-api/std',
 	'auction-runtime-api/std',
-	'staking-economics/std',
-	'pallet-genesis-bank/std',
 	'genesis-bank-runtime-api/std',
-	'pallet-genesis-exchange/std',
 	'genesis-exchange-runtime-api/std',
-	'pallet-bonding-curve/std',
 	'bonding-curve-runtime-api/std',
+
+	'staking-economics/std',
 	'bonding-curve-impl/std',
+]
+try-runtime = [
+	"frame-executive/try-runtime",
+	"frame-try-runtime",
+	"frame-system/try-runtime",
+	"pallet-authority-discovery/try-runtime",
+	"pallet-authorship/try-runtime",
+	"pallet-babe/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-collective/try-runtime",
+	"pallet-contracts/try-runtime",
+	"pallet-democracy/try-runtime",
+	"pallet-elections-phragmen/try-runtime",
+	"pallet-grandpa/try-runtime",
+	"pallet-im-online/try-runtime",
+	"pallet-membership/try-runtime",
+	"pallet-mmr/try-runtime",
+	"pallet-multisig/try-runtime",
+	"pallet-identity/try-runtime",
+	"pallet-scheduler/try-runtime",
+	"pallet-offences/try-runtime",
+	"pallet-randomness-collective-flip/try-runtime",
+	"pallet-session/try-runtime",
+	"pallet-staking/try-runtime",
+	"pallet-sudo/try-runtime",
+	"pallet-election-provider-multi-phase/try-runtime",
+	"pallet-timestamp/try-runtime",
+	"pallet-transaction-payment/try-runtime",
+	"pallet-treasury/try-runtime",
+	"pallet-utility/try-runtime",
+
+	'pallet-tea/try-runtime',
+	'pallet-cml/try-runtime',
+  'pallet-auction/try-runtime',
+	'pallet-utils/try-runtime',
+	'pallet-genesis-bank/try-runtime',
+	'pallet-genesis-exchange/try-runtime',
+	'pallet-bonding-curve/try-runtime',
 ]
 fast = ['pallet-cml/fast'] # indicate the block duration and epoch will be shorter to test
