@@ -19,15 +19,15 @@ codec = {default-features = false, features = ['derive'], package = 'parity-scal
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 
 # Substrate dependencies
-sp-std = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-sp-core = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-sp-io = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-frame-support = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-frame-system = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-sp-runtime = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
+sp-std = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-core = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-io = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+frame-support = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+frame-system = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-runtime = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 
 # Only used in benchmarking to generate random contract code
-frame-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
+frame-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 hex = {default-features = false, optional = true, version = '0.4.3'}
 
 genesis-bank-interface = { path = "../genesis-bank/interface", default-features = false }
@@ -42,9 +42,9 @@ serde = '1.0.119'
 hex-literal = "0.3.1"
 ed25519-dalek = "1.0.0"
 rand = '0.7.2'
-pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5' }
-node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5' }
+pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
+node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 pallet-auction = { path = "../auction" }
 tea-interface = { path = "../tea/interface" }
 

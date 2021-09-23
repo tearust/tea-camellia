@@ -13,11 +13,11 @@ jsonrpc-core-client = "18.0.0"
 jsonrpc-derive = "18.0.0"
 serde = { version = "1.0", features = ["derive"], optional = true }
 
-node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-sp-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-sp-blockchain = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-sp-rpc = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
-sp-runtime = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '7f41e24f5'}
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-blockchain = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-rpc = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-runtime = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 
 genesis-bank-runtime-api = {default-features = false, path = '../runtime-api'}
 
