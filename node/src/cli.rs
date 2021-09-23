@@ -58,4 +58,12 @@ pub enum Subcommand {
 		about = "Decode given block or extrinsic using current native runtime."
 	)]
 	Inspect(node_inspect::cli::InspectCmd),
+
+	/// Try some command against runtime state.
+	#[cfg(feature = "try-runtime")]
+	TryRuntime(try_runtime_cli::TryRuntimeCmd),
+	
+	/// Try some command against runtime state. Note: `try-runtime` feature must be enabled.
+	#[cfg(not(feature = "try-runtime"))]
+	TryRuntime,
 }
