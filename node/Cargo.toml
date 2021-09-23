@@ -72,6 +72,7 @@ node-rpc = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f
 node-inspect = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 node-primitives = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 substrate-frame-rpc-system = {git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+try-runtime-cli = { optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 
 frame-benchmarking = {git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 frame-benchmarking-cli = {git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
@@ -100,8 +101,8 @@ substrate-build-script-utils = {optional = true, git = 'https://github.com/parit
 node-inspect = { optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 frame-benchmarking-cli = { optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 substrate-frame-cli = { optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
-try-runtime-cli = { optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 sc-cli = { optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
+try-runtime-cli = { optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 
 [features]
 default = [ "cli" ]
