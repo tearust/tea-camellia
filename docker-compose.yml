@@ -10,7 +10,7 @@ services:
       - CARGO_HOME=/tearust/.cargo
     volumes:
       - ../:/tearust
-    command: bash -c "cargo build --release --target-dir /tearust/tea-camellia/docker/target"
+    command: bash -c "cargo build --release --target-dir /tearust/tea-camellia/docker/target --features try-runtime"
   fast:
     container_name: tea-camellia-fast
     image: paritytech/ci-linux:staging-1.54.0
@@ -20,4 +20,4 @@ services:
       - CARGO_HOME=/tearust/.cargo
     volumes:
       - ../:/tearust
-    command: bash -c "cargo build --release --target-dir /tearust/tea-camellia/docker/target --features fast"
+    command: bash -c "cargo build --release --target-dir /tearust/tea-camellia/docker/target --features fast,try-runtime"
