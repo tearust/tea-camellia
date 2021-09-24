@@ -5,6 +5,10 @@ pub(crate) mod v1 {
 
 	#[cfg(feature = "try-runtime")]
 	pub(crate) fn pre_migrate<T: Config>() -> Result<(), &'static str> {
+		log::info!(
+			"pre_migrate TAppBondingCurve storage count: {}",
+			TAppBondingCurve::<T>::iter().count()
+		);
 		Ok(())
 	}
 
@@ -21,11 +25,19 @@ pub(crate) mod v1 {
 			v
 		});
 
+		log::info!(
+			"TApp item migration complete, migrated {} tapps",
+			reads_writes
+		);
 		T::DbWeight::get().reads_writes(reads_writes, reads_writes)
 	}
 
 	#[cfg(feature = "try-runtime")]
 	pub(crate) fn post_migrate<T: Config>() -> Result<(), &'static str> {
+		log::info!(
+			"post_migrate TAppBondingCurve storage count: {}",
+			TAppBondingCurve::<T>::iter().count()
+		);
 		Ok(())
 	}
 }
