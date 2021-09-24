@@ -6,7 +6,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use bonding_curve_impl::{linear::UnsignedLinearCurve, square_root::UnsignedSquareRoot};
 use codec::{Decode, Encode};
 use frame_support::{
 	construct_runtime, parameter_types,

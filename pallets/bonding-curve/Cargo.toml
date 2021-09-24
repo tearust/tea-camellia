@@ -33,7 +33,7 @@ hex = {default-features = false, optional = true, version = '0.4.3'}
 bonding-curve-interface = { path = "./interface", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
 pallet-cml = {default-features = false, path = '../cml'}
-bonding-curve-impl = { path = "./curve-impl" }
+bonding-curve-impl = {default-features = false, path = "./curve-impl" }
 
 [dev-dependencies]
 serde = '1.0.119'
@@ -57,7 +57,7 @@ std = [
 	'codec/std',
 	'sp-std/std',
 	'sp-core/std',
-    'sp-io/std',
+  'sp-io/std',
 	'sp-runtime/std',
 	'frame-support/std',
 	'frame-system/std',
@@ -65,5 +65,6 @@ std = [
 	'pallet-utils/std',
 	'pallet-cml/std',
 	'bonding-curve-interface/std',
+	'bonding-curve-impl/std',
 ]
 try-runtime = ['frame-support/try-runtime']
