@@ -269,16 +269,22 @@ impl<T: auction::Config> auction::Pallet<T> {
 		bid_item: &BidItem<T::AccountId, BalanceOf<T>, T::BlockNumber>,
 	) -> BalanceOf<T> {
 		let (highest_account, highest_price) = Self::highest_bid(&bid_item.auction_id);
-		let penalty_amount = match highest_price >= bid_item.price {
+		let penalty_amount = match highest_price > bid_item.price {
 			true => Zero::zero(),
 			false => {
 				if !highest_account.eq(&Default::default()) {
 					AuctionStore::<T>::mutate(&bid_item.auction_id, |auction_item| {
 						auction_item.bid_user = Some(highest_account)
 					});
+					bid_item.price.saturating_sub(highest_price)
+				} else {
+					let starting_price =
+						AuctionStore::<T>::mutate(&bid_item.auction_id, |auction_item| {
+							auction_item.bid_user = None;
+							auction_item.starting_price
+						});
+					bid_item.price.saturating_sub(starting_price)
 				}
-
-				bid_item.price.saturating_sub(highest_price)
 			}
 		};
 

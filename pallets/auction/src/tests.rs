@@ -1029,6 +1029,76 @@ fn remove_the_highest_bid_works() {
 }
 
 #[test]
+fn remove_the_only_bid_works() {
+	new_test_ext().execute_with(|| {
+		let user1_id = 1;
+		let user2_id = 2;
+		let initial_balance = 100 * 1000;
+		let auction_id = 22;
+
+		<Test as Config>::Currency::make_free_balance_be(&user1_id, initial_balance);
+		<Test as Config>::Currency::make_free_balance_be(&user2_id, initial_balance);
+		let mut auction_item = default_auction_item(auction_id, 5, 1);
+		let starting_price = 100;
+		auction_item.starting_price = starting_price;
+		Auction::add_auction_to_storage(auction_item);
+
+		let user1_bid_price = 150;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id,
+			user1_bid_price
+		));
+		assert_eq!(
+			AuctionStore::<Test>::get(auction_id).bid_user,
+			Some(user1_id)
+		);
+
+		assert_ok!(Auction::remove_bid_for_auction(
+			Origin::signed(user1_id),
+			auction_id
+		));
+
+		assert_eq!(AuctionStore::<Test>::get(auction_id).bid_user, None);
+		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 0);
+		assert_eq!(Auction::user_bid_list(&user1_id).len(), 0);
+		assert!(!BidStore::<Test>::contains_key(user1_id, auction_id));
+		assert_eq!(
+			Utils::free_balance(&user1_id),
+			initial_balance - (user1_bid_price - starting_price)
+		);
+		assert_eq!(Utils::reserved_balance(&user2_id), 0);
+		assert_eq!(
+			<Test as Config>::Currency::total_issuance(),
+			initial_balance * 2 - (user1_bid_price - starting_price)
+		);
+
+		let user2_bid_price = 200;
+		assert_ok!(Auction::bid_for_auction(
+			Origin::signed(user2_id),
+			auction_id,
+			user2_bid_price
+		));
+
+		assert_eq!(
+			AuctionStore::<Test>::get(auction_id).bid_user,
+			Some(user2_id)
+		);
+		assert_eq!(AuctionBidStore::<Test>::get(auction_id).unwrap().len(), 1);
+		assert_eq!(Auction::user_bid_list(&user2_id).len(), 1);
+		assert!(BidStore::<Test>::contains_key(user2_id, auction_id));
+		assert_eq!(
+			Utils::free_balance(&user2_id),
+			initial_balance - user2_bid_price
+		);
+		assert_eq!(
+			<Test as Config>::Currency::total_issuance(),
+			initial_balance * 2 - (user1_bid_price - starting_price)
+		);
+	})
+}
+
+#[test]
 fn remove_from_store_with_no_bid_works() {
 	new_test_ext().execute_with(|| {
 		let owner = 1;
