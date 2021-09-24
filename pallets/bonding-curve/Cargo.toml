@@ -33,6 +33,7 @@ hex = {default-features = false, optional = true, version = '0.4.3'}
 bonding-curve-interface = { path = "./interface", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
 pallet-cml = {default-features = false, path = '../cml'}
+bonding-curve-impl = { path = "./curve-impl" }
 
 [dev-dependencies]
 serde = '1.0.119'
@@ -42,7 +43,6 @@ rand = '0.7.2'
 node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
-bonding-curve-impl = { path = "./curve-impl" }
 auction-interface = { path = '../auction/interface' }
 genesis-exchange-interface = { path = '../genesis-exchange/interface' }
 tea-interface = { path = '../tea/interface' }

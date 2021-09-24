@@ -1055,6 +1055,8 @@ parameter_types! {
 	pub const MinTappHostsCount: u32 = 3;
 	pub const HostLockingBlockHeight: BlockNumber = 1000;
 	pub const TAppLinkDescriptionMaxLength: u32 = 140;
+	pub const DefaultBuyCurveTheta: u32 = 10;
+	pub const DefaultSellCurveTheta: u32 = 7;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -1068,9 +1070,6 @@ impl pallet_bonding_curve::Config for Runtime {
 	type TAppDetailMaxLength = TAppDetailMaxLength;
 	type TAppLinkMaxLength = TAppLinkMaxLength;
 	type PoolBalanceReversePrecision = PoolBalanceReversePrecision;
-	type LinearCurve = UnsignedLinearCurve<Balance, 16>;
-	type UnsignedSquareRoot_10 = UnsignedSquareRoot<Balance, 10>;
-	type UnsignedSquareRoot_7 = UnsignedSquareRoot<Balance, 7>;
 	type HostArrangeDuration = HostArrangeDuration;
 	type HostCostCollectionDuration = HostCostCollectionDuration;
 	type ConsumeNoteMaxLength = ConsumeNoteMaxLength;
@@ -1079,6 +1078,8 @@ impl pallet_bonding_curve::Config for Runtime {
 	type MinTappHostsCount = MinTappHostsCount;
 	type HostLockingBlockHeight = HostLockingBlockHeight;
 	type TAppLinkDescriptionMaxLength = TAppLinkDescriptionMaxLength;
+	type DefaultBuyCurveTheta = DefaultBuyCurveTheta;
+	type DefaultSellCurveTheta = DefaultSellCurveTheta;
 }
 
 #[cfg(feature = "fast")]

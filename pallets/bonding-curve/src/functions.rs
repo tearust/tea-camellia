@@ -342,7 +342,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 				let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 				Self::calculate_increase_amount_from_raise_curve_total_supply(
-					tapp_item.buy_curve,
+					tapp_item.buy_curve_theta,
 					total_supply,
 					tapp_amount,
 				)
@@ -350,7 +350,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			None => {
 				// by default total supply is zero, buy curve is UnsignedSquareRoot_10
 				Self::calculate_increase_amount_from_raise_curve_total_supply(
-					CurveType::UnsignedSquareRoot_10,
+					T::DefaultBuyCurveTheta::get(),
 					Zero::zero(),
 					tapp_amount,
 				)
@@ -365,42 +365,25 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		Self::calculate_increase_amount_from_raise_curve_total_supply(
-			tapp_item.sell_curve,
+			tapp_item.sell_curve_theta,
 			total_supply,
 			tapp_amount,
 		)
 	}
 
 	pub(crate) fn calculate_increase_amount_from_raise_curve_total_supply(
-		curve_type: CurveType,
+		curve_theta: u32,
 		total_supply: BalanceOf<T>,
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let current_pool_balance = match curve_type {
-			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply)
-			}
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
-		};
+		let current_curve = UnsignedSquareRoot::new(curve_theta);
+		let current_pool_balance = current_curve.pool_balance(total_supply);
 
-		let after_buy_pool_balance = match curve_type {
-			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(
-				total_supply
-					.checked_add(&tapp_amount)
-					.ok_or(Error::<T>::AddOverflow)?,
-			),
-			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance(
-				total_supply
-					.checked_add(&tapp_amount)
-					.ok_or(Error::<T>::AddOverflow)?,
-			),
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(
-				total_supply
-					.checked_add(&tapp_amount)
-					.ok_or(Error::<T>::AddOverflow)?,
-			),
-		};
+		let after_buy_pool_balance = current_curve.pool_balance(
+			total_supply
+				.checked_add(&tapp_amount)
+				.ok_or(Error::<T>::AddOverflow)?,
+		);
 		Ok(after_buy_pool_balance
 			.checked_sub(&current_pool_balance)
 			.ok_or(Error::<T>::SubtractionOverflow)?)
@@ -412,30 +395,15 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		let current_buy_area_tea_amount = match tapp_item.buy_curve {
-			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply)
-			}
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
-		};
+		let buy_curve = UnsignedSquareRoot::new(tapp_item.buy_curve_theta);
+		let current_buy_area_tea_amount = buy_curve.pool_balance(total_supply);
 		let after_increase_tea_amount = current_buy_area_tea_amount
 			.checked_add(&tea_amount)
 			.ok_or(Error::<T>::AddOverflow)?;
-		let total_supply_after_increase = match tapp_item.buy_curve {
-			CurveType::UnsignedLinear => T::LinearCurve::pool_balance_reverse(
-				after_increase_tea_amount,
-				T::PoolBalanceReversePrecision::get(),
-			),
-			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance_reverse(
-				after_increase_tea_amount,
-				T::PoolBalanceReversePrecision::get(),
-			),
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance_reverse(
-				after_increase_tea_amount,
-				T::PoolBalanceReversePrecision::get(),
-			),
-		};
+		let total_supply_after_increase = buy_curve.pool_balance_reverse(
+			after_increase_tea_amount,
+			T::PoolBalanceReversePrecision::get(),
+		);
 		Ok(total_supply_after_increase
 			.checked_sub(&total_supply)
 			.ok_or(Error::<T>::SubtractionOverflow)?)
@@ -488,24 +456,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			Error::<T>::InsufficientTotalSupply
 		);
 
-		let current_pool_balance = match tapp_item.sell_curve {
-			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply)
-			}
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
-		};
-		let after_sell_pool_balance = match tapp_item.sell_curve {
-			CurveType::UnsignedLinear => {
-				T::LinearCurve::pool_balance(total_supply.saturating_sub(tapp_amount))
-			}
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply.saturating_sub(tapp_amount))
-			}
-			CurveType::UnsignedSquareRoot_7 => {
-				T::UnsignedSquareRoot_7::pool_balance(total_supply.saturating_sub(tapp_amount))
-			}
-		};
+		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_theta);
+		let current_pool_balance = sell_curve.pool_balance(total_supply);
+		let after_sell_pool_balance =
+			sell_curve.pool_balance(total_supply.saturating_sub(tapp_amount));
 		Ok(current_pool_balance
 			.checked_sub(&after_sell_pool_balance)
 			.ok_or(Error::<T>::SubtractionOverflow)?)
@@ -522,14 +476,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tea_amount: BalanceOf<T>,
 	) -> Result<(BalanceOf<T>, BalanceOf<T>), DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
+		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_theta);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		let current_reserve_pool_tea = match tapp_item.sell_curve {
-			CurveType::UnsignedLinear => T::LinearCurve::pool_balance(total_supply),
-			CurveType::UnsignedSquareRoot_10 => {
-				T::UnsignedSquareRoot_10::pool_balance(total_supply)
-			}
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance(total_supply),
-		};
+		let current_reserve_pool_tea = sell_curve.pool_balance(total_supply);
 
 		let pay_amount = if current_reserve_pool_tea < tea_amount {
 			current_reserve_pool_tea
@@ -537,20 +486,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			tea_amount
 		};
 
-		let total_supply_after_sell_tapp_token = match tapp_item.sell_curve {
-			CurveType::UnsignedLinear => T::LinearCurve::pool_balance_reverse(
-				current_reserve_pool_tea.saturating_sub(pay_amount),
-				T::PoolBalanceReversePrecision::get(),
-			),
-			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::pool_balance_reverse(
-				current_reserve_pool_tea.saturating_sub(pay_amount),
-				T::PoolBalanceReversePrecision::get(),
-			),
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::pool_balance_reverse(
-				current_reserve_pool_tea.saturating_sub(pay_amount),
-				T::PoolBalanceReversePrecision::get(),
-			),
-		};
+		let total_supply_after_sell_tapp_token = sell_curve.pool_balance_reverse(
+			current_reserve_pool_tea.saturating_sub(pay_amount),
+			T::PoolBalanceReversePrecision::get(),
+		);
 		Ok((
 			total_supply
 				.checked_sub(&total_supply_after_sell_tapp_token)
@@ -900,8 +839,6 @@ mod tests {
 				TAppItem {
 					id: tapp_id,
 					owner: user2,
-					buy_curve: CurveType::UnsignedSquareRoot_10,
-					sell_curve: CurveType::UnsignedSquareRoot_7,
 					..Default::default()
 				},
 			);
@@ -943,8 +880,6 @@ mod tests {
 				tapp_id,
 				TAppItem {
 					id: tapp_id,
-					buy_curve: CurveType::UnsignedSquareRoot_10,
-					sell_curve: CurveType::UnsignedSquareRoot_7,
 					..Default::default()
 				},
 			);
@@ -975,8 +910,6 @@ mod tests {
 				tapp_id,
 				TAppItem {
 					id: tapp_id,
-					buy_curve: CurveType::UnsignedSquareRoot_10,
-					sell_curve: CurveType::UnsignedSquareRoot_7,
 					..Default::default()
 				},
 			);
@@ -1121,6 +1054,8 @@ mod tests {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			));
 			assert_ok!(BondingCurve::create_new_tapp(
 				Origin::signed(owner1),
@@ -1134,6 +1069,8 @@ mod tests {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			));
 			assert_ok!(BondingCurve::create_new_tapp(
 				Origin::signed(owner1),
@@ -1147,6 +1084,8 @@ mod tests {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			));
 
 			let tapp_id = 1;
@@ -1265,6 +1204,8 @@ mod tests {
 				true,
 				None,
 				Some(1_000_000),
+				None,
+				None,
 			));
 
 			let cml_id1 = 11;
@@ -1448,6 +1389,8 @@ mod tests {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			));
 
 			let tapp_id = 1;

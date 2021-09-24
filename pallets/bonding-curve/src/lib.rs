@@ -13,9 +13,11 @@ mod mock;
 mod tests;
 
 mod functions;
+mod migrations;
 mod rpc;
 mod types;
 
+use bonding_curve_impl::square_root::UnsignedSquareRoot;
 use bonding_curve_interface::{BondingCurveInterface, BondingCurveOperation};
 use codec::{Decode, Encode};
 use frame_support::{
@@ -105,13 +107,11 @@ pub mod bonding_curve {
 		#[pallet::constant]
 		type TAppLinkDescriptionMaxLength: Get<u32>;
 
-		type LinearCurve: BondingCurveInterface<BalanceOf<Self>>;
+		#[pallet::constant]
+		type DefaultBuyCurveTheta: Get<u32>;
 
-		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_10: BondingCurveInterface<BalanceOf<Self>>;
-
-		#[allow(non_camel_case_types)]
-		type UnsignedSquareRoot_7: BondingCurveInterface<BalanceOf<Self>>;
+		#[pallet::constant]
+		type DefaultSellCurveTheta: Get<u32>;
 	}
 
 	#[pallet::pallet]
@@ -205,6 +205,12 @@ pub mod bonding_curve {
 		ValueQuery,
 	>;
 
+	/// Storage version of the pallet.
+	///
+	/// New networks start with latest version, as determined by the genesis build.
+	#[pallet::storage]
+	pub(crate) type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
@@ -224,6 +230,9 @@ pub mod bonding_curve {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			// Genesis uses the latest storage version.
+			StorageVersion::<T>::put(Releases::V1);
+
 			ReservedBalanceAccount::<T>::set(self.reserved_balance_account.clone());
 			NPCAccount::<T>::set(self.npc_account.clone());
 
@@ -452,6 +461,10 @@ pub mod bonding_curve {
 		StakeTokenAmountAndRewardPerPerformanceCannotBothExist,
 		/// Link that created by a user can only be used to created by the user himself
 		UserReservedLink,
+		/// Theta of buy bonding curve should be not be zero
+		BuyCurveThetaCanNotBeZero,
+		/// Theta of sell bonding curve should be not be zero
+		SellCurveThetaCanNotBeZero,
 	}
 
 	#[pallet::hooks]
@@ -463,6 +476,25 @@ pub mod bonding_curve {
 			if Self::need_collect_host_cost(n) {
 				Self::collect_host_cost();
 			}
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn pre_upgrade() -> Result<(), &'static str> {
+			migrations::v1::pre_migrate::<T>()
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			if StorageVersion::<T>::get() == Releases::V0 {
+				StorageVersion::<T>::put(Releases::V1);
+				migrations::v1::migrate::<T>().saturating_add(T::DbWeight::get().reads_writes(1, 1))
+			} else {
+				T::DbWeight::get().reads(1)
+			}
+		}
+
+		#[cfg(feature = "try-runtime")]
+		fn post_upgrade() -> Result<(), &'static str> {
+			migrations::v1::post_migrate::<T>()
 		}
 	}
 
@@ -562,6 +594,25 @@ pub mod bonding_curve {
 			)
 		}
 
+		/// Create a new tapp
+		///
+		/// - `tapp_name`
+		/// - `ticker`
+		/// - `init_fund`
+		/// - `detail`
+		/// - `link`
+		/// - `max_allowed_hosts`
+		/// - `tapp_type`
+		/// - `fixed_token_mode`: is "fixed token mode", false will be "fixed fee mode"
+		/// - `reward_per_performance`: only works in "fixed fee mode"
+		/// - `stake_token_amount`: only works in "fixed token mode", specify reserved token amount of
+		/// 	eath miner
+		/// - `buy_curve_theta`: represents parameter of "y = k√x" curve, and `buy_curve_theta` is
+		///		100 times of `k`. If `buy_curve_theta` is none, will use the default value of
+		/// 	`DefaultBuyCurveTheta`
+		/// - `sell_curve_theta`: represents parameter of "y = k√x" curve, and `sell_curve_theta` is
+		///		100 times of `k`. If `sell_curve_theta` is none, will use the default value of
+		/// 	`DefaultSellCurveTheta`
 		#[pallet::weight(195_000_000)]
 		pub fn create_new_tapp(
 			sender: OriginFor<T>,
@@ -575,10 +626,10 @@ pub mod bonding_curve {
 			fixed_token_mode: bool,
 			reward_per_performance: Option<BalanceOf<T>>,
 			stake_token_amount: Option<BalanceOf<T>>,
+			buy_curve_theta: Option<u32>,
+			sell_curve_theta: Option<u32>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			let buy_curve = CurveType::UnsignedSquareRoot_10;
-			let sell_curve = CurveType::UnsignedSquareRoot_7;
 
 			extrinsic_procedure(
 				&who,
@@ -596,6 +647,19 @@ pub mod bonding_curve {
 					}
 
 					Self::check_tapp_fields_length(&tapp_name, &ticker, &detail, &link)?;
+					if let Some(buy_curve_theta) = buy_curve_theta {
+						ensure!(
+							!buy_curve_theta.is_zero(),
+							Error::<T>::BuyCurveThetaCanNotBeZero
+						);
+					}
+					if let Some(sell_curve_theta) = sell_curve_theta {
+						ensure!(
+							!sell_curve_theta.is_zero(),
+							Error::<T>::SellCurveThetaCanNotBeZero
+						);
+					}
+
 					ensure!(
 						!TAppNames::<T>::contains_key(&tapp_name),
 						Error::<T>::TAppNameAlreadyExist
@@ -620,7 +684,7 @@ pub mod bonding_curve {
 
 					let deposit_tea_amount =
 						Self::calculate_increase_amount_from_raise_curve_total_supply(
-							buy_curve,
+							buy_curve_theta.unwrap_or(T::DefaultBuyCurveTheta::get()),
 							0u32.into(),
 							init_fund,
 						)?;
@@ -646,6 +710,9 @@ pub mod bonding_curve {
 					TAppTickers::<T>::insert(&ticker, id);
 					TAppApprovedLinks::<T>::mutate(&link, |link_info| link_info.tapp_id = Some(id));
 
+					let buy_curve_theta = buy_curve_theta.unwrap_or(T::DefaultBuyCurveTheta::get());
+					let sell_curve_theta =
+						sell_curve_theta.unwrap_or(T::DefaultSellCurveTheta::get());
 					let billing_mode = match fixed_token_mode {
 						true => BillingMode::FixedHostingToken(
 							stake_token_amount.unwrap_or(Zero::zero()),
@@ -661,8 +728,8 @@ pub mod bonding_curve {
 							name: tapp_name.clone(),
 							ticker: ticker.clone(),
 							owner: who.clone(),
-							buy_curve,
-							sell_curve,
+							buy_curve_theta,
+							sell_curve_theta,
 							detail: detail.clone(),
 							link: link.clone(),
 							max_allowed_hosts,

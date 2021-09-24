@@ -201,6 +201,8 @@ fn create_new_fixed_fee_tapp_works() {
 			false,
 			Some(10000),
 			None,
+			None,
+			None,
 		));
 
 		// this is the first tapp so tapp id is 1
@@ -212,8 +214,8 @@ fn create_new_fixed_fee_tapp_works() {
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
 		assert_eq!(tapp_item.id, tapp_id);
-		assert_eq!(tapp_item.buy_curve, CurveType::UnsignedSquareRoot_10);
-		assert_eq!(tapp_item.sell_curve, CurveType::UnsignedSquareRoot_7);
+		assert_eq!(tapp_item.buy_curve_theta, DEFAULT_BUY_CURVE_THETA);
+		assert_eq!(tapp_item.sell_curve_theta, DEFAULT_SELL_CURVE_THETA);
 		assert_eq!(tapp_item.owner, user);
 		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
@@ -257,7 +259,9 @@ fn create_new_fixed_token_tapp_works() {
 			TAppType::Reddit,
 			true,
 			None,
-			Some(1000)
+			Some(1000),
+			None,
+			None,
 		));
 
 		// this is the first tapp so tapp id is 1
@@ -269,8 +273,8 @@ fn create_new_fixed_token_tapp_works() {
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
 		assert_eq!(tapp_item.id, tapp_id);
-		assert_eq!(tapp_item.buy_curve, CurveType::UnsignedSquareRoot_10);
-		assert_eq!(tapp_item.sell_curve, CurveType::UnsignedSquareRoot_7);
+		assert_eq!(tapp_item.buy_curve_theta, DEFAULT_BUY_CURVE_THETA);
+		assert_eq!(tapp_item.sell_curve_theta, DEFAULT_SELL_CURVE_THETA);
 		assert_eq!(tapp_item.owner, user);
 		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
@@ -304,6 +308,8 @@ fn npc_create_new_tapp_should_fail_if_enable_user_create_tapp_is_true() {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::NotAllowedNPCCreateTApp
 		);
@@ -332,6 +338,8 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::TAppNameAlreadyExist
 		);
@@ -360,7 +368,9 @@ fn create_new_tapp_should_fail_if_ticker_already_exist() {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::TAppTickerAlreadyExist
 		);
@@ -387,6 +397,8 @@ fn create_new_tapp_should_fail_if_not_allowed_user_create_tapp() {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::NotAllowedNormalUserCreateTApp,
 		);
@@ -419,7 +431,9 @@ fn create_new_tapp_should_fail_if_max_allowed_host_lower_than_min_allowed_host_c
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::MaxAllowedHostShouldLargerEqualThanMinAllowedHosts,
 		);
@@ -453,6 +467,8 @@ fn create_new_tapp_should_fail_if_stake_token_is_none_in_fixed_token_mode() {
 				true,
 				None,
 				None,
+				None,
+				None,
 			),
 			Error::<Test>::StakeTokenIsNoneInFixedTokenMode,
 		);
@@ -479,6 +495,8 @@ fn create_new_tapp_should_fail_if_link_not_in_approve_list() {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::LinkNotInApprovedList,
 		);
@@ -513,6 +531,8 @@ fn create_new_tapp_should_fail_if_link_created_by_other_users() {
 				true,
 				None,
 				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::UserReservedLink,
 		);
@@ -562,6 +582,8 @@ fn create_new_tapp_should_fail_if_stake_token_is_zero_in_fixed_token_mode() {
 				true,
 				None,
 				Some(0),
+				None,
+				None,
 			),
 			Error::<Test>::StakeTokenShouldNotBeZero,
 		);
@@ -593,6 +615,8 @@ fn create_new_tapp_should_fail_if_reward_per_performance_is_none_in_fixed_fee_mo
 				10,
 				TAppType::Twitter,
 				false,
+				None,
+				None,
 				None,
 				None,
 			),
@@ -628,6 +652,8 @@ fn create_new_tapp_should_fail_if_reward_per_performance_is_zero_in_fixed_fee_mo
 				false,
 				Some(0),
 				None,
+				None,
+				None,
 			),
 			Error::<Test>::RewardPerPerformanceShouldNotBeZero,
 		);
@@ -653,7 +679,9 @@ fn create_new_tapp_should_fail_if_name_is_too_long() {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::TAppTickerIsTooLong,
 		);
@@ -679,7 +707,9 @@ fn create_new_tapp_should_fail_if_name_is_too_short() {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::TAppTickerIsTooShort,
 		);
@@ -705,7 +735,9 @@ fn create_new_tapp_should_fail_if_detail_is_too_long() {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::TAppDetailIsTooLong,
 		);
@@ -731,7 +763,9 @@ fn create_new_tapp_should_fail_if_link_is_too_long() {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::TAppLinkIsTooLong,
 		);
@@ -764,7 +798,9 @@ fn create_new_tapp_should_fail_if_free_balance_is_not_enough() {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::InsufficientFreeBalance,
 		);
@@ -797,7 +833,9 @@ fn create_new_tapp_should_fail_if_tapp_amount_is_too_low() {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::BuyTeaAmountCanNotBeZero,
 		);
@@ -823,7 +861,9 @@ fn create_new_tapp_should_fail_if_ticker_is_too_long() {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			),
 			Error::<Test>::TAppNameIsTooLong
 		);
@@ -1011,6 +1051,8 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 			true,
 			None,
 			Some(1000),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -1343,6 +1385,8 @@ fn consume_works_with_miner() {
 			true,
 			None,
 			Some(1_000_000),
+			None,
+			None,
 		));
 
 		let cml_id1 = 11;
@@ -1621,6 +1665,8 @@ fn host_works_with_fixed_fee() {
 			false,
 			Some(1000),
 			None,
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -1866,7 +1912,9 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			TAppType::Twitter,
 			true,
 			None,
-			Some(1000)
+			Some(1000),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -1918,7 +1966,9 @@ fn host_should_fail_if_cml_is_full_load() {
 			TAppType::Twitter,
 			true,
 			None,
-			Some(1000)
+			Some(1000),
+			None,
+			None,
 		));
 
 		let npc = NPCAccount::<Test>::get();
@@ -1940,7 +1990,9 @@ fn host_should_fail_if_cml_is_full_load() {
 			TAppType::Twitter,
 			true,
 			None,
-			Some(1000)
+			Some(1000),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -2157,7 +2209,9 @@ fn unhost_should_fail_if_cml_not_host_the_tapp() {
 			TAppType::Twitter,
 			true,
 			None,
-			Some(1000)
+			Some(1000),
+			None,
+			None,
 		));
 
 		let tapp_id = 1;
@@ -2331,6 +2385,8 @@ pub fn create_default_tapp(tapp_owner: u64) -> DispatchResult {
 		true,
 		None,
 		Some(1000),
+		None,
+		None,
 	)
 }
 

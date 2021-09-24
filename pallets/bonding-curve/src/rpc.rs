@@ -5,16 +5,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub fn query_price(tapp_id: TAppId) -> (BalanceOf<T>, BalanceOf<T>) {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		let buy_price = match tapp_item.buy_curve {
-			CurveType::UnsignedLinear => T::LinearCurve::buy_price(total_supply),
-			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::buy_price(total_supply),
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::buy_price(total_supply),
-		};
-		let sell_price = match tapp_item.sell_curve {
-			CurveType::UnsignedLinear => T::LinearCurve::buy_price(total_supply),
-			CurveType::UnsignedSquareRoot_10 => T::UnsignedSquareRoot_10::buy_price(total_supply),
-			CurveType::UnsignedSquareRoot_7 => T::UnsignedSquareRoot_7::buy_price(total_supply),
-		};
+		let buy_curve = UnsignedSquareRoot::new(tapp_item.buy_curve_theta);
+		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_theta);
+		let buy_price = buy_curve.buy_price(total_supply);
+		let sell_price = sell_curve.buy_price(total_supply);
 		(buy_price, sell_price)
 	}
 
@@ -442,7 +436,9 @@ mod tests {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			));
 			let (buy_price, sell_price) = BondingCurve::query_price(1);
 			assert_eq!(buy_price, 100000000000000);
@@ -466,7 +462,9 @@ mod tests {
 				TAppType::Twitter,
 				true,
 				None,
-				Some(1000)
+				Some(1000),
+				None,
+				None,
 			));
 			let (buy_price, sell_price) = BondingCurve::query_price(2);
 			assert_eq!(buy_price, 1000000000000000);

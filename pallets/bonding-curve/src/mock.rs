@@ -1,11 +1,12 @@
 use crate as pallet_bonding_curve;
 use auction_interface::AuctionOperation;
-use bonding_curve_impl::linear::UnsignedLinearCurve;
-use bonding_curve_impl::square_root::UnsignedSquareRoot;
+use codec::{Decode, Encode};
 use frame_support::parameter_types;
+use frame_support::traits::{Everything, Get};
 use frame_system as system;
 use genesis_exchange_interface::MiningOperation;
 use node_primitives::Balance;
+use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -15,6 +16,19 @@ use tea_interface::TeaOperation;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+
+const SEED_FRESH_DURATION: u64 = 7 * 24 * 60 * 10;
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+pub struct SeedFreshDuration {
+	duration: u64,
+}
+
+impl Get<u64> for SeedFreshDuration {
+	fn get() -> u64 {
+		SEED_FRESH_DURATION
+	}
+}
 
 pub struct TeaOperationMock {}
 
@@ -111,7 +125,7 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
@@ -150,6 +164,8 @@ pub const TOTAL_SUPPLY_MAX_VALUE: Balance = 1000000000000000000000000;
 pub const MIN_TAPP_HOSTS_AMOUNT: u32 = 1;
 pub const HOST_LOCKING_BLOCK_HEIGHT: u64 = 1000;
 pub const TAPP_LINK_DESCRIPTION_MAX_LENGTH: u32 = 140;
+pub const DEFAULT_BUY_CURVE_THETA: u32 = 10;
+pub const DEFAULT_SELL_CURVE_THETA: u32 = 7;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
@@ -166,6 +182,8 @@ parameter_types! {
 	pub const MinTappHostsCount: u32 = MIN_TAPP_HOSTS_AMOUNT;
 	pub const HostLockingBlockHeight: u64 = HOST_LOCKING_BLOCK_HEIGHT;
 	pub const TAppLinkDescriptionMaxLength: u32 = TAPP_LINK_DESCRIPTION_MAX_LENGTH;
+	pub const DefaultBuyCurveTheta: u32 = DEFAULT_BUY_CURVE_THETA;
+	pub const DefaultSellCurveTheta: u32 = DEFAULT_SELL_CURVE_THETA;
 }
 
 impl pallet_bonding_curve::Config for Test {
@@ -178,9 +196,6 @@ impl pallet_bonding_curve::Config for Test {
 	type TAppTickerMaxLength = TAppTickerMaxLength;
 	type TAppDetailMaxLength = TAppDetailMaxLength;
 	type TAppLinkMaxLength = TAppLinkMaxLength;
-	type LinearCurve = UnsignedLinearCurve<Balance, 100>;
-	type UnsignedSquareRoot_10 = UnsignedSquareRoot<Balance, 10>;
-	type UnsignedSquareRoot_7 = UnsignedSquareRoot<Balance, 7>;
 	type PoolBalanceReversePrecision = PoolBalanceReversePrecision;
 	type HostArrangeDuration = HostArrangeDuration;
 	type HostCostCollectionDuration = HostCostCollectionDuration;
@@ -190,6 +205,8 @@ impl pallet_bonding_curve::Config for Test {
 	type MinTappHostsCount = MinTappHostsCount;
 	type HostLockingBlockHeight = HostLockingBlockHeight;
 	type TAppLinkDescriptionMaxLength = TAppLinkDescriptionMaxLength;
+	type DefaultBuyCurveTheta = DefaultBuyCurveTheta;
+	type DefaultSellCurveTheta = DefaultSellCurveTheta;
 }
 
 pub const STAKING_PRICE: Balance = 1000;
@@ -199,7 +216,6 @@ parameter_types! {
 	pub const StakingPrice: Balance = STAKING_PRICE;
 	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 	pub const StakingPeriodLength: u32 = 100;
-	pub const SeedFreshDuration: u32 = 7 * 30 * 24 * 60 * 10;
 	pub const StakingSlotsMaxLength: u32 = 1024;
 	pub const StopMiningPunishment: Balance = 100;
 }
