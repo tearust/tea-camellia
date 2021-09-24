@@ -1,9 +1,12 @@
 use crate as pallet_auction;
 use bonding_curve_interface::BondingCurveOperation;
+use codec::{Decode, Encode};
 use frame_support::parameter_types;
+use frame_support::traits::{Everything, Get};
 use frame_system as system;
 use genesis_exchange_interface::MiningOperation;
 use node_primitives::{Balance, BlockNumber};
+use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -13,6 +16,19 @@ use tea_interface::TeaOperation;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+
+pub const SEED_FRESH_DURATION: u64 = 7 * 24 * 60 * 10;
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+pub struct SeedFreshDuration {
+	duration: u64,
+}
+
+impl Get<u64> for SeedFreshDuration {
+	fn get() -> u64 {
+		SEED_FRESH_DURATION
+	}
+}
 
 pub struct BondingCurveOperationMock {}
 
@@ -120,7 +136,7 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
@@ -152,7 +168,6 @@ parameter_types! {
 	pub const StakingPrice: Balance = STAKING_PRICE;
 	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 	pub const StakingPeriodLength: u32 = 100;
-	pub const SeedFreshDuration: u32 = 7 * 30 * 24 * 60 * 10;
 	pub const StakingSlotsMaxLength: u32 = 1024;
 	pub const StopMiningPunishment: Balance = 100;
 }

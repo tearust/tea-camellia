@@ -1,5 +1,6 @@
 use crate as pallet_tea;
 use frame_support::parameter_types;
+use frame_support::traits::Everything;
 use frame_system as system;
 use node_primitives::Balance;
 use pallet_cml::{MachineId, ServiceTaskPoint, Task};
@@ -37,7 +38,7 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();

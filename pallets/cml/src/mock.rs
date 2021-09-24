@@ -3,12 +3,15 @@ use crate::generator::init_genesis;
 use crate::{CouponConfig, GenesisCoupons, GenesisSeeds};
 use auction_interface::AuctionOperation;
 use bonding_curve_interface::BondingCurveOperation;
+use codec::{Decode, Encode};
 use frame_benchmarking::Zero;
 use frame_support::pallet_prelude::*;
 use frame_support::parameter_types;
+use frame_support::traits::{Everything, Get};
 use frame_system as system;
 use genesis_exchange_interface::MiningOperation;
 use node_primitives::Balance;
+use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -23,6 +26,19 @@ type Block = frame_system::mocking::MockBlock<Test>;
 pub const DOLLARS: node_primitives::Balance = 100000;
 pub const INVALID_MINING_CML_ID: u64 = 99;
 pub const HOSTING_CML_ID: u64 = 98;
+
+pub const SEED_FRESH_DURATION: u64 = 7 * 24 * 60 * 10;
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+pub struct SeedFreshDuration {
+	duration: u64,
+}
+
+impl Get<u64> for SeedFreshDuration {
+	fn get() -> u64 {
+		SEED_FRESH_DURATION
+	}
+}
 
 pub struct BondingCurveOperationMock {}
 
@@ -153,7 +169,7 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
@@ -181,7 +197,6 @@ impl system::Config for Test {
 pub const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
 pub const STAKING_PERIOD_LENGTH: u32 = 100;
 pub const STAKING_PRICE: Balance = 1000;
-pub const SEED_FRESH_DURATION: u32 = 7 * 30 * 24 * 60 * 10;
 pub const STAKING_SLOTS_MAX_LENGTH: u32 = 100;
 pub const STOP_MINING_PUNISHMENT: Balance = 100;
 
@@ -190,7 +205,6 @@ parameter_types! {
 	pub const StakingPrice: Balance = STAKING_PRICE;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
-	pub const SeedFreshDuration: u32 = SEED_FRESH_DURATION;
 	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
 	pub const StopMiningPunishment: Balance = STOP_MINING_PUNISHMENT;
 }

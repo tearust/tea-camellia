@@ -1,5 +1,6 @@
 use crate as pallet_utils;
 use frame_support::parameter_types;
+use frame_support::traits::Everything;
 use frame_system as system;
 use node_primitives::Balance;
 use sp_core::H256;
@@ -36,7 +37,7 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-	type BaseCallFilter = ();
+	type BaseCallFilter = Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
