@@ -465,6 +465,8 @@ pub mod bonding_curve {
 		BuyCurveThetaCanNotBeZero,
 		/// Theta of sell bonding curve should be not be zero
 		SellCurveThetaCanNotBeZero,
+		/// Theta of buy bonding curve should larger equal than sell's
+		BuyCurveThetaShouldLargerEqualThanSellCurveTheta,
 	}
 
 	#[pallet::hooks]
@@ -659,6 +661,11 @@ pub mod bonding_curve {
 							Error::<T>::SellCurveThetaCanNotBeZero
 						);
 					}
+					ensure!(
+						buy_curve_theta.unwrap_or(T::DefaultBuyCurveTheta::get())
+							>= sell_curve_theta.unwrap_or(T::DefaultSellCurveTheta::get()),
+						Error::<T>::BuyCurveThetaShouldLargerEqualThanSellCurveTheta
+					);
 
 					ensure!(
 						!TAppNames::<T>::contains_key(&tapp_name),

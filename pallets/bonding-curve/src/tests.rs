@@ -289,6 +289,67 @@ fn create_new_fixed_token_tapp_works() {
 }
 
 #[test]
+fn create_new_tapp_with_custom_theta_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		let tapp_name = "test name";
+		let ticker = "tea";
+		let detail = "test detail";
+		let link = "https://teaproject.org";
+		let init_fund = 1000000;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		let buy_curve_theta = 100;
+		let sell_curve_theta = 99;
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into(),
+			None,
+		));
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(user),
+			tapp_name.as_bytes().to_vec(),
+			ticker.as_bytes().to_vec(),
+			init_fund,
+			detail.as_bytes().to_vec(),
+			link.as_bytes().to_vec(),
+			10,
+			TAppType::Reddit,
+			true,
+			None,
+			Some(1000),
+			Some(buy_curve_theta),
+			Some(sell_curve_theta),
+		));
+
+		// this is the first tapp so tapp id is 1
+		let tapp_id = 1;
+		assert_eq!(LastTAppId::<Test>::get(), tapp_id);
+		assert_eq!(AccountTable::<Test>::get(user, tapp_id), init_fund);
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
+		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
+		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
+		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
+		assert_eq!(tapp_item.id, tapp_id);
+		assert_eq!(tapp_item.buy_curve_theta, buy_curve_theta);
+		assert_eq!(tapp_item.sell_curve_theta, sell_curve_theta);
+		assert_eq!(tapp_item.owner, user);
+		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
+		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
+		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
+		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99993400);
+		assert_eq!(tapp_item.max_allowed_hosts, 10);
+		assert_eq!(tapp_item.billing_mode, BillingMode::FixedHostingToken(1000));
+		assert_eq!(tapp_item.tapp_type, TAppType::Reddit);
+		assert_eq!(tapp_item.status, TAppStatus::Pending);
+	})
+}
+
+#[test]
 fn npc_create_new_tapp_should_fail_if_enable_user_create_tapp_is_true() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
@@ -866,6 +927,90 @@ fn create_new_tapp_should_fail_if_ticker_is_too_long() {
 				None,
 			),
 			Error::<Test>::TAppNameIsTooLong
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_buy_curve_theta_is_zero() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+				Some(0),
+				None,
+			),
+			Error::<Test>::BuyCurveThetaCanNotBeZero
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_sell_curve_theta_is_zero() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+				None,
+				Some(0),
+			),
+			Error::<Test>::SellCurveThetaCanNotBeZero
+		);
+	})
+}
+
+#[test]
+fn create_new_tapp_should_fail_if_buy_curve_theta_small_than_sell_curve() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_noop!(
+			BondingCurve::create_new_tapp(
+				Origin::signed(user),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+				Some(1),
+				Some(2),
+			),
+			Error::<Test>::BuyCurveThetaShouldLargerEqualThanSellCurveTheta
 		);
 	})
 }
