@@ -32,7 +32,7 @@ pub trait AuctionApi<BlockHash, AccountId> {
 		auction_id: u64,
 		who: AccountId,
 		at: Option<BlockHash>,
-	) -> Result<(Price, bool)>;
+	) -> Result<(Price, Option<Price>, bool)>;
 
 	#[rpc(name = "auction_penaltyAmount")]
 	fn penalty_amount(
@@ -126,16 +126,20 @@ where
 		auction_id: u64,
 		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<(Price, bool)> {
+	) -> Result<(Price, Option<Price>, bool)> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
-		let (amount, is_mining): (Balance, bool) = api
+		let (amount, origin, is_mining): (Balance, Option<Balance>, bool) = api
 			.estimate_minimum_bid_price(&at, auction_id, &who)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok((Price(amount), is_mining))
+		Ok((
+			Price(amount),
+			origin.map(|balance| Price(balance)),
+			is_mining,
+		))
 	}
 
 	fn penalty_amount(

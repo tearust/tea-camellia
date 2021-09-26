@@ -17,7 +17,7 @@ sp_api::decl_runtime_apis! {
 
 		fn current_auction_list() -> Vec<u64>;
 
-		fn estimate_minimum_bid_price(auction_id: u64, who: &AccountId) -> (Balance, bool);
+		fn estimate_minimum_bid_price(auction_id: u64, who: &AccountId) -> (Balance, Option<Balance>, bool);
 
 		fn penalty_amount(auction_id: u64, who: &AccountId) -> Balance;
 	}

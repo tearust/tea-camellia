@@ -18,23 +18,32 @@ impl<T: auction::Config> auction::Pallet<T> {
 		AuctionStore::<T>::iter().map(|(id, _)| id).collect()
 	}
 
-	/// first return value is the minimum bid price, the second return value indicates if the cml
-	/// is mining
+	/// return values:
+	/// 1. minimum bid price
+	/// 2. original bid price, if not bid before return `None`
+	/// 3. indicates if the cml is mining
 	pub fn estimate_minimum_bid_price(
 		auction_id: AuctionId,
 		who: &T::AccountId,
-	) -> (BalanceOf<T>, bool) {
+	) -> (BalanceOf<T>, Option<BalanceOf<T>>, bool) {
 		if !AuctionStore::<T>::contains_key(auction_id) {
-			return (Default::default(), false);
+			return (Default::default(), None, false);
 		}
+
+		let current_bid_price = match BidStore::<T>::contains_key(who, auction_id) {
+			true => Some(BidStore::<T>::get(who, auction_id).price),
+			false => None,
+		};
+
 		let min_bid_price = Self::min_bid_price(&AuctionStore::<T>::get(auction_id), &who);
-		match min_bid_price {
+		let (estimate_minimum_bid_price, is_mining) = match min_bid_price {
 			Ok(min_bid_price) => {
 				let auction_item = AuctionStore::<T>::get(auction_id);
 				Self::essential_bid_balance(min_bid_price, &auction_item.cml_id)
 			}
 			_ => (Default::default(), false),
-		}
+		};
+		(estimate_minimum_bid_price, current_bid_price, is_mining)
 	}
 
 	pub fn penalty_amount(auction_id: AuctionId, who: &T::AccountId) -> BalanceOf<T> {
