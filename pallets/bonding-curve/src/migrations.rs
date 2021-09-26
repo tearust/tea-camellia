@@ -111,8 +111,8 @@ pub(crate) mod v0 {
 				status: self.status,
 				tapp_type: self.tapp_type,
 				billing_mode: self.billing_mode,
-				buy_curve_theta: to_theta(self.buy_curve),
-				sell_curve_theta: to_theta(self.sell_curve),
+				buy_curve_k: to_theta(self.buy_curve),
+				sell_curve_k: to_theta(self.sell_curve),
 			}
 		}
 	}

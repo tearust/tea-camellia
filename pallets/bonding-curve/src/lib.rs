@@ -609,11 +609,11 @@ pub mod bonding_curve {
 		/// - `reward_per_performance`: only works in "fixed fee mode"
 		/// - `stake_token_amount`: only works in "fixed token mode", specify reserved token amount of
 		/// 	eath miner
-		/// - `buy_curve_theta`: represents parameter of "y = k√x" curve, and `buy_curve_theta` is
-		///		100 times of `k`. If `buy_curve_theta` is none, will use the default value of
+		/// - `buy_curve_k`: represents parameter of "y = k√x" curve, and `buy_curve_k` is
+		///		100 times of `k`. If `buy_curve_k` is none, will use the default value of
 		/// 	`DefaultBuyCurveTheta`
-		/// - `sell_curve_theta`: represents parameter of "y = k√x" curve, and `sell_curve_theta` is
-		///		100 times of `k`. If `sell_curve_theta` is none, will use the default value of
+		/// - `sell_curve_k`: represents parameter of "y = k√x" curve, and `sell_curve_k` is
+		///		100 times of `k`. If `sell_curve_k` is none, will use the default value of
 		/// 	`DefaultSellCurveTheta`
 		#[pallet::weight(195_000_000)]
 		pub fn create_new_tapp(
@@ -628,8 +628,8 @@ pub mod bonding_curve {
 			fixed_token_mode: bool,
 			reward_per_performance: Option<BalanceOf<T>>,
 			stake_token_amount: Option<BalanceOf<T>>,
-			buy_curve_theta: Option<u32>,
-			sell_curve_theta: Option<u32>,
+			buy_curve_k: Option<u32>,
+			sell_curve_k: Option<u32>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
@@ -649,21 +649,21 @@ pub mod bonding_curve {
 					}
 
 					Self::check_tapp_fields_length(&tapp_name, &ticker, &detail, &link)?;
-					if let Some(buy_curve_theta) = buy_curve_theta {
+					if let Some(buy_curve_k) = buy_curve_k {
 						ensure!(
-							!buy_curve_theta.is_zero(),
+							!buy_curve_k.is_zero(),
 							Error::<T>::BuyCurveThetaCanNotBeZero
 						);
 					}
-					if let Some(sell_curve_theta) = sell_curve_theta {
+					if let Some(sell_curve_k) = sell_curve_k {
 						ensure!(
-							!sell_curve_theta.is_zero(),
+							!sell_curve_k.is_zero(),
 							Error::<T>::SellCurveThetaCanNotBeZero
 						);
 					}
 					ensure!(
-						buy_curve_theta.unwrap_or(T::DefaultBuyCurveTheta::get())
-							>= sell_curve_theta.unwrap_or(T::DefaultSellCurveTheta::get()),
+						buy_curve_k.unwrap_or(T::DefaultBuyCurveTheta::get())
+							>= sell_curve_k.unwrap_or(T::DefaultSellCurveTheta::get()),
 						Error::<T>::BuyCurveThetaShouldLargerEqualThanSellCurveTheta
 					);
 
@@ -691,7 +691,7 @@ pub mod bonding_curve {
 
 					let deposit_tea_amount =
 						Self::calculate_increase_amount_from_raise_curve_total_supply(
-							buy_curve_theta.unwrap_or(T::DefaultBuyCurveTheta::get()),
+							buy_curve_k.unwrap_or(T::DefaultBuyCurveTheta::get()),
 							0u32.into(),
 							init_fund,
 						)?;
@@ -717,9 +717,8 @@ pub mod bonding_curve {
 					TAppTickers::<T>::insert(&ticker, id);
 					TAppApprovedLinks::<T>::mutate(&link, |link_info| link_info.tapp_id = Some(id));
 
-					let buy_curve_theta = buy_curve_theta.unwrap_or(T::DefaultBuyCurveTheta::get());
-					let sell_curve_theta =
-						sell_curve_theta.unwrap_or(T::DefaultSellCurveTheta::get());
+					let buy_curve_k = buy_curve_k.unwrap_or(T::DefaultBuyCurveTheta::get());
+					let sell_curve_k = sell_curve_k.unwrap_or(T::DefaultSellCurveTheta::get());
 					let billing_mode = match fixed_token_mode {
 						true => BillingMode::FixedHostingToken(
 							stake_token_amount.unwrap_or(Zero::zero()),
@@ -735,8 +734,8 @@ pub mod bonding_curve {
 							name: tapp_name.clone(),
 							ticker: ticker.clone(),
 							owner: who.clone(),
-							buy_curve_theta,
-							sell_curve_theta,
+							buy_curve_k,
+							sell_curve_k,
 							detail: detail.clone(),
 							link: link.clone(),
 							max_allowed_hosts,

@@ -342,7 +342,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 				let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 				Self::calculate_increase_amount_from_raise_curve_total_supply(
-					tapp_item.buy_curve_theta,
+					tapp_item.buy_curve_k,
 					total_supply,
 					tapp_amount,
 				)
@@ -365,7 +365,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		Self::calculate_increase_amount_from_raise_curve_total_supply(
-			tapp_item.sell_curve_theta,
+			tapp_item.sell_curve_k,
 			total_supply,
 			tapp_amount,
 		)
@@ -395,7 +395,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		let buy_curve = UnsignedSquareRoot::new(tapp_item.buy_curve_theta);
+		let buy_curve = UnsignedSquareRoot::new(tapp_item.buy_curve_k);
 		let current_buy_area_tea_amount = buy_curve.pool_balance(total_supply);
 		let after_increase_tea_amount = current_buy_area_tea_amount
 			.checked_add(&tea_amount)
@@ -456,7 +456,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			Error::<T>::InsufficientTotalSupply
 		);
 
-		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_theta);
+		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_k);
 		let current_pool_balance = sell_curve.pool_balance(total_supply);
 		let after_sell_pool_balance =
 			sell_curve.pool_balance(total_supply.saturating_sub(tapp_amount));
@@ -476,7 +476,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tea_amount: BalanceOf<T>,
 	) -> Result<(BalanceOf<T>, BalanceOf<T>), DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
-		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_theta);
+		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_k);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
 		let current_reserve_pool_tea = sell_curve.pool_balance(total_supply);
 

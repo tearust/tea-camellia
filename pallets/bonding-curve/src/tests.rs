@@ -214,8 +214,8 @@ fn create_new_fixed_fee_tapp_works() {
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
 		assert_eq!(tapp_item.id, tapp_id);
-		assert_eq!(tapp_item.buy_curve_theta, DEFAULT_BUY_CURVE_THETA);
-		assert_eq!(tapp_item.sell_curve_theta, DEFAULT_SELL_CURVE_THETA);
+		assert_eq!(tapp_item.buy_curve_k, DEFAULT_BUY_CURVE_THETA);
+		assert_eq!(tapp_item.sell_curve_k, DEFAULT_SELL_CURVE_THETA);
 		assert_eq!(tapp_item.owner, user);
 		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
@@ -273,8 +273,8 @@ fn create_new_fixed_token_tapp_works() {
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
 		assert_eq!(tapp_item.id, tapp_id);
-		assert_eq!(tapp_item.buy_curve_theta, DEFAULT_BUY_CURVE_THETA);
-		assert_eq!(tapp_item.sell_curve_theta, DEFAULT_SELL_CURVE_THETA);
+		assert_eq!(tapp_item.buy_curve_k, DEFAULT_BUY_CURVE_THETA);
+		assert_eq!(tapp_item.sell_curve_k, DEFAULT_SELL_CURVE_THETA);
 		assert_eq!(tapp_item.owner, user);
 		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
@@ -334,8 +334,8 @@ fn create_new_tapp_with_custom_theta_works() {
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
 		assert_eq!(tapp_item.id, tapp_id);
-		assert_eq!(tapp_item.buy_curve_theta, buy_curve_theta);
-		assert_eq!(tapp_item.sell_curve_theta, sell_curve_theta);
+		assert_eq!(tapp_item.buy_curve_k, buy_curve_theta);
+		assert_eq!(tapp_item.sell_curve_k, sell_curve_theta);
 		assert_eq!(tapp_item.owner, user);
 		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);

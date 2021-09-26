@@ -5,8 +5,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub fn query_price(tapp_id: TAppId) -> (BalanceOf<T>, BalanceOf<T>) {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
-		let buy_curve = UnsignedSquareRoot::new(tapp_item.buy_curve_theta);
-		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_theta);
+		let buy_curve = UnsignedSquareRoot::new(tapp_item.buy_curve_k);
+		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_k);
 		let buy_price = buy_curve.buy_price(total_supply);
 		let sell_price = sell_curve.buy_price(total_supply);
 		(buy_price, sell_price)

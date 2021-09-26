@@ -72,8 +72,8 @@ pub struct TAppItem<AccountId, Balance, BlockNumber> {
 	pub status: TAppStatus<BlockNumber>,
 	pub tapp_type: TAppType,
 	pub billing_mode: BillingMode<Balance>,
-	pub buy_curve_theta: u32,
-	pub sell_curve_theta: u32,
+	pub buy_curve_k: u32,
+	pub sell_curve_k: u32,
 }
 
 impl<AccountId, Balance, BlockNumber> TAppItem<AccountId, Balance, BlockNumber> {
@@ -104,8 +104,8 @@ where
 			status: TAppStatus::Pending,
 			tapp_type: TAppType::Twitter,
 			billing_mode: BillingMode::FixedHostingToken(Default::default()),
-			buy_curve_theta: 10,
-			sell_curve_theta: 7,
+			buy_curve_k: 10,
+			sell_curve_k: 7,
 		}
 	}
 }
