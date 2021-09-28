@@ -1480,8 +1480,8 @@ impl_runtime_apis! {
 			BondingCurve::query_price(tapp_id)
 		}
 
-		fn estimate_required_tea_when_buy(tapp_id: Option<u64>, token_amount: Balance) -> Balance {
-			BondingCurve::estimate_required_tea_when_buy(tapp_id, token_amount)
+		fn estimate_required_tea_when_buy(tapp_id: Option<u64>, token_amount: Balance, buy_curve_k: Option<u32>) -> Balance {
+			BondingCurve::estimate_required_tea_when_buy(tapp_id, token_amount, buy_curve_k)
 		}
 
 		fn estimate_receive_tea_when_sell(tapp_id: u64, token_amount: Balance) -> Balance {

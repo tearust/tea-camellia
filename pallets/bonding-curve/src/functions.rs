@@ -92,7 +92,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let deposit_tea_amount = Self::calculate_buy_amount(Some(tapp_id), tapp_amount)?;
+		let deposit_tea_amount = Self::calculate_buy_amount(Some(tapp_id), tapp_amount, None)?;
 		let reserved_tea_amount = Self::calculate_raise_reserve_amount(tapp_id, tapp_amount)?;
 		ensure!(
 			deposit_tea_amount >= reserved_tea_amount,
@@ -336,6 +336,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn calculate_buy_amount(
 		tapp_id: Option<TAppId>,
 		tapp_amount: BalanceOf<T>,
+		buy_curve_k: Option<u32>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		match tapp_id {
 			Some(tapp_id) => {
@@ -348,9 +349,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				)
 			}
 			None => {
-				// by default total supply is zero, buy curve is UnsignedSquareRoot_10
+				let curve_k = buy_curve_k.unwrap_or(T::DefaultBuyCurveTheta::get());
 				Self::calculate_increase_amount_from_raise_curve_total_supply(
-					T::DefaultBuyCurveTheta::get(),
+					curve_k,
 					Zero::zero(),
 					tapp_amount,
 				)
@@ -372,11 +373,11 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	}
 
 	pub(crate) fn calculate_increase_amount_from_raise_curve_total_supply(
-		curve_theta: u32,
+		curve_k: u32,
 		total_supply: BalanceOf<T>,
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
-		let current_curve = UnsignedSquareRoot::new(curve_theta);
+		let current_curve = UnsignedSquareRoot::new(curve_k);
 		let current_pool_balance = current_curve.pool_balance(total_supply);
 
 		let after_buy_pool_balance = current_curve.pool_balance(

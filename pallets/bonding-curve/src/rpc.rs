@@ -15,8 +15,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub fn estimate_required_tea_when_buy(
 		tapp_id: Option<TAppId>,
 		tapp_amount: BalanceOf<T>,
+		buy_curve_k: Option<u32>,
 	) -> BalanceOf<T> {
-		match Self::calculate_buy_amount(tapp_id, tapp_amount) {
+		match Self::calculate_buy_amount(tapp_id, tapp_amount, buy_curve_k) {
 			Ok(result) => result,
 			Err(e) => {
 				log::error!("calculation failed: {:?}", e);

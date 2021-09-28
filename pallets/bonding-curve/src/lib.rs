@@ -783,7 +783,7 @@ pub mod bonding_curve {
 						Error::<T>::OperationAmountCanNotBeZero
 					);
 					let deposit_tea_amount =
-						Self::calculate_buy_amount(Some(tapp_id), tapp_amount)?;
+						Self::calculate_buy_amount(Some(tapp_id), tapp_amount, None)?;
 					ensure!(
 						!deposit_tea_amount.is_zero(),
 						Error::<T>::BuyTeaAmountCanNotBeZero

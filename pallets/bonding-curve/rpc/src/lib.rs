@@ -19,13 +19,14 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	#[rpc(name = "bonding_queryPrice")]
 	fn query_price(&self, tapp_id: u64, at: Option<BlockHash>) -> Result<(Price, Price)>;
 
-	/// if `tapp_id` is `None` will calculating total supply with zero, and buy curve with
-	/// `UnsignedSquareRoot_10`
+	/// if `tapp_id` is `None` will calculating total supply with zero, and if `buy_curve_k` is `None` will use
+	/// default k value (current is 10).
 	#[rpc(name = "bonding_estimateTeaRequiredToBuyGivenToken")]
 	fn estimate_required_tea_when_buy(
 		&self,
 		tapp_id: Option<u64>,
 		token_amount: Balance,
+		buy_curve_k: Option<u32>,
 		at: Option<BlockHash>,
 	) -> Result<Price>;
 
@@ -284,6 +285,7 @@ where
 		&self,
 		tapp_id: Option<u64>,
 		token_amount: Balance,
+		buy_curve_k: Option<u32>,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Price> {
 		let api = self.client.runtime_api();
@@ -292,7 +294,7 @@ where
 			self.client.info().best_hash));
 
 		let result: Balance = api
-			.estimate_required_tea_when_buy(&at, tapp_id, token_amount)
+			.estimate_required_tea_when_buy(&at, tapp_id, token_amount, buy_curve_k)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
 	}
