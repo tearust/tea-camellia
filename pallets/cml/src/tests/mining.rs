@@ -452,7 +452,9 @@ fn stop_mining_works_with_cml_staking() {
 
 		let cml_id2: CmlId = 6;
 		UserCmlStore::<Test>::insert(user2, cml_id2, ());
-		let mut cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100));
+		let mut seed2 = seed_from_lifespan(cml_id2, 100);
+		seed2.cml_type = CmlType::B;
+		let mut cml2 = CML::from_genesis_seed(seed2);
 		cml2.set_owner(&user2);
 		CmlStore::<Test>::insert(cml_id2, cml2);
 
@@ -494,15 +496,15 @@ fn stop_mining_works_with_cml_staking() {
 
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&miner),
-			amount - STOP_MINING_PUNISHMENT * 2
+			amount - STOP_MINING_PUNISHMENT * 6
 		);
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user1),
-			amount + STOP_MINING_PUNISHMENT
+			amount + STOP_MINING_PUNISHMENT * 4
 		);
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&user2),
-			amount + STOP_MINING_PUNISHMENT
+			amount + STOP_MINING_PUNISHMENT * 2
 		);
 	})
 }

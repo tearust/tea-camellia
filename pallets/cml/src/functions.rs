@@ -121,7 +121,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 			if staking_item.owner.eq(owner) {
 				continue;
 			}
-			length += 1;
+
+			if let Some(cml_id) = staking_item.cml {
+				length += CmlStore::<T>::get(cml_id).staking_weight();
+			} else {
+				length += 1;
+			}
 		}
 
 		length
@@ -133,10 +138,17 @@ impl<T: cml::Config> cml::Pallet<T> {
 			if staking_item.owner.eq(owner) {
 				continue;
 			}
+
+			let punishment = if let Some(cml_id) = staking_item.cml {
+				T::StopMiningPunishment::get() * CmlStore::<T>::get(cml_id).staking_weight().into()
+			} else {
+				T::StopMiningPunishment::get()
+			};
+
 			if let Err(e) = T::CurrencyOperations::transfer(
 				owner,
 				&staking_item.owner,
-				T::StopMiningPunishment::get(),
+				punishment,
 				ExistenceRequirement::AllowDeath,
 			) {
 				// see https://github.com/tearust/tea-camellia/issues/13
