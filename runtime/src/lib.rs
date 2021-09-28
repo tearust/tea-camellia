@@ -1042,7 +1042,7 @@ impl pallet_genesis_exchange::Config for Runtime {
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = 20;
 	pub const TAppDetailMaxLength: u32 = 120;
-	pub const TAppLinkMaxLength: u32 = 100;
+	pub const TAppLinkMaxLength: u32 = 140;
 	pub const TAppTickerMinLength: u32 = 3;
 	pub const TAppTickerMaxLength: u32 = 6;
 	pub const PoolBalanceReversePrecision: Balance = 10;
