@@ -360,6 +360,18 @@ pub mod bonding_curve {
 		/// 3. To account
 		/// 4. Topup amount
 		TAppTopup(TAppId, T::AccountId, T::AccountId, BalanceOf<T>),
+
+		/// Fired after tapp actived, event parameters:
+		/// 1. TApp Id
+		/// 2. Block height
+		/// 3. Host count
+		TAppBecomeActived(TAppId, T::BlockNumber, u32),
+
+		/// Fired after tapp actived, event parameters:
+		/// 1. TApp Id
+		/// 2. Block height
+		/// 3. Host count
+		TAppBecomePending(TAppId, T::BlockNumber, u32),
 	}
 
 	// Errors inform users that something went wrong.

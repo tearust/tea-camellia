@@ -599,28 +599,40 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	}
 
 	pub(crate) fn try_active_tapp(tapp_id: TAppId) -> bool {
+		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count();
 		if TAppBondingCurve::<T>::get(tapp_id).status == TAppStatus::Pending
-			&& TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
-				>= T::MinTappHostsCount::get() as usize
+			&& host_count >= T::MinTappHostsCount::get() as usize
 		{
 			let current_block = frame_system::Pallet::<T>::block_number();
 			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
-				tapp.status = TAppStatus::Active(current_block)
+				tapp.status = TAppStatus::Active(current_block.clone())
 			});
+
+			Self::deposit_event(Event::TAppBecomeActived(
+				tapp_id,
+				current_block,
+				host_count as u32,
+			));
 			return true;
 		}
 		false
 	}
 
 	pub(crate) fn try_deactive_tapp(tapp_id: TAppId) -> bool {
+		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count();
 		match TAppBondingCurve::<T>::get(tapp_id).status {
 			TAppStatus::Active(_) => {
-				if TAppCurrentHosts::<T>::iter_prefix(tapp_id).count()
-					< T::MinTappHostsCount::get() as usize
-				{
+				if host_count < T::MinTappHostsCount::get() as usize {
 					TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
 						tapp.status = TAppStatus::Pending
 					});
+
+					let current_block = frame_system::Pallet::<T>::block_number();
+					Self::deposit_event(Event::TAppBecomePending(
+						tapp_id,
+						current_block,
+						host_count as u32,
+					));
 					return true;
 				}
 			}
