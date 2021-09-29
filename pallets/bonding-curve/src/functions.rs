@@ -252,7 +252,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 							consume_statements.push((
 								account.clone(),
-								balance.clone(),
+								distributing_amount * (*balance) / total_amount,
 								false,
 								Some(*cml_id),
 							));
