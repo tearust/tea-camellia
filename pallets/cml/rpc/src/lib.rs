@@ -27,6 +27,9 @@ pub trait CmlApi<BlockHash, AccountId> {
 
 	#[rpc(name = "cml_stakingPriceTable")]
 	fn staking_price_table(&self, at: Option<BlockHash>) -> Result<Vec<Price>>;
+
+	#[rpc(name = "cml_estimateStopMiningPenalty")]
+	fn estimate_stop_mining_penalty(&self, cml_id: u64, at: Option<BlockHash>) -> Result<Price>;
 }
 
 pub struct CmlApiImpl<C, M> {
@@ -116,5 +119,21 @@ where
 			.staking_price_table(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result.iter().map(|v| Price(*v)).collect())
+	}
+
+	fn estimate_stop_mining_penalty(
+		&self,
+		cml_id: u64,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Price> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result: Balance = api
+			.estimate_stop_mining_penalty(&at, cml_id)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(Price(result))
 	}
 }

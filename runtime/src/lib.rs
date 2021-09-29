@@ -1411,6 +1411,10 @@ impl_runtime_apis! {
 		fn staking_price_table() -> Vec<Balance> {
 			STAKING_PRICE_TABLE.to_vec()
 		}
+
+		fn estimate_stop_mining_penalty(cml_id: u64) -> Balance {
+			Cml::estimate_stop_mining_penalty(cml_id)
+		}
 	}
 
 	impl auction_runtime_api::AuctionApi<Block, AccountId> for Runtime {

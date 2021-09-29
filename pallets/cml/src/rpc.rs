@@ -31,6 +31,27 @@ impl<T: cml::Config> cml::Pallet<T> {
 	pub fn current_mining_cml_list() -> Vec<u64> {
 		Self::current_mining_cmls()
 	}
+
+	pub fn estimate_stop_mining_penalty(cml_id: u64) -> BalanceOf<T> {
+		let cml = CmlStore::<T>::get(cml_id);
+		let owner = cml.owner();
+
+		let mut result: BalanceOf<T> = Default::default();
+		for staking_item in cml.staking_slots() {
+			if owner.is_some() && staking_item.owner.eq(owner.unwrap()) {
+				continue;
+			}
+
+			let punishment = if let Some(cml_id) = staking_item.cml {
+				T::StopMiningPunishment::get() * CmlStore::<T>::get(cml_id).staking_weight().into()
+			} else {
+				T::StopMiningPunishment::get()
+			};
+
+			result = result.saturating_add(punishment);
+		}
+		result
+	}
 }
 
 #[cfg(test)]
