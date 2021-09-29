@@ -57,7 +57,7 @@ fn update_tapp_last_activity_works() {
 
 		assert_eq!(
 			TAppLastActivity::<Test>::get(tapp_id),
-			(activity_data, block_number)
+			Some((activity_data, block_number))
 		);
 	})
 }

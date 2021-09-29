@@ -191,7 +191,7 @@ pub mod bonding_curve {
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_last_activity)]
 	pub type TAppLastActivity<T: Config> =
-		StorageMap<_, Twox64Concat, TAppId, (u64, T::BlockNumber), ValueQuery>;
+		StorageMap<_, Twox64Concat, TAppId, (u64, T::BlockNumber)>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_reserved_balance)]
