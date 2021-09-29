@@ -240,16 +240,15 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
 			BillingMode::FixedHostingToken(_) => {
-				let mut account_reserved_balance: BTreeMap<T::AccountId, BalanceOf<T>> =
-					BTreeMap::new();
+				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(|(_, amount_list)| {
+					amount_list.iter().for_each(|(balance, _)| {
+						total_amount = total_amount.saturating_add(balance.clone());
+					});
+				});
 
 				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(
 					|(account, amount_list)| {
-						let mut account_balance: BalanceOf<T> = Zero::zero();
 						amount_list.iter().for_each(|(balance, cml_id)| {
-							total_amount = total_amount.saturating_add(balance.clone());
-							account_balance = account_balance.saturating_add(balance.clone());
-
 							consume_statements.push((
 								account.clone(),
 								distributing_amount * (*balance) / total_amount,
@@ -257,18 +256,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 								Some(*cml_id),
 							));
 						});
-						account_reserved_balance.insert(account, account_balance);
 					},
 				);
-
-				account_reserved_balance
-					.iter()
-					.for_each(|(account, reserved_amount)| {
-						AccountTable::<T>::mutate(&account, tapp_id, |user_amount| {
-							let reward = distributing_amount * (*reserved_amount) / total_amount;
-							*user_amount = user_amount.saturating_add(reward.clone());
-						});
-					});
 			}
 			_ => {}
 		}
@@ -280,6 +269,18 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				consume_statements.push((account.clone(), reward, true, None));
 			});
 		});
+
+		consume_statements
+			.iter()
+			.for_each(|(account, reward, _, cml)| {
+				if cml.is_none() {
+					return;
+				}
+
+				AccountTable::<T>::mutate(account, tapp_id, |user_amount| {
+					*user_amount = user_amount.saturating_add(reward.clone());
+				});
+			});
 
 		Self::deposit_event(Event::TAppConsumeRewardStatements(
 			tapp_id,
