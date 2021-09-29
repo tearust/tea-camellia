@@ -16,13 +16,13 @@ if [ $1 = "tunnel" ]; then
 	    -L 9938:127.0.0.1:9938 \
 	    -N -T $SSH_HOST
 elif [ $1 = "clean" ]; then
-	rm -rf .layer1/alice/share/tea-camellia/chains/tea_canary/db
-	rm -rf .layer1/bob/share/tea-camellia/chains/tea_canary/db
-	rm -rf .layer1/charlie/share/tea-camellia/chains/tea_canary/db
-	rm -rf .layer1/dave/share/tea-camellia/chains/tea_canary/db
-	rm -rf .layer1/ferdie/share/tea-camellia/chains/tea_canary/db
-	rm -rf .layer1/eve/share/tea-camellia/chains/tea_canary/db
-	rm -rf .layer1/george/share/tea-camellia/chains/tea_canary/db
+	rm -rf .layer1/alice/share/tea-camellia/chains/tea-layer1/db
+	rm -rf .layer1/bob/share/tea-camellia/chains/tea-layer1/db
+	rm -rf .layer1/charlie/share/tea-camellia/chains/tea-layer1/db
+	rm -rf .layer1/dave/share/tea-camellia/chains/tea-layer1/db
+	rm -rf .layer1/ferdie/share/tea-camellia/chains/tea-layer1/db
+	rm -rf .layer1/eve/share/tea-camellia/chains/tea-layer1/db
+	rm -rf .layer1/george/share/tea-camellia/chains/tea-layer1/db
 else
     echo "unknown command. Supported subcommand: tunnel"
 fi
