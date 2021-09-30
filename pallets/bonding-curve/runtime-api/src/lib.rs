@@ -53,7 +53,8 @@ sp_api::decl_runtime_apis! {
 		/// - TApp Name
 		/// - TApp Id
 		/// - TApp Ticker
-		/// - User holding tokens
+		/// - 1. User holding tokens (inverstor side only, not including mining reserved balance)
+		///   2. User reserved tokens (mining reserved balance only)
 		/// - Token sell price
 		/// - Owner
 		/// - Detail
@@ -62,7 +63,7 @@ sp_api::decl_runtime_apis! {
 			Vec<u8>,
 			u64,
 			Vec<u8>,
-			Balance,
+			(Balance, Balance),
 			Balance,
 			AccountId,
 			Vec<u8>,

@@ -133,7 +133,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - TApp Name
 	/// - TApp Id
 	/// - TApp Ticker
-	/// - User holding tokens (inverstor side only, not including mining reserved balance)
+	/// - 1. User holding tokens (inverstor side only, not including mining reserved balance)
+	///   2. User reserved tokens (mining reserved balance only)
 	/// - Token sell price
 	/// - Owner
 	/// - Detail
@@ -148,7 +149,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Vec<u8>,
 		TAppId,
 		Vec<u8>,
-		BalanceOf<T>,
+		(BalanceOf<T>, BalanceOf<T>),
 		BalanceOf<T>,
 		T::AccountId,
 		Vec<u8>,
@@ -169,7 +170,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					item.name,
 					id,
 					item.ticker,
-					amount,
+					(amount, Self::user_tapp_total_reserved_balance(id, who)),
 					sell_price,
 					item.owner,
 					item.detail,

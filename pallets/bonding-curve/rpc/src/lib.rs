@@ -93,6 +93,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - TApp Id
 	/// - TApp Ticker
 	/// - User holding tokens (inverstor side only, not including mining reserved balance)
+	/// - User reserved tokens (mining reserved balance only)
 	/// - Token sell price
 	/// - Owner
 	/// - Detail
@@ -111,7 +112,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 			Vec<u8>,
 			u64,
 			Vec<u8>,
-			Price,
+			(Price, Price),
 			Price,
 			AccountId,
 			Vec<u8>,
@@ -435,7 +436,7 @@ where
 			Vec<u8>,
 			u64,
 			Vec<u8>,
-			Price,
+			(Price, Price),
 			Price,
 			AccountId,
 			Vec<u8>,
@@ -455,7 +456,7 @@ where
 			Vec<u8>,
 			u64,
 			Vec<u8>,
-			Balance,
+			(Balance, Balance),
 			Balance,
 			AccountId,
 			Vec<u8>,
@@ -473,7 +474,7 @@ where
 					name,
 					id,
 					ticker,
-					amount,
+					(amount, reserved),
 					sell_price,
 					owner,
 					detail,
@@ -487,7 +488,7 @@ where
 						name.clone(),
 						*id,
 						ticker.clone(),
-						Price(*amount),
+						(Price(*amount), Price(*reserved)),
 						Price(*sell_price),
 						owner.clone(),
 						detail.clone(),

@@ -1519,7 +1519,7 @@ impl_runtime_apis! {
 			Vec<u8>,
 			u64,
 			Vec<u8>,
-			Balance,
+			(Balance, Balance),
 			Balance,
 			AccountId,
 			Vec<u8>,
