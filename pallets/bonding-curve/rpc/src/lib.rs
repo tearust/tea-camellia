@@ -92,8 +92,8 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - TApp Name
 	/// - TApp Id
 	/// - TApp Ticker
-	/// - User holding tokens (inverstor side only, not including mining reserved balance)
-	/// - User reserved tokens (mining reserved balance only)
+	/// - 1. User holding tokens (inverstor side only, not including mining reserved balance)
+	///   2. User reserved tokens (mining reserved balance only)
 	/// - Token sell price
 	/// - Owner
 	/// - Detail
@@ -207,6 +207,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 			Vec<u8>,
 			Vec<u8>,
 			u32,
+			Price,
 		)>,
 	>;
 
@@ -612,6 +613,7 @@ where
 			Vec<u8>,
 			Vec<u8>,
 			u32,
+			Price,
 		)>,
 	> {
 		let api = self.client.runtime_api();
@@ -622,7 +624,34 @@ where
 		let result = api
 			.list_cml_hosting_tapps(&at, cml_id)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(result)
+		Ok(result
+			.iter()
+			.map(
+				|(
+					cml_id,
+					performance,
+					tapp_id,
+					ticker,
+					name,
+					detail,
+					link,
+					min_performance,
+					staking_token,
+				)| {
+					(
+						*cml_id,
+						*performance,
+						*tapp_id,
+						ticker.clone(),
+						name.clone(),
+						detail.clone(),
+						link.clone(),
+						*min_performance,
+						Price(*staking_token),
+					)
+				},
+			)
+			.collect())
 	}
 
 	fn cml_performance(

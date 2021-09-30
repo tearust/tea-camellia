@@ -333,6 +333,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - TApp Detail
 	/// - TApp Link
 	/// - Min performance request
+	/// - Hosting stake token
 	pub fn list_cml_hosting_tapps(
 		cml_id: CmlId,
 	) -> Vec<(
@@ -344,8 +345,13 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Vec<u8>,
 		Vec<u8>,
 		Performance,
+		BalanceOf<T>,
 	)> {
 		let (_, remaining_performance, _) = Self::cml_performance(cml_id);
+		let owner = match T::CmlOperation::cml_by_id(&cml_id) {
+			Ok(cml) => cml.owner().cloned().unwrap_or(Default::default()),
+			Err(_) => Default::default(),
+		};
 		CmlHostingTApps::<T>::get(cml_id)
 			.iter()
 			.map(|tapp_id| {
@@ -360,6 +366,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					tapp_item.detail,
 					tapp_item.link,
 					host_performance,
+					Self::user_tapp_total_reserved_balance(*tapp_id, &owner),
 				)
 			})
 			.collect()
