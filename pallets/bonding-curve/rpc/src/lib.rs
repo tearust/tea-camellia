@@ -92,7 +92,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	/// - TApp Name
 	/// - TApp Id
 	/// - TApp Ticker
-	/// - User holding tokens
+	/// - User holding tokens (inverstor side only, not including mining reserved balance)
 	/// - Token sell price
 	/// - Owner
 	/// - Detail

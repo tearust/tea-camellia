@@ -133,7 +133,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - TApp Name
 	/// - TApp Id
 	/// - TApp Ticker
-	/// - User holding tokens
+	/// - User holding tokens (inverstor side only, not including mining reserved balance)
 	/// - Token sell price
 	/// - Owner
 	/// - Detail
@@ -160,8 +160,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	)> {
 		AccountTable::<T>::iter_prefix(who)
 			.map(|(id, amount)| {
-				let total_token_amont =
-					amount.saturating_add(Self::user_tapp_total_reserved_balance(id, who));
 				let (_, sell_price) = Self::query_price(id);
 				let item = TAppBondingCurve::<T>::get(id);
 				let total_supply = TotalSupplyTable::<T>::get(id);
@@ -171,7 +169,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					item.name,
 					id,
 					item.ticker,
-					total_token_amont,
+					amount,
 					sell_price,
 					item.owner,
 					item.detail,
