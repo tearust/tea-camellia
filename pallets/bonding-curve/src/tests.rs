@@ -652,7 +652,7 @@ fn create_new_tapp_should_fail_if_stake_token_is_zero_in_fixed_token_mode() {
 }
 
 #[test]
-fn create_new_tapp_should_fail_if_reward_per_performance_is_none_in_fixed_fee_mode() {
+fn create_new_tapp_should_fail_if_reward_per_1k_performance_is_none_in_fixed_fee_mode() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user = 1;
@@ -687,7 +687,7 @@ fn create_new_tapp_should_fail_if_reward_per_performance_is_none_in_fixed_fee_mo
 }
 
 #[test]
-fn create_new_tapp_should_fail_if_reward_per_performance_is_zero_in_fixed_fee_mode() {
+fn create_new_tapp_should_fail_if_reward_per_1k_performance_is_zero_in_fixed_fee_mode() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user = 1;

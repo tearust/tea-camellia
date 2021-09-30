@@ -615,7 +615,8 @@ pub mod bonding_curve {
 		/// - `max_allowed_hosts`
 		/// - `tapp_type`
 		/// - `fixed_token_mode`: is "fixed token mode", false will be "fixed fee mode"
-		/// - `reward_per_performance`: only works in "fixed fee mode"
+		/// - `reward_per_1k_performance`: reward fee (in TEA) per 1000 performance requests, note this is
+		/// 	only works in "fixed fee mode"
 		/// - `stake_token_amount`: only works in "fixed token mode", specify reserved token amount of
 		/// 	eath miner
 		/// - `buy_curve_k`: represents parameter of "y = k√x" curve, and `buy_curve_k` is
@@ -635,7 +636,7 @@ pub mod bonding_curve {
 			max_allowed_hosts: u32,
 			tapp_type: TAppType,
 			fixed_token_mode: bool,
-			reward_per_performance: Option<BalanceOf<T>>,
+			reward_per_1k_performance: Option<BalanceOf<T>>,
 			stake_token_amount: Option<BalanceOf<T>>,
 			buy_curve_k: Option<u32>,
 			sell_curve_k: Option<u32>,
@@ -715,7 +716,7 @@ pub mod bonding_curve {
 					Self::check_host_creating(
 						max_allowed_hosts,
 						fixed_token_mode,
-						&reward_per_performance,
+						&reward_per_1k_performance,
 						&stake_token_amount,
 					)?;
 					Ok(())
@@ -733,7 +734,7 @@ pub mod bonding_curve {
 							stake_token_amount.unwrap_or(Zero::zero()),
 						),
 						false => BillingMode::FixedHostingFee(
-							reward_per_performance.unwrap_or(Zero::zero()),
+							reward_per_1k_performance.unwrap_or(Zero::zero()),
 						),
 					};
 					TAppBondingCurve::<T>::insert(

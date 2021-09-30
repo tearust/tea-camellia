@@ -16,12 +16,13 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 	) -> Vec<(Self::AccountId, CmlId, Self::Balance)> {
 		let tapp = TAppBondingCurve::<T>::get(tapp_id);
 		match tapp.billing_mode {
-			BillingMode::FixedHostingFee(reward_per_performance) => {
+			BillingMode::FixedHostingFee(reward_per_1k_performance) => {
 				let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 				let tea_amount = tapp.current_cost.saturating_add(
-					reward_per_performance
+					reward_per_1k_performance
 						.saturating_mul(tapp.host_performance().into())
-						.saturating_mul(host_count.into()),
+						.saturating_mul(host_count.into())
+						/ 1000u32.into(),
 				);
 
 				if let Ok((_, distribute_tea_amount)) =
@@ -532,7 +533,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn check_host_creating(
 		max_allowed_hosts: u32,
 		fixed_token_mode: bool,
-		reward_per_performance: &Option<BalanceOf<T>>,
+		reward_per_1k_performance: &Option<BalanceOf<T>>,
 		stake_token_amount: &Option<BalanceOf<T>>,
 	) -> DispatchResult {
 		ensure!(
@@ -540,7 +541,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			Error::<T>::MaxAllowedHostShouldLargerEqualThanMinAllowedHosts,
 		);
 		ensure!(
-			!(stake_token_amount.is_some() && reward_per_performance.is_some()),
+			!(stake_token_amount.is_some() && reward_per_1k_performance.is_some()),
 			Error::<T>::StakeTokenAmountAndRewardPerPerformanceCannotBothExist
 		);
 
@@ -555,11 +556,11 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			);
 		} else {
 			ensure!(
-				reward_per_performance.is_some(),
+				reward_per_1k_performance.is_some(),
 				Error::<T>::RewardPerPerformanceIsNoneInFixedFeeMode
 			);
 			ensure!(
-				!reward_per_performance.unwrap().is_zero(),
+				!reward_per_1k_performance.unwrap().is_zero(),
 				Error::<T>::RewardPerPerformanceShouldNotBeZero
 			);
 		}
@@ -704,21 +705,22 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				_ => false,
 			})
 			.for_each(|(id, tapp)| match tapp.billing_mode {
-				BillingMode::FixedHostingFee(reward_per_performance) => {
-					Self::accumulate_tapp_cost(id, reward_per_performance);
+				BillingMode::FixedHostingFee(reward_per_1k_performance) => {
+					Self::accumulate_tapp_cost(id, reward_per_1k_performance);
 					Self::expense_inner(id)
 				}
 				_ => {}
 			});
 	}
 
-	pub(crate) fn accumulate_tapp_cost(tapp_id: TAppId, reward_per_performance: BalanceOf<T>) {
+	pub(crate) fn accumulate_tapp_cost(tapp_id: TAppId, reward_per_1k_performance: BalanceOf<T>) {
 		TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
 			let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
 			tapp.current_cost = tapp.current_cost.saturating_add(
-				reward_per_performance
+				reward_per_1k_performance
 					.saturating_mul(tapp.host_performance().into())
-					.saturating_mul(host_count.into()),
+					.saturating_mul(host_count.into())
+					/ 1000u32.into(),
 			);
 		});
 	}
@@ -985,7 +987,7 @@ mod tests {
 			BondingCurve::accumulate_tapp_cost(tapp_id, HOST_COST_COEFFICIENT);
 			assert_eq!(
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
-				HOST_COST_COEFFICIENT.saturating_mul(performance.into())
+				HOST_COST_COEFFICIENT.saturating_mul(performance.into()) / 1000
 			);
 
 			// Add second host, the cost should be 1000*HostCostCoefficient*2
@@ -994,7 +996,7 @@ mod tests {
 			BondingCurve::accumulate_tapp_cost(tapp_id, HOST_COST_COEFFICIENT);
 			assert_eq!(
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
-				HOST_COST_COEFFICIENT.saturating_mul((performance * 2).into())
+				HOST_COST_COEFFICIENT.saturating_mul((performance * 2).into()) / 1000
 			);
 
 			frame_system::Pallet::<Test>::set_block_number(1001);
@@ -1004,7 +1006,7 @@ mod tests {
 			BondingCurve::accumulate_tapp_cost(tapp_id, HOST_COST_COEFFICIENT);
 			assert_eq!(
 				TAppBondingCurve::<Test>::get(tapp_id).current_cost,
-				HOST_COST_COEFFICIENT.saturating_mul(performance.into())
+				HOST_COST_COEFFICIENT.saturating_mul(performance.into()) / 1000
 			);
 		})
 	}
