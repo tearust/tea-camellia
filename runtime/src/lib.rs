@@ -988,7 +988,7 @@ parameter_types! {
 	pub const GenesisCmlLoanAmount: Balance = 500 * DOLLARS;
 	/// The Genesis Bank calculate interest every BillingCycle. If borrower repay the loan before a billing cycle ends,
 	/// the interest is calculated to the end of this billing cycle.
-	pub const BillingCycle: BlockNumber = 100;
+	pub const BillingCycle: BlockNumber = 1000;
 	pub const CmlALoanAmount: Balance = 2000 * DOLLARS;
 	pub const CmlBLoanBmount: Balance = 1000 * DOLLARS;
 	pub const CmlCLoanCmount: Balance = 500 * DOLLARS;
@@ -1009,7 +1009,7 @@ impl pallet_genesis_bank::Config for Runtime {
 
 parameter_types! {
 	pub const PER: Balance = 7;
-	pub const InterestPeriodLength: BlockNumber = 100;
+	pub const InterestPeriodLength: BlockNumber = 1000;
 	pub const CmlAMiningMachineCost: Balance = 2000 * DOLLARS;
 	pub const CmlBMiningMachineCost: Balance = 1000 * DOLLARS;
 	pub const CmlCMiningMachineCost: Balance = 500 * DOLLARS;
