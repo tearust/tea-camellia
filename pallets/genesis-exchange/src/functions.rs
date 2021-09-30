@@ -348,7 +348,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return Ok(());
 		}
 		ensure!(
-			T::BorrowDebtRatioCap::get().saturating_mul(asset_amount.saturating_sub(debt))
+			BorrowDebtRatioCap::<T>::get().saturating_mul(asset_amount.saturating_sub(debt))
 				/ 10000u32.into()
 				>= debt.saturating_add(*amount),
 			Error::<T>::BorrowedDebtAmountHasOverThanMaxAllowed

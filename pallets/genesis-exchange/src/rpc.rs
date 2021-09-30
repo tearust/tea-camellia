@@ -179,7 +179,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let debt = USDDebt::<T>::get(who);
 
 		let max_allowed_debts = max(
-			T::BorrowDebtRatioCap::get().saturating_mul(asset_amount.saturating_sub(debt))
+			BorrowDebtRatioCap::<T>::get().saturating_mul(asset_amount.saturating_sub(debt))
 				/ 10000u32.into(),
 			T::BorrowAllowance::get(),
 		);

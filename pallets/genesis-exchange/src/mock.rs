@@ -242,7 +242,6 @@ parameter_types! {
 	pub const CmlBRedeemCouponCost: Balance = CML_B_REDEEM_COUPON_COST;
 	pub const CmlCRedeemCouponCost: Balance = CML_C_REDEEM_COUPON_COST;
 	pub const BorrowAllowance: Balance = BORROW_ALLOWANCE;
-	pub const BorrowDebtRatioCap: Balance = BORROW_DEBT_RATIO_CAP;
 }
 
 impl pallet_genesis_exchange::Config for Test {
@@ -261,7 +260,6 @@ impl pallet_genesis_exchange::Config for Test {
 	type CmlBRedeemCouponCost = CmlBRedeemCouponCost;
 	type CmlCRedeemCouponCost = CmlCRedeemCouponCost;
 	type BorrowAllowance = BorrowAllowance;
-	type BorrowDebtRatioCap = BorrowDebtRatioCap;
 }
 
 parameter_types! {
@@ -322,6 +320,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			.collect(),
 		bonding_curve_npc: (Default::default(), 0),
 		initial_usd_interest_rate: 5,
+		borrow_debt_ratio_cap: BORROW_DEBT_RATIO_CAP,
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

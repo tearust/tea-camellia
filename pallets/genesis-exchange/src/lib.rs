@@ -95,10 +95,6 @@ pub mod genesis_exchange {
 
 		#[pallet::constant]
 		type BorrowAllowance: Get<BalanceOf<Self>>;
-
-		/// Ratio cap ten thousand units(‱).
-		#[pallet::constant]
-		type BorrowDebtRatioCap: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -125,6 +121,10 @@ pub mod genesis_exchange {
 	pub type USDInterestRate<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn borrow_debt_ratio_cap)]
+	pub type BorrowDebtRatioCap<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn usd_store)]
 	pub type USDStore<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
@@ -148,6 +148,7 @@ pub mod genesis_exchange {
 		pub competition_users: Vec<(T::AccountId, BalanceOf<T>)>,
 		pub bonding_curve_npc: (T::AccountId, BalanceOf<T>),
 		pub initial_usd_interest_rate: BalanceOf<T>,
+		pub borrow_debt_ratio_cap: BalanceOf<T>,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
@@ -160,6 +161,7 @@ pub mod genesis_exchange {
 				competition_users: Default::default(),
 				bonding_curve_npc: Default::default(),
 				initial_usd_interest_rate: Default::default(),
+				borrow_debt_ratio_cap: Default::default(),
 			}
 		}
 	}
@@ -180,6 +182,7 @@ pub mod genesis_exchange {
 
 			// initialize USD interest rate
 			USDInterestRate::<T>::set(self.initial_usd_interest_rate);
+			BorrowDebtRatioCap::<T>::set(self.borrow_debt_ratio_cap);
 		}
 	}
 
@@ -281,6 +284,19 @@ pub mod genesis_exchange {
 				&root,
 				|_root| Ok(()),
 				|_root| USDInterestRate::<T>::set(rate),
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn update_borrow_debt_ratio_cap(
+			sender: OriginFor<T>,
+			ratio_cap: BalanceOf<T>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+			extrinsic_procedure(
+				&root,
+				|_root| Ok(()),
+				|_root| BorrowDebtRatioCap::<T>::set(ratio_cap),
 			)
 		}
 
