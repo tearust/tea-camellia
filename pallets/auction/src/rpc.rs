@@ -47,15 +47,95 @@ impl<T: auction::Config> auction::Pallet<T> {
 	}
 
 	pub fn penalty_amount(auction_id: AuctionId, who: &T::AccountId) -> BalanceOf<T> {
+		if !AuctionStore::<T>::contains_key(auction_id)
+			|| !BidStore::<T>::contains_key(who, auction_id)
+			|| !AuctionBidStore::<T>::contains_key(auction_id)
+		{
+			return Zero::zero();
+		}
+
 		let bid_item = BidStore::<T>::get(who, auction_id);
-		Self::calculate_penalty_amount(&bid_item)
+		let auction_item = AuctionStore::<T>::get(auction_id);
+		let account_ids = AuctionBidStore::<T>::get(auction_id).unwrap();
+		if account_ids.len() == 1 {
+			return bid_item.price - auction_item.starting_price;
+		}
+
+		let mut highest_account: T::AccountId = Default::default();
+		let mut highest_price: BalanceOf<T> = Zero::zero();
+		account_ids.iter().for_each(|acc| {
+			let bid_item = BidStore::<T>::get(acc, auction_id);
+			if bid_item.price > highest_price {
+				highest_price = bid_item.price;
+				highest_account = acc.clone();
+			}
+		});
+
+		if !highest_account.eq(who) {
+			return Zero::zero();
+		}
+
+		let mut second_highest_price: BalanceOf<T> = Zero::zero();
+		account_ids.iter().for_each(|acc| {
+			let bid_item = BidStore::<T>::get(acc, auction_id);
+			if bid_item.price > second_highest_price && !acc.eq(&highest_account) {
+				second_highest_price = bid_item.price;
+			}
+		});
+
+		highest_price - second_highest_price
 	}
 }
 
 #[cfg(test)]
 mod tests {
 	use crate::mock::*;
-	use crate::{AuctionId, AuctionItem, AuctionStore, BidItem, BidStore};
+	use crate::{AuctionId, AuctionItem, AuctionStore, BidItem, BidStore, Config};
+	use frame_support::{assert_ok, traits::Currency};
+
+	#[test]
+	fn penalty_amount_works() {
+		new_test_ext().execute_with(|| {
+			let user1_id = 1;
+			let user2_id = 2;
+			let user3_id = 3;
+			let owner = 4;
+			let initial_balance = 100 * 1000;
+			let auction_id = 22;
+
+			<Test as Config>::Currency::make_free_balance_be(&user1_id, initial_balance);
+			<Test as Config>::Currency::make_free_balance_be(&user2_id, initial_balance);
+			<Test as Config>::Currency::make_free_balance_be(&user3_id, initial_balance);
+			let mut auction_item = new_auction_item(auction_id, owner);
+			let starting_price = 100;
+			auction_item.starting_price = starting_price;
+			Auction::add_auction_to_storage(auction_item);
+			assert_eq!(Auction::penalty_amount(auction_id, &user1_id), 0);
+
+			let user1_bid_price = 150;
+			assert_ok!(Auction::bid_for_auction(
+				Origin::signed(user1_id),
+				auction_id,
+				user1_bid_price
+			));
+			assert_eq!(
+				Auction::penalty_amount(auction_id, &user1_id),
+				user1_bid_price - starting_price
+			);
+
+			let user2_bid_price = 200;
+			assert_ok!(Auction::bid_for_auction(
+				Origin::signed(user2_id),
+				auction_id,
+				user2_bid_price
+			));
+			assert_eq!(Auction::penalty_amount(auction_id, &user1_id), 0);
+			assert_eq!(
+				Auction::penalty_amount(auction_id, &user2_id),
+				user2_bid_price - user1_bid_price
+			);
+		})
+	}
 
 	#[test]
 	fn user_auction_list_works() {
