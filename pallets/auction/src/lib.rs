@@ -4,6 +4,7 @@
 #![allow(clippy::unused_unit)]
 
 use auction_interface::AuctionOperation;
+use bonding_curve_interface::BondingCurveOperation;
 use frame_support::ensure;
 use frame_support::pallet_prelude::*;
 use frame_support::traits::{Currency, ExistenceRequirement::AllowDeath, Get, ReservableCurrency};
@@ -68,6 +69,11 @@ pub mod auction {
 			AccountId = Self::AccountId,
 			Balance = BalanceOf<Self>,
 			BlockNumber = Self::BlockNumber,
+		>;
+
+		type BondingCurveOperation: BondingCurveOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
 		>;
 
 		type WeightInfo: WeightInfo;

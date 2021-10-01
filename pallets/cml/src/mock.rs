@@ -73,6 +73,8 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 	fn is_cml_hosting(cml_id: u64) -> bool {
 		HOSTING_CML_ID == cml_id
 	}
+
+	fn transfer_reserved_tokens(_from: &Self::AccountId, _to: &Self::AccountId, _cml_id: u64) {}
 }
 
 pub struct MiningOperationMock {}

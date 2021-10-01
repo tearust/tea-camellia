@@ -63,6 +63,27 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 	fn is_cml_hosting(cml_id: u64) -> bool {
 		!CmlHostingTApps::<T>::get(cml_id).is_empty()
 	}
+
+	fn transfer_reserved_tokens(from: &Self::AccountId, to: &Self::AccountId, cml_id: u64) {
+		CmlHostingTApps::<T>::get(cml_id)
+			.iter()
+			.for_each(|tapp_id| {
+				let reserved_balance =
+					TAppReservedBalance::<T>::mutate(tapp_id, from, |reserved_balances| {
+						if let Some(index) =
+							reserved_balances.iter().position(|(_, id)| *id == cml_id)
+						{
+							return Some(reserved_balances.remove(index));
+						}
+						None
+					});
+				if let Some(reserved_balance) = reserved_balance {
+					TAppReservedBalance::<T>::mutate(tapp_id, to, |reserved_balances| {
+						reserved_balances.push(reserved_balance)
+					});
+				}
+			})
+	}
 }
 
 impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
@@ -1424,6 +1445,103 @@ mod tests {
 
 			assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 			assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
+		})
+	}
+
+	#[test]
+	fn transfer_reserved_tokens_works() {
+		new_test_ext().execute_with(|| {
+			EnableUserCreateTApp::<Test>::set(true);
+			let miner = 2;
+			let bid_winner = 3;
+			let tapp_owner = 1;
+			<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+			let cml_id = 11;
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 100000));
+			UserCmlStore::<Test>::insert(miner, cml_id, ());
+			CmlStore::<Test>::insert(cml_id, cml);
+
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner),
+				cml_id,
+				[1u8; 32],
+				b"miner_ip".to_vec()
+			));
+
+			let npc = NPCAccount::<Test>::get();
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				"https://teaproject.org".into(),
+				"test description".into(),
+				None,
+			));
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(tapp_owner),
+				b"test name".to_vec(),
+				b"tea".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				b"https://teaproject.org".to_vec(),
+				1,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+				None,
+				None,
+			));
+
+			let npc = NPCAccount::<Test>::get();
+			let link2 = b"https://tearust.org".to_vec();
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				link2.clone(),
+				"test description".into(),
+				None,
+			));
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(tapp_owner),
+				b"test name2".to_vec(),
+				b"tea2".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				link2,
+				1,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(2000),
+				None,
+				None,
+			));
+
+			let tapp_id = 1;
+			let tapp_id2 = 2;
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id2));
+
+			assert_eq!(
+				TAppReservedBalance::<Test>::get(tapp_id, miner)[0],
+				(1000, cml_id)
+			);
+			assert_eq!(
+				TAppReservedBalance::<Test>::get(tapp_id2, miner)[0],
+				(2000, cml_id)
+			);
+
+			BondingCurve::transfer_reserved_tokens(&miner, &bid_winner, cml_id);
+			assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner).len(), 0);
+			assert_eq!(TAppReservedBalance::<Test>::get(tapp_id2, miner).len(), 0);
+			assert_eq!(
+				TAppReservedBalance::<Test>::get(tapp_id, bid_winner)[0],
+				(1000, cml_id)
+			);
+			assert_eq!(
+				TAppReservedBalance::<Test>::get(tapp_id2, bid_winner)[0],
+				(2000, cml_id)
+			);
 		})
 	}
 

@@ -25,6 +25,7 @@ pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
 pallet-genesis-bank = { path = '../genesis-bank', default-features = false }
 auction-interface = { path = "./interface", default-features = false }
 genesis-bank-interface = { path = "../genesis-bank/interface", default-features = false }
+bonding-curve-interface = { path = "../bonding-curve/interface", default-features = false }
 
 [dev-dependencies]
 sp-core = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
@@ -33,7 +34,6 @@ pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/subst
 pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 genesis-exchange-interface = { path = "../genesis-exchange/interface" }
 tea-interface = { path = "../tea/interface" }
-bonding-curve-interface = { path = "../bonding-curve/interface" }
 
 [features]
 default = ["std"]
@@ -47,10 +47,11 @@ std = [
 	"frame-system/std",
 	"frame-benchmarking/std",
 	"pallet-cml/std",
-    "pallet-utils/std",
+  "pallet-utils/std",
 	"pallet-genesis-bank/std",
 	"auction-interface/std",
 	"genesis-bank-interface/std",
+	"bonding-curve-interface/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",

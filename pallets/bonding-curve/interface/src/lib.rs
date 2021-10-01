@@ -34,4 +34,6 @@ pub trait BondingCurveOperation {
 	fn tapp_user_token_asset(who: &Self::AccountId) -> Vec<(u64, Self::Balance)>;
 
 	fn is_cml_hosting(cml_id: u64) -> bool;
+
+	fn transfer_reserved_tokens(from: &Self::AccountId, to: &Self::AccountId, cml_id: u64);
 }

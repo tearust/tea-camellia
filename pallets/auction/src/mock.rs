@@ -63,6 +63,8 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 	fn is_cml_hosting(_cml_id: u64) -> bool {
 		false
 	}
+
+	fn transfer_reserved_tokens(_from: &Self::AccountId, _to: &Self::AccountId, _cml_id: u64) {}
 }
 
 pub struct MiningOperationMock {}
@@ -220,6 +222,7 @@ impl pallet_auction::Config for Test {
 	type AuctionPledgeAmount = AuctionPledgeAmount;
 	type MaxUsersPerAuction = MaxUsersPerAuction;
 	type AuctionFeePerWindow = AuctionFeePerWindow;
+	type BondingCurveOperation = BondingCurveOperationMock;
 	type WeightInfo = ();
 }
 

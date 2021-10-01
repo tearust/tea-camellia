@@ -372,6 +372,12 @@ impl<T: auction::Config> auction::Pallet<T> {
 			&target,
 		);
 
+		T::BondingCurveOperation::transfer_reserved_tokens(
+			&auction_item.cml_owner,
+			&target,
+			auction_item.cml_id,
+		);
+
 		T::CurrencyOperations::unreserve(&auction_item.cml_owner, T::AuctionPledgeAmount::get());
 		Self::delete_auction(&auction_item.id, Some(target));
 		Self::deposit_event(Event::AuctionSuccess(
