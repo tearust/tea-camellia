@@ -357,6 +357,17 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			.map(|tapp_id| {
 				let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 				let host_performance = tapp_item.host_performance();
+
+				let mut reserved_balance: BalanceOf<T> = Zero::zero();
+				TAppReservedBalance::<T>::iter_prefix(tapp_id)
+					.filter(|(account, _)| account.eq(&owner))
+					.for_each(|(_, amount_list)| {
+						amount_list.iter().for_each(|(balance, id)| {
+							if cml_id == *id {
+								reserved_balance = reserved_balance.saturating_add(balance.clone());
+							}
+						});
+					});
 				(
 					cml_id,
 					remaining_performance.clone(),
@@ -366,7 +377,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					tapp_item.detail,
 					tapp_item.link,
 					host_performance,
-					Self::user_tapp_total_reserved_balance(*tapp_id, &owner),
+					reserved_balance,
 				)
 			})
 			.collect()
