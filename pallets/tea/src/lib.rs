@@ -26,7 +26,8 @@ use pallet_utils::{extrinsic_procedure, CommonUtils};
 use sp_core::{ed25519, H256};
 use sp_std::prelude::*;
 use tea_interface::TeaOperation;
-use types::*;
+
+pub use types::*;
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]
