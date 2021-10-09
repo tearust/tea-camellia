@@ -23,7 +23,10 @@ pub trait CmlApi<BlockHash, AccountId> {
 	fn user_staking_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<(u64, u64)>>;
 
 	#[rpc(name = "cml_currentMiningCmlList")]
-	fn current_mining_cml_list(&self, at: Option<BlockHash>) -> Result<Vec<u64>>;
+	fn current_mining_cml_list(
+		&self,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(u64, Vec<u8>, Vec<u8>)>>;
 
 	#[rpc(name = "cml_stakingPriceTable")]
 	fn staking_price_table(&self, at: Option<BlockHash>) -> Result<Vec<Price>>;
@@ -97,7 +100,10 @@ where
 		Ok(result)
 	}
 
-	fn current_mining_cml_list(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<u64>> {
+	fn current_mining_cml_list(
+		&self,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<(u64, Vec<u8>, Vec<u8>)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.

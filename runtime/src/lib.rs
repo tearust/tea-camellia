@@ -1403,7 +1403,7 @@ impl_runtime_apis! {
 			Cml::user_staking_list(who)
 		}
 
-		fn current_mining_cml_list() -> Vec<u64> {
+		fn current_mining_cml_list() -> Vec<(u64, Vec<u8>, Vec<u8>)> {
 			Cml::current_mining_cml_list()
 		}
 

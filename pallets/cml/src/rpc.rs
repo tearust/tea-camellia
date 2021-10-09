@@ -28,8 +28,26 @@ impl<T: cml::Config> cml::Pallet<T> {
 		result
 	}
 
-	pub fn current_mining_cml_list() -> Vec<u64> {
-		Self::current_mining_cmls()
+	/// Returned item fields:
+	/// - CML Id
+	/// - Orbit Id
+	/// - Cml type, utf-8 encoded string
+	pub fn current_mining_cml_list() -> Vec<(u64, Vec<u8>, Vec<u8>)> {
+		MinerItemStore::<T>::iter()
+			.map(|(_, miner_item)| {
+				let cml = CmlStore::<T>::get(miner_item.cml_id);
+				let cml_type = match cml.cml_type() {
+					CmlType::A => "A",
+					CmlType::B => "B",
+					CmlType::C => "C",
+				};
+				(
+					miner_item.cml_id,
+					miner_item.orbitdb_id,
+					cml_type.as_bytes().to_vec(),
+				)
+			})
+			.collect()
 	}
 
 	pub fn estimate_stop_mining_penalty(cml_id: u64) -> BalanceOf<T> {
@@ -170,6 +188,7 @@ mod tests {
 					cml_id: cml_id1,
 					id: machine_id1,
 					ip: vec![],
+					orbitdb_id: vec![],
 					status: MinerStatus::Active,
 				},
 			);
@@ -179,6 +198,7 @@ mod tests {
 					cml_id: cml_id2,
 					id: machine_id2,
 					ip: vec![],
+					orbitdb_id: vec![],
 					status: MinerStatus::Active,
 				},
 			);

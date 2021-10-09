@@ -263,7 +263,8 @@ mod tests {
 				Origin::signed(owner),
 				cml_id,
 				[1u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 			assert!(UserCmlStore::<Test>::contains_key(owner, cml_id));
 			let cml = CmlStore::<Test>::get(cml_id);
@@ -312,7 +313,8 @@ mod tests {
 				Origin::signed(owner),
 				cml_id,
 				[1u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 
 			assert_eq!(

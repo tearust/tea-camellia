@@ -220,6 +220,7 @@ mod tests {
 					cml_id: cml_id1,
 					id: [1; 32],
 					ip: vec![],
+					orbitdb_id: vec![],
 					status: MinerStatus::Active,
 				},
 			);
@@ -229,6 +230,7 @@ mod tests {
 					cml_id: cml_id2,
 					id: [2; 32],
 					ip: vec![],
+					orbitdb_id: vec![],
 					status: MinerStatus::Active,
 				},
 			);

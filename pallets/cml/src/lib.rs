@@ -555,6 +555,7 @@ pub mod cml {
 			cml_id: CmlId,
 			machine_id: MachineId,
 			miner_ip: Vec<u8>,
+			orbitdb_id: Vec<u8>,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 			let current_block_number = frame_system::Pallet::<T>::block_number();
@@ -599,6 +600,7 @@ pub mod cml {
 								cml_id,
 								ip,
 								id: machine_id.clone(),
+								orbitdb_id: orbitdb_id.clone(),
 								status: MinerStatus::Active,
 							},
 						);

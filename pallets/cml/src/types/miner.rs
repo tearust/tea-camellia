@@ -19,6 +19,7 @@ pub struct MinerItem {
 	pub id: MachineId,
 	pub ip: Vec<u8>,
 	pub status: MinerStatus,
+	pub orbitdb_id: Vec<u8>,
 }
 
 impl Default for MinerItem {
@@ -27,6 +28,7 @@ impl Default for MinerItem {
 			cml_id: 0,
 			id: [0; 32],
 			ip: vec![],
+			orbitdb_id: vec![],
 			status: MinerStatus::Offline,
 		}
 	}
