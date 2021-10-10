@@ -1013,7 +1013,7 @@ parameter_types! {
 	pub const PER: Balance = 7;
 	pub const InterestPeriodLength: BlockNumber = 1000;
 	pub const CmlAMiningMachineCost: Balance = 2000 * DOLLARS;
-	pub const CmlBMiningMachineCost: Balance = 1000 * DOLLARS;
+	pub const CmlBMiningMachineCost: Balance = 0;
 	pub const CmlCMiningMachineCost: Balance = 500 * DOLLARS;
 	pub const CmlARedeemCouponCost: Balance =  2000 * DOLLARS;
 	pub const CmlBRedeemCouponCost: Balance =  1000 * DOLLARS;
