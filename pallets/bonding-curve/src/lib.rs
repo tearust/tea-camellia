@@ -25,7 +25,9 @@ use frame_support::{
 	traits::{Currency, ExistenceRequirement},
 };
 use frame_system::pallet_prelude::*;
-use pallet_cml::{CmlId, CmlOperation, MachineId, MiningProperties, Performance, TreeProperties};
+use pallet_cml::{
+	CmlId, CmlOperation, MachineId, MinerStatus, MiningProperties, Performance, TreeProperties,
+};
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use scale_info::TypeInfo;
 use sp_runtime::{
@@ -109,6 +111,9 @@ pub mod bonding_curve {
 
 		#[pallet::constant]
 		type DefaultSellCurveTheta: Get<u32>;
+
+		#[pallet::constant]
+		type HostPledgeAmount: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -201,6 +206,11 @@ pub mod bonding_curve {
 		Vec<(BalanceOf<T>, CmlId)>,
 		ValueQuery,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn tapp_host_pledge)]
+	pub type TAppHostPledge<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, TAppId, Twox64Concat, CmlId, BalanceOf<T>, ValueQuery>;
 
 	/// Storage version of the pallet.
 	///
@@ -344,7 +354,8 @@ pub mod bonding_curve {
 		/// - Unhost tapp id
 		/// - Unhost CML id
 		/// - TApp became pending
-		TAppsUnhosted(TAppId, CmlId, bool),
+		/// - Unreserved balance
+		TAppsUnhosted(TAppId, CmlId, bool, BalanceOf<T>),
 
 		/// Fired after each host arrange duration, automatically unhosted lists:
 		/// - Unhost tapp id
@@ -476,6 +487,8 @@ pub mod bonding_curve {
 		SellCurveThetaCanNotBeZero,
 		/// Theta of buy bonding curve should larger equal than sell's
 		BuyCurveThetaShouldLargerEqualThanSellCurveTheta,
+		/// Can host tapp only when cml is active
+		MiningCmlStatusShouldBeActive,
 	}
 
 	#[pallet::hooks]
@@ -1002,6 +1015,11 @@ pub mod bonding_curve {
 						Error::<T>::DeadedCmlCanNotHost
 					);
 					ensure!(cml.machine_id().is_some(), Error::<T>::CmlMachineIdIsNone);
+					let (_, cml_status) = T::CmlOperation::mining_status(cml_id);
+					ensure!(
+						cml_status.eq(&MinerStatus::Active),
+						Error::<T>::MiningCmlStatusShouldBeActive
+					);
 
 					let (current_performance, _) =
 						T::CmlOperation::miner_performance(cml_id, &current_block);
@@ -1011,9 +1029,23 @@ pub mod bonding_curve {
 								.saturating_add(tapp_item.host_performance()),
 						Error::<T>::CmlMachineIsFullLoad
 					);
+					ensure!(
+						T::CurrencyOperations::free_balance(who) >= T::HostPledgeAmount::get(),
+						Error::<T>::InsufficientFreeBalance
+					);
 					Ok(())
 				},
 				|who| {
+					if let Err(e) = T::CurrencyOperations::reserve(who, T::HostPledgeAmount::get())
+					{
+						log::error!("reserve balance failed: {:?}", e);
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						return;
+					}
+					TAppHostPledge::<T>::mutate(tapp_id, cml_id, |amount| {
+						*amount = amount.saturating_add(T::HostPledgeAmount::get());
+					});
+
 					TAppCurrentHosts::<T>::insert(tapp_id, cml_id, current_block);
 					let became_active = Self::try_active_tapp(tapp_id);
 					CmlHostingTApps::<T>::mutate(cml_id, |tapp_ids| tapp_ids.push(tapp_id));
@@ -1066,10 +1098,18 @@ pub mod bonding_curve {
 
 					Ok(())
 				},
-				|_who| {
+				|who| {
+					let pledge_amount = TAppHostPledge::<T>::take(tapp_id, cml_id);
+					let unreserved_balance = T::CurrencyOperations::unreserve(who, pledge_amount);
+
 					let became_pending = Self::unhost_tapp(tapp_id, cml_id, false);
 
-					Self::deposit_event(Event::TAppsUnhosted(tapp_id, cml_id, became_pending));
+					Self::deposit_event(Event::TAppsUnhosted(
+						tapp_id,
+						cml_id,
+						became_pending,
+						unreserved_balance,
+					));
 				},
 			)
 		}

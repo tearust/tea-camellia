@@ -84,6 +84,115 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 				}
 			})
 	}
+
+	fn npc_account() -> T::AccountId {
+		NPCAccount::<T>::get()
+	}
+
+	fn cml_host_tapps(cml_id: CmlId) -> Vec<u64> {
+		CmlHostingTApps::<T>::get(cml_id)
+	}
+
+	fn try_active_tapp(tapp_id: TAppId) -> bool {
+		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count();
+		if TAppBondingCurve::<T>::get(tapp_id).status == TAppStatus::Pending
+			&& host_count >= T::MinTappHostsCount::get() as usize
+		{
+			let current_block = frame_system::Pallet::<T>::block_number();
+			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
+				tapp.status = TAppStatus::Active(current_block.clone())
+			});
+
+			Self::deposit_event(Event::TAppBecomeActived(
+				tapp_id,
+				current_block,
+				host_count as u32,
+			));
+			return true;
+		}
+		false
+	}
+
+	fn try_deactive_tapp(tapp_id: TAppId) -> bool {
+		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count();
+		match TAppBondingCurve::<T>::get(tapp_id).status {
+			TAppStatus::Active(_) => {
+				if host_count < T::MinTappHostsCount::get() as usize {
+					TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
+						tapp.status = TAppStatus::Pending
+					});
+
+					let current_block = frame_system::Pallet::<T>::block_number();
+					Self::deposit_event(Event::TAppBecomePending(
+						tapp_id,
+						current_block,
+						host_count as u32,
+					));
+					return true;
+				}
+			}
+			_ => {}
+		}
+		false
+	}
+
+	fn pay_hosting_penalty(tapp_id: u64, cml_id: u64) {
+		match T::CmlOperation::cml_by_id(&cml_id) {
+			Ok(cml) => {
+				if let Some(owner) = cml.owner() {
+					T::CurrencyOperations::slash_reserved(owner, T::HostPledgeAmount::get());
+				}
+			}
+			Err(e) => log::error!("failed to get cml: {:?}", e),
+		}
+
+		TAppHostPledge::<T>::mutate(tapp_id, cml_id, |balance| {
+			*balance = balance.saturating_sub(T::HostPledgeAmount::get());
+		});
+	}
+
+	fn can_append_pledge(cml_id: u64) -> bool {
+		match T::CmlOperation::cml_by_id(&cml_id) {
+			Ok(cml) => {
+				if let Some(owner) = cml.owner() {
+					return T::CurrencyOperations::free_balance(owner)
+						>= T::HostPledgeAmount::get()
+							* (CmlHostingTApps::<T>::get(cml_id).len() as u32).into();
+				}
+				false
+			}
+			Err(_) => false,
+		}
+	}
+
+	fn append_pledge(cml_id: u64) -> bool {
+		match T::CmlOperation::cml_by_id(&cml_id) {
+			Ok(cml) => {
+				if let Some(owner) = cml.owner() {
+					let mut success = true;
+					CmlHostingTApps::<T>::get(cml_id)
+						.iter()
+						.for_each(|tapp_id| {
+							match T::CurrencyOperations::reserve(owner, T::HostPledgeAmount::get())
+							{
+								Ok(_) => {
+									TAppHostPledge::<T>::mutate(tapp_id, cml_id, |amount| {
+										*amount = amount.saturating_add(T::HostPledgeAmount::get())
+									});
+								}
+								Err(e) => {
+									log::error!("reserve pledge failed: {:?}", e);
+									success = false;
+								}
+							}
+						});
+					return success;
+				}
+				false
+			}
+			Err(_) => false,
+		}
+	}
 }
 
 impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
@@ -263,21 +372,33 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		match TAppBondingCurve::<T>::get(tapp_id).billing_mode {
 			BillingMode::FixedHostingToken(_) => {
 				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(|(_, amount_list)| {
-					amount_list.iter().for_each(|(balance, _)| {
-						total_amount = total_amount.saturating_add(balance.clone());
-					});
+					amount_list
+						.iter()
+						.filter(|(_, cml_id)| {
+							let (is_mining, status) = T::CmlOperation::mining_status(*cml_id);
+							is_mining && status.eq(&MinerStatus::Active)
+						})
+						.for_each(|(balance, _)| {
+							total_amount = total_amount.saturating_add(balance.clone());
+						});
 				});
 
 				TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(
 					|(account, amount_list)| {
-						amount_list.iter().for_each(|(balance, cml_id)| {
-							consume_statements.push((
-								account.clone(),
-								distributing_amount * (*balance) / total_amount,
-								false,
-								Some(*cml_id),
-							));
-						});
+						amount_list
+							.iter()
+							.filter(|(_, cml_id)| {
+								let (is_mining, status) = T::CmlOperation::mining_status(*cml_id);
+								is_mining && status.eq(&MinerStatus::Active)
+							})
+							.for_each(|(balance, cml_id)| {
+								consume_statements.push((
+									account.clone(),
+									distributing_amount * (*balance) / total_amount,
+									false,
+									Some(*cml_id),
+								));
+							});
 					},
 				);
 			}
@@ -622,49 +743,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		Self::try_deactive_tapp(tapp_id)
 	}
 
-	pub(crate) fn try_active_tapp(tapp_id: TAppId) -> bool {
-		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count();
-		if TAppBondingCurve::<T>::get(tapp_id).status == TAppStatus::Pending
-			&& host_count >= T::MinTappHostsCount::get() as usize
-		{
-			let current_block = frame_system::Pallet::<T>::block_number();
-			TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
-				tapp.status = TAppStatus::Active(current_block.clone())
-			});
-
-			Self::deposit_event(Event::TAppBecomeActived(
-				tapp_id,
-				current_block,
-				host_count as u32,
-			));
-			return true;
-		}
-		false
-	}
-
-	pub(crate) fn try_deactive_tapp(tapp_id: TAppId) -> bool {
-		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count();
-		match TAppBondingCurve::<T>::get(tapp_id).status {
-			TAppStatus::Active(_) => {
-				if host_count < T::MinTappHostsCount::get() as usize {
-					TAppBondingCurve::<T>::mutate(tapp_id, |tapp| {
-						tapp.status = TAppStatus::Pending
-					});
-
-					let current_block = frame_system::Pallet::<T>::block_number();
-					Self::deposit_event(Event::TAppBecomePending(
-						tapp_id,
-						current_block,
-						host_count as u32,
-					));
-					return true;
-				}
-			}
-			_ => {}
-		}
-		false
-	}
-
 	pub(crate) fn unhost_last_tapp(cml_id: CmlId) -> Option<TAppId> {
 		if let Some(last_tapp) = CmlHostingTApps::<T>::get(cml_id).last() {
 			Self::unhost_tapp(*last_tapp, cml_id, false);
@@ -681,6 +759,14 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 		let mut unhosted_list = Vec::new();
 		mining_cmls.iter().for_each(|cml_id| {
+			if T::CmlOperation::is_cml_over_max_suspend_height(*cml_id, &current_block) {
+				CmlHostingTApps::<T>::get(cml_id)
+					.iter()
+					.for_each(|tapp_id| {
+						Self::unhost_tapp(*tapp_id, *cml_id, false);
+					});
+			}
+
 			let (current_performance, _) =
 				T::CmlOperation::miner_performance(*cml_id, &current_block);
 			while Self::cml_total_used_performance(*cml_id) > current_performance.unwrap_or(0) {
@@ -751,7 +837,12 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		total_amount: BalanceOf<T>,
 		do_transfer: bool,
 	) -> Result<Vec<(T::AccountId, CmlId, BalanceOf<T>)>, DispatchError> {
-		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count() as u32;
+		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id)
+			.filter(|(cml_id, _)| {
+				let (is_mining, status) = T::CmlOperation::mining_status(*cml_id);
+				is_mining && status.eq(&MinerStatus::Active)
+			})
+			.count() as u32;
 		ensure!(
 			!host_count.is_zero(),
 			Error::<T>::NoHostingToDistributeMiner
@@ -761,6 +852,11 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 		let mut tapp_statements = Vec::new();
 		for (cml_id, _) in TAppCurrentHosts::<T>::iter_prefix(tapp_id) {
+			let (is_mining, status) = T::CmlOperation::mining_status(cml_id);
+			if !is_mining || !status.eq(&MinerStatus::Active) {
+				continue;
+			}
+
 			let staking_snapshots = T::CmlOperation::cml_staking_snapshots(cml_id);
 			let mut statements = T::CmlOperation::single_cml_staking_reward_statements(
 				cml_id,
@@ -980,13 +1076,15 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				[1u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner),
 				cml_id2,
 				[2u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 
 			assert_ok!(create_default_tapp(tapp_owner));
@@ -1154,13 +1252,15 @@ mod tests {
 				Origin::signed(miner1),
 				cml_id1,
 				[1u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner2),
 				cml_id2,
 				[2u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 			assert_ok!(BondingCurve::host(Origin::signed(miner1), cml_id1, tapp_id));
 			assert_ok!(BondingCurve::host(Origin::signed(miner2), cml_id2, tapp_id));
@@ -1257,13 +1357,15 @@ mod tests {
 				Origin::signed(miner1),
 				cml_id1,
 				[1u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner2),
 				cml_id2,
 				[2u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 
 			let tapp_id = 1;
@@ -1327,19 +1429,22 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				[1u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner),
 				cml_id2,
 				[2u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner),
 				cml_id4,
 				[4u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 
 			assert_ok!(create_default_tapp(tapp_owner));
@@ -1398,7 +1503,8 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				[1u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 
 			frame_system::Pallet::<Test>::set_block_number(40);
@@ -1467,7 +1573,8 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				[1u8; 32],
-				b"miner_ip".to_vec()
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
 			));
 
 			let npc = NPCAccount::<Test>::get();

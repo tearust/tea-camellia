@@ -1,6 +1,7 @@
 use crate::CmlId;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
+use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
@@ -14,15 +15,22 @@ pub enum MinerStatus {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct MinerItem {
+pub struct MinerItem<BlockNumber>
+where
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+{
 	pub cml_id: CmlId,
 	pub id: MachineId,
 	pub ip: Vec<u8>,
 	pub status: MinerStatus,
 	pub orbitdb_id: Vec<u8>,
+	pub suspend_height: Option<BlockNumber>,
 }
 
-impl Default for MinerItem {
+impl<BlockNumber> Default for MinerItem<BlockNumber>
+where
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+{
 	fn default() -> Self {
 		MinerItem {
 			cml_id: 0,
@@ -30,6 +38,7 @@ impl Default for MinerItem {
 			ip: vec![],
 			orbitdb_id: vec![],
 			status: MinerStatus::Offline,
+			suspend_height: None,
 		}
 	}
 }

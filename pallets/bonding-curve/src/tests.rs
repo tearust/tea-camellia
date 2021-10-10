@@ -1546,13 +1546,15 @@ fn consume_works_with_miner() {
 			Origin::signed(miner1),
 			cml_id1,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner2),
 			cml_id2,
 			[2u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		let tapp_id = 1;
@@ -1626,13 +1628,15 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 			Origin::signed(miner1),
 			cml_id1,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner2),
 			cml_id2,
 			[2u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		let tapp_id = 1;
@@ -1752,7 +1756,8 @@ fn expense_works_if_expense_amount_more_than_reserved_balance() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		frame_system::Pallet::<Test>::set_block_number(101);
@@ -1788,7 +1793,8 @@ fn host_works_with_fixed_fee() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		let npc = NPCAccount::<Test>::get();
@@ -1850,7 +1856,8 @@ fn host_works_fixed_token() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -1899,13 +1906,15 @@ fn fixed_token_host_works_with_miner_hosts_multi_times() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner),
 			cml_id2,
 			[2u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -1993,7 +2002,8 @@ fn host_should_fail_if_cml_is_already_hosting() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2030,13 +2040,15 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner),
 			cml_id2,
 			[2u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		let npc = NPCAccount::<Test>::get();
@@ -2090,7 +2102,8 @@ fn host_should_fail_if_cml_is_full_load() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		let npc = NPCAccount::<Test>::get();
@@ -2192,7 +2205,8 @@ fn unhost_works() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2237,7 +2251,8 @@ fn unhost_should_fail_if_not_after_locking_block_height() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 		assert_ok!(create_default_tapp(tapp_owner));
 
@@ -2268,7 +2283,8 @@ fn unhost_should_fail_if_cml_not_belongs_to_user() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2301,7 +2317,8 @@ fn unhost_should_fail_if_tapp_id_not_exist() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		let tapp_id = 1;
@@ -2330,7 +2347,8 @@ fn unhost_should_fail_if_cml_not_host_the_tapp() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));

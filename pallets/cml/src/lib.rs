@@ -109,6 +109,9 @@ pub mod cml {
 		/// Punishment amount need to pay for each staking account when stop mining.
 		#[pallet::constant]
 		type StopMiningPunishment: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type MaxAllowedSuspendHeight: Get<Self::BlockNumber>;
 	}
 
 	#[pallet::pallet]
@@ -154,7 +157,7 @@ pub mod cml {
 	#[pallet::storage]
 	#[pallet::getter(fn miner_item_store)]
 	pub type MinerItemStore<T: Config> =
-		StorageMap<_, Twox64Concat, MachineId, MinerItem, ValueQuery>;
+		StorageMap<_, Twox64Concat, MachineId, MinerItem<T::BlockNumber>, ValueQuery>;
 
 	/// Double map about `CmlType` and `DefrostScheduleType`, value is the rest of CMLs in lucky draw box.
 	#[pallet::storage]
@@ -288,6 +291,10 @@ pub mod cml {
 		NoNeedToSuspend,
 		/// Mining tree is already active, no need to resume
 		NoNeedToResume,
+		/// Only NPC account allowed to suspend mining tree
+		OnlyNpcAccountAllowedToSuspend,
+		/// Insufficient free balance to append pledge
+		InsufficientFreeBalanceToAppendPledge,
 
 		/// Specified staking index is over than the max length of current staking slots.
 		InvalidStakingIndex,
@@ -606,6 +613,7 @@ pub mod cml {
 								id: machine_id.clone(),
 								orbitdb_id: orbitdb_id.clone(),
 								status: MinerStatus::Active,
+								suspend_height: None,
 							},
 						);
 
@@ -620,35 +628,89 @@ pub mod cml {
 		pub fn suspend_mining(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
-			extrinsic_procedure(&who, |who| Ok(()), |who| {})
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
+					let cml = CmlStore::<T>::get(cml_id);
+					ensure!(
+						who.eq(&T::BondingCurveOperation::npc_account()),
+						Error::<T>::OnlyNpcAccountAllowedToSuspend
+					);
+					let machine_id = cml.machine_id();
+					ensure!(machine_id.is_some(), Error::<T>::NotFoundMiner);
+					ensure!(
+						MinerItemStore::<T>::contains_key(machine_id.unwrap()),
+						Error::<T>::NotFoundMiner
+					);
+					ensure!(
+						MinerItemStore::<T>::get(machine_id.unwrap()).status == MinerStatus::Active,
+						Error::<T>::NoNeedToSuspend
+					);
+					Ok(())
+				},
+				|_who| {
+					if let Some(machine_id) = CmlStore::<T>::get(cml_id).machine_id() {
+						MinerItemStore::<T>::mutate(machine_id, |item| {
+							item.status = MinerStatus::Offline;
+							item.suspend_height = Some(frame_system::Pallet::<T>::block_number());
+						});
+					}
+
+					T::BondingCurveOperation::cml_host_tapps(cml_id)
+						.iter()
+						.for_each(|tapp_id| {
+							T::BondingCurveOperation::pay_hosting_penalty(*tapp_id, cml_id);
+							T::BondingCurveOperation::try_deactive_tapp(*tapp_id);
+						});
+				},
+			)
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn resume_mining(
-			sender: OriginFor<T>,
-			cml_id: CmlId,
-			machine_id: MachineId,
-		) -> DispatchResult {
+		pub fn resume_mining(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
 			extrinsic_procedure(
 				&who,
 				|who| {
 					Self::check_belongs(&cml_id, who)?;
+					let cml = CmlStore::<T>::get(cml_id);
+					let machine_id = cml.machine_id();
+					ensure!(machine_id.is_some(), Error::<T>::NotFoundMiner);
 					ensure!(
-						MinerItemStore::<T>::contains_key(machine_id),
+						MinerItemStore::<T>::contains_key(machine_id.unwrap()),
 						Error::<T>::NotFoundMiner
 					);
 					ensure!(
-						MinerItemStore::<T>::get(machine_id).status == MinerStatus::Offline,
+						MinerItemStore::<T>::get(machine_id.unwrap()).status
+							== MinerStatus::Offline,
 						Error::<T>::NoNeedToResume
+					);
+					ensure!(
+						T::BondingCurveOperation::can_append_pledge(cml_id),
+						Error::<T>::InsufficientFreeBalanceToAppendPledge
 					);
 					Ok(())
 				},
-				|who| {
-					MinerItemStore::<T>::mutate(machine_id, |item| {
-						item.status = MinerStatus::Active
-					});
+				|_who| {
+					if !T::BondingCurveOperation::append_pledge(cml_id) {
+						// see https://github.com/tearust/tea-camellia/issues/13
+						return;
+					}
+
+					if let Some(machine_id) = CmlStore::<T>::get(cml_id).machine_id() {
+						MinerItemStore::<T>::mutate(machine_id, |item| {
+							item.status = MinerStatus::Active;
+							item.suspend_height = None;
+						});
+					}
+
+					T::BondingCurveOperation::cml_host_tapps(cml_id)
+						.iter()
+						.for_each(|tapp_id| {
+							T::BondingCurveOperation::try_active_tapp(*tapp_id);
+						});
 				},
 			)
 		}
@@ -982,6 +1044,10 @@ pub trait CmlOperation {
 	fn user_coupon_list(who: &Self::AccountId, schedule_type: DefrostScheduleType) -> Vec<Coupon>;
 
 	fn task_point_base() -> ServiceTaskPoint;
+
+	fn mining_status(cml_id: CmlId) -> (bool, MinerStatus);
+
+	fn is_cml_over_max_suspend_height(cml_id: CmlId, block_height: &Self::BlockNumber) -> bool;
 }
 
 /// Operations to calculate staking rewards.

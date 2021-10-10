@@ -955,6 +955,7 @@ parameter_types! {
 	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
 	/// Punishment amount need to pay for each staking account when stop mining.
 	pub const StopMiningPunishment: Balance = 100 * DOLLARS;
+	pub const MaxAllowedSuspendHeight: u32 = 1000;
 }
 
 impl pallet_cml::Config for Runtime {
@@ -974,6 +975,7 @@ impl pallet_cml::Config for Runtime {
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
 	type StopMiningPunishment = StopMiningPunishment;
+	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
 }
 
 #[cfg(not(feature = "fast"))]

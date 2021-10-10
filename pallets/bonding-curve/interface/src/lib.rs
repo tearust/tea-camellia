@@ -36,4 +36,18 @@ pub trait BondingCurveOperation {
 	fn is_cml_hosting(cml_id: u64) -> bool;
 
 	fn transfer_reserved_tokens(from: &Self::AccountId, to: &Self::AccountId, cml_id: u64);
+
+	fn npc_account() -> Self::AccountId;
+
+	fn cml_host_tapps(cml_id: u64) -> Vec<u64>;
+
+	fn try_active_tapp(tapp_id: u64) -> bool;
+
+	fn try_deactive_tapp(tapp_id: u64) -> bool;
+
+	fn pay_hosting_penalty(tapp_id: u64, cml_id: u64);
+
+	fn can_append_pledge(cml_id: u64) -> bool;
+
+	fn append_pledge(cml_id: u64) -> bool;
 }

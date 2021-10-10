@@ -222,6 +222,7 @@ mod tests {
 					ip: vec![],
 					orbitdb_id: vec![],
 					status: MinerStatus::Active,
+					suspend_height: None,
 				},
 			);
 			MinerItemStore::<Test>::insert(
@@ -232,6 +233,7 @@ mod tests {
 					ip: vec![],
 					orbitdb_id: vec![],
 					status: MinerStatus::Active,
+					suspend_height: None,
 				},
 			);
 

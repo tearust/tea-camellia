@@ -166,6 +166,7 @@ pub const HOST_LOCKING_BLOCK_HEIGHT: u64 = 1000;
 pub const TAPP_LINK_DESCRIPTION_MAX_LENGTH: u32 = 140;
 pub const DEFAULT_BUY_CURVE_THETA: u32 = 10;
 pub const DEFAULT_SELL_CURVE_THETA: u32 = 7;
+pub const HOST_PLEDGE_AMOUNT: Balance = 100;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
@@ -184,6 +185,7 @@ parameter_types! {
 	pub const TAppLinkDescriptionMaxLength: u32 = TAPP_LINK_DESCRIPTION_MAX_LENGTH;
 	pub const DefaultBuyCurveTheta: u32 = DEFAULT_BUY_CURVE_THETA;
 	pub const DefaultSellCurveTheta: u32 = DEFAULT_SELL_CURVE_THETA;
+	pub const HostPledgeAmount: Balance = HOST_PLEDGE_AMOUNT;
 }
 
 impl pallet_bonding_curve::Config for Test {
@@ -207,6 +209,7 @@ impl pallet_bonding_curve::Config for Test {
 	type TAppLinkDescriptionMaxLength = TAppLinkDescriptionMaxLength;
 	type DefaultBuyCurveTheta = DefaultBuyCurveTheta;
 	type DefaultSellCurveTheta = DefaultSellCurveTheta;
+	type HostPledgeAmount = HostPledgeAmount;
 }
 
 pub const STAKING_PRICE: Balance = 1000;
@@ -218,6 +221,7 @@ parameter_types! {
 	pub const StakingPeriodLength: u32 = 100;
 	pub const StakingSlotsMaxLength: u32 = 1024;
 	pub const StopMiningPunishment: Balance = 100;
+	pub const MaxAllowedSuspendHeight: u32 = 1000;
 }
 
 impl pallet_cml::Config for Test {
@@ -236,6 +240,7 @@ impl pallet_cml::Config for Test {
 	type StopMiningPunishment = StopMiningPunishment;
 	type MiningOperation = MiningOperationMock;
 	type BondingCurveOperation = BondingCurve;
+	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
 	type WeightInfo = ();
 }
 

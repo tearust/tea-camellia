@@ -233,6 +233,27 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 	fn task_point_base() -> ServiceTaskPoint {
 		TaskPointBase::<T>::get()
 	}
+
+	fn mining_status(cml_id: CmlId) -> (bool, MinerStatus) {
+		let cml = CmlStore::<T>::get(cml_id);
+		let status = match cml.machine_id() {
+			Some(machine_id) => MinerItemStore::<T>::get(machine_id).status,
+			None => MinerStatus::Offline,
+		};
+
+		(cml.is_mining(), status)
+	}
+
+	fn is_cml_over_max_suspend_height(cml_id: CmlId, block_height: &Self::BlockNumber) -> bool {
+		let cml = CmlStore::<T>::get(cml_id);
+		if let Some(machine_id) = cml.machine_id() {
+			if let Some(height) = MinerItemStore::<T>::get(machine_id).suspend_height {
+				return *block_height > height + T::MaxAllowedSuspendHeight::get();
+			}
+		}
+
+		false
+	}
 }
 
 #[cfg(test)]

@@ -784,6 +784,7 @@ fn dummy_ra_task_works() {
 				ip: vec![],
 				orbitdb_id: vec![],
 				status: MinerStatus::Active,
+				suspend_height: None,
 			},
 		);
 

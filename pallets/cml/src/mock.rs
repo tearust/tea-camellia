@@ -75,6 +75,32 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 	}
 
 	fn transfer_reserved_tokens(_from: &Self::AccountId, _to: &Self::AccountId, _cml_id: u64) {}
+
+	fn npc_account() -> Self::AccountId {
+		Self::AccountId::default()
+	}
+
+	fn cml_host_tapps(_cml_id: u64) -> Vec<u64> {
+		vec![]
+	}
+
+	fn try_active_tapp(_tapp_id: u64) -> bool {
+		true
+	}
+
+	fn try_deactive_tapp(_tapp_id: u64) -> bool {
+		true
+	}
+
+	fn pay_hosting_penalty(_tapp_id: u64, _cml_id: u64) {}
+
+	fn can_append_pledge(_cml_id: u64) -> bool {
+		true
+	}
+
+	fn append_pledge(_cml_id: u64) -> bool {
+		true
+	}
 }
 
 pub struct MiningOperationMock {}
@@ -201,6 +227,7 @@ pub const STAKING_PERIOD_LENGTH: u32 = 100;
 pub const STAKING_PRICE: Balance = 1000;
 pub const STAKING_SLOTS_MAX_LENGTH: u32 = 100;
 pub const STOP_MINING_PUNISHMENT: Balance = 100;
+pub const MAX_ALLOWED_SUSPEND_HEIGHT: u32 = 1000;
 
 parameter_types! {
 	pub const MinRaPassedThreshold: u32 = 3;
@@ -209,6 +236,7 @@ parameter_types! {
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
 	pub const StopMiningPunishment: Balance = STOP_MINING_PUNISHMENT;
+	pub const MaxAllowedSuspendHeight: u32 = MAX_ALLOWED_SUSPEND_HEIGHT;
 }
 
 impl pallet_cml::Config for Test {
@@ -227,6 +255,7 @@ impl pallet_cml::Config for Test {
 	type StopMiningPunishment = StopMiningPunishment;
 	type MiningOperation = MiningOperationMock;
 	type BondingCurveOperation = BondingCurveOperationMock;
+	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
 	type WeightInfo = ();
 }
 

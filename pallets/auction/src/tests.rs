@@ -373,7 +373,8 @@ fn bid_for_diff_auction_to_check_user_balance() {
 			Origin::signed(owner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 		let starting_price = 100;
 		assert_ok!(Auction::put_to_store(
@@ -543,7 +544,8 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 			Origin::signed(owner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 		let starting_price = 100;
 		let buy_now_price = 500;
@@ -624,7 +626,8 @@ fn bid_mining_cml_should_have_sufficient_free_balance_for_staking() {
 			Origin::signed(owner),
 			cml_id,
 			[1u8; 32],
-			b"miner_ip".to_vec()
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
 		));
 		assert_ok!(Auction::put_to_store(
 			Origin::signed(owner),
