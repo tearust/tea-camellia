@@ -805,3 +805,265 @@ fn dummy_ra_task_works() {
 		assert_eq!(MiningCmlTaskPoints::<Test>::get(&cml_id), u32::MAX);
 	})
 }
+
+#[test]
+fn suspend_mining_works() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Active);
+		assert_eq!(miner_item.suspend_height, None);
+
+		frame_system::Pallet::<Test>::set_block_number(100);
+		assert_ok!(Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Offline);
+		assert_eq!(miner_item.suspend_height, Some(100));
+	})
+}
+
+#[test]
+fn suspend_mining_should_fail_if_cml_not_exist() {
+	new_test_ext().execute_with(|| {
+		let cml_id = 1;
+		assert_noop!(
+			Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id),
+			Error::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn suspend_mining_should_fail_if_operating_account_is_not_npc() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		assert_noop!(
+			Cml::suspend_mining(Origin::signed(miner), cml_id),
+			Error::<Test>::OnlyNpcAccountAllowedToSuspend
+		);
+	})
+}
+
+#[test]
+fn suspend_mining_should_fail_if_cml_not_mining() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id),
+			Error::<Test>::NotFoundMiner
+		);
+	})
+}
+
+#[test]
+fn suspend_mining_should_fail_if_cml_is_suspended_already() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		assert_ok!(Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id));
+		assert_noop!(
+			Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id),
+			Error::<Test>::NoNeedToSuspend
+		);
+	})
+}
+
+#[test]
+fn resume_mining_works() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		frame_system::Pallet::<Test>::set_block_number(100);
+		assert_ok!(Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Offline);
+		assert_eq!(miner_item.suspend_height, Some(100));
+
+		assert_ok!(Cml::resume_mining(Origin::signed(miner), cml_id));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Active);
+		assert_eq!(miner_item.suspend_height, None);
+	})
+}
+
+#[test]
+fn resume_mining_should_fail_if_cml_not_exist() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+
+		assert_noop!(
+			Cml::resume_mining(Origin::signed(1), cml_id),
+			Error::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn resume_mining_should_fail_if_user_is_not_cml_owner() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let user = 2;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::resume_mining(Origin::signed(user), cml_id),
+			Error::<Test>::CMLOwnerInvalid
+		);
+	})
+}
+
+#[test]
+fn resume_mining_should_fail_if_cml_is_not_mining() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::resume_mining(Origin::signed(miner), cml_id),
+			Error::<Test>::NotFoundMiner
+		);
+	})
+}
+
+#[test]
+fn resume_mining_should_fail_if_cml_is_active_already() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		assert_noop!(
+			Cml::resume_mining(Origin::signed(miner), cml_id),
+			Error::<Test>::NoNeedToResume
+		);
+	})
+}
+
+#[test]
+fn resume_mining_should_fail_free_balance_is_not_enough() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = INSUFFICIENT_CML_ID;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		assert_ok!(Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id));
+
+		assert_noop!(
+			Cml::resume_mining(Origin::signed(miner), cml_id),
+			Error::<Test>::InsufficientFreeBalanceToAppendPledge
+		);
+	})
+}

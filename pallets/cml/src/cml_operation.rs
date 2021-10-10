@@ -259,11 +259,66 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 #[cfg(test)]
 mod tests {
 	use crate::{
-		mock::*, tests::seed_from_lifespan, CmlOperation, CmlStore, Config, StakingProperties,
-		TreeProperties, UserCmlStore, CML,
+		mock::*, tests::seed_from_lifespan, CmlOperation, CmlStore, Config, MachineId, MinerItem,
+		MinerItemStore, MinerStatus, MiningProperties, StakingProperties, TreeProperties,
+		UserCmlStore, CML,
 	};
 	use frame_support::{assert_ok, traits::Currency};
 	use pallet_utils::CurrencyOperations;
+
+	#[test]
+	fn mining_status_works() {
+		new_test_ext().execute_with(|| {
+			let cml_id = 1;
+			let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+			assert!(cml.machine_id().is_none());
+			CmlStore::<Test>::insert(cml_id, cml.clone());
+			assert_eq!(Cml::mining_status(cml_id), (false, MinerStatus::Offline));
+
+			let machine_id: MachineId = [1u8; 32];
+			let mut miner_item: MinerItem<u64> = Default::default();
+			miner_item.status = MinerStatus::Active;
+			MinerItemStore::<Test>::insert(machine_id, miner_item.clone());
+			cml.start_mining(machine_id, Default::default(), &0);
+			CmlStore::<Test>::insert(cml_id, cml.clone());
+			assert_eq!(Cml::mining_status(cml_id), (true, MinerStatus::Active));
+
+			miner_item.status = MinerStatus::Offline;
+			MinerItemStore::<Test>::insert(machine_id, miner_item.clone());
+			assert_eq!(Cml::mining_status(cml_id), (true, MinerStatus::Offline));
+		})
+	}
+
+	#[test]
+	fn is_cml_over_max_suspend_height_works() {
+		new_test_ext().execute_with(|| {
+			let cml_id = 1;
+			let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+			assert!(cml.machine_id().is_none());
+			CmlStore::<Test>::insert(cml_id, cml.clone());
+
+			assert!(!Cml::is_cml_over_max_suspend_height(cml_id, &u64::MAX));
+			let machine_id: MachineId = [1u8; 32];
+			let mut miner_item: MinerItem<u64> = Default::default();
+			MinerItemStore::<Test>::insert(machine_id, miner_item.clone());
+			cml.start_mining(machine_id, Default::default(), &0);
+			CmlStore::<Test>::insert(cml_id, cml.clone());
+			assert!(!Cml::is_cml_over_max_suspend_height(cml_id, &u64::MAX));
+
+			miner_item.suspend_height = Some(100);
+			MinerItemStore::<Test>::insert(machine_id, miner_item.clone());
+
+			assert!(!Cml::is_cml_over_max_suspend_height(
+				cml_id,
+				&(100 + MAX_ALLOWED_SUSPEND_HEIGHT as u64)
+			));
+
+			assert!(Cml::is_cml_over_max_suspend_height(
+				cml_id,
+				&(100 + MAX_ALLOWED_SUSPEND_HEIGHT as u64 + 1)
+			));
+		})
+	}
 
 	#[test]
 	fn transfer_cml_to_other_works() {

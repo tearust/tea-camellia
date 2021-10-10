@@ -26,6 +26,8 @@ type Block = frame_system::mocking::MockBlock<Test>;
 pub const DOLLARS: node_primitives::Balance = 100000;
 pub const INVALID_MINING_CML_ID: u64 = 99;
 pub const HOSTING_CML_ID: u64 = 98;
+pub const INSUFFICIENT_CML_ID: u64 = 97;
+pub const NPC_ACCOUNT: u64 = 100;
 
 pub const SEED_FRESH_DURATION: u64 = 7 * 24 * 60 * 10;
 
@@ -77,7 +79,7 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 	fn transfer_reserved_tokens(_from: &Self::AccountId, _to: &Self::AccountId, _cml_id: u64) {}
 
 	fn npc_account() -> Self::AccountId {
-		Self::AccountId::default()
+		NPC_ACCOUNT
 	}
 
 	fn cml_host_tapps(_cml_id: u64) -> Vec<u64> {
@@ -94,8 +96,8 @@ impl BondingCurveOperation for BondingCurveOperationMock {
 
 	fn pay_hosting_penalty(_tapp_id: u64, _cml_id: u64) {}
 
-	fn can_append_pledge(_cml_id: u64) -> bool {
-		true
+	fn can_append_pledge(cml_id: u64) -> bool {
+		cml_id != INSUFFICIENT_CML_ID
 	}
 
 	fn append_pledge(_cml_id: u64) -> bool {
