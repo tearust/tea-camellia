@@ -953,7 +953,7 @@ mod tests {
 	use crate::*;
 	use bonding_curve_impl::approximately_equals;
 	use frame_support::{assert_noop, assert_ok};
-	use pallet_cml::{CmlStore, UserCmlStore, CML};
+	use pallet_cml::{CmlOperation, CmlStore, UserCmlStore, CML};
 
 	const CENTS: node_primitives::Balance = 10_000_000_000;
 	const DOLLARS: node_primitives::Balance = 100 * CENTS;
@@ -1555,6 +1555,79 @@ mod tests {
 	}
 
 	#[test]
+	fn arrange_host_works_when_cml_suspend_for_a_long_time() {
+		new_test_ext().execute_with(|| {
+			EnableUserCreateTApp::<Test>::set(true);
+			let miner = 2;
+			let tapp_owner = 1;
+			<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+			<Test as Config>::Currency::make_free_balance_be(&miner, 1000000);
+
+			let cml_id = 11;
+			let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 10000, 2000));
+			UserCmlStore::<Test>::insert(miner, cml_id, ());
+			CmlStore::<Test>::insert(cml_id, cml);
+
+			assert_ok!(Cml::start_mining(
+				Origin::signed(miner),
+				cml_id,
+				[1u8; 32],
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
+			));
+
+			frame_system::Pallet::<Test>::set_block_number(4000);
+			let (performance, _) = Cml::miner_performance(cml_id, &4000);
+			assert_eq!(performance, Some(2000));
+
+			assert_ok!(create_default_tapp(tapp_owner));
+			let npc = NPCAccount::<Test>::get();
+			let link = b"https://teaproject2.org".to_vec();
+			assert_ok!(BondingCurve::register_tapp_link(
+				Origin::signed(npc),
+				link.clone(),
+				"test description".into(),
+				None,
+			));
+			assert_ok!(BondingCurve::create_new_tapp(
+				Origin::signed(tapp_owner),
+				b"test name2".to_vec(),
+				b"tea2".to_vec(),
+				1_000_000,
+				b"test detail".to_vec(),
+				link,
+				10,
+				TAppType::Twitter,
+				true,
+				None,
+				Some(1000),
+				None,
+				None,
+			));
+
+			let tapp_id = 1;
+			let tapp_id2 = 2;
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
+			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id2));
+
+			assert_ok!(Cml::suspend_mining(Origin::signed(npc), cml_id));
+
+			frame_system::Pallet::<Test>::set_block_number(4000 + HOST_ARRANGE_DURATION + 1);
+			let (performance, _) =
+				Cml::miner_performance(cml_id, &(4000 + HOST_ARRANGE_DURATION + 1));
+			assert_eq!(performance, Some(1800));
+
+			assert!(Cml::is_cml_over_max_suspend_height(
+				cml_id,
+				&(4000 + HOST_ARRANGE_DURATION + 1)
+			));
+			BondingCurve::arrange_host();
+
+			assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 0);
+		})
+	}
+
+	#[test]
 	fn transfer_reserved_tokens_works() {
 		new_test_ext().execute_with(|| {
 			EnableUserCreateTApp::<Test>::set(true);
@@ -1649,6 +1722,64 @@ mod tests {
 				TAppReservedBalance::<Test>::get(tapp_id2, bid_winner)[0],
 				(2000, cml_id)
 			);
+		})
+	}
+
+	#[test]
+	fn pay_hosting_penalty_works() {
+		new_test_ext().execute_with(|| {
+			let miner = 2;
+			let miner_initial_amount = 10000;
+			<Test as Config>::Currency::make_free_balance_be(&miner, miner_initial_amount);
+
+			let cml_id = 11;
+			let tapp_id = 22;
+			let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 100000));
+			cml.set_owner(&miner);
+			UserCmlStore::<Test>::insert(miner, cml_id, ());
+			CmlStore::<Test>::insert(cml_id, cml);
+
+			Utils::reserve(&miner, HOST_PLEDGE_AMOUNT).unwrap();
+			TAppHostPledge::<Test>::insert(tapp_id, cml_id, HOST_PLEDGE_AMOUNT);
+
+			assert_eq!(Utils::reserved_balance(&miner), HOST_PLEDGE_AMOUNT);
+			BondingCurve::pay_hosting_penalty(tapp_id, cml_id);
+
+			assert_eq!(Utils::reserved_balance(&miner), 0);
+			assert_eq!(TAppHostPledge::<Test>::get(tapp_id, cml_id), 0);
+		})
+	}
+
+	#[test]
+	fn append_pledge_works() {
+		new_test_ext().execute_with(|| {
+			let miner = 2;
+			let miner_initial_amount = 500;
+			<Test as Config>::Currency::make_free_balance_be(&miner, miner_initial_amount);
+
+			let cml_id = 11;
+			let tapp_id = 22;
+			let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 100000));
+			cml.set_owner(&miner);
+			UserCmlStore::<Test>::insert(miner, cml_id, ());
+			CmlStore::<Test>::insert(cml_id, cml);
+
+			CmlHostingTApps::<Test>::insert(cml_id, vec![1, 2, 3]);
+			assert_eq!(Utils::reserved_balance(&miner), 0);
+			assert_eq!(TAppHostPledge::<Test>::get(tapp_id, cml_id), 0);
+
+			assert!(BondingCurve::can_append_pledge(cml_id));
+			BondingCurve::append_pledge(cml_id);
+			assert_eq!(Utils::reserved_balance(&miner), HOST_PLEDGE_AMOUNT * 3);
+			assert_eq!(
+				Utils::free_balance(&miner),
+				miner_initial_amount - HOST_PLEDGE_AMOUNT * 3
+			);
+			assert_eq!(TAppHostPledge::<Test>::get(1, cml_id), HOST_PLEDGE_AMOUNT);
+			assert_eq!(TAppHostPledge::<Test>::get(2, cml_id), HOST_PLEDGE_AMOUNT);
+			assert_eq!(TAppHostPledge::<Test>::get(3, cml_id), HOST_PLEDGE_AMOUNT);
+
+			assert!(!BondingCurve::can_append_pledge(cml_id));
 		})
 	}
 

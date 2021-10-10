@@ -1835,6 +1835,18 @@ fn host_works_with_fixed_fee() {
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
 		assert!(!TAppReservedBalance::<Test>::contains_key(tapp_id, miner));
+		assert_eq!(
+			Utils::free_balance(&miner),
+			10000 - STAKING_PRICE - HOST_PLEDGE_AMOUNT
+		);
+		assert_eq!(
+			Utils::reserved_balance(&miner),
+			STAKING_PRICE + HOST_PLEDGE_AMOUNT
+		);
+		assert_eq!(
+			TAppHostPledge::<Test>::get(tapp_id, cml_id),
+			HOST_PLEDGE_AMOUNT
+		);
 	})
 }
 
@@ -1879,6 +1891,18 @@ fn host_works_fixed_token() {
 		assert_eq!(
 			TAppReservedBalance::<Test>::get(tapp_id, miner)[0],
 			(1000, cml_id)
+		);
+		assert_eq!(
+			Utils::free_balance(&miner),
+			10000 - STAKING_PRICE - HOST_PLEDGE_AMOUNT
+		);
+		assert_eq!(
+			Utils::reserved_balance(&miner),
+			STAKING_PRICE + HOST_PLEDGE_AMOUNT
+		);
+		assert_eq!(
+			TAppHostPledge::<Test>::get(tapp_id, cml_id),
+			HOST_PLEDGE_AMOUNT
 		);
 	})
 }
@@ -2164,6 +2188,73 @@ fn host_should_fail_if_cml_is_full_load() {
 }
 
 #[test]
+fn host_should_fail_if_cml_is_suspended() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 4000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		let npc = NPCAccount::<Test>::get();
+		assert_ok!(Cml::suspend_mining(Origin::signed(npc), cml_id,));
+
+		assert_ok!(create_default_tapp(tapp_owner));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::MiningCmlStatusShouldBeActive
+		);
+	})
+}
+
+#[test]
+fn host_should_fail_if_not_enough_money() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, STAKING_PRICE);
+
+		let cml_id = 11;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 4000));
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		assert_ok!(create_default_tapp(tapp_owner));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::InsufficientFreeBalance
+		);
+	})
+}
+
+#[test]
 fn host_should_fail_if_cml_is_not_mining() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
@@ -2221,6 +2312,18 @@ fn unhost_works() {
 		assert!(TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 1);
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id)[0], tapp_id);
+		assert_eq!(
+			Utils::free_balance(&miner),
+			10000 - STAKING_PRICE - HOST_PLEDGE_AMOUNT
+		);
+		assert_eq!(
+			Utils::reserved_balance(&miner),
+			STAKING_PRICE + HOST_PLEDGE_AMOUNT
+		);
+		assert_eq!(
+			TAppHostPledge::<Test>::get(tapp_id, cml_id),
+			HOST_PLEDGE_AMOUNT
+		);
 
 		frame_system::Pallet::<Test>::set_block_number(1001);
 		assert_ok!(BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id));
@@ -2231,6 +2334,9 @@ fn unhost_works() {
 		);
 		assert!(!TAppCurrentHosts::<Test>::contains_key(tapp_id, cml_id));
 		assert_eq!(CmlHostingTApps::<Test>::get(cml_id).len(), 0);
+		assert_eq!(Utils::free_balance(&miner), 10000 - STAKING_PRICE);
+		assert_eq!(Utils::reserved_balance(&miner), STAKING_PRICE);
+		assert!(!TAppHostPledge::<Test>::contains_key(tapp_id, cml_id));
 	})
 }
 
