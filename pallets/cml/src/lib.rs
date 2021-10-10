@@ -284,6 +284,10 @@ pub mod cml {
 		InvalidMiner,
 		/// Sepcified miner IP is not a valid format of IPv4.
 		InvalidMinerIp,
+		/// Mining tree is offline already, no need to suspend
+		NoNeedToSuspend,
+		/// Mining tree is already active, no need to resume
+		NoNeedToResume,
 
 		/// Specified staking index is over than the max length of current staking slots.
 		InvalidStakingIndex,
@@ -607,6 +611,43 @@ pub mod cml {
 
 						// todo verify machine id later
 						T::TeaOperation::add_new_node(machine_id, sender);
+					});
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn suspend_mining(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(&who, |who| Ok(()), |who| {})
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn resume_mining(
+			sender: OriginFor<T>,
+			cml_id: CmlId,
+			machine_id: MachineId,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					Self::check_belongs(&cml_id, who)?;
+					ensure!(
+						MinerItemStore::<T>::contains_key(machine_id),
+						Error::<T>::NotFoundMiner
+					);
+					ensure!(
+						MinerItemStore::<T>::get(machine_id).status == MinerStatus::Offline,
+						Error::<T>::NoNeedToResume
+					);
+					Ok(())
+				},
+				|who| {
+					MinerItemStore::<T>::mutate(machine_id, |item| {
+						item.status = MinerStatus::Active
 					});
 				},
 			)
