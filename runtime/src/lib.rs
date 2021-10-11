@@ -1056,6 +1056,7 @@ parameter_types! {
 	pub const TAppLinkDescriptionMaxLength: u32 = 140;
 	pub const DefaultBuyCurveTheta: u32 = 10;
 	pub const DefaultSellCurveTheta: u32 = 7;
+	pub const HostPledgeAmount: Balance = 100 * DOLLARS;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -1079,6 +1080,7 @@ impl pallet_bonding_curve::Config for Runtime {
 	type TAppLinkDescriptionMaxLength = TAppLinkDescriptionMaxLength;
 	type DefaultBuyCurveTheta = DefaultBuyCurveTheta;
 	type DefaultSellCurveTheta = DefaultSellCurveTheta;
+	type HostPledgeAmount = HostPledgeAmount;
 }
 
 #[cfg(feature = "fast")]
