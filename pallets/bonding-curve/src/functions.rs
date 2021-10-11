@@ -807,9 +807,12 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 	pub(crate) fn collect_host_cost() {
 		TAppBondingCurve::<T>::iter()
-			.filter(|(_, tapp)| match tapp.billing_mode {
-				BillingMode::FixedHostingFee(_) => true,
-				_ => false,
+			.filter(|(_, tapp)| {
+				let fix_fee_mode = match tapp.billing_mode {
+					BillingMode::FixedHostingFee(_) => true,
+					_ => false,
+				};
+				(fix_fee_mode && tapp.status != TAppStatus::Pending)
 			})
 			.for_each(|(id, tapp)| match tapp.billing_mode {
 				BillingMode::FixedHostingFee(reward_per_1k_performance) => {
