@@ -386,6 +386,14 @@ impl<T: cml::Config> cml::Pallet<T> {
 			}
 		}
 	}
+
+	pub(crate) fn mining_reward_rate_by_type(cml_type: CmlType) -> BalanceOf<T> {
+		match cml_type {
+			CmlType::A => T::CmlAMiningRewardRate::get(),
+			CmlType::B => T::CmlBMiningRewardRate::get(),
+			CmlType::C => T::CmlCMiningRewardRate::get(),
+		}
+	}
 }
 
 impl<T: cml::Config> Task for cml::Pallet<T> {

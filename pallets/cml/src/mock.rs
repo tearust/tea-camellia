@@ -230,6 +230,9 @@ pub const STAKING_PRICE: Balance = 1000;
 pub const STAKING_SLOTS_MAX_LENGTH: u32 = 100;
 pub const STOP_MINING_PUNISHMENT: Balance = 100;
 pub const MAX_ALLOWED_SUSPEND_HEIGHT: u32 = 1000;
+pub const CML_A_MINING_REWARD_RATE: Balance = 0;
+pub const CML_B_MINING_REWARD_RATE: Balance = 5000;
+pub const CML_C_MINING_REWARD_RATE: Balance = 0;
 
 parameter_types! {
 	pub const MinRaPassedThreshold: u32 = 3;
@@ -239,6 +242,9 @@ parameter_types! {
 	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
 	pub const StopMiningPunishment: Balance = STOP_MINING_PUNISHMENT;
 	pub const MaxAllowedSuspendHeight: u32 = MAX_ALLOWED_SUSPEND_HEIGHT;
+	pub const CmlAMiningRewardRate: Balance = CML_A_MINING_REWARD_RATE;
+	pub const CmlBMiningRewardRate: Balance = CML_B_MINING_REWARD_RATE;
+	pub const CmlCMiningRewardRate: Balance = CML_C_MINING_REWARD_RATE;
 }
 
 impl pallet_cml::Config for Test {
@@ -258,6 +264,9 @@ impl pallet_cml::Config for Test {
 	type MiningOperation = MiningOperationMock;
 	type BondingCurveOperation = BondingCurveOperationMock;
 	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
+	type CmlAMiningRewardRate = CmlAMiningRewardRate;
+	type CmlBMiningRewardRate = CmlBMiningRewardRate;
+	type CmlCMiningRewardRate = CmlCMiningRewardRate;
 	type WeightInfo = ();
 }
 

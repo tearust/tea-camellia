@@ -956,6 +956,10 @@ parameter_types! {
 	/// Punishment amount need to pay for each staking account when stop mining.
 	pub const StopMiningPunishment: Balance = 100 * DOLLARS;
 	pub const MaxAllowedSuspendHeight: u32 = 1000;
+	pub const CmlAMiningRewardRate: Balance = 0;
+	/// Type B cml miner will get 50% reward
+	pub const CmlBMiningRewardRate: Balance = 5000;
+	pub const CmlCMiningRewardRate: Balance = 0;
 }
 
 impl pallet_cml::Config for Runtime {
@@ -976,6 +980,9 @@ impl pallet_cml::Config for Runtime {
 	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
 	type StopMiningPunishment = StopMiningPunishment;
 	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
+	type CmlAMiningRewardRate = CmlAMiningRewardRate;
+	type CmlBMiningRewardRate = CmlBMiningRewardRate;
+	type CmlCMiningRewardRate = CmlCMiningRewardRate;
 }
 
 #[cfg(not(feature = "fast"))]

@@ -35,7 +35,7 @@ use pallet_utils::{
 };
 use scale_info::TypeInfo;
 use sp_runtime::traits::{AtLeast32BitUnsigned, Saturating, Zero};
-use sp_std::{convert::TryInto, prelude::*};
+use sp_std::{collections::btree_map::BTreeMap, convert::TryInto, prelude::*};
 use tea_interface::TeaOperation;
 
 /// The balance type of this module.
@@ -112,6 +112,21 @@ pub mod cml {
 
 		#[pallet::constant]
 		type MaxAllowedSuspendHeight: Get<Self::BlockNumber>;
+
+		/// Reward rates of one loan period in ten thousand units(‱).
+		/// This number need to be an integer
+		#[pallet::constant]
+		type CmlAMiningRewardRate: Get<BalanceOf<Self>>;
+
+		/// Reward rates of one loan period in ten thousand units(‱).
+		/// This number need to be an integer
+		#[pallet::constant]
+		type CmlBMiningRewardRate: Get<BalanceOf<Self>>;
+
+		/// Reward rates of one loan period in ten thousand units(‱).
+		/// This number need to be an integer
+		#[pallet::constant]
+		type CmlCMiningRewardRate: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]

@@ -141,11 +141,8 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		let current_height = frame_system::Pallet::<T>::block_number();
 		let total_task_point = total_point();
 
-		let mut reward_statements = Vec::new();
-
-		let snapshots: Vec<(CmlId, Vec<StakingSnapshotItem<T::AccountId>>)> =
-			ActiveStakingSnapshot::<T>::iter().collect();
-		for (cml_id, snapshot_items) in snapshots {
+		let mut miner_total_rewards = BTreeMap::new();
+		ActiveStakingSnapshot::<T>::iter_keys().for_each(|cml_id| {
 			let miner_task_point = miner_task_point(cml_id);
 			let (performance, _) = Self::miner_performance(cml_id, &current_height);
 			let miner_total_reward = T::StakingEconomics::total_staking_rewards_of_miner(
@@ -154,11 +151,44 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 				performance.unwrap_or(0),
 			);
 
-			reward_statements.append(&mut Self::single_cml_staking_reward_statements(
+			let cml = CmlStore::<T>::get(cml_id);
+			let mining_reward_ratio = Self::mining_reward_rate_by_type(cml.cml_type());
+			let mining_reward =
+				miner_total_reward.saturating_mul(mining_reward_ratio) / 10000u32.into();
+
+			miner_total_rewards.insert(
 				cml_id,
-				&snapshot_items,
-				miner_total_reward,
-			));
+				(
+					mining_reward.clone(),
+					miner_total_reward.saturating_sub(mining_reward),
+				),
+			);
+		});
+
+		let mut reward_statements = Vec::new();
+		miner_total_rewards
+			.iter()
+			.for_each(|(cml_id, (mining_reward, _))| {
+				if mining_reward.is_zero() {
+					return;
+				}
+
+				let cml = CmlStore::<T>::get(cml_id);
+				if let Some(owner) = cml.owner() {
+					reward_statements.push((owner.clone(), *cml_id, mining_reward.clone()));
+				}
+			});
+
+		let snapshots: Vec<(CmlId, Vec<StakingSnapshotItem<T::AccountId>>)> =
+			ActiveStakingSnapshot::<T>::iter().collect();
+		for (cml_id, snapshot_items) in snapshots {
+			if let Some((_, rest_reward)) = miner_total_rewards.get(&cml_id) {
+				reward_statements.append(&mut Self::single_cml_staking_reward_statements(
+					cml_id,
+					&snapshot_items,
+					rest_reward.clone(),
+				));
+			}
 		}
 
 		reward_statements
@@ -259,9 +289,9 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 #[cfg(test)]
 mod tests {
 	use crate::{
-		mock::*, tests::seed_from_lifespan, CmlOperation, CmlStore, Config, MachineId, MinerItem,
-		MinerItemStore, MinerStatus, MiningProperties, StakingProperties, TreeProperties,
-		UserCmlStore, CML,
+		mock::*, tests::seed_from_lifespan, ActiveStakingSnapshot, CmlOperation, CmlStore, CmlType,
+		Config, MachineId, MinerItem, MinerItemStore, MinerStatus, MiningProperties,
+		StakingProperties, TreeProperties, UserCmlStore, CML,
 	};
 	use frame_support::{assert_ok, traits::Currency};
 	use pallet_utils::CurrencyOperations;
@@ -413,6 +443,82 @@ mod tests {
 				user_origin_balance - slashed_amount
 			);
 			assert_eq!(<Test as Config>::Currency::reserved_balance(&owner), 0);
+		})
+	}
+
+	#[test]
+	fn estimate_reward_statements_works() {
+		new_test_ext().execute_with(|| {
+			let user_id1 = 1;
+			let user_id2 = 2;
+			let owner1 = 11;
+			let owner2 = 22;
+			let user_origin_balance = 100 * 1000;
+			let owner_origin_balance = 100 * 1000;
+			<Test as Config>::Currency::make_free_balance_be(&user_id1, user_origin_balance);
+			<Test as Config>::Currency::make_free_balance_be(&user_id2, user_origin_balance);
+			<Test as Config>::Currency::make_free_balance_be(&owner1, owner_origin_balance);
+			<Test as Config>::Currency::make_free_balance_be(&owner2, owner_origin_balance);
+
+			let cml_id1 = 1;
+			let mut seed1 = seed_from_lifespan(cml_id1, 100);
+			seed1.cml_type = CmlType::A;
+			seed1.performance = 10000;
+			let mut cml = CML::from_genesis_seed(seed1);
+			cml.set_owner(&owner1);
+			UserCmlStore::<Test>::insert(owner1, cml_id1, ());
+			CmlStore::<Test>::insert(cml_id1, cml);
+			assert_ok!(Cml::start_mining(
+				Origin::signed(owner1),
+				cml_id1,
+				[1u8; 32],
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
+			));
+
+			let cml_id2 = 2;
+			let mut seed2 = seed_from_lifespan(cml_id2, 100);
+			seed2.cml_type = CmlType::B;
+			seed2.performance = 10000;
+			let mut cml2 = CML::from_genesis_seed(seed2);
+			cml2.set_owner(&owner2);
+			UserCmlStore::<Test>::insert(owner2, cml_id2, ());
+			CmlStore::<Test>::insert(cml_id2, cml2);
+			assert_ok!(Cml::start_mining(
+				Origin::signed(owner2),
+				cml_id2,
+				[2u8; 32],
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
+			));
+
+			assert_ok!(Cml::start_staking(
+				Origin::signed(user_id1),
+				cml_id1,
+				None,
+				None
+			));
+			assert_ok!(Cml::start_staking(
+				Origin::signed(user_id2),
+				cml_id2,
+				None,
+				None
+			));
+
+			frame_system::Pallet::<Test>::set_block_number(40);
+			Cml::collect_staking_info();
+			assert_eq!(ActiveStakingSnapshot::<Test>::get(cml_id1).len(), 2);
+			assert_eq!(ActiveStakingSnapshot::<Test>::get(cml_id2).len(), 2);
+
+			let statements = Cml::estimate_reward_statements(|| 2, |_id| 1); // task point is 1
+			assert_eq!(statements.len(), 5);
+			const DUMMY_DOLLARS: u128 = 100000;
+			// first reward is miner of cml2
+			assert_eq!(statements[0], (owner2, cml_id2, DUMMY_DOLLARS / 2));
+			assert_eq!(statements[1], (owner1, cml_id1, DUMMY_DOLLARS));
+			assert_eq!(statements[2], (user_id1, cml_id1, DUMMY_DOLLARS));
+			assert_eq!(statements[3], (owner2, cml_id2, DUMMY_DOLLARS));
+			assert_eq!(statements[4], (user_id2, cml_id2, DUMMY_DOLLARS));
 		})
 	}
 }
