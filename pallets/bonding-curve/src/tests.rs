@@ -1553,7 +1553,7 @@ fn consume_works_with_miner() {
 			Origin::signed(miner2),
 			cml_id2,
 			[2u8; 32],
-			b"miner_ip".to_vec(),
+			b"miner_ip2".to_vec(),
 			b"orbitdb id".to_vec(),
 		));
 
@@ -1635,7 +1635,7 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 			Origin::signed(miner2),
 			cml_id2,
 			[2u8; 32],
-			b"miner_ip".to_vec(),
+			b"miner_ip2".to_vec(),
 			b"orbitdb id".to_vec(),
 		));
 
@@ -1937,7 +1937,7 @@ fn fixed_token_host_works_with_miner_hosts_multi_times() {
 			Origin::signed(miner),
 			cml_id2,
 			[2u8; 32],
-			b"miner_ip".to_vec(),
+			b"miner_ip2".to_vec(),
 			b"orbitdb id".to_vec(),
 		));
 
@@ -2071,7 +2071,7 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			Origin::signed(miner),
 			cml_id2,
 			[2u8; 32],
-			b"miner_ip".to_vec(),
+			b"miner_ip2".to_vec(),
 			b"orbitdb id".to_vec(),
 		));
 

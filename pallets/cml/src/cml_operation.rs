@@ -488,7 +488,7 @@ mod tests {
 				Origin::signed(owner2),
 				cml_id2,
 				[2u8; 32],
-				b"miner_ip".to_vec(),
+				b"miner_ip2".to_vec(),
 				b"orbitdb id".to_vec(),
 			));
 

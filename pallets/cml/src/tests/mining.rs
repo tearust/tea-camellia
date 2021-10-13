@@ -254,6 +254,44 @@ fn start_mining_with_insufficient_free_balance_should_fail() {
 }
 
 #[test]
+fn start_mining_should_fail_if_miner_ip_already_registered() {
+	new_test_ext().execute_with(|| {
+		let owner1 = 11;
+		let owner2 = 22;
+		let owner_origin_balance = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&owner1, owner_origin_balance);
+		<Test as Config>::Currency::make_free_balance_be(&owner2, owner_origin_balance);
+
+		let cml_id1 = 1;
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100));
+		UserCmlStore::<Test>::insert(owner1, cml_id1, ());
+		CmlStore::<Test>::insert(cml_id1, cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner1),
+			cml_id1,
+			[1u8; 32],
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		let cml_id2 = 2;
+		let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100));
+		UserCmlStore::<Test>::insert(owner2, cml_id2, ());
+		CmlStore::<Test>::insert(cml_id2, cml2);
+		assert_noop!(
+			Cml::start_mining(
+				Origin::signed(owner2),
+				cml_id2,
+				[2u8; 32],
+				b"miner_ip".to_vec(),
+				b"orbitdb id".to_vec(),
+			),
+			Error::<Test>::MinerIpAlreadyExist
+		);
+	})
+}
+
+#[test]
 fn start_mining_should_fail_if_cml_is_not_valid() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;

@@ -174,6 +174,10 @@ pub mod cml {
 	pub type MinerItemStore<T: Config> =
 		StorageMap<_, Twox64Concat, MachineId, MinerItem<T::BlockNumber>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn miner_ip_set)]
+	pub type MinerIpSet<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, (), ValueQuery>;
+
 	/// Double map about `CmlType` and `DefrostScheduleType`, value is the rest of CMLs in lucky draw box.
 	#[pallet::storage]
 	#[pallet::getter(fn lucky_draw_box)]
@@ -310,6 +314,8 @@ pub mod cml {
 		OnlyNpcAccountAllowedToSuspend,
 		/// Insufficient free balance to append pledge
 		InsufficientFreeBalanceToAppendPledge,
+		/// The given IP address is already registerd
+		MinerIpAlreadyExist,
 
 		/// Specified staking index is over than the max length of current staking slots.
 		InvalidStakingIndex,
@@ -597,6 +603,10 @@ pub mod cml {
 						!<MinerItemStore<T>>::contains_key(&machine_id),
 						Error::<T>::MinerAlreadyExist
 					);
+					ensure!(
+						!MinerIpSet::<T>::contains_key(&miner_ip),
+						Error::<T>::MinerIpAlreadyExist
+					);
 					Self::check_miner_ip_validity(&miner_ip)?;
 
 					let cml = CmlStore::<T>::get(cml_id);
@@ -631,6 +641,7 @@ pub mod cml {
 								suspend_height: None,
 							},
 						);
+						MinerIpSet::<T>::insert(miner_ip.clone(), ());
 
 						// todo verify machine id later
 						T::TeaOperation::add_new_node(machine_id, sender);

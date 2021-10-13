@@ -109,7 +109,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 			Self::unstake(who, cml, 0, T::StakingPrice::get());
 			cml.stop_mining();
 		});
-		MinerItemStore::<T>::remove(machine_id);
+		let miner_item = MinerItemStore::<T>::take(machine_id);
+		MinerIpSet::<T>::remove(miner_item.ip);
 	}
 
 	pub(crate) fn customer_staking_length(
