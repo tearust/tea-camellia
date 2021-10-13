@@ -79,9 +79,9 @@ pub struct TAppItem<AccountId, Balance, BlockNumber> {
 impl<AccountId, Balance, BlockNumber> TAppItem<AccountId, Balance, BlockNumber> {
 	pub fn host_performance(&self) -> Performance {
 		match self.tapp_type {
-			TAppType::YouTube => 2000,
-			TAppType::Reddit => 1000,
-			TAppType::Twitter => 1000,
+			TAppType::YouTube => 0,
+			TAppType::Reddit => 0,
+			TAppType::Twitter => 0,
 		}
 	}
 }
