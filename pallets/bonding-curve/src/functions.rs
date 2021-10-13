@@ -94,7 +94,7 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 	}
 
 	fn try_active_tapp(tapp_id: TAppId) -> bool {
-		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count();
+		let host_count = Self::count_active_host_number(tapp_id);
 		if TAppBondingCurve::<T>::get(tapp_id).status == TAppStatus::Pending
 			&& host_count >= T::MinTappHostsCount::get() as usize
 		{
@@ -114,7 +114,7 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 	}
 
 	fn try_deactive_tapp(tapp_id: TAppId) -> bool {
-		let host_count = TAppCurrentHosts::<T>::iter_prefix(tapp_id).count();
+		let host_count = Self::count_active_host_number(tapp_id);
 		match TAppBondingCurve::<T>::get(tapp_id).status {
 			TAppStatus::Active(_) => {
 				if host_count < T::MinTappHostsCount::get() as usize {
@@ -216,6 +216,15 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 			*id
 		})
+	}
+
+	pub fn count_active_host_number(tapp_id: TAppId) -> usize {
+		TAppCurrentHosts::<T>::iter_prefix(tapp_id)
+			.filter(|(cml_id, _)| {
+				let (mining, status) = T::CmlOperation::mining_status(*cml_id);
+				mining && status == MinerStatus::Active
+			})
+			.count()
 	}
 
 	pub fn allocate_buy_tea_amount(
