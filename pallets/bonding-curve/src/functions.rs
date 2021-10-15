@@ -46,18 +46,7 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 	}
 
 	fn tapp_user_token_asset(who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
-		let mut staking_asset: Vec<(u64, Self::Balance)> =
-			AccountTable::<T>::iter_prefix(who).collect();
-		TAppReservedBalance::<T>::iter()
-			.filter(|(_, account, _)| account.eq(who))
-			.for_each(|(tapp_id, _, balances)| {
-				let mut total_balance: BalanceOf<T> = Zero::zero();
-				for (balance, _) in balances {
-					total_balance = total_balance.saturating_add(balance);
-				}
-				staking_asset.push((tapp_id, total_balance));
-			});
-		staking_asset
+		AccountTable::<T>::iter_prefix(who).collect()
 	}
 
 	fn is_cml_hosting(cml_id: u64) -> bool {
