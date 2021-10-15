@@ -859,13 +859,26 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			}
 
 			let staking_snapshots = T::CmlOperation::cml_staking_snapshots(cml_id);
+			let mining_reward = T::CmlOperation::calculate_mining_reward(cml_id, &each_amount);
 			let mut statements = T::CmlOperation::single_cml_staking_reward_statements(
 				cml_id,
 				&staking_snapshots,
-				each_amount,
+				each_amount.saturating_sub(mining_reward.clone()),
 			);
 
 			if do_transfer {
+				if !mining_reward.is_zero() {
+					let cml = T::CmlOperation::cml_by_id(&cml_id)?;
+					if let Some(cml_owner) = cml.owner() {
+						T::CurrencyOperations::transfer(
+							&ReservedBalanceAccount::<T>::get(),
+							cml_owner,
+							mining_reward,
+							ExistenceRequirement::AllowDeath,
+						)?;
+					}
+				}
+
 				for (account, _, amount) in statements.iter() {
 					T::CurrencyOperations::transfer(
 						&ReservedBalanceAccount::<T>::get(),

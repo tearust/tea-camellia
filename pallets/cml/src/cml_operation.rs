@@ -150,11 +150,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 				total_task_point,
 				performance.unwrap_or(0),
 			);
-
-			let cml = CmlStore::<T>::get(cml_id);
-			let mining_reward_ratio = Self::mining_reward_rate_by_type(cml.cml_type());
-			let mining_reward =
-				miner_total_reward.saturating_mul(mining_reward_ratio) / 10000u32.into();
+			let mining_reward = Self::calculate_mining_reward(cml_id, &miner_total_reward);
 
 			miner_total_rewards.insert(
 				cml_id,
@@ -192,6 +188,12 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		}
 
 		reward_statements
+	}
+
+	fn calculate_mining_reward(cml_id: CmlId, miner_total_reward: &Self::Balance) -> Self::Balance {
+		let cml = CmlStore::<T>::get(cml_id);
+		let mining_reward_ratio = Self::mining_reward_rate_by_type(cml.cml_type());
+		miner_total_reward.saturating_mul(mining_reward_ratio) / 10000u32.into()
 	}
 
 	fn cml_staking_snapshots(cml_id: CmlId) -> Vec<StakingSnapshotItem<Self::AccountId>> {

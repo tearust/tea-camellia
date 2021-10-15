@@ -1049,6 +1049,8 @@ pub trait CmlOperation {
 		X: FnOnce() -> ServiceTaskPoint,
 		Y: Fn(CmlId) -> ServiceTaskPoint;
 
+	fn calculate_mining_reward(cml_id: CmlId, miner_total_reward: &Self::Balance) -> Self::Balance;
+
 	fn cml_staking_snapshots(cml_id: CmlId) -> Vec<StakingSnapshotItem<Self::AccountId>>;
 
 	fn single_cml_staking_reward_statements(
