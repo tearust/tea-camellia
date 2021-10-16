@@ -1576,6 +1576,9 @@ fn consume_works_with_miner() {
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
 
+		Cml::collect_staking_info();
+		const MOCKED_DOLLARS: u128 = 100000; // this is the mocked DOLLARS returned by dummy cml staking implementation
+
 		let spend_tea = 1000000;
 		assert_ok!(BondingCurve::consume(
 			Origin::signed(user4),
@@ -1595,8 +1598,8 @@ fn consume_works_with_miner() {
 		);
 		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 29802950);
 		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 59605901);
-		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), 13901475);
-		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), 13901475);
+		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), MOCKED_DOLLARS);
+		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), MOCKED_DOLLARS);
 		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
 		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 132113278)
 	})
@@ -1643,6 +1646,9 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 		assert_ok!(BondingCurve::host(Origin::signed(miner1), cml_id1, tapp_id));
 		assert_ok!(BondingCurve::host(Origin::signed(miner2), cml_id2, tapp_id));
 
+		Cml::collect_staking_info();
+		const MOCKED_DOLLARS: u128 = 100000; // this is the mocked DOLLARS returned by dummy cml staking implementation
+
 		let spend_tea = 1000000;
 		assert_ok!(BondingCurve::consume(
 			Origin::signed(user2),
@@ -1650,12 +1656,12 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 			spend_tea,
 			Some(b"test notes".to_vec())
 		));
-		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), 129842);
+		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), MOCKED_DOLLARS);
 		assert_eq!(
 			TAppReservedBalance::<Test>::get(tapp_id, miner1)[0],
 			(1000, cml_id1)
 		);
-		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), 129842);
+		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), MOCKED_DOLLARS);
 		assert_eq!(
 			TAppReservedBalance::<Test>::get(tapp_id, miner2)[0],
 			(1000, cml_id2)
@@ -1664,7 +1670,7 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 		assert_ok!(BondingCurve::sell_token(
 			Origin::signed(miner1),
 			tapp_id,
-			129842
+			MOCKED_DOLLARS
 		));
 		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), 0);
 		assert_eq!(
@@ -1679,7 +1685,7 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 
 		// can not sell tapp token mixed with reserved token
 		assert_noop!(
-			BondingCurve::sell_token(Origin::signed(miner2), tapp_id, 129842 + 1000),
+			BondingCurve::sell_token(Origin::signed(miner2), tapp_id, MOCKED_DOLLARS + 1000),
 			Error::<Test>::InsufficientTAppToken
 		);
 	})

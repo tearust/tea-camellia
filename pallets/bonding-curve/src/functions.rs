@@ -390,12 +390,38 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 								is_mining && status.eq(&MinerStatus::Active)
 							})
 							.for_each(|(balance, cml_id)| {
-								consume_statements.push((
-									account.clone(),
-									distributing_amount * (*balance) / total_amount,
-									false,
-									Some(*cml_id),
-								));
+								let total_cml_reward =
+									distributing_amount * (*balance) / total_amount;
+								let miner_reward = T::CmlOperation::calculate_mining_reward(
+									*cml_id,
+									&total_cml_reward,
+								);
+
+								let staking_snapshots =
+									T::CmlOperation::cml_staking_snapshots(*cml_id);
+								let statements =
+									T::CmlOperation::single_cml_staking_reward_statements(
+										*cml_id,
+										&staking_snapshots,
+										total_cml_reward.saturating_sub(miner_reward.clone()),
+									);
+
+								if !miner_reward.is_zero() {
+									consume_statements.push((
+										account.clone(),
+										miner_reward,
+										false,
+										Some(*cml_id),
+									));
+								}
+								consume_statements.append(
+									&mut statements
+										.iter()
+										.map(|(account, cml_id, balance)| {
+											(account.clone(), balance.clone(), false, Some(*cml_id))
+										})
+										.collect(),
+								);
 							});
 					},
 				);
