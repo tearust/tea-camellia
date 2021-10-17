@@ -372,7 +372,7 @@ mod tests {
 				cml_id,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 			assert!(UserCmlStore::<Test>::contains_key(owner, cml_id));
 			let cml = CmlStore::<Test>::get(cml_id);
@@ -422,7 +422,7 @@ mod tests {
 				cml_id,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			assert_eq!(
@@ -475,7 +475,7 @@ mod tests {
 				cml_id1,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			let cml_id2 = 2;
@@ -491,7 +491,7 @@ mod tests {
 				cml_id2,
 				[2u8; 32],
 				b"miner_ip2".to_vec(),
-				b"orbitdb id".to_vec(),
+				Some(b"orbit_id".to_vec()),
 			));
 
 			assert_ok!(Cml::start_staking(

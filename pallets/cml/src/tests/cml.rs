@@ -25,7 +25,7 @@ fn active_cml_for_nitro_works() {
 			cml_id,
 			machine_id,
 			miner_ip.clone(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let cml = CmlStore::<Test>::get(cml_id);

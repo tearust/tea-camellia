@@ -1117,14 +1117,14 @@ mod tests {
 				cml_id,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner),
 				cml_id2,
 				[2u8; 32],
 				b"miner_ip2".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			assert_ok!(create_default_tapp(tapp_owner));
@@ -1293,14 +1293,14 @@ mod tests {
 				cml_id1,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner2),
 				cml_id2,
 				[2u8; 32],
 				b"miner_ip2".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 			assert_ok!(BondingCurve::host(Origin::signed(miner1), cml_id1, tapp_id));
 			assert_ok!(BondingCurve::host(Origin::signed(miner2), cml_id2, tapp_id));
@@ -1398,14 +1398,14 @@ mod tests {
 				cml_id1,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner2),
 				cml_id2,
 				[2u8; 32],
 				b"miner_ip2".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			let tapp_id = 1;
@@ -1470,21 +1470,21 @@ mod tests {
 				cml_id,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner),
 				cml_id2,
 				[2u8; 32],
 				b"miner_ip2".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner),
 				cml_id4,
 				[4u8; 32],
 				b"miner_ip4".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			assert_ok!(create_default_tapp(tapp_owner));
@@ -1544,7 +1544,7 @@ mod tests {
 				cml_id,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			frame_system::Pallet::<Test>::set_block_number(40);
@@ -1613,7 +1613,7 @@ mod tests {
 				cml_id,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			frame_system::Pallet::<Test>::set_block_number(4000);
@@ -1687,7 +1687,7 @@ mod tests {
 				cml_id,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			let npc = NPCAccount::<Test>::get();

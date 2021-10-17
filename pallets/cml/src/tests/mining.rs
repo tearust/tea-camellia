@@ -27,7 +27,7 @@ fn start_mining_with_frozen_seed_works() {
 			cml_id,
 			machine_id,
 			miner_ip.clone(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let cml = CmlStore::<Test>::get(cml_id);
@@ -66,7 +66,7 @@ fn start_mining_should_fail_with_insufficient_balance() {
 				cml_id,
 				machine_id,
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::InsufficientFreeBalance
 		);
@@ -93,7 +93,7 @@ fn start_mining_not_belongs_to_me_should_fail() {
 				cml_id,
 				[1u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::CMLOwnerInvalid
 		);
@@ -128,7 +128,7 @@ fn start_mining_with_same_machine_id_should_fail() {
 			cml1_id,
 			machine_id,
 			miner_ip.clone(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_noop!(
@@ -137,7 +137,7 @@ fn start_mining_with_same_machine_id_should_fail() {
 				cml2_id,
 				machine_id,
 				miner_ip.clone(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::MinerAlreadyExist
 		);
@@ -167,7 +167,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 			cml1_id,
 			machine_id_1,
 			miner_ip_1.clone(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_noop!(
@@ -176,7 +176,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 				cml1_id,
 				machine_id_2,
 				miner_ip_2.clone(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::CmlIsMiningAlready
 		);
@@ -203,7 +203,7 @@ fn start_mining_with_multiple_times_should_fail() {
 			cml_id,
 			machine_id,
 			miner_ip.clone(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_noop!(
@@ -212,7 +212,7 @@ fn start_mining_with_multiple_times_should_fail() {
 				cml_id,
 				machine_id,
 				miner_ip.clone(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::MinerAlreadyExist
 		);
@@ -246,7 +246,7 @@ fn start_mining_with_insufficient_free_balance_should_fail() {
 				cml_id,
 				[1u8; 32],
 				b"miner_id".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::InsufficientFreeBalance
 		);
@@ -271,7 +271,7 @@ fn start_mining_should_fail_if_miner_ip_already_registered() {
 			cml_id1,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let cml_id2 = 2;
@@ -284,7 +284,7 @@ fn start_mining_should_fail_if_miner_ip_already_registered() {
 				cml_id2,
 				[2u8; 32],
 				b"miner_ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::MinerIpAlreadyExist
 		);
@@ -310,7 +310,7 @@ fn start_mining_should_fail_if_cml_is_not_valid() {
 				cml_id,
 				[1u8; 32],
 				b"miner_id".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::CmlShouldDead
 		);
@@ -341,7 +341,7 @@ fn miner_ip_is_empty_or_invalid_should_fail() {
 				cml_id,
 				machine_id,
 				miner_ip.clone(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::InvalidMinerIp,
 		);
@@ -371,7 +371,7 @@ fn active_cml_to_already_started_mining_machine_should_fail() {
 			cml_id,
 			machine_id,
 			miner_ip.clone(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let cml_id: CmlId = 5;
@@ -390,7 +390,7 @@ fn active_cml_to_already_started_mining_machine_should_fail() {
 				cml_id,
 				machine_id,
 				miner_ip.clone(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::MinerAlreadyExist
 		);
@@ -419,7 +419,7 @@ fn start_mining_with_frozen_cml_should_fail() {
 				cml_id,
 				machine_id,
 				miner_ip.clone(),
-				b"orbitdb id".to_vec(),
+				None,
 			),
 			Error::<Test>::CmlStillInFrozenLockedPeriod
 		);
@@ -441,7 +441,7 @@ fn stop_mining_works() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert!(MinerItemStore::<Test>::contains_key(machine_id));
@@ -482,7 +482,7 @@ fn stop_mining_works_with_balance_staking() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(Cml::start_staking(
@@ -564,7 +564,7 @@ fn stop_mining_works_with_cml_staking() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(Cml::start_staking(
@@ -628,7 +628,7 @@ fn stop_mining_works_if_only_miner_stakes() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		<Test as Config>::Currency::make_free_balance_be(&miner, STAKING_PRICE * 2);
@@ -678,7 +678,7 @@ fn stop_mining_should_fail_if_miner_free_balance_is_not_enoungh_pay_for_stakers(
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(Cml::start_staking(
@@ -724,7 +724,7 @@ fn stop_mining_should_fail_if_cml_not_belongs_to_user() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_noop!(
@@ -794,7 +794,7 @@ fn stop_mining_should_fail_if_is_hosting() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_noop!(
@@ -820,7 +820,7 @@ fn dummy_ra_task_works() {
 				cml_id,
 				id: machine_id,
 				ip: vec![],
-				orbitdb_id: vec![],
+				orbitdb_id: None,
 				status: MinerStatus::Active,
 				suspend_height: None,
 			},
@@ -862,7 +862,7 @@ fn suspend_mining_works() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		let miner_item = MinerItemStore::<Test>::get(machine_id);
 		assert_eq!(miner_item.status, MinerStatus::Active);
@@ -905,7 +905,7 @@ fn suspend_mining_should_fail_if_operating_account_is_not_npc() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_noop!(
@@ -952,7 +952,7 @@ fn suspend_mining_should_fail_if_cml_is_suspended_already() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id));
@@ -981,7 +981,7 @@ fn resume_mining_works() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		frame_system::Pallet::<Test>::set_block_number(100);
@@ -1066,7 +1066,7 @@ fn resume_mining_should_fail_if_cml_is_active_already() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_noop!(
@@ -1094,7 +1094,7 @@ fn resume_mining_should_fail_free_balance_is_not_enough() {
 			cml_id,
 			machine_id,
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id));

@@ -1098,7 +1098,7 @@ mod tests {
 				cml1_id,
 				machine1_id,
 				b"machine1 ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			UserCmlStore::<Test>::insert(user2, cml2_id, ());
@@ -1112,7 +1112,7 @@ mod tests {
 				cml2_id,
 				machine2_id,
 				b"machine2 ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			let dead_cmls = Cml::try_kill_cml(99);
@@ -1172,7 +1172,7 @@ mod tests {
 				cml3_id,
 				machine3_id,
 				b"machine3 ip".to_vec(),
-				b"orbitdb id".to_vec(),
+				None,
 			));
 
 			assert_ok!(Cml::start_staking(

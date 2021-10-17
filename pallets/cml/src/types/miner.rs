@@ -23,7 +23,7 @@ where
 	pub id: MachineId,
 	pub ip: Vec<u8>,
 	pub status: MinerStatus,
-	pub orbitdb_id: Vec<u8>,
+	pub orbitdb_id: Option<Vec<u8>>,
 	pub suspend_height: Option<BlockNumber>,
 }
 
@@ -36,7 +36,7 @@ where
 			cml_id: 0,
 			id: [0; 32],
 			ip: vec![],
-			orbitdb_id: vec![],
+			orbitdb_id: None,
 			status: MinerStatus::Offline,
 			suspend_height: None,
 		}

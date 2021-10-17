@@ -316,6 +316,8 @@ pub mod cml {
 		InsufficientFreeBalanceToAppendPledge,
 		/// The given IP address is already registerd
 		MinerIpAlreadyExist,
+		/// Type B cml start mining should have orbit id
+		CmlBStartMiningShouldHaveOrbitId,
 
 		/// Specified staking index is over than the max length of current staking slots.
 		InvalidStakingIndex,
@@ -587,7 +589,7 @@ pub mod cml {
 			cml_id: CmlId,
 			machine_id: MachineId,
 			miner_ip: Vec<u8>,
-			orbitdb_id: Vec<u8>,
+			orbitdb_id: Option<Vec<u8>>,
 		) -> DispatchResult {
 			let sender = ensure_signed(sender)?;
 			let current_block_number = frame_system::Pallet::<T>::block_number();
@@ -613,6 +615,12 @@ pub mod cml {
 					cml.check_start_mining(&current_block_number)
 						.map_err(|e| Error::<T>::from(e))?;
 					Self::check_miner_first_staking(&sender)?;
+					if cml.cml_type() == CmlType::B {
+						ensure!(
+							orbitdb_id.is_some(),
+							Error::<T>::CmlBStartMiningShouldHaveOrbitId
+						);
+					}
 
 					Ok(())
 				},

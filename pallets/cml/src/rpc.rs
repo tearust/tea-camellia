@@ -43,7 +43,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 				};
 				(
 					miner_item.cml_id,
-					miner_item.orbitdb_id,
+					miner_item.orbitdb_id.unwrap_or(vec![]),
 					cml_type.as_bytes().to_vec(),
 				)
 			})
@@ -188,7 +188,7 @@ mod tests {
 					cml_id: cml_id1,
 					id: machine_id1,
 					ip: vec![],
-					orbitdb_id: vec![],
+					orbitdb_id: None,
 					status: MinerStatus::Active,
 					suspend_height: None,
 				},
@@ -199,7 +199,7 @@ mod tests {
 					cml_id: cml_id2,
 					id: machine_id2,
 					ip: vec![],
-					orbitdb_id: vec![],
+					orbitdb_id: None,
 					status: MinerStatus::Active,
 					suspend_height: None,
 				},

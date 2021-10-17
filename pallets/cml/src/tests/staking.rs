@@ -20,7 +20,7 @@ fn start_staking_with_balance_works() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
@@ -50,7 +50,7 @@ fn start_staking_with_cml_works() {
 			cml1_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(Cml::start_staking(
@@ -187,7 +187,7 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_the_max_length() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		for i in 0..STAKING_SLOTS_MAX_LENGTH {
@@ -231,7 +231,7 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_acceptable_index() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let acceptable_slot_index = 10;
@@ -275,7 +275,7 @@ fn stop_staking_with_balance_works() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_eq!(<Test as Config>::Currency::total_balance(&2), amount);
@@ -311,7 +311,7 @@ fn stop_staking_with_balance_works_if_reserved_balance_has_been_slashed() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_eq!(<Test as Config>::Currency::total_balance(&2), amount);
@@ -363,7 +363,7 @@ fn stop_staking_with_cml_works() {
 			cml1_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert!(!CmlStore::<Test>::get(cml2_id).is_staking());
@@ -399,7 +399,7 @@ fn stop_staking_works_with_mixed_staking_items() {
 			cml1_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let cml2_id: CmlId = 5;
@@ -504,7 +504,7 @@ fn stop_first_slot_staking_should_fail() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
 
@@ -546,7 +546,7 @@ fn stop_staking_should_fail_if_staking_index_larger_than_staking_slots() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
 
@@ -574,7 +574,7 @@ fn stop_staking_should_fail_if_staking_not_belongs_to_user() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		assert_ok!(Cml::start_staking(Origin::signed(2), cml_id, None, None));
 

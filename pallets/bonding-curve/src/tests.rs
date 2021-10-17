@@ -1547,14 +1547,14 @@ fn consume_works_with_miner() {
 			cml_id1,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner2),
 			cml_id2,
 			[2u8; 32],
 			b"miner_ip2".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let tapp_id = 1;
@@ -1632,14 +1632,14 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 			cml_id1,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner2),
 			cml_id2,
 			[2u8; 32],
 			b"miner_ip2".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let tapp_id = 1;
@@ -1763,7 +1763,7 @@ fn expense_works_if_expense_amount_more_than_reserved_balance() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		frame_system::Pallet::<Test>::set_block_number(101);
@@ -1800,7 +1800,7 @@ fn host_works_with_fixed_fee() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let npc = NPCAccount::<Test>::get();
@@ -1875,7 +1875,7 @@ fn host_works_fixed_token() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -1937,14 +1937,14 @@ fn fixed_token_host_works_with_miner_hosts_multi_times() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner),
 			cml_id2,
 			[2u8; 32],
 			b"miner_ip2".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2033,7 +2033,7 @@ fn host_should_fail_if_cml_is_already_hosting() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2069,7 +2069,7 @@ fn host_should_fail_if_cml_c_type() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2105,14 +2105,14 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner),
 			cml_id2,
 			[2u8; 32],
 			b"miner_ip2".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let npc = NPCAccount::<Test>::get();
@@ -2167,7 +2167,7 @@ fn host_should_fail_if_cml_is_full_load() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let npc = NPCAccount::<Test>::get();
@@ -2246,7 +2246,7 @@ fn host_should_fail_if_cml_is_suspended() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		let npc = NPCAccount::<Test>::get();
@@ -2281,7 +2281,7 @@ fn host_should_fail_if_not_enough_money() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2337,7 +2337,7 @@ fn unhost_works() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2398,7 +2398,7 @@ fn unhost_should_fail_if_not_after_locking_block_height() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 		assert_ok!(create_default_tapp(tapp_owner));
 
@@ -2430,7 +2430,7 @@ fn unhost_should_fail_if_cml_not_belongs_to_user() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
@@ -2464,37 +2464,7 @@ fn unhost_should_fail_if_tapp_id_not_exist() {
 			cml_id,
 			[1u8; 32],
 			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
-		));
-
-		let tapp_id = 1;
-		assert_noop!(
-			BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id),
-			Error::<Test>::TAppIdNotExist
-		);
-	})
-}
-
-#[test]
-fn unhost_should_fail_if_cml_not_host_the_tapp() {
-	new_test_ext().execute_with(|| {
-		EnableUserCreateTApp::<Test>::set(true);
-		let miner = 2;
-		let tapp_owner = 1;
-		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
-		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
-
-		let cml_id = 11;
-		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 10000));
-		UserCmlStore::<Test>::insert(miner, cml_id, ());
-		CmlStore::<Test>::insert(cml_id, cml);
-
-		assert_ok!(Cml::start_mining(
-			Origin::signed(miner),
-			cml_id,
-			[1u8; 32],
-			b"miner_ip".to_vec(),
-			b"orbitdb id".to_vec(),
+			None,
 		));
 
 		assert_ok!(create_default_tapp(tapp_owner));
