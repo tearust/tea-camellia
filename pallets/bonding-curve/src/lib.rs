@@ -26,7 +26,8 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use pallet_cml::{
-	CmlId, CmlOperation, MachineId, MinerStatus, MiningProperties, Performance, TreeProperties,
+	CmlId, CmlOperation, CmlType, MachineId, MinerStatus, MiningProperties, Performance,
+	SeedProperties, TreeProperties,
 };
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use scale_info::TypeInfo;
@@ -489,6 +490,8 @@ pub mod bonding_curve {
 		BuyCurveThetaShouldLargerEqualThanSellCurveTheta,
 		/// Can host tapp only when cml is active
 		MiningCmlStatusShouldBeActive,
+		/// Not allowed type C cml to host tapp
+		NotAllowedTypeCHostingTApp,
 	}
 
 	#[pallet::hooks]
@@ -1019,6 +1022,10 @@ pub mod bonding_curve {
 					ensure!(
 						cml_status.eq(&MinerStatus::Active),
 						Error::<T>::MiningCmlStatusShouldBeActive
+					);
+					ensure!(
+						cml.cml_type() != CmlType::C,
+						Error::<T>::NotAllowedTypeCHostingTApp
 					);
 
 					let (current_performance, _) =

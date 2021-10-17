@@ -2049,6 +2049,40 @@ fn host_should_fail_if_cml_is_already_hosting() {
 }
 
 #[test]
+fn host_should_fail_if_cml_c_type() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let miner = 2;
+		let tapp_owner = 1;
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let cml_id = 11;
+		let mut seed = seed_from_lifespan(cml_id, 100, 10000);
+		seed.cml_type = CmlType::C;
+		let cml = CML::from_genesis_seed(seed);
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			[1u8; 32],
+			b"miner_ip".to_vec(),
+			b"orbitdb id".to_vec(),
+		));
+
+		assert_ok!(create_default_tapp(tapp_owner));
+
+		let tapp_id = 1;
+		assert_noop!(
+			BondingCurve::host(Origin::signed(miner), cml_id, tapp_id),
+			Error::<Test>::NotAllowedTypeCHostingTApp
+		);
+	})
+}
+
+#[test]
 fn host_should_fail_if_tapp_hosts_if_full() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
