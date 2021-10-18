@@ -414,6 +414,7 @@ parameter_types! {
 	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
 	pub const MaxNominatorRewardedPerValidator: u32 = 256;
 	pub OffchainRepeat: BlockNumber = 5;
+	pub const EraTotalReward = 1000 * DOLLARS;
 }
 
 use frame_election_provider_support::onchain;
@@ -436,7 +437,7 @@ impl pallet_staking::Config for Runtime {
 		pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>,
 	>;
 	type SessionInterface = Self;
-	type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+	type EraTotalReward = EraTotalReward;
 	type NextNewSession = Session;
 	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
 	type ElectionProvider = ElectionProviderMultiPhase;

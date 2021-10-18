@@ -117,7 +117,8 @@ impl pallet_session::SessionHandler<AccountId> for TestSessionHandler {
 		_: bool,
 		_: &[(AccountId, Ks)],
 		_: &[(AccountId, Ks)],
-	) {}
+	) {
+	}
 
 	fn on_disabled(_: usize) {}
 }
@@ -168,8 +169,11 @@ impl frame_election_provider_support::ElectionProvider<AccountId, BlockNumber>
 	type DataProvider = pallet_staking::Module<Test>;
 
 	fn elect() -> Result<
-		(sp_npos_elections::Supports<AccountId>, frame_support::weights::Weight),
-		Self::Error
+		(
+			sp_npos_elections::Supports<AccountId>,
+			frame_support::weights::Weight,
+		),
+		Self::Error,
 	> {
 		Err(())
 	}
@@ -188,7 +192,6 @@ impl pallet_staking::Config for Test {
 	type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type BondingDuration = ();
 	type SessionInterface = Self;
-	type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
 	type NextNewSession = Session;
 	type ElectionLookahead = ();
 	type Call = Call;

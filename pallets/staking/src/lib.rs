@@ -289,7 +289,6 @@ use frame_support::{
 	weights::Weight,
 };
 use sp_runtime::{
-	curve::PiecewiseLinear,
 	traits::{AtLeast32BitUnsigned, Convert, Saturating, Zero},
 	Perbill, RuntimeDebug,
 };
@@ -403,7 +402,10 @@ pub struct ValidatorPrefs {
 
 impl Default for ValidatorPrefs {
 	fn default() -> Self {
-		ValidatorPrefs { commission: Default::default(), blocked: false }
+		ValidatorPrefs {
+			commission: Default::default(),
+			blocked: false,
+		}
 	}
 }
 
@@ -486,7 +488,7 @@ impl<AccountId, Balance: HasCompact + Copy + Saturating + AtLeast32BitUnsigned>
 			}
 
 			if unlocking_balance >= value {
-				break
+				break;
 			}
 		}
 
@@ -644,52 +646,6 @@ where
 	}
 }
 
-/// Handler for determining how much of a balance should be paid out on the current era.
-pub trait EraPayout<Balance> {
-	/// Determine the payout for this era.
-	///
-	/// Returns the amount to be paid to stakers in this era, as well as whatever else should be
-	/// paid out ("the rest").
-	fn era_payout(
-		total_staked: Balance,
-		total_issuance: Balance,
-		era_duration_millis: u64,
-	) -> (Balance, Balance);
-}
-
-impl<Balance: Default> EraPayout<Balance> for () {
-	fn era_payout(
-		_total_staked: Balance,
-		_total_issuance: Balance,
-		_era_duration_millis: u64,
-	) -> (Balance, Balance) {
-		(Default::default(), Default::default())
-	}
-}
-
-/// Adaptor to turn a `PiecewiseLinear` curve definition into an `EraPayout` impl, used for
-/// backwards compatibility.
-pub struct ConvertCurve<T>(sp_std::marker::PhantomData<T>);
-impl<Balance: AtLeast32BitUnsigned + Clone, T: Get<&'static PiecewiseLinear<'static>>>
-	EraPayout<Balance> for ConvertCurve<T>
-{
-	fn era_payout(
-		total_staked: Balance,
-		total_issuance: Balance,
-		era_duration_millis: u64,
-	) -> (Balance, Balance) {
-		let (validator_payout, max_payout) = inflation::compute_total_payout(
-			&T::get(),
-			total_staked,
-			total_issuance,
-			// Duration of era; more than u64::MAX is rewarded as u64::MAX.
-			era_duration_millis,
-		);
-		let rest = max_payout.saturating_sub(validator_payout.clone());
-		(validator_payout, rest)
-	}
-}
-
 /// Mode of era-forcing.
 #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
@@ -775,7 +731,11 @@ where
 		let offence_session = offence.session_index();
 		let bonded_eras = BondedEras::<T>::get();
 
-		if bonded_eras.first().filter(|(_, start)| offence_session >= *start).is_some() {
+		if bonded_eras
+			.first()
+			.filter(|(_, start)| offence_session >= *start)
+			.is_some()
+		{
 			R::report_offence(reporters, offence)
 		} else {
 			<Pallet<T>>::deposit_event(Event::<T>::OldSlashingReportDiscarded(offence_session));
