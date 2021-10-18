@@ -64,10 +64,14 @@ mod weights;
 use constants::{currency::*, time::*};
 
 pub use pallet_auction;
-/// Import the template pallet.
+pub use pallet_balances;
+pub use pallet_bonding_curve;
 pub use pallet_cml;
 pub use pallet_genesis_bank;
+pub use pallet_genesis_exchange;
+pub use pallet_staking;
 pub use pallet_tea;
+pub use pallet_utils;
 
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
