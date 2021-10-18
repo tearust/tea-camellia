@@ -505,7 +505,6 @@ fn testnet_genesis(
 		},
 		technical_membership: Default::default(),
 		democracy: DemocracyConfig::default(),
-		treasury: Default::default(),
 
 		tea: TeaConfig {
 			builtin_nodes: vec![

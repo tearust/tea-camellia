@@ -73,7 +73,6 @@ pallet-democracy = {default-features = false, git = 'https://github.com/parityte
 pallet-utility = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-multisig = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-identity = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-treasury = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-mmr = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 
 # local dependencies
@@ -121,7 +120,6 @@ runtime-benchmarks = [
 	'pallet-utility/runtime-benchmarks',
 	'pallet-multisig/runtime-benchmarks',
 	'pallet-identity/runtime-benchmarks',
-	'pallet-treasury/runtime-benchmarks',
 	'pallet-mmr/runtime-benchmarks',
 
 	'pallet-tea/runtime-benchmarks',
@@ -177,7 +175,6 @@ std = [
   'pallet-utility/std',
 	'pallet-multisig/std',
 	'pallet-identity/std',
-	'pallet-treasury/std',
 	'pallet-mmr/std',
 
 	'pallet-tea/std',
@@ -223,7 +220,6 @@ try-runtime = [
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
-	"pallet-treasury/try-runtime",
 	"pallet-utility/try-runtime",
 
 	'pallet-tea/try-runtime',
