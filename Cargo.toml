@@ -28,5 +28,8 @@ members = [
 	'pallets/bonding-curve/interface',
 	'pallets/bonding-curve/curve-impl',
 
+	'pallets/staking/reward-curve',
+	'pallets/staking/reward-fn',
+
 	'pallets/tea/interface',
 ]

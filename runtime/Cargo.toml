@@ -57,8 +57,6 @@ pallet-transaction-payment = {default-features = false, git = 'https://github.co
 pallet-transaction-payment-rpc-runtime-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-session = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-session-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-staking = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-staking-reward-curve = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-authorship = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-offences = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-offences-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
@@ -82,6 +80,8 @@ pallet-utils = {default-features = false, path = '../pallets/utils'}
 pallet-genesis-bank = {default-features = false, path = '../pallets/genesis-bank'}
 pallet-genesis-exchange = {default-features = false, path = '../pallets/genesis-exchange'}
 pallet-bonding-curve = {default-features = false, path = '../pallets/bonding-curve'}
+pallet-staking = {default-features = false, path = '../pallets/staking'}
+pallet-staking-reward-curve = {default-features = false, path = '../pallets/staking/reward-curve'}
 
 pallet-cml = {default-features = false, path = '../pallets/cml'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
