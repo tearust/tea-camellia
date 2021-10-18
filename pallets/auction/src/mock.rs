@@ -233,6 +233,7 @@ pub const AUCTION_PLEDGE_AMOUNT: Balance = 100;
 pub const AUCTION_OWNER_PENALTY_FOR_EACH_BID: Balance = 1;
 pub const MAX_USERS_PER_AUCTION: u64 = 100;
 pub const AUCTION_FEE_PER_WINDOW: Balance = 1;
+pub const NEW_BID_LIMIT_DURATION: BlockNumber = 20;
 
 parameter_types! {
 	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_DEAL_WINDOW_BLOCK;
@@ -241,6 +242,7 @@ parameter_types! {
 	pub const AuctionPledgeAmount: Balance = AUCTION_PLEDGE_AMOUNT;
 	pub const MaxUsersPerAuction: u64 = MAX_USERS_PER_AUCTION;
 	pub const AuctionFeePerWindow: Balance = AUCTION_FEE_PER_WINDOW;
+	pub const NewBidLimitDuration: BlockNumber = NEW_BID_LIMIT_DURATION;
 }
 
 impl pallet_auction::Config for Test {
@@ -257,6 +259,7 @@ impl pallet_auction::Config for Test {
 	type MaxUsersPerAuction = MaxUsersPerAuction;
 	type AuctionFeePerWindow = AuctionFeePerWindow;
 	type BondingCurveOperation = BondingCurveOperationMock;
+	type NewBidLimitDuration = NewBidLimitDuration;
 	type WeightInfo = ();
 }
 

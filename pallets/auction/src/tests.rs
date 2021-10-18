@@ -594,6 +594,32 @@ fn bid_for_mining_tree_with_buy_now_price_should_work() {
 }
 
 #[test]
+fn new_bid_for_aution_over_than_limit_duration_should_fail() {
+	new_test_ext().execute_with(|| {
+		let user_id = 1;
+		let owner = 2;
+		let user_origin_balance = 100 * 1000;
+		let owner_origin_balance = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&user_id, user_origin_balance);
+		<Test as Config>::Currency::make_free_balance_be(&owner, owner_origin_balance);
+
+		let auction_id = 22;
+		let mut auction_item = default_auction_item(auction_id, owner, 1);
+		let buy_now_price = 1000;
+		auction_item.buy_now_price = Some(buy_now_price);
+		Auction::add_auction_to_storage(auction_item);
+
+		frame_system::Pallet::<Test>::set_block_number(
+			(AUCTION_DEAL_WINDOW_BLOCK - NEW_BID_LIMIT_DURATION) as u64,
+		);
+		assert_noop!(
+			Auction::bid_for_auction(Origin::signed(user_id), auction_id, buy_now_price),
+			Error::<Test>::NewBidOverThanMaxAllowedDuration
+		);
+	})
+}
+
+#[test]
 fn bid_for_auction_with_insufficient_balance_should_fail() {
 	new_test_ext().execute_with(|| {
 		let auction_id = 22;
