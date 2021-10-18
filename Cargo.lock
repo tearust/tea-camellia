@@ -806,7 +806,6 @@ dependencies = [
  "pallet-session",
  "pallet-session-benchmarking",
  "pallet-staking 4.0.0-dev",
- "pallet-staking-reward-curve 4.0.0-dev",
  "pallet-sudo",
  "pallet-tea",
  "pallet-timestamp",
@@ -4079,7 +4078,7 @@ dependencies = [
  "pallet-session",
  "pallet-society",
  "pallet-staking 4.0.0-dev (git+https://github.com/paritytech/substrate.git?rev=558a68f8)",
- "pallet-staking-reward-curve 4.0.0-dev (git+https://github.com/paritytech/substrate.git?rev=558a68f8)",
+ "pallet-staking-reward-curve",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-tips",
@@ -4992,7 +4991,6 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-session",
- "pallet-staking-reward-curve 4.0.0-dev (git+https://github.com/paritytech/substrate.git?rev=558a68f8)",
  "pallet-timestamp",
  "parity-scale-codec",
  "rand_chacha 0.2.2",
@@ -5032,31 +5030,12 @@ dependencies = [
 [[package]]
 name = "pallet-staking-reward-curve"
 version = "4.0.0-dev"
-dependencies = [
- "proc-macro-crate 1.1.0",
- "proc-macro2",
- "quote",
- "sp-runtime",
- "syn",
-]
-
-[[package]]
-name = "pallet-staking-reward-curve"
-version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?rev=558a68f8#558a68f8328a004f153496a192c3ac9723c763c3"
 dependencies = [
  "proc-macro-crate 1.1.0",
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "pallet-staking-reward-fn"
-version = "4.0.0-dev"
-dependencies = [
- "log",
- "sp-arithmetic",
 ]
 
 [[package]]

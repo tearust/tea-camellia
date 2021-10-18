@@ -81,7 +81,6 @@ pallet-genesis-bank = {default-features = false, path = '../pallets/genesis-bank
 pallet-genesis-exchange = {default-features = false, path = '../pallets/genesis-exchange'}
 pallet-bonding-curve = {default-features = false, path = '../pallets/bonding-curve'}
 pallet-staking = {default-features = false, path = '../pallets/staking'}
-pallet-staking-reward-curve = {default-features = false, path = '../pallets/staking/reward-curve'}
 
 pallet-cml = {default-features = false, path = '../pallets/cml'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}

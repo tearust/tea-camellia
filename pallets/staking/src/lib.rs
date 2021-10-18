@@ -276,7 +276,6 @@ pub mod testing_utils;
 #[cfg(test)]
 mod tests;
 
-pub mod inflation;
 pub mod migrations;
 pub mod slashing;
 pub mod weights;

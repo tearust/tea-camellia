@@ -40,7 +40,6 @@ sp-tracing = { version = "4.0.0-dev", git = 'https://github.com/paritytech/subst
 sp-core = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 pallet-balances = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 pallet-timestamp = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
-pallet-staking-reward-curve = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 substrate-test-utils = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 frame-benchmarking = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 frame-election-provider-support = { version = "4.0.0-dev", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
