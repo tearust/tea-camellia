@@ -527,8 +527,8 @@ parameter_types! {
 	pub const SignedDepositBase: Balance = 1 * DOLLARS;
 	pub const SignedDepositByte: Balance = 1 * CENTS;
 
-	// fallback: no on-chain fallback.
-	pub const Fallback: FallbackStrategy = FallbackStrategy::Nothing;
+	// fallback: run election on-chain.
+	pub const Fallback: FallbackStrategy = FallbackStrategy::OnChain;
 }
 
 sp_npos_elections::generate_solution_type!(
