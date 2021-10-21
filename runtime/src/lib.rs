@@ -814,15 +814,19 @@ parameter_types! {
 	/// (6 * 60 * 10) blocks equals (6 * 60 * 10 * 6secs) = 6hours
 	pub const RuntimeActivityThreshold: u32 = 6 * 60 * 10;
 	pub const MinRaPassedThreshold: u32 = 3;
+	pub const PerRaTaskPoint: u32 = 10000;
 }
 
 impl pallet_tea::Config for Runtime {
 	type Event = Event;
+	type Currency = Balances;
 	type RuntimeActivityThreshold = RuntimeActivityThreshold;
 	type MinRaPassedThreshold = MinRaPassedThreshold;
 	type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
 	type CommonUtils = Utils;
 	type TaskService = Cml;
+	type CmlOperation = Cml;
+	type PerRaTaskPoint = PerRaTaskPoint;
 }
 
 #[cfg(not(feature = "fast"))]
@@ -1063,13 +1067,13 @@ construct_runtime!(
 		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
 		Mmr: pallet_mmr::{Pallet, Storage},
 		// Include the custom logic from the pallets in the runtime.
-		Tea: pallet_tea::{Pallet, Call, Config, Storage, Event<T>},
 		Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
 		Auction: pallet_auction::{Pallet, Call, Storage, Event<T>} = 101,
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
 		GenesisBank: pallet_genesis_bank::{Pallet, Call, Config<T>, Storage, Event<T>} = 104,
 		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Config<T>, Storage, Event<T>} = 105,
 		BondingCurve: pallet_bonding_curve::{Pallet, Call, Config<T>, Storage, Event<T>} = 106,
+		Tea: pallet_tea::{Pallet, Call, Config<T>, Storage, Event<T>} = 107,
 	}
 );
 
