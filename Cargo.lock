@@ -5055,10 +5055,13 @@ dependencies = [
 name = "pallet-tea"
 version = "0.0.1"
 dependencies = [
+ "auction-interface",
+ "bonding-curve-interface",
  "ed25519-dalek",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "genesis-exchange-interface",
  "hex",
  "hex-literal",
  "node-primitives",

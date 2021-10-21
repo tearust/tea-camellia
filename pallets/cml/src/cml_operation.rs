@@ -286,6 +286,15 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 
 		false
 	}
+
+	fn check_miner(machine_id: MachineId, miner_account: &Self::AccountId) -> bool {
+		let miner_item = MinerItemStore::<T>::get(machine_id);
+		let cml = CmlStore::<T>::get(miner_item.cml_id);
+		match cml.owner() {
+			Some(owner) => owner.eq(miner_account),
+			None => false,
+		}
+	}
 }
 
 #[cfg(test)]

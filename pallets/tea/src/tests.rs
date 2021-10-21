@@ -1,6 +1,7 @@
-use crate::{mock::*, types::*, BuiltinNodes, Error, Nodes};
-use frame_support::{assert_noop, assert_ok};
+use crate::{mock::*, types::*, BuiltinNodes, Config, Error, Nodes};
+use frame_support::{assert_noop, assert_ok, traits::Currency};
 use hex_literal::hex;
+use pallet_cml::{CmlId, CmlStore, CmlType, DefrostScheduleType, Seed, UserCmlStore, CML};
 use tea_interface::TeaOperation;
 
 #[test]
@@ -45,13 +46,29 @@ fn builtin_node_update_node_profile_works() {
 #[test]
 fn normal_node_update_node_profile_works() {
 	new_test_ext().execute_with(|| {
+		let owner = 2;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
 		frame_system::Pallet::<Test>::set_block_number(100);
 
 		let (node, tea_id, ephemeral_id, peer_id) = new_node();
 		Nodes::<Test>::insert(&tea_id, node);
 
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			tea_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
 		assert_ok!(Tea::update_node_profile(
-			Origin::signed(1),
+			Origin::signed(owner),
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
@@ -63,6 +80,28 @@ fn normal_node_update_node_profile_works() {
 		let new_node = Nodes::<Test>::get(&tea_id).unwrap();
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Pending, new_node.status);
+	})
+}
+
+#[test]
+fn normal_node_update_node_profile_should_fail_if_not_the_owner_of_tea_id() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let (node, tea_id, ephemeral_id, peer_id) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+
+		assert_noop!(
+			Tea::update_node_profile(
+				Origin::signed(1),
+				tea_id.clone(),
+				ephemeral_id.clone(),
+				Vec::new(),
+				Vec::new(),
+				peer_id,
+			),
+			Error::<Test>::InvalidTeaIdOwner
+		);
 	})
 }
 
@@ -359,4 +398,21 @@ fn generate_pk_and_signature(
 	let signature = kp.sign(encode_ra_request_content(tea_id, target_tea_id, is_pass).as_slice());
 
 	(kp.public.as_bytes().clone(), signature.as_bytes().to_vec())
+}
+
+pub fn new_genesis_seed(id: CmlId) -> Seed {
+	Seed {
+		id,
+		cml_type: CmlType::A,
+		defrost_schedule: Some(DefrostScheduleType::Team),
+		defrost_time: Some(0),
+		lifespan: 0,
+		performance: 0,
+	}
+}
+
+pub fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
+	let mut seed = new_genesis_seed(id);
+	seed.lifespan = lifespan;
+	seed
 }

@@ -19,9 +19,11 @@ mod types;
 mod utils;
 mod weights;
 
-use frame_support::{dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify};
+use frame_support::{
+	dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Currency,
+};
 use frame_system::pallet_prelude::*;
-use pallet_cml::Task;
+use pallet_cml::{CmlOperation, Task};
 use pallet_utils::{extrinsic_procedure, CommonUtils};
 use sp_core::{ed25519, H256};
 use sp_std::prelude::*;
@@ -29,6 +31,9 @@ use tea_interface::TeaOperation;
 
 pub use types::*;
 pub use weights::WeightInfo;
+
+type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod tea {
@@ -39,6 +44,9 @@ pub mod tea {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		type Currency: Currency<Self::AccountId>;
+
 		/// If node dot not update runtime activity within the given block heights, status of the
 		/// node should become Inactive.
 		#[pallet::constant]
@@ -46,12 +54,20 @@ pub mod tea {
 		/// The minimum number of RA result commit to let the candidate node status become active.
 		#[pallet::constant]
 		type MinRaPassedThreshold: Get<u32>;
+		#[pallet::constant]
+		type PerRaTaskPoint: Get<u32>;
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 		/// Common utils trait
 		type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
 		/// Operations type about task execution
 		type TaskService: Task;
+
+		type CmlOperation: CmlOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+			BlockNumber = Self::BlockNumber,
+		>;
 	}
 
 	#[pallet::pallet]
@@ -131,6 +147,8 @@ pub mod tea {
 		InvalidSignatureLength,
 		/// Signature verify failed.
 		InvalidSignature,
+		/// User is not owner of the Tea ID.
+		InvalidTeaIdOwner,
 	}
 
 	#[pallet::hooks]
@@ -173,9 +191,16 @@ pub mod tea {
 
 			extrinsic_procedure(
 				&sender,
-				|_sender| {
+				|sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
+					// todo how to avoid normal user use build-in nodes?
+					if !BuiltinNodes::<T>::contains_key(&tea_id) {
+						ensure!(
+							T::CmlOperation::check_miner(tea_id, sender),
+							Error::<T>::InvalidTeaIdOwner
+						);
+					}
 					Ok(())
 				},
 				|sender| {
@@ -246,7 +271,7 @@ pub mod tea {
 					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
 					let target_status =
 						Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
-					T::TaskService::complete_ra_task(tea_id, 1);
+					T::TaskService::complete_ra_task(tea_id, T::PerRaTaskPoint::get());
 					Self::deposit_event(Event::CommitRaResult(
 						sender.clone(),
 						RaResult {

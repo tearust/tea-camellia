@@ -1084,6 +1084,8 @@ pub trait CmlOperation {
 	fn mining_status(cml_id: CmlId) -> (bool, MinerStatus);
 
 	fn is_cml_over_max_suspend_height(cml_id: CmlId, block_height: &Self::BlockNumber) -> bool;
+
+	fn check_miner(machine_id: MachineId, miner_account: &Self::AccountId) -> bool;
 }
 
 /// Operations to calculate staking rewards.
