@@ -536,7 +536,7 @@ fn testnet_genesis(
 				bonding_curve_npc_account.clone(),
 				BONDING_CURVE_NPC_INITIAL_USD_BALANCE,
 			),
-			initial_usd_interest_rate: 2, // let initial usd interest rate be 0.02%
+			initial_usd_interest_rate: 4, // let initial usd interest rate be 0.02%
 			borrow_debt_ratio_cap: 0,     // initial borrow debt ratio cap is 0.
 		},
 		bonding_curve: BondingCurveConfig {
