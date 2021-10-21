@@ -1,4 +1,4 @@
-use crate::{mock::*, types::*, BuiltinNodes, Config, Error, Nodes};
+use crate::{mock::*, types::*, BuiltinMiners, BuiltinNodes, Config, Error, Nodes};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use hex_literal::hex;
 use pallet_cml::{CmlId, CmlStore, CmlType, DefrostScheduleType, Seed, UserCmlStore, CML};
@@ -22,13 +22,15 @@ fn add_new_node_works() {
 fn builtin_node_update_node_profile_works() {
 	new_test_ext().execute_with(|| {
 		frame_system::Pallet::<Test>::set_block_number(100);
+		let builtin_miner = 1;
 
 		let (node, tea_id, ephemeral_id, peer_id) = new_node();
 		Nodes::<Test>::insert(&tea_id, node);
 		BuiltinNodes::<Test>::insert(&tea_id, ());
+		BuiltinMiners::<Test>::insert(builtin_miner, ());
 
 		assert_ok!(Tea::update_node_profile(
-			Origin::signed(1),
+			Origin::signed(builtin_miner),
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
@@ -40,6 +42,29 @@ fn builtin_node_update_node_profile_works() {
 		let new_node = Nodes::<Test>::get(&tea_id).unwrap();
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Active, new_node.status);
+	})
+}
+
+#[test]
+fn builtin_node_update_node_profile_should_fail_if_not_in_builtin_miners_list() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let (node, tea_id, ephemeral_id, peer_id) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+		BuiltinNodes::<Test>::insert(&tea_id, ());
+
+		assert_noop!(
+			Tea::update_node_profile(
+				Origin::signed(1),
+				tea_id.clone(),
+				ephemeral_id.clone(),
+				Vec::new(),
+				Vec::new(),
+				peer_id,
+			),
+			Error::<Test>::InvalidBuiltinMiner
+		);
 	})
 }
 

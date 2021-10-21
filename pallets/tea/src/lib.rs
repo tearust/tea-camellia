@@ -105,6 +105,10 @@ pub mod tea {
 	#[pallet::getter(fn builtin_nodes)]
 	pub(super) type BuiltinNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, ()>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn builtin_miners)]
+	pub(super) type BuiltinMiners<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ()>;
+
 	/// Runtime activities of registered TEA nodes.
 	#[pallet::storage]
 	#[pallet::getter(fn runtime_activities)]
@@ -149,6 +153,8 @@ pub mod tea {
 		InvalidSignature,
 		/// User is not owner of the Tea ID.
 		InvalidTeaIdOwner,
+		/// User is not the built-in miner
+		InvalidBuiltinMiner,
 	}
 
 	#[pallet::hooks]
@@ -159,13 +165,22 @@ pub mod tea {
 	}
 
 	#[pallet::genesis_config]
-	#[derive(Default)]
-	pub struct GenesisConfig {
+	pub struct GenesisConfig<T: Config> {
 		pub builtin_nodes: Vec<TeaPubKey>,
+		pub builtin_miners: Vec<T::AccountId>,
+	}
+
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			GenesisConfig {
+				builtin_nodes: Default::default(),
+				builtin_miners: Default::default(),
+			}
+		}
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			for tea_id in self.builtin_nodes.iter() {
 				let mut node = Node::default();
@@ -173,6 +188,10 @@ pub mod tea {
 				Nodes::<T>::insert(tea_id, node);
 				BuiltinNodes::<T>::insert(tea_id, ());
 			}
+
+			self.builtin_miners
+				.iter()
+				.for_each(|account| BuiltinMiners::<T>::insert(account, ()));
 		}
 	}
 
@@ -194,11 +213,15 @@ pub mod tea {
 				|sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
-					// todo how to avoid normal user use build-in nodes?
 					if !BuiltinNodes::<T>::contains_key(&tea_id) {
 						ensure!(
 							T::CmlOperation::check_miner(tea_id, sender),
 							Error::<T>::InvalidTeaIdOwner
+						);
+					} else {
+						ensure!(
+							BuiltinMiners::<T>::contains_key(sender),
+							Error::<T>::InvalidBuiltinMiner
 						);
 					}
 					Ok(())
