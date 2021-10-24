@@ -6,7 +6,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub(crate) fn update_runtime_status(block_number: T::BlockNumber) {
-		for (tea_id, mut node) in Nodes::<T>::iter() {
+		for (tea_id, node) in Nodes::<T>::iter() {
 			if node.status == NodeStatus::Active {
 				if block_number - node.update_time <= T::RuntimeActivityThreshold::get().into() {
 					continue;

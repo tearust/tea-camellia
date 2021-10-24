@@ -109,7 +109,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 
 #[cfg(test)]
 mod tests {
-	use crate::{mock::*, types::*, Error, Nodes, RuntimeActivities};
+	use crate::{mock::*, types::*, Error, Nodes};
 	use frame_support::{assert_noop, assert_ok};
 
 	#[test]

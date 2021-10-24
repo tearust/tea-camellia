@@ -21,10 +21,7 @@ mod utils;
 mod weights;
 
 use frame_support::{
-	dispatch::DispatchResult,
-	pallet_prelude::*,
-	sp_runtime::traits::Verify,
-	traits::{Currency, Randomness},
+	dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Currency,
 };
 use frame_system::pallet_prelude::*;
 use pallet_cml::{CmlOperation, Task};
@@ -32,8 +29,7 @@ use pallet_utils::{extrinsic_procedure, CommonUtils};
 use sp_core::{ed25519, H256};
 use sp_io::hashing::blake2_256;
 use sp_runtime::traits::Saturating;
-use sp_std::{cmp::max, collections::btree_map::BTreeMap, convert::TryInto};
-use sp_std::{cmp::Ordering, prelude::*};
+use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use tea_interface::TeaOperation;
 
 pub use types::*;
@@ -73,6 +69,9 @@ pub mod tea {
 
 		#[pallet::constant]
 		type MinGroupMemberCount: Get<u32>;
+
+		#[pallet::constant]
+		type MaxAllowedRaCommitDuration: Get<Self::BlockNumber>;
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
@@ -181,6 +180,8 @@ pub mod tea {
 		InvalidTeaIdOwner,
 		/// User is not the built-in miner
 		InvalidBuiltinMiner,
+		/// Ra commit has expired.
+		RaCommitExpired,
 	}
 
 	#[pallet::hooks]
@@ -309,6 +310,15 @@ pub mod tea {
 					ensure!(
 						target_node.status != NodeStatus::Active,
 						Error::<T>::NodeAlreadyActive
+					);
+
+					let current_block = frame_system::Pallet::<T>::block_number();
+					ensure!(
+						current_block
+							<= target_node
+								.update_time
+								.saturating_add(T::MaxAllowedRaCommitDuration::get()),
+						Error::<T>::RaCommitExpired
 					);
 
 					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);

@@ -19,6 +19,7 @@ pub const RUNTIME_ACTIVITY_THRESHOLD: u32 = 6 * 60 * 10;
 pub const UPDATE_VALIDATORS_DURATION: u32 = 10 * 60 * 10;
 pub const MAX_GROUP_MEMBER_COUNT: u32 = 10;
 pub const MIN_GROUP_MEMBER_COUNT: u32 = 5;
+pub const MAX_ALLOWED_RA_COMMIT_DURATION: u32 = 10;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -211,6 +212,7 @@ parameter_types! {
 	pub const UpdateValidatorsDuration: u32 = UPDATE_VALIDATORS_DURATION;
 	pub const MaxGroupMemberCount: u32 = MAX_GROUP_MEMBER_COUNT;
 	pub const MinGroupMemberCount: u32 = MIN_GROUP_MEMBER_COUNT;
+	pub const MaxAllowedRaCommitDuration: u32 = MAX_ALLOWED_RA_COMMIT_DURATION;
 }
 
 impl pallet_utils::Config for Test {
@@ -247,6 +249,7 @@ impl pallet_tea::Config for Test {
 	type UpdateValidatorsDuration = UpdateValidatorsDuration;
 	type MaxGroupMemberCount = MaxGroupMemberCount;
 	type MinGroupMemberCount = MinGroupMemberCount;
+	type MaxAllowedRaCommitDuration = MaxAllowedRaCommitDuration;
 	type WeightInfo = ();
 	type CommonUtils = Utils;
 	type TaskService = Cml;

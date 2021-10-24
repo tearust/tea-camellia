@@ -294,6 +294,34 @@ fn ra_node_not_exist() {
 }
 
 #[test]
+fn remote_attestation_should_fail_if_ra_commit_has_expired() {
+	new_test_ext().execute_with(|| {
+		let last_update_height = 100;
+		let (mut node, tea_id, _, _) = new_node();
+		node.update_time = last_update_height;
+		Nodes::<Test>::insert(&tea_id, node);
+
+		let validator_tea_id =
+			hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
+		Nodes::<Test>::insert(&validator_tea_id, Node::default());
+
+		frame_system::Pallet::<Test>::set_block_number(
+			last_update_height + MAX_ALLOWED_RA_COMMIT_DURATION as u64 + 1,
+		);
+		assert_noop!(
+			Tea::remote_attestation(
+				Origin::signed(1),
+				validator_tea_id,
+				tea_id,
+				true,
+				Vec::new()
+			),
+			Error::<Test>::RaCommitExpired
+		);
+	})
+}
+
+#[test]
 fn node_already_active() {
 	new_test_ext().execute_with(|| {
 		let (mut node, tea_id, _, _) = new_node();
