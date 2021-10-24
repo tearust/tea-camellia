@@ -154,6 +154,9 @@ pub mod tea {
 
 		/// Fired after a TEA node update runtime activity successfully.
 		UpdateRuntimeActivity(T::AccountId, RuntimeActivity<T::BlockNumber>),
+
+		/// Fired after RA validators changed.
+		RaValidatorsChanged(Vec<TeaPubKey>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -244,17 +247,7 @@ pub mod tea {
 				|sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
-					if !BuiltinNodes::<T>::contains_key(&tea_id) {
-						ensure!(
-							T::CmlOperation::check_miner(tea_id, sender),
-							Error::<T>::InvalidTeaIdOwner
-						);
-					} else {
-						ensure!(
-							BuiltinMiners::<T>::contains_key(sender),
-							Error::<T>::InvalidBuiltinMiner
-						);
-					}
+					Self::check_tea_id_belongs(sender, &tea_id)?;
 					Ok(())
 				},
 				|sender| {
@@ -300,7 +293,7 @@ pub mod tea {
 
 			extrinsic_procedure(
 				&sender,
-				|_sender| {
+				|sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(
 						Nodes::<T>::contains_key(&target_tea_id),
@@ -311,6 +304,7 @@ pub mod tea {
 						target_node.status != NodeStatus::Active,
 						Error::<T>::NodeAlreadyActive
 					);
+					Self::check_tea_id_belongs(sender, &tea_id)?;
 
 					let current_block = frame_system::Pallet::<T>::block_number();
 					ensure!(

@@ -17,6 +17,24 @@ impl<T: tea::Config> TeaOperation for tea::Pallet<T> {
 }
 
 impl<T: tea::Config> tea::Pallet<T> {
+	pub(crate) fn check_tea_id_belongs(
+		sender: &T::AccountId,
+		tea_id: &TeaPubKey,
+	) -> DispatchResult {
+		if !BuiltinNodes::<T>::contains_key(tea_id) {
+			ensure!(
+				T::CmlOperation::check_miner(*tea_id, sender),
+				Error::<T>::InvalidTeaIdOwner
+			);
+		} else {
+			ensure!(
+				BuiltinMiners::<T>::contains_key(sender),
+				Error::<T>::InvalidBuiltinMiner
+			);
+		}
+		Ok(())
+	}
+
 	pub(crate) fn pop_existing_node(tea_id: &TeaPubKey) -> Node<T::BlockNumber> {
 		let old_node = Nodes::<T>::get(tea_id);
 		BootNodes::<T>::remove(&old_node.tea_id);

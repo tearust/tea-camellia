@@ -175,40 +175,92 @@ fn remote_attestation_works() {
 		let (mut node, tea_id, _, _) = new_node();
 
 		let mut ra_nodes: Vec<(TeaPubKey, bool)> = Vec::new();
-
 		let validator_1 = hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
-		let mut node1 = Node::default();
+		let validator_2 = hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596");
+		let validator_3 = hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52");
+		let validator_4 = hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6");
+
+		let owner1 = 2;
+		<Test as Config>::Currency::make_free_balance_be(&owner1, 10000);
+		let cml_id1 = 1;
+		let mut cml1 = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100));
+		cml1.set_owner(&owner1);
+		UserCmlStore::<Test>::insert(owner1, cml_id1, ());
+		CmlStore::<Test>::insert(cml_id1, cml1);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner1),
+			cml_id1,
+			validator_1,
+			b"miner_ip1".to_vec(),
+			None,
+		));
+
+		let owner2 = 2;
+		<Test as Config>::Currency::make_free_balance_be(&owner2, 20000);
+		let cml_id2 = 2;
+		let mut cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 200));
+		cml2.set_owner(&owner2);
+		UserCmlStore::<Test>::insert(owner2, cml_id2, ());
+		CmlStore::<Test>::insert(cml_id2, cml2);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner2),
+			cml_id2,
+			validator_2,
+			b"miner_ip2".to_vec(),
+			None,
+		));
+
+		let owner3 = 3;
+		<Test as Config>::Currency::make_free_balance_be(&owner3, 30000);
+		let cml_id3 = 3;
+		let mut cml3 = CML::from_genesis_seed(seed_from_lifespan(cml_id3, 300));
+		cml3.set_owner(&owner3);
+		UserCmlStore::<Test>::insert(owner3, cml_id3, ());
+		CmlStore::<Test>::insert(cml_id3, cml3);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner3),
+			cml_id3,
+			validator_3,
+			b"miner_ip3".to_vec(),
+			None,
+		));
+
+		let owner4 = 4;
+		<Test as Config>::Currency::make_free_balance_be(&owner4, 40000);
+		let cml_id4 = 4;
+		let mut cml4 = CML::from_genesis_seed(seed_from_lifespan(cml_id4, 400));
+		cml4.set_owner(&owner4);
+		UserCmlStore::<Test>::insert(owner4, cml_id4, ());
+		CmlStore::<Test>::insert(cml_id4, cml4);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner4),
+			cml_id4,
+			validator_4,
+			b"miner_ip4".to_vec(),
+			None,
+		));
+
 		let (ephemeral_id1, signature1) = generate_pk_and_signature(&validator_1, &tea_id, true);
-		node1.ephemeral_id = ephemeral_id1;
-		Nodes::<Test>::insert(&validator_1, node1);
+		Nodes::<Test>::mutate(&validator_1, |node| node.ephemeral_id = ephemeral_id1);
 		ra_nodes.push((validator_1.clone(), false));
 
-		let validator_2 = hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596");
-		let mut node2 = Node::default();
 		let (ephemeral_id2, signature2) = generate_pk_and_signature(&validator_2, &tea_id, true);
-		node2.ephemeral_id = ephemeral_id2;
-		Nodes::<Test>::insert(&validator_2, node2);
+		Nodes::<Test>::mutate(&validator_2, |node| node.ephemeral_id = ephemeral_id2);
 		ra_nodes.push((validator_2.clone(), false));
 
-		let validator_3 = hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52");
-		let mut node3 = Node::default();
 		let (ephemeral_id3, signature3) = generate_pk_and_signature(&validator_3, &tea_id, true);
-		node3.ephemeral_id = ephemeral_id3;
-		Nodes::<Test>::insert(&validator_3, node3);
+		Nodes::<Test>::mutate(&validator_3, |node| node.ephemeral_id = ephemeral_id3);
 		ra_nodes.push((validator_3.clone(), false));
 
-		let validator_4 = hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6");
-		let mut node4 = Node::default();
 		let (ephemeral_id4, signature4) = generate_pk_and_signature(&validator_4, &tea_id, true);
-		node4.ephemeral_id = ephemeral_id4;
-		Nodes::<Test>::insert(&validator_4, node4);
+		Nodes::<Test>::mutate(&validator_4, |node| node.ephemeral_id = ephemeral_id4);
 		ra_nodes.push((validator_4.clone(), false));
 
 		node.ra_nodes = ra_nodes;
 		Nodes::<Test>::insert(&tea_id, node);
 
 		assert_ok!(Tea::remote_attestation(
-			Origin::signed(1),
+			Origin::signed(owner1),
 			validator_1,
 			tea_id.clone(),
 			true,
@@ -217,7 +269,7 @@ fn remote_attestation_works() {
 		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Pending);
 
 		assert_ok!(Tea::remote_attestation(
-			Origin::signed(1),
+			Origin::signed(owner2),
 			validator_2,
 			tea_id.clone(),
 			true,
@@ -226,7 +278,7 @@ fn remote_attestation_works() {
 		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Pending);
 
 		assert_ok!(Tea::remote_attestation(
-			Origin::signed(1),
+			Origin::signed(owner3),
 			validator_3,
 			tea_id.clone(),
 			true,
@@ -238,7 +290,7 @@ fn remote_attestation_works() {
 		// the apply node already work well.
 		assert_noop!(
 			Tea::remote_attestation(
-				Origin::signed(1),
+				Origin::signed(owner4),
 				validator_4,
 				tea_id.clone(),
 				true,
@@ -296,6 +348,9 @@ fn ra_node_not_exist() {
 #[test]
 fn remote_attestation_should_fail_if_ra_commit_has_expired() {
 	new_test_ext().execute_with(|| {
+		let owner = 2;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
+
 		let last_update_height = 100;
 		let (mut node, tea_id, _, _) = new_node();
 		node.update_time = last_update_height;
@@ -305,12 +360,26 @@ fn remote_attestation_should_fail_if_ra_commit_has_expired() {
 			hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
 		Nodes::<Test>::insert(&validator_tea_id, Node::default());
 
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			validator_tea_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
 		frame_system::Pallet::<Test>::set_block_number(
 			last_update_height + MAX_ALLOWED_RA_COMMIT_DURATION as u64 + 1,
 		);
 		assert_noop!(
 			Tea::remote_attestation(
-				Origin::signed(1),
+				Origin::signed(owner),
 				validator_tea_id,
 				tea_id,
 				true,
@@ -348,6 +417,9 @@ fn node_already_active() {
 #[test]
 fn validator_not_in_ra_nodes() {
 	new_test_ext().execute_with(|| {
+		let owner = 2;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
+
 		let (mut node, tea_id, _, _) = new_node();
 		node.ra_nodes = Vec::new(); // validator tea id not in ra node list
 		Nodes::<Test>::insert(&tea_id, node);
@@ -356,9 +428,23 @@ fn validator_not_in_ra_nodes() {
 			hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
 		Nodes::<Test>::insert(&validator_tea_id, Node::default());
 
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			validator_tea_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
 		assert_noop!(
 			Tea::remote_attestation(
-				Origin::signed(1),
+				Origin::signed(owner),
 				validator_tea_id,
 				tea_id,
 				true,

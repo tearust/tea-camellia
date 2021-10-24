@@ -24,6 +24,8 @@ impl<T: tea::Config> tea::Pallet<T> {
 			.map(|(_, tea_id)| tea_id.clone())
 			.collect();
 		ValidatorsCollection::<T>::set(active_machines.clone());
+
+		Self::deposit_event(Event::RaValidatorsChanged(active_machines));
 	}
 
 	pub(crate) fn generate_groups(block_number: T::BlockNumber) -> BTreeMap<u32, Vec<TeaPubKey>> {
