@@ -10,7 +10,7 @@ fn add_new_node_works() {
 		let public: [u8; 32] =
 			hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
 		Tea::add_new_node(public, &1);
-		let target_node = Nodes::<Test>::get(&public).unwrap();
+		let target_node = Nodes::<Test>::get(&public);
 		assert_eq!(
 			target_node.create_time,
 			frame_system::Pallet::<Test>::block_number()
@@ -39,7 +39,7 @@ fn builtin_node_update_node_profile_works() {
 		));
 		assert!(Tea::is_builtin_node(&tea_id));
 
-		let new_node = Nodes::<Test>::get(&tea_id).unwrap();
+		let new_node = Nodes::<Test>::get(&tea_id);
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Active, new_node.status);
 	})
@@ -102,7 +102,7 @@ fn normal_node_update_node_profile_works() {
 		));
 		assert!(!Tea::is_builtin_node(&tea_id));
 
-		let new_node = Nodes::<Test>::get(&tea_id).unwrap();
+		let new_node = Nodes::<Test>::get(&tea_id);
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Pending, new_node.status);
 	})
@@ -214,10 +214,7 @@ fn remote_attestation_works() {
 			true,
 			signature1
 		));
-		assert_eq!(
-			Nodes::<Test>::get(&tea_id).unwrap().status,
-			NodeStatus::Pending
-		);
+		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Pending);
 
 		assert_ok!(Tea::remote_attestation(
 			Origin::signed(1),
@@ -226,10 +223,7 @@ fn remote_attestation_works() {
 			true,
 			signature2
 		));
-		assert_eq!(
-			Nodes::<Test>::get(&tea_id).unwrap().status,
-			NodeStatus::Pending
-		);
+		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Pending);
 
 		assert_ok!(Tea::remote_attestation(
 			Origin::signed(1),
@@ -238,10 +232,7 @@ fn remote_attestation_works() {
 			true,
 			signature3
 		));
-		assert_eq!(
-			Nodes::<Test>::get(&tea_id).unwrap().status,
-			NodeStatus::Active
-		);
+		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Active);
 
 		// the 4th validator commit should see a `NodeAlreadyActive` error, this is ok because
 		// the apply node already work well.
@@ -255,10 +246,7 @@ fn remote_attestation_works() {
 			),
 			Error::<Test>::NodeAlreadyActive
 		);
-		assert_eq!(
-			Nodes::<Test>::get(&tea_id).unwrap().status,
-			NodeStatus::Active
-		);
+		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Active);
 	})
 }
 

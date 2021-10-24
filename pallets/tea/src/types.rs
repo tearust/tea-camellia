@@ -42,6 +42,15 @@ where
 	pub status: NodeStatus,
 }
 
+impl<BlockNumber> Node<BlockNumber>
+where
+	BlockNumber: Default,
+{
+	pub fn is_active(&self) -> bool {
+		self.status == NodeStatus::Active
+	}
+}
+
 impl<BlockNumber> Default for Node<BlockNumber>
 where
 	BlockNumber: Default,

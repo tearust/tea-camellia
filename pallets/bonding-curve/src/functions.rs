@@ -782,7 +782,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		let mining_cmls = T::CmlOperation::current_mining_cmls();
 
 		let mut unhosted_list = Vec::new();
-		mining_cmls.iter().for_each(|cml_id| {
+		mining_cmls.iter().for_each(|(cml_id, _)| {
 			if T::CmlOperation::is_cml_over_max_suspend_height(*cml_id, &current_block) {
 				CmlHostingTApps::<T>::get(cml_id)
 					.iter()

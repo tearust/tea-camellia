@@ -18,7 +18,7 @@ impl<T: tea::Config> TeaOperation for tea::Pallet<T> {
 
 impl<T: tea::Config> tea::Pallet<T> {
 	pub(crate) fn pop_existing_node(tea_id: &TeaPubKey) -> Node<T::BlockNumber> {
-		let old_node = Nodes::<T>::get(tea_id).unwrap();
+		let old_node = Nodes::<T>::get(tea_id);
 		BootNodes::<T>::remove(&old_node.tea_id);
 		EphemeralIds::<T>::remove(&old_node.ephemeral_id);
 		PeerIds::<T>::remove(&old_node.peer_id);
@@ -26,7 +26,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub(crate) fn is_builtin_node(tea_id: &TeaPubKey) -> bool {
-		BuiltinNodes::<T>::get(tea_id).is_some()
+		BuiltinNodes::<T>::contains_key(tea_id)
 	}
 
 	pub(crate) fn get_initial_node_status(tea_id: &TeaPubKey) -> NodeStatus {
@@ -53,7 +53,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 		tea_id: &TeaPubKey,
 		target_tea_id: &TeaPubKey,
 	) -> Option<usize> {
-		let target_node = Nodes::<T>::get(target_tea_id).unwrap();
+		let target_node = Nodes::<T>::get(target_tea_id);
 		for i in 0..target_node.ra_nodes.len() {
 			let (ra_tea_id, _) = target_node.ra_nodes[i];
 			if ra_tea_id.eq(tea_id) {
@@ -68,7 +68,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 		index: usize,
 		is_pass: bool,
 	) -> NodeStatus {
-		let mut target_node = Nodes::<T>::get(tea_id).unwrap();
+		let mut target_node = Nodes::<T>::get(tea_id);
 		target_node.ra_nodes[index] = (tea_id.clone(), is_pass);
 		let status = if is_pass {
 			let approved_count = target_node
@@ -105,30 +105,6 @@ impl<T: tea::Config> tea::Pallet<T> {
 		);
 		Ok(())
 	}
-
-	pub(crate) fn update_runtime_status(block_number: T::BlockNumber) {
-		for (tea_id, mut node) in Nodes::<T>::iter() {
-			if node.status == NodeStatus::Active {
-				if block_number - node.update_time <= T::RuntimeActivityThreshold::get().into() {
-					continue;
-				}
-				match RuntimeActivities::<T>::get(&tea_id) {
-					Some(runtime_activity) => {
-						if block_number - runtime_activity.update_height
-							> T::RuntimeActivityThreshold::get().into()
-						{
-							node.status = NodeStatus::Inactive;
-							Nodes::<T>::insert(&tea_id, node);
-						}
-					}
-					None => {
-						node.status = NodeStatus::Inactive;
-						Nodes::<T>::insert(&tea_id, node);
-					}
-				}
-			}
-		}
-	}
 }
 
 #[cfg(test)]
@@ -156,9 +132,7 @@ mod tests {
 					NodeStatus::Pending
 				);
 				assert_eq!(
-					Nodes::<Test>::get(&index_to_pub_key(node_index))
-						.unwrap()
-						.status,
+					Nodes::<Test>::get(&index_to_pub_key(node_index)).status,
 					NodeStatus::Pending
 				);
 			}
@@ -169,9 +143,7 @@ mod tests {
 					NodeStatus::Active
 				);
 				assert_eq!(
-					Nodes::<Test>::get(&index_to_pub_key(node_index))
-						.unwrap()
-						.status,
+					Nodes::<Test>::get(&index_to_pub_key(node_index)).status,
 					NodeStatus::Active
 				);
 			}
@@ -191,9 +163,7 @@ mod tests {
 				NodeStatus::Invalid
 			);
 			assert_eq!(
-				Nodes::<Test>::get(&index_to_pub_key(node_index))
-					.unwrap()
-					.status,
+				Nodes::<Test>::get(&index_to_pub_key(node_index)).status,
 				NodeStatus::Invalid
 			);
 
@@ -254,7 +224,6 @@ mod tests {
 
 	#[test]
 	fn update_runtime_status_works() {
-		// without activity record
 		new_test_ext().execute_with(|| {
 			let initial_height = 10;
 			let threshold_height = RUNTIME_ACTIVITY_THRESHOLD as u64;
@@ -272,131 +241,20 @@ mod tests {
 			Nodes::<Test>::insert(&tea_id2, node2);
 
 			Tea::update_runtime_status(initial_height + 2);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Active
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Active
-			);
+			assert_eq!(Nodes::<Test>::get(&tea_id1).status, NodeStatus::Active);
+			assert_eq!(Nodes::<Test>::get(&tea_id2).status, NodeStatus::Active);
 
 			Tea::update_runtime_status(initial_height + threshold_height);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Active
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Active
-			);
+			assert_eq!(Nodes::<Test>::get(&tea_id1).status, NodeStatus::Active);
+			assert_eq!(Nodes::<Test>::get(&tea_id2).status, NodeStatus::Active);
 
 			Tea::update_runtime_status(initial_height + threshold_height + 1);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Inactive
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Active
-			);
+			assert_eq!(Nodes::<Test>::get(&tea_id1).status, NodeStatus::Inactive);
+			assert_eq!(Nodes::<Test>::get(&tea_id2).status, NodeStatus::Active);
 
 			Tea::update_runtime_status(initial_height + threshold_height + 2);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Inactive
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Inactive
-			);
-		});
-
-		// has activity record, and `update_height` of the recode is one block after `update_time` of
-		// the node
-		new_test_ext().execute_with(|| {
-			let initial_height = 10;
-			let threshold_height = RUNTIME_ACTIVITY_THRESHOLD as u64;
-
-			let tea_id1: TeaPubKey = [1; 32];
-			let mut node1 = Node::default();
-			node1.update_time = initial_height;
-			node1.status = NodeStatus::Active;
-			Nodes::<Test>::insert(&tea_id1, node1);
-			RuntimeActivities::<Test>::insert(
-				&tea_id1,
-				RuntimeActivity {
-					tea_id: tea_id1.clone(),
-					cid: None,
-					ephemeral_id: [0; 32],
-					update_height: initial_height + 1,
-				},
-			);
-
-			let tea_id2: TeaPubKey = [2; 32];
-			let mut node2 = Node::default();
-			node2.update_time = initial_height + 1;
-			node2.status = NodeStatus::Active;
-			Nodes::<Test>::insert(&tea_id2, node2);
-			RuntimeActivities::<Test>::insert(
-				&tea_id2,
-				RuntimeActivity {
-					tea_id: tea_id2.clone(),
-					cid: None,
-					ephemeral_id: [0; 32],
-					update_height: initial_height + 2,
-				},
-			);
-
-			Tea::update_runtime_status(initial_height + 2);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Active
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Active
-			);
-
-			Tea::update_runtime_status(initial_height + threshold_height);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Active
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Active
-			);
-
-			Tea::update_runtime_status(initial_height + threshold_height + 1);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Active
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Active
-			);
-
-			Tea::update_runtime_status(initial_height + threshold_height + 2);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Inactive
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Active
-			);
-
-			Tea::update_runtime_status(initial_height + threshold_height + 3);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id1).unwrap().status,
-				NodeStatus::Inactive
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&tea_id2).unwrap().status,
-				NodeStatus::Inactive
-			);
+			assert_eq!(Nodes::<Test>::get(&tea_id1).status, NodeStatus::Inactive);
+			assert_eq!(Nodes::<Test>::get(&tea_id2).status, NodeStatus::Inactive);
 		});
 	}
 }

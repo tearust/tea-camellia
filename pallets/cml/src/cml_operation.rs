@@ -219,9 +219,9 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		reward_statements
 	}
 
-	fn current_mining_cmls() -> Vec<CmlId> {
+	fn current_mining_cmls() -> Vec<(CmlId, MachineId)> {
 		MinerItemStore::<T>::iter()
-			.map(|(_, miner_item)| miner_item.cml_id)
+			.map(|(_, miner_item)| (miner_item.cml_id, miner_item.id))
 			.collect()
 	}
 

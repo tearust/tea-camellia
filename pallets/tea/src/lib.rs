@@ -15,18 +15,25 @@ mod tests;
 mod benchmarking;
 
 mod functions;
+mod group;
 mod types;
 mod utils;
 mod weights;
 
 use frame_support::{
-	dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Currency,
+	dispatch::DispatchResult,
+	pallet_prelude::*,
+	sp_runtime::traits::Verify,
+	traits::{Currency, Randomness},
 };
 use frame_system::pallet_prelude::*;
 use pallet_cml::{CmlOperation, Task};
 use pallet_utils::{extrinsic_procedure, CommonUtils};
 use sp_core::{ed25519, H256};
-use sp_std::prelude::*;
+use sp_io::hashing::blake2_256;
+use sp_runtime::traits::Saturating;
+use sp_std::{cmp::max, collections::btree_map::BTreeMap, convert::TryInto};
+use sp_std::{cmp::Ordering, prelude::*};
 use tea_interface::TeaOperation;
 
 pub use types::*;
@@ -54,8 +61,19 @@ pub mod tea {
 		/// The minimum number of RA result commit to let the candidate node status become active.
 		#[pallet::constant]
 		type MinRaPassedThreshold: Get<u32>;
+
 		#[pallet::constant]
 		type PerRaTaskPoint: Get<u32>;
+
+		#[pallet::constant]
+		type UpdateValidatorsDuration: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type MaxGroupMemberCount: Get<u32>;
+
+		#[pallet::constant]
+		type MinGroupMemberCount: Get<u32>;
+
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 		/// Common utils trait
@@ -78,42 +96,50 @@ pub mod tea {
 	/// information about a TEA node.
 	#[pallet::storage]
 	#[pallet::getter(fn nodes)]
-	pub(super) type Nodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>>;
+	pub(super) type Nodes<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>, ValueQuery>;
 
 	/// Bootstrap nodes set, key is TEA ID with type of `TeaPubKey`, value is an empty place holder.
 	///
 	/// Bootstrap node must have public IP address, and url list should record how to access it.
 	#[pallet::storage]
 	#[pallet::getter(fn boot_nodes)]
-	pub(super) type BootNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, ()>;
+	pub(super) type BootNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
 
 	/// Ephemeral ID map, key is Ephemeral ID with type of `TeaPubKey`, value is TEA ID with
 	/// type of `TeaPubKey`.
 	#[pallet::storage]
 	#[pallet::getter(fn ephemeral_ids)]
-	pub(super) type EphemeralIds<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, TeaPubKey>;
+	pub(super) type EphemeralIds<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, TeaPubKey, ValueQuery>;
 
 	/// PeerId ID map, key is Peer ID with type of `PeerId`, value is TEA ID with type of
 	/// `TeaPubKey`.
 	#[pallet::storage]
 	#[pallet::getter(fn peer_ids)]
-	pub(super) type PeerIds<T: Config> = StorageMap<_, Twox64Concat, PeerId, TeaPubKey>;
+	pub(super) type PeerIds<T: Config> = StorageMap<_, Twox64Concat, PeerId, TeaPubKey, ValueQuery>;
 
 	/// Builtin nodes used to startup the RA process, key is TEA ID with type of `TeaPubKey`,
 	/// value is an empty place holder.
 	#[pallet::storage]
 	#[pallet::getter(fn builtin_nodes)]
-	pub(super) type BuiltinNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, ()>;
+	pub(super) type BuiltinNodes<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn builtin_miners)]
-	pub(super) type BuiltinMiners<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, ()>;
+	pub(super) type BuiltinMiners<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, (), ValueQuery>;
 
 	/// Runtime activities of registered TEA nodes.
 	#[pallet::storage]
 	#[pallet::getter(fn runtime_activities)]
 	pub(super) type RuntimeActivities<T: Config> =
-		StorageMap<_, Twox64Concat, TeaPubKey, RuntimeActivity<T::BlockNumber>>;
+		StorageMap<_, Twox64Concat, TeaPubKey, RuntimeActivity<T::BlockNumber>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn validators_collection)]
+	pub(super) type ValidatorsCollection<T: Config> = StorageValue<_, Vec<TeaPubKey>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -160,7 +186,10 @@ pub mod tea {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
-			Self::update_runtime_status(n);
+			if Self::should_update_validators(&n) {
+				Self::update_runtime_status(n);
+				Self::update_validators();
+			}
 		}
 	}
 
@@ -276,7 +305,7 @@ pub mod tea {
 						Nodes::<T>::contains_key(&target_tea_id),
 						Error::<T>::ApplyNodeNotExist
 					);
-					let target_node = Nodes::<T>::get(&target_tea_id).unwrap();
+					let target_node = Nodes::<T>::get(&target_tea_id);
 					ensure!(
 						target_node.status != NodeStatus::Active,
 						Error::<T>::NodeAlreadyActive
@@ -285,7 +314,7 @@ pub mod tea {
 					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
 					ensure!(index.is_some(), Error::<T>::NotInRaNodes);
 
-					let my_node = Nodes::<T>::get(&tea_id).unwrap();
+					let my_node = Nodes::<T>::get(&tea_id);
 					let content =
 						crate::utils::encode_ra_request_content(&tea_id, &target_tea_id, is_pass);
 					Self::verify_ed25519_signature(&my_node.ephemeral_id, &content, &signature)?;
