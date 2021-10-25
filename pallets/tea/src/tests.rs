@@ -2,6 +2,7 @@ use crate::{mock::*, types::*, BuiltinMiners, BuiltinNodes, Config, Error, Nodes
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use hex_literal::hex;
 use pallet_cml::{CmlId, CmlStore, CmlType, DefrostScheduleType, Seed, UserCmlStore, CML};
+use sp_runtime::traits::AtLeast32BitUnsigned;
 use tea_interface::TeaOperation;
 
 #[test]
@@ -485,7 +486,7 @@ fn update_runtime_activity_when_node_registered() {
 
 fn new_node<T>() -> (Node<T>, TeaPubKey, TeaPubKey, PeerId)
 where
-	T: Default,
+	T: Default + AtLeast32BitUnsigned,
 {
 	let tea_id = hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b");
 	let ephemeral_id = hex!("ba9147ba50faca694452db7c458e33a9a0322acbaac24bf35db7bb5165dff3ac");

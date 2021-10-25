@@ -1,5 +1,6 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
+use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_std::prelude::*;
 
 /// Url is a normal literal string.
@@ -29,7 +30,7 @@ pub enum NodeStatus {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub struct Node<BlockNumber>
 where
-	BlockNumber: Default,
+	BlockNumber: Default + AtLeast32BitUnsigned,
 {
 	pub tea_id: TeaPubKey,
 	pub ephemeral_id: TeaPubKey,
@@ -44,7 +45,7 @@ where
 
 impl<BlockNumber> Node<BlockNumber>
 where
-	BlockNumber: Default,
+	BlockNumber: Default + AtLeast32BitUnsigned,
 {
 	pub fn is_active(&self) -> bool {
 		self.status == NodeStatus::Active
@@ -53,7 +54,7 @@ where
 
 impl<BlockNumber> Default for Node<BlockNumber>
 where
-	BlockNumber: Default,
+	BlockNumber: Default + AtLeast32BitUnsigned,
 {
 	fn default() -> Self {
 		Node {
