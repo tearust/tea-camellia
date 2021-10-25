@@ -28,8 +28,26 @@ impl<T: tea::Config> tea::Pallet<T> {
 		Self::deposit_event(Event::RaValidatorsChanged(active_machines));
 	}
 
-	pub(crate) fn generate_groups(block_number: T::BlockNumber) -> BTreeMap<u32, Vec<TeaPubKey>> {
-		if !frame_system::BlockHash::<T>::contains_key(&block_number) {
+	pub(crate) fn is_validator(
+		tea_id: &TeaPubKey,
+		target_tea_id: &TeaPubKey,
+		block_number: &T::BlockNumber,
+	) -> bool {
+		let groups_info = Self::generate_groups(block_number);
+
+		// determine group id randomly by tea id hash
+		let group_id = (Self::h256_to_u64(&H256::from_slice(&target_tea_id[..]))
+			% groups_info.len() as u64) as u32;
+		match groups_info.get(&group_id) {
+			Some(group) => group.contains(tea_id),
+			None => false,
+		}
+	}
+
+	pub(crate) fn generate_groups(
+		block_number: &T::BlockNumber,
+	) -> BTreeMap<u32, BTreeSet<TeaPubKey>> {
+		if !frame_system::BlockHash::<T>::contains_key(block_number) {
 			return Default::default();
 		}
 
@@ -38,7 +56,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 		let last_group_count = validators_count % T::MaxGroupMemberCount::get();
 		let last_group_insufficient_number = last_group_count < T::MinGroupMemberCount::get();
 
-		let block_hash = frame_system::BlockHash::<T>::get(&block_number);
+		let block_hash = frame_system::BlockHash::<T>::get(block_number);
 		let mut tea_id_hash_numbers = Vec::new();
 		ValidatorsCollection::<T>::get().iter().for_each(|tea_id| {
 			tea_id_hash_numbers.push((tea_id.clone(), Self::hash_number(&block_hash, tea_id)));
@@ -50,7 +68,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 			.map(|(tea_id, _)| tea_id)
 			.collect();
 
-		let mut general_groups: BTreeMap<u32, Vec<TeaPubKey>> = BTreeMap::new();
+		let mut general_groups: BTreeMap<u32, BTreeSet<TeaPubKey>> = BTreeMap::new();
 		(0..group_count).into_iter().for_each(|id| {
 			general_groups.insert(id, Default::default());
 		});
@@ -58,7 +76,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 		let mut current_group_index = 0u32;
 		for i in 0..validators_count {
 			if let Some(array) = general_groups.get_mut(&current_group_index) {
-				array.push(sorted_tea_ids[i as usize]);
+				array.insert(sorted_tea_ids[i as usize]);
 			}
 
 			if (last_group_insufficient_number
@@ -75,6 +93,14 @@ impl<T: tea::Config> tea::Pallet<T> {
 	pub(crate) fn hash_number(block_hash: &T::Hash, tea_id: &TeaPubKey) -> u64 {
 		let payload = (block_hash, tea_id);
 		let hash: H256 = payload.using_encoded(blake2_256).into();
-		hash.to_low_u64_le()
+		Self::h256_to_u64(&hash)
+	}
+
+	pub(crate) fn h256_to_u64(hash: &H256) -> u64 {
+		const SIZE_OF_U64: usize = 8;
+		const SIZE_OF_H256: usize = 32;
+		let mut u8_buf = [0u8; SIZE_OF_U64];
+		u8_buf.copy_from_slice(&hash.0[SIZE_OF_H256 - SIZE_OF_U64..SIZE_OF_H256]);
+		u64::from_le_bytes(u8_buf)
 	}
 }

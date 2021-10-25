@@ -811,10 +811,16 @@ impl pallet_utils::Config for Runtime {
 }
 
 parameter_types! {
-	/// (6 * 60 * 10) blocks equals (6 * 60 * 10 * 6secs) = 6hours
-	pub const RuntimeActivityThreshold: u32 = 6 * 60 * 10;
+	/// (1 * 60 * 10) blocks equals (1 * 60 * 10 * 6secs) = 6hours
+	pub const RuntimeActivityThreshold: u32 = 1 * 60 * 10;
+	/// (4 * 60 * 10) blocks equals (4 * 60 * 10 * 6secs) = 6hours
+	pub const UpdateValidatorsDuration: u32 = 4 * 60 * 10;
 	pub const MinRaPassedThreshold: u32 = 3;
 	pub const PerRaTaskPoint: u32 = 10000;
+	pub const MaxGroupMemberCount: u32 = 10;
+	pub const MinGroupMemberCount: u32 = 5;
+	/// (10) blocks equals (10 * 6secs) = 1 minute
+	pub const MaxAllowedRaCommitDuration: u32 = 10;
 }
 
 impl pallet_tea::Config for Runtime {
@@ -822,6 +828,10 @@ impl pallet_tea::Config for Runtime {
 	type Currency = Balances;
 	type RuntimeActivityThreshold = RuntimeActivityThreshold;
 	type MinRaPassedThreshold = MinRaPassedThreshold;
+	type UpdateValidatorsDuration = UpdateValidatorsDuration;
+	type MaxGroupMemberCount = MaxGroupMemberCount;
+	type MinGroupMemberCount = MinGroupMemberCount;
+	type MaxAllowedRaCommitDuration = MaxAllowedRaCommitDuration;
 	type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
 	type CommonUtils = Utils;
 	type TaskService = Cml;
@@ -1315,6 +1325,16 @@ impl_runtime_apis! {
 
 		fn penalty_amount(auction_id: u64, who: &AccountId) -> Balance {
 			Auction::penalty_amount(auction_id, who)
+		}
+	}
+
+	impl tea_runtime_api::TeaApi<Block, AccountId> for Runtime {
+		fn is_ra_validator(
+			tea_id: &[u8; 32],
+			target_tea_id: &[u8; 32],
+			block_number: BlockNumber,
+		) -> bool {
+			Tea::is_ra_validator(tea_id, target_tea_id, &block_number)
 		}
 	}
 

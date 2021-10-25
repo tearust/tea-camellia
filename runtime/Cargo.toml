@@ -75,6 +75,7 @@ pallet-mmr = {default-features = false, git = 'https://github.com/paritytech/sub
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
+pallet-cml = {default-features = false, path = '../pallets/cml'}
 pallet-auction = {default-features = false, path = '../pallets/auction'}
 pallet-utils = {default-features = false, path = '../pallets/utils'}
 pallet-genesis-bank = {default-features = false, path = '../pallets/genesis-bank'}
@@ -82,7 +83,7 @@ pallet-genesis-exchange = {default-features = false, path = '../pallets/genesis-
 pallet-bonding-curve = {default-features = false, path = '../pallets/bonding-curve'}
 pallet-staking = {default-features = false, path = '../pallets/staking'}
 
-pallet-cml = {default-features = false, path = '../pallets/cml'}
+tea-runtime-api = {default-features = false, path = '../pallets/tea/runtime-api'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
 auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
 staking-economics = {default-features = false, path = '../pallets/cml/staking-economics'}

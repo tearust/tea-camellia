@@ -833,6 +833,7 @@ dependencies = [
  "staking-economics",
  "static_assertions",
  "substrate-wasm-builder",
+ "tea-runtime-api",
 ]
 
 [[package]]
@@ -8657,6 +8658,8 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-cli",
  "substrate-frame-rpc-system",
+ "tea-rpc",
+ "tea-runtime-api",
  "try-runtime-cli",
 ]
 
@@ -8666,6 +8669,34 @@ version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
  "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "tea-rpc"
+version = "0.1.0"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "node-primitives",
+ "parity-scale-codec",
+ "rmp-serde",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-rpc",
+ "sp-runtime",
+ "tea-runtime-api",
+]
+
+[[package]]
+name = "tea-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "node-primitives",
+ "parity-scale-codec",
+ "sp-api",
  "sp-std",
 ]
 

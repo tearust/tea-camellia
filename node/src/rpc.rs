@@ -40,6 +40,7 @@ where
 	B: sc_client_api::Backend<Block> + Send + Sync + 'static,
 	B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashFor<Block>>,
 
+	C::Api: tea_runtime_api::TeaApi<Block, AccountId>,
 	C::Api: cml_runtime_api::CmlApi<Block, AccountId>,
 	C::Api: auction_runtime_api::AuctionApi<Block, AccountId>,
 	C::Api: genesis_bank_runtime_api::GenesisBankApi<Block, AccountId>,
@@ -122,6 +123,9 @@ where
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
 	// `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
+	io.extend_with(tea_rpc::TeaApi::to_delegate(tea_rpc::TeaApiImpl::new(
+		client.clone(),
+	)));
 	io.extend_with(cml_rpc::CmlApi::to_delegate(cml_rpc::CmlApiImpl::new(
 		client.clone(),
 	)));

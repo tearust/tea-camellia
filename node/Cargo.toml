@@ -94,6 +94,8 @@ genesis-exchange-runtime-api = {path = '../pallets/genesis-exchange/runtime-api'
 genesis-exchange-rpc = {path = '../pallets/genesis-exchange/rpc'}
 bonding-curve-runtime-api = {path = '../pallets/bonding-curve/runtime-api'}
 bonding-curve-rpc = {path = '../pallets/bonding-curve/rpc'}
+tea-runtime-api = {path = '../pallets/tea/runtime-api'}
+tea-rpc = {path = '../pallets/tea/rpc'}
 
 [build-dependencies]
 structopt = { version = "0.3.8", optional = true }
