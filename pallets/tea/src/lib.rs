@@ -144,6 +144,11 @@ pub mod tea {
 	#[pallet::getter(fn validators_collection)]
 	pub(super) type ValidatorsCollection<T: Config> = StorageValue<_, Vec<TeaPubKey>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn validators_count)]
+	pub(super) type ValidatorGroupsCount<T: Config> =
+		StorageMap<_, Twox64Concat, u32, u32, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -177,8 +182,8 @@ pub mod tea {
 		/// Node is already activated. Because node will be activated after 3/4 RA nodes agreed,
 		/// so the rest 1/4 node commit RA results later shall fail.
 		NodeAlreadyActive,
-		/// Node is not in RA nodes list, so it is invalid to commit a RA result.
-		NotInRaNodes,
+		/// Node is not in RA validators list, so it is invalid to commit a RA result.
+		NotRaValidator,
 		/// Signature length not matched, that means signature is invalid.
 		InvalidSignatureLength,
 		/// Signature verify failed.
@@ -197,6 +202,7 @@ pub mod tea {
 			if Self::should_update_validators(&n) {
 				Self::update_runtime_status(n);
 				Self::update_validators();
+				Self::update_validator_groups_count();
 			}
 		}
 	}
@@ -220,6 +226,11 @@ pub mod tea {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			// we must ensure sufficient RA builtin nodes to start up.
+			if self.builtin_nodes.len() < T::MinGroupMemberCount::get() as usize {
+				panic!("insufficient builtin RA nodes");
+			}
+
 			for tea_id in self.builtin_nodes.iter() {
 				let mut node = Node::default();
 				node.tea_id = tea_id.clone();
@@ -256,18 +267,16 @@ pub mod tea {
 				},
 				|sender| {
 					let old_node = Self::pop_existing_node(&tea_id);
-					let seed = T::CommonUtils::generate_random(sender.clone(), &tea_id.to_vec());
 
 					let current_block_number = frame_system::Pallet::<T>::block_number();
 					let urls_count = urls.len();
-					let ra_nodes = Self::select_ra_nodes(&tea_id, seed);
-					let status = Self::get_initial_node_status(&tea_id);
+					let status = Self::initial_node_status(&tea_id);
 					let node = Node {
 						tea_id,
 						ephemeral_id,
 						profile_cid: profile_cid.clone(),
 						urls: urls.clone(),
-						ra_nodes,
+						ra_nodes: vec![],
 						status,
 						peer_id: peer_id.clone(),
 						create_time: old_node.create_time,
@@ -303,13 +312,9 @@ pub mod tea {
 						Nodes::<T>::contains_key(&target_tea_id),
 						Error::<T>::ApplyNodeNotExist
 					);
-					let target_node = Nodes::<T>::get(&target_tea_id);
-					ensure!(
-						target_node.status != NodeStatus::Active,
-						Error::<T>::NodeAlreadyActive
-					);
 					Self::check_tea_id_belongs(sender, &tea_id)?;
 
+					let target_node = Nodes::<T>::get(&target_tea_id);
 					let current_block = frame_system::Pallet::<T>::block_number();
 					ensure!(
 						current_block
@@ -318,9 +323,10 @@ pub mod tea {
 								.saturating_add(T::MaxAllowedRaCommitDuration::get()),
 						Error::<T>::RaCommitExpired
 					);
-
-					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
-					ensure!(index.is_some(), Error::<T>::NotInRaNodes);
+					ensure!(
+						Self::is_ra_validator(&tea_id, &target_tea_id, &target_node.update_time),
+						Error::<T>::NotRaValidator
+					);
 
 					let my_node = Nodes::<T>::get(&tea_id);
 					let content =
@@ -329,9 +335,7 @@ pub mod tea {
 					Ok(())
 				},
 				|sender| {
-					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
-					let target_status =
-						Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
+					let target_status = Self::update_node_status(&tea_id, &target_tea_id, is_pass);
 					T::TaskService::complete_ra_task(tea_id, T::PerRaTaskPoint::get());
 					Self::deposit_event(Event::CommitRaResult(
 						sender.clone(),

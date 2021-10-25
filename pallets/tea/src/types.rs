@@ -75,7 +75,8 @@ pub struct RaResult {
 	pub tea_id: TeaPubKey,
 	pub target_tea_id: TeaPubKey,
 	pub is_pass: bool,
-	pub target_status: NodeStatus,
+	/// None if target status not changed
+	pub target_status: Option<NodeStatus>,
 }
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]

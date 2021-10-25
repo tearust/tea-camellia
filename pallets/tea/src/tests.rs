@@ -241,23 +241,38 @@ fn remote_attestation_works() {
 		));
 
 		let (ephemeral_id1, signature1) = generate_pk_and_signature(&validator_1, &tea_id, true);
-		Nodes::<Test>::mutate(&validator_1, |node| node.ephemeral_id = ephemeral_id1);
+		Nodes::<Test>::mutate(&validator_1, |node| {
+			node.ephemeral_id = ephemeral_id1;
+			node.status = NodeStatus::Active;
+		});
 		ra_nodes.push((validator_1.clone(), false));
 
-		let (ephemeral_id2, signature2) = generate_pk_and_signature(&validator_2, &tea_id, true);
-		Nodes::<Test>::mutate(&validator_2, |node| node.ephemeral_id = ephemeral_id2);
+		let (ephemeral_id2, signature2) = generate_pk_and_signature(&validator_2, &tea_id, false);
+		Nodes::<Test>::mutate(&validator_2, |node| {
+			node.ephemeral_id = ephemeral_id2;
+			node.status = NodeStatus::Active;
+		});
 		ra_nodes.push((validator_2.clone(), false));
 
 		let (ephemeral_id3, signature3) = generate_pk_and_signature(&validator_3, &tea_id, true);
-		Nodes::<Test>::mutate(&validator_3, |node| node.ephemeral_id = ephemeral_id3);
+		Nodes::<Test>::mutate(&validator_3, |node| {
+			node.ephemeral_id = ephemeral_id3;
+			node.status = NodeStatus::Active;
+		});
 		ra_nodes.push((validator_3.clone(), false));
 
 		let (ephemeral_id4, signature4) = generate_pk_and_signature(&validator_4, &tea_id, true);
-		Nodes::<Test>::mutate(&validator_4, |node| node.ephemeral_id = ephemeral_id4);
+		Nodes::<Test>::mutate(&validator_4, |node| {
+			node.ephemeral_id = ephemeral_id4;
+			node.status = NodeStatus::Active;
+		});
 		ra_nodes.push((validator_4.clone(), false));
 
 		node.ra_nodes = ra_nodes;
 		Nodes::<Test>::insert(&tea_id, node);
+
+		Tea::update_validators();
+		Tea::update_validator_groups_count();
 
 		assert_ok!(Tea::remote_attestation(
 			Origin::signed(owner1),
@@ -272,7 +287,7 @@ fn remote_attestation_works() {
 			Origin::signed(owner2),
 			validator_2,
 			tea_id.clone(),
-			true,
+			false,
 			signature2
 		));
 		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Pending);
@@ -286,18 +301,13 @@ fn remote_attestation_works() {
 		));
 		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Active);
 
-		// the 4th validator commit should see a `NodeAlreadyActive` error, this is ok because
-		// the apply node already work well.
-		assert_noop!(
-			Tea::remote_attestation(
-				Origin::signed(owner4),
-				validator_4,
-				tea_id.clone(),
-				true,
-				signature4
-			),
-			Error::<Test>::NodeAlreadyActive
-		);
+		assert_ok!(Tea::remote_attestation(
+			Origin::signed(owner4),
+			validator_4,
+			tea_id.clone(),
+			true,
+			signature4
+		));
 		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Active);
 	})
 }
@@ -391,30 +401,6 @@ fn remote_attestation_should_fail_if_ra_commit_has_expired() {
 }
 
 #[test]
-fn node_already_active() {
-	new_test_ext().execute_with(|| {
-		let (mut node, tea_id, _, _) = new_node();
-		node.status = NodeStatus::Active;
-		Nodes::<Test>::insert(&tea_id, node);
-
-		let validator_tea_id =
-			hex!("e9889b1c54ccd6cf184901ded892069921d76f7749b6f73bed6cf3b9be1a8a44");
-		Nodes::<Test>::insert(&validator_tea_id, Node::default());
-
-		assert_noop!(
-			Tea::remote_attestation(
-				Origin::signed(1),
-				validator_tea_id,
-				tea_id,
-				true,
-				Vec::new()
-			),
-			Error::<Test>::NodeAlreadyActive
-		);
-	})
-}
-
-#[test]
 fn validator_not_in_ra_nodes() {
 	new_test_ext().execute_with(|| {
 		let owner = 2;
@@ -450,7 +436,7 @@ fn validator_not_in_ra_nodes() {
 				true,
 				Vec::new()
 			),
-			Error::<Test>::NotInRaNodes
+			Error::<Test>::NotRaValidator
 		);
 	})
 }

@@ -47,66 +47,40 @@ impl<T: tea::Config> tea::Pallet<T> {
 		BuiltinNodes::<T>::contains_key(tea_id)
 	}
 
-	pub(crate) fn get_initial_node_status(tea_id: &TeaPubKey) -> NodeStatus {
+	pub(crate) fn initial_node_status(tea_id: &TeaPubKey) -> NodeStatus {
 		match Self::is_builtin_node(tea_id) {
 			true => NodeStatus::Active,
 			false => NodeStatus::Pending,
 		}
 	}
 
-	pub(crate) fn select_ra_nodes(tea_id: &TeaPubKey, _seed: H256) -> Vec<(TeaPubKey, bool)> {
-		if Self::is_builtin_node(tea_id) {
-			return Vec::new();
-		}
-
-		let mut ra_nodes = Vec::new();
-		// todo: select 4 active nodes(calculate with `seed`) as ra nodes.
-		for (tea_id, _) in BuiltinNodes::<T>::iter() {
-			ra_nodes.push((tea_id, false));
-		}
-		ra_nodes
-	}
-
-	pub(crate) fn get_index_in_ra_nodes(
-		tea_id: &TeaPubKey,
-		target_tea_id: &TeaPubKey,
-	) -> Option<usize> {
-		let target_node = Nodes::<T>::get(target_tea_id);
-		for i in 0..target_node.ra_nodes.len() {
-			let (ra_tea_id, _) = target_node.ra_nodes[i];
-			if ra_tea_id.eq(tea_id) {
-				return Some(i);
-			}
-		}
-		None
-	}
-
 	pub(crate) fn update_node_status(
 		tea_id: &TeaPubKey,
-		index: usize,
+		target_tea_id: &TeaPubKey,
 		is_pass: bool,
-	) -> NodeStatus {
-		let mut target_node = Nodes::<T>::get(tea_id);
-		target_node.ra_nodes[index] = (tea_id.clone(), is_pass);
-		let status = if is_pass {
-			let approved_count = target_node
-				.ra_nodes
-				.iter()
-				.filter(|(_, is_pass)| *is_pass)
-				.count() as u32;
-			// need 3/4 vote at least for now.
-			if approved_count >= T::MinRaPassedThreshold::get() {
-				NodeStatus::Active
+	) -> Option<NodeStatus> {
+		Nodes::<T>::mutate(target_tea_id, |target_node| {
+			target_node.ra_nodes.push((tea_id.clone(), is_pass));
+			if target_node.status == NodeStatus::Active {
+				None
 			} else {
-				NodeStatus::Pending
-			}
-		} else {
-			NodeStatus::Invalid
-		};
-		target_node.status = status.clone();
-		Nodes::<T>::insert(tea_id, &target_node);
+				let group_id =
+					Self::group_id(target_tea_id, ValidatorGroupsCount::<T>::iter().count());
 
-		status
+				if target_node
+					.ra_nodes
+					.iter()
+					.filter(|(_, pass)| *pass)
+					.count() as u32 >= (ValidatorGroupsCount::<T>::get(group_id) + 1) / 2
+				{
+					// set RA node status to active if more than have validators agreed
+					target_node.status = NodeStatus::Active;
+					Some(NodeStatus::Active)
+				} else {
+					None
+				}
+			}
+		})
 	}
 
 	pub(crate) fn verify_ed25519_signature(
@@ -129,75 +103,6 @@ impl<T: tea::Config> tea::Pallet<T> {
 mod tests {
 	use crate::{mock::*, types::*, Error, Nodes};
 	use frame_support::{assert_noop, assert_ok};
-
-	#[test]
-	fn update_node_status_works() {
-		let index_to_pub_key = |i: u8| [i; 32];
-
-		// test normal ra procedure
-		new_test_ext().execute_with(|| {
-			let node_index = 4u8;
-			let mut node = Node::default();
-			for i in 0..=3 {
-				node.ra_nodes.push((index_to_pub_key(i), false));
-			}
-			Nodes::<Test>::insert(index_to_pub_key(node_index), node.clone());
-			assert_eq!(node.status, NodeStatus::Pending);
-
-			for i in 0..=1 {
-				assert_eq!(
-					Tea::update_node_status(&index_to_pub_key(node_index), i, true),
-					NodeStatus::Pending
-				);
-				assert_eq!(
-					Nodes::<Test>::get(&index_to_pub_key(node_index)).status,
-					NodeStatus::Pending
-				);
-			}
-
-			for i in 2..=3 {
-				assert_eq!(
-					Tea::update_node_status(&index_to_pub_key(node_index), i, true),
-					NodeStatus::Active
-				);
-				assert_eq!(
-					Nodes::<Test>::get(&index_to_pub_key(node_index)).status,
-					NodeStatus::Active
-				);
-			}
-		});
-
-		// test node status become invalid
-		new_test_ext().execute_with(|| {
-			let node_index = 4u8;
-			let mut node = Node::default();
-			for i in 1..=4 {
-				node.ra_nodes.push((index_to_pub_key(i), false));
-			}
-			Nodes::<Test>::insert(index_to_pub_key(node_index), node);
-
-			assert_eq!(
-				Tea::update_node_status(&index_to_pub_key(node_index), 0, false),
-				NodeStatus::Invalid
-			);
-			assert_eq!(
-				Nodes::<Test>::get(&index_to_pub_key(node_index)).status,
-				NodeStatus::Invalid
-			);
-
-			// node status should be invalid even if the rest of nodes (total count >= 3/4) agreed
-			for i in 1..=3 {
-				assert_eq!(
-					Tea::update_node_status(&index_to_pub_key(node_index), i, false),
-					NodeStatus::Invalid
-				);
-				assert_eq!(
-					Tea::update_node_status(&index_to_pub_key(node_index), i, false),
-					NodeStatus::Invalid
-				);
-			}
-		});
-	}
 
 	#[test]
 	fn verify_ed25519_signature_works() {
