@@ -64,7 +64,6 @@ impl system::Config for Test {
 
 parameter_types! {
 	pub const RuntimeActivityThreshold: u32 = RUNTIME_ACTIVITY_THRESHOLD;
-	pub const MinRaPassedThreshold: u32 = 3;
 }
 
 impl pallet_utils::Config for Test {

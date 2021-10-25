@@ -815,7 +815,6 @@ parameter_types! {
 	pub const RuntimeActivityThreshold: u32 = 1 * 60 * 10;
 	/// (4 * 60 * 10) blocks equals (4 * 60 * 10 * 6secs) = 6hours
 	pub const UpdateValidatorsDuration: u32 = 4 * 60 * 10;
-	pub const MinRaPassedThreshold: u32 = 3;
 	pub const PerRaTaskPoint: u32 = 10000;
 	pub const MaxGroupMemberCount: u32 = 10;
 	pub const MinGroupMemberCount: u32 = 5;
@@ -827,7 +826,6 @@ impl pallet_tea::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type RuntimeActivityThreshold = RuntimeActivityThreshold;
-	type MinRaPassedThreshold = MinRaPassedThreshold;
 	type UpdateValidatorsDuration = UpdateValidatorsDuration;
 	type MaxGroupMemberCount = MaxGroupMemberCount;
 	type MinGroupMemberCount = MinGroupMemberCount;

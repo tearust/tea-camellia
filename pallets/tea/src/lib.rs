@@ -58,9 +58,6 @@ pub mod tea {
 		/// node should become Inactive.
 		#[pallet::constant]
 		type RuntimeActivityThreshold: Get<u32>;
-		/// The minimum number of RA result commit to let the candidate node status become active.
-		#[pallet::constant]
-		type MinRaPassedThreshold: Get<u32>;
 
 		#[pallet::constant]
 		type PerRaTaskPoint: Get<u32>;
