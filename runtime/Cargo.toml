@@ -190,6 +190,7 @@ std = [
 	'genesis-bank-runtime-api/std',
 	'genesis-exchange-runtime-api/std',
 	'bonding-curve-runtime-api/std',
+	'tea-runtime-api/std',
 
 	'staking-economics/std',
 	'bonding-curve-impl/std',
