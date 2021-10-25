@@ -1,4 +1,7 @@
-use crate::{mock::*, types::*, BuiltinMiners, BuiltinNodes, Config, Error, Nodes};
+use crate::{
+	group::update_validator_groups_count, mock::*, types::*, BuiltinMiners, BuiltinNodes, Config,
+	Error, Nodes,
+};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use hex_literal::hex;
 use pallet_cml::{CmlId, CmlStore, CmlType, DefrostScheduleType, Seed, UserCmlStore, CML};
@@ -273,7 +276,7 @@ fn remote_attestation_works() {
 		Nodes::<Test>::insert(&tea_id, node);
 
 		Tea::update_validators();
-		Tea::update_validator_groups_count();
+		update_validator_groups_count::<Test>();
 
 		assert_ok!(Tea::remote_attestation(
 			Origin::signed(owner1),

@@ -199,7 +199,7 @@ pub mod tea {
 			if Self::should_update_validators(&n) {
 				Self::update_runtime_status(n);
 				Self::update_validators();
-				Self::update_validator_groups_count();
+				group::update_validator_groups_count::<T>();
 			}
 		}
 	}
@@ -238,6 +238,9 @@ pub mod tea {
 			self.builtin_miners
 				.iter()
 				.for_each(|account| BuiltinMiners::<T>::insert(account, ()));
+
+			ValidatorsCollection::<T>::set(self.builtin_nodes.clone());
+			group::update_validator_groups_count::<T>();
 		}
 	}
 
