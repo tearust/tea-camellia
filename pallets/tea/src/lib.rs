@@ -29,7 +29,7 @@ use pallet_cml::{CmlOperation, Task};
 use pallet_utils::{extrinsic_procedure, CommonUtils};
 use sp_core::{ed25519, H256};
 use sp_io::hashing::blake2_256;
-use sp_runtime::traits::Saturating;
+use sp_runtime::traits::{One, Saturating};
 use sp_std::{
 	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
 	prelude::*,

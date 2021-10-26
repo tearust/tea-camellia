@@ -18,14 +18,18 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub(crate) fn update_validators() {
-		let active_machines: Vec<TeaPubKey> = T::CmlOperation::current_mining_cmls()
+		let mut active_machines: BTreeSet<TeaPubKey> = T::CmlOperation::current_mining_cmls()
 			.iter()
 			.filter(|(_, tea_id)| Nodes::<T>::get(tea_id).is_active())
 			.map(|(_, tea_id)| tea_id.clone())
 			.collect();
-		ValidatorsCollection::<T>::set(active_machines.clone());
+		BootNodes::<T>::iter().for_each(|(tea_id, _)| {
+			active_machines.insert(tea_id);
+		});
+		let machines: Vec<TeaPubKey> = active_machines.into_iter().collect();
+		ValidatorsCollection::<T>::set(machines.clone());
 
-		Self::deposit_event(Event::RaValidatorsChanged(active_machines));
+		Self::deposit_event(Event::RaValidatorsChanged(machines));
 	}
 
 	pub(crate) fn is_validator(
@@ -46,14 +50,14 @@ impl<T: tea::Config> tea::Pallet<T> {
 	pub(crate) fn generate_groups(
 		block_number: &T::BlockNumber,
 	) -> BTreeMap<u32, BTreeSet<TeaPubKey>> {
-		if !frame_system::BlockHash::<T>::contains_key(block_number) {
+		if !frame_system::BlockHash::<T>::contains_key(*block_number - One::one()) {
 			return Default::default();
 		}
 
 		let (validators_count, group_count, last_group_insufficient_member) =
 			parse_group_params::<T>();
 
-		let block_hash = frame_system::BlockHash::<T>::get(block_number);
+		let block_hash = frame_system::BlockHash::<T>::get(*block_number - One::one());
 		let mut tea_id_hash_numbers = Vec::new();
 		ValidatorsCollection::<T>::get().iter().for_each(|tea_id| {
 			tea_id_hash_numbers.push((tea_id.clone(), Self::hash_number(&block_hash, tea_id)));
@@ -92,6 +96,9 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub(crate) fn group_id(target_tea_id: &TeaPubKey, groups_count: usize) -> u32 {
+		if groups_count == 0 {
+			return 0;
+		}
 		(Self::h256_to_u64(&H256::from_slice(&target_tea_id[..])) % groups_count as u64) as u32
 	}
 
@@ -283,9 +290,10 @@ mod tests {
 	#[test]
 	fn update_validator_groups_count_works() {
 		new_test_ext().execute_with(|| {
-			ValidatorsCollection::<Test>::set(vec![[0u8; 32]; 7]);
+			ValidatorsCollection::<Test>::set(vec![[0u8; 32]; 5]);
 			update_validator_groups_count::<Test>();
-			assert_eq!(ValidatorGroupsCount::<Test>::get(0), 7);
+			assert_eq!(ValidatorGroupsCount::<Test>::get(0), 5);
+			assert_eq!(ValidatorGroupsCount::<Test>::iter().count(), 1);
 
 			ValidatorsCollection::<Test>::set(vec![[0u8; 32]; 11]);
 			update_validator_groups_count::<Test>();
