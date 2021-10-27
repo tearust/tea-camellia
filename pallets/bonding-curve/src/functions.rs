@@ -788,6 +788,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					.iter()
 					.for_each(|tapp_id| {
 						Self::unhost_tapp(*tapp_id, *cml_id, false);
+						unhosted_list.push((*tapp_id, *cml_id));
 					});
 			}
 
