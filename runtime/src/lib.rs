@@ -820,6 +820,11 @@ parameter_types! {
 	pub const MinGroupMemberCount: u32 = 5;
 	/// (10) blocks equals (10 * 6secs) = 1 minute
 	pub const MaxAllowedRaCommitDuration: u32 = 10;
+	pub const PhishingAllowedDuration: u32 = 100;
+	pub const OfflineValidDuration: u32 = 100;
+	pub const OfflineEffectThreshold: u32 = 2;
+	pub const ReportRawardDuration: u32 = 100;
+	pub const ReportRawardAmount: Balance = 1 * DOLLARS;
 }
 
 impl pallet_tea::Config for Runtime {
@@ -830,7 +835,13 @@ impl pallet_tea::Config for Runtime {
 	type MaxGroupMemberCount = MaxGroupMemberCount;
 	type MinGroupMemberCount = MinGroupMemberCount;
 	type MaxAllowedRaCommitDuration = MaxAllowedRaCommitDuration;
+	type PhishingAllowedDuration = PhishingAllowedDuration;
+	type OfflineValidDuration = OfflineValidDuration;
+	type OfflineEffectThreshold = OfflineEffectThreshold;
+	type ReportRawardDuration = ReportRawardDuration;
+	type ReportRawardAmount = ReportRawardAmount;
 	type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
+	type CurrencyOperations = Utils;
 	type CommonUtils = Utils;
 	type TaskService = Cml;
 	type CmlOperation = Cml;
