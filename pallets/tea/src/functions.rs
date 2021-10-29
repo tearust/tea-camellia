@@ -17,6 +17,11 @@ impl<T: tea::Config> TeaOperation for tea::Pallet<T> {
 }
 
 impl<T: tea::Config> tea::Pallet<T> {
+	pub(crate) fn should_pay_report_reward(n: &T::BlockNumber) -> bool {
+		// offset with `ReportRawardDuration` - 3 to void overlapping with staking period
+		*n % T::ReportRawardDuration::get() == T::ReportRawardDuration::get() - 3u32.into()
+	}
+
 	pub(crate) fn check_tea_id_belongs(
 		sender: &T::AccountId,
 		tea_id: &TeaPubKey,
@@ -96,6 +101,28 @@ impl<T: tea::Config> tea::Pallet<T> {
 			Error::<T>::InvalidSignature
 		);
 		Ok(())
+	}
+
+	pub(crate) fn try_suspend_node(offline_tea_id: &TeaPubKey) {
+		if OfflineEvidences::<T>::get(offline_tea_id).len()
+			< T::OfflineEffectThreshold::get() as usize
+		{
+			return;
+		}
+
+		T::CmlOperation::suspend_mining(*offline_tea_id);
+		OfflineEvidences::<T>::remove(offline_tea_id);
+	}
+
+	pub(crate) fn pay_report_reward() {
+		ReportEvidences::<T>::iter().for_each(|(_, ev)| {
+			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.reporter) {
+				if let Some(owner) = cml.owner() {
+					T::CurrencyOperations::deposit_creating(owner, T::ReportRawardAmount::get());
+				}
+			}
+		});
+		ReportEvidences::<T>::remove_all(None);
 	}
 }
 

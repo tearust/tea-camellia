@@ -659,49 +659,6 @@ pub mod cml {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn suspend_mining(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
-			let who = ensure_signed(sender)?;
-
-			extrinsic_procedure(
-				&who,
-				|who| {
-					ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
-					let cml = CmlStore::<T>::get(cml_id);
-					ensure!(
-						who.eq(&T::BondingCurveOperation::npc_account()),
-						Error::<T>::OnlyNpcAccountAllowedToSuspend
-					);
-					let machine_id = cml.machine_id();
-					ensure!(machine_id.is_some(), Error::<T>::NotFoundMiner);
-					ensure!(
-						MinerItemStore::<T>::contains_key(machine_id.unwrap()),
-						Error::<T>::NotFoundMiner
-					);
-					ensure!(
-						MinerItemStore::<T>::get(machine_id.unwrap()).status == MinerStatus::Active,
-						Error::<T>::NoNeedToSuspend
-					);
-					Ok(())
-				},
-				|_who| {
-					if let Some(machine_id) = CmlStore::<T>::get(cml_id).machine_id() {
-						MinerItemStore::<T>::mutate(machine_id, |item| {
-							item.status = MinerStatus::Offline;
-							item.suspend_height = Some(frame_system::Pallet::<T>::block_number());
-						});
-					}
-
-					T::BondingCurveOperation::cml_host_tapps(cml_id)
-						.iter()
-						.for_each(|tapp_id| {
-							T::BondingCurveOperation::pay_hosting_penalty(*tapp_id, cml_id);
-							T::BondingCurveOperation::try_deactive_tapp(*tapp_id);
-						});
-				},
-			)
-		}
-
-		#[pallet::weight(195_000_000)]
 		pub fn resume_mining(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
@@ -1010,6 +967,12 @@ pub trait CmlOperation {
 		DispatchError,
 	>;
 
+	fn cml_by_machine_id(
+		machine_id: &MachineId,
+	) -> Option<CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>>;
+
+	fn miner_item_by_machine_id(machine_id: &MachineId) -> Option<MinerItem<Self::BlockNumber>>;
+
 	/// Check if the given CML not belongs to specified account.
 	fn check_belongs(cml_id: &CmlId, who: &Self::AccountId) -> Result<(), DispatchError>;
 
@@ -1086,6 +1049,8 @@ pub trait CmlOperation {
 	fn is_cml_over_max_suspend_height(cml_id: CmlId, block_height: &Self::BlockNumber) -> bool;
 
 	fn check_miner(machine_id: MachineId, miner_account: &Self::AccountId) -> bool;
+
+	fn suspend_mining(machine_id: MachineId);
 }
 
 /// Operations to calculate staking rewards.

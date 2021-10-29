@@ -87,3 +87,21 @@ pub struct RuntimeActivity<BlockNumber> {
 	pub ephemeral_id: TeaPubKey,
 	pub update_height: BlockNumber,
 }
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct ReportEvidence<BlockNumber>
+where
+	BlockNumber: Default + AtLeast32BitUnsigned,
+{
+	pub height: BlockNumber,
+	pub reporter: TeaPubKey,
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct OfflineEvidence<BlockNumber>
+where
+	BlockNumber: Default + AtLeast32BitUnsigned,
+{
+	pub height: BlockNumber,
+	pub tea_id: TeaPubKey,
+}

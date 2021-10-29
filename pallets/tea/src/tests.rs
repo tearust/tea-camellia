@@ -487,6 +487,93 @@ fn update_runtime_activity_when_node_registered() {
 	})
 }
 
+// #[test]
+// fn suspend_mining_should_fail_if_cml_not_exist() {
+// 	new_test_ext().execute_with(|| {
+// 		let cml_id = 1;
+// 		assert_noop!(
+// 			Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id),
+// 			Error::<Test>::NotFoundCML
+// 		);
+// 	})
+// }
+
+// #[test]
+// fn suspend_mining_should_fail_if_operating_account_is_not_npc() {
+// 	new_test_ext().execute_with(|| {
+// 		let miner = 1;
+// 		let amount = 100 * 1000;
+// 		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+// 		let cml_id: CmlId = 4;
+// 		UserCmlStore::<Test>::insert(miner, cml_id, ());
+// 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+// 		CmlStore::<Test>::insert(cml_id, cml);
+
+// 		let machine_id: MachineId = [1u8; 32];
+// 		assert_ok!(Cml::start_mining(
+// 			Origin::signed(miner),
+// 			cml_id,
+// 			machine_id,
+// 			b"miner_ip".to_vec(),
+// 			None,
+// 		));
+
+// 		assert_noop!(
+// 			Cml::suspend_mining(Origin::signed(miner), cml_id),
+// 			Error::<Test>::OnlyNpcAccountAllowedToSuspend
+// 		);
+// 	})
+// }
+
+// #[test]
+// fn suspend_mining_should_fail_if_cml_not_mining() {
+// 	new_test_ext().execute_with(|| {
+// 		let miner = 1;
+// 		let amount = 100 * 1000;
+// 		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+// 		let cml_id: CmlId = 4;
+// 		UserCmlStore::<Test>::insert(miner, cml_id, ());
+// 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+// 		CmlStore::<Test>::insert(cml_id, cml);
+
+// 		assert_noop!(
+// 			Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id),
+// 			Error::<Test>::NotFoundMiner
+// 		);
+// 	})
+// }
+
+// #[test]
+// fn suspend_mining_should_fail_if_cml_is_suspended_already() {
+// 	new_test_ext().execute_with(|| {
+// 		let miner = 1;
+// 		let amount = 100 * 1000;
+// 		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+// 		let cml_id: CmlId = 4;
+// 		UserCmlStore::<Test>::insert(miner, cml_id, ());
+// 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+// 		CmlStore::<Test>::insert(cml_id, cml);
+
+// 		let machine_id: MachineId = [1u8; 32];
+// 		assert_ok!(Cml::start_mining(
+// 			Origin::signed(miner),
+// 			cml_id,
+// 			machine_id,
+// 			b"miner_ip".to_vec(),
+// 			None,
+// 		));
+
+// 		assert_ok!(Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id));
+// 		assert_noop!(
+// 			Cml::suspend_mining(Origin::signed(NPC_ACCOUNT), cml_id),
+// 			Error::<Test>::NoNeedToSuspend
+// 		);
+// 	})
+// }
+
 fn new_node<T>() -> (Node<T>, TeaPubKey, TeaPubKey, PeerId)
 where
 	T: Default + AtLeast32BitUnsigned,

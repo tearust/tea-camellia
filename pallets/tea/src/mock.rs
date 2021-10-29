@@ -20,6 +20,11 @@ pub const UPDATE_VALIDATORS_DURATION: u32 = 10 * 60 * 10;
 pub const MAX_GROUP_MEMBER_COUNT: u32 = 10;
 pub const MIN_GROUP_MEMBER_COUNT: u32 = 5;
 pub const MAX_ALLOWED_RA_COMMIT_DURATION: u32 = 10;
+pub const PHISHING_ALLOWED_DURATION: u32 = 100;
+pub const OFFLINE_VALID_DURATION: u32 = 150;
+pub const OFFLINE_EFFECT_THRESHOLD: u32 = 2;
+pub const REPORT_RAWARD_DURATION: u32 = 200;
+pub const REPORT_RAWARD_AMOUNT: u128 = 1000;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -213,6 +218,11 @@ parameter_types! {
 	pub const MaxGroupMemberCount: u32 = MAX_GROUP_MEMBER_COUNT;
 	pub const MinGroupMemberCount: u32 = MIN_GROUP_MEMBER_COUNT;
 	pub const MaxAllowedRaCommitDuration: u32 = MAX_ALLOWED_RA_COMMIT_DURATION;
+	pub const PhishingAllowedDuration: u32 = PHISHING_ALLOWED_DURATION;
+	pub const OfflineValidDuration: u32 = OFFLINE_VALID_DURATION;
+	pub const OfflineEffectThreshold: u32 = OFFLINE_EFFECT_THRESHOLD;
+	pub const ReportRawardDuration: u32 = REPORT_RAWARD_DURATION;
+	pub const ReportRawardAmount: u128 = REPORT_RAWARD_AMOUNT;
 }
 
 impl pallet_utils::Config for Test {
@@ -249,8 +259,14 @@ impl pallet_tea::Config for Test {
 	type MaxGroupMemberCount = MaxGroupMemberCount;
 	type MinGroupMemberCount = MinGroupMemberCount;
 	type MaxAllowedRaCommitDuration = MaxAllowedRaCommitDuration;
+	type PhishingAllowedDuration = PhishingAllowedDuration;
+	type OfflineValidDuration = OfflineValidDuration;
+	type OfflineEffectThreshold = OfflineEffectThreshold;
+	type ReportRawardDuration = ReportRawardDuration;
+	type ReportRawardAmount = ReportRawardAmount;
 	type WeightInfo = ();
 	type CommonUtils = Utils;
+	type CurrencyOperations = Utils;
 	type TaskService = Cml;
 	type CmlOperation = Cml;
 	type PerRaTaskPoint = PerRaTaskPoint;
