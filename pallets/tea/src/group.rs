@@ -50,14 +50,15 @@ impl<T: tea::Config> tea::Pallet<T> {
 	pub(crate) fn generate_groups(
 		block_number: &T::BlockNumber,
 	) -> BTreeMap<u32, BTreeSet<TeaPubKey>> {
-		if !frame_system::BlockHash::<T>::contains_key(*block_number - One::one()) {
+		let query_height = block_number.saturating_sub(One::one());
+		if !frame_system::BlockHash::<T>::contains_key(query_height) {
 			return Default::default();
 		}
 
 		let (validators_count, group_count, last_group_insufficient_member) =
 			parse_group_params::<T>();
 
-		let block_hash = frame_system::BlockHash::<T>::get(*block_number - One::one());
+		let block_hash = frame_system::BlockHash::<T>::get(query_height);
 		let mut tea_id_hash_numbers = Vec::new();
 		ValidatorsCollection::<T>::get().iter().for_each(|tea_id| {
 			tea_id_hash_numbers.push((tea_id.clone(), Self::hash_number(&block_hash, tea_id)));
