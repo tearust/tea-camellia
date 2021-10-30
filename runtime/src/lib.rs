@@ -811,9 +811,9 @@ impl pallet_utils::Config for Runtime {
 }
 
 parameter_types! {
-	/// (1 * 60 * 10) blocks equals (1 * 60 * 10 * 6secs) = 6hours
+	/// (1 * 60 * 10) blocks equals (1 * 60 * 10 * 6secs) = 1hours
 	pub const RuntimeActivityThreshold: u32 = 1 * 60 * 10;
-	/// (4 * 60 * 10) blocks equals (4 * 60 * 10 * 6secs) = 6hours
+	/// (4 * 60 * 10) blocks equals (4 * 60 * 10 * 6secs) = 4hours
 	pub const UpdateValidatorsDuration: u32 = 4 * 60 * 10;
 	pub const PerRaTaskPoint: u32 = 10000;
 	pub const MaxGroupMemberCount: u32 = 10;
