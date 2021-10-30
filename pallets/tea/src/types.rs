@@ -1,5 +1,6 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
+use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_std::prelude::*;
 
 /// Url is a normal literal string.
@@ -29,7 +30,7 @@ pub enum NodeStatus {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub struct Node<BlockNumber>
 where
-	BlockNumber: Default,
+	BlockNumber: Default + AtLeast32BitUnsigned,
 {
 	pub tea_id: TeaPubKey,
 	pub ephemeral_id: TeaPubKey,
@@ -42,9 +43,18 @@ where
 	pub status: NodeStatus,
 }
 
+impl<BlockNumber> Node<BlockNumber>
+where
+	BlockNumber: Default + AtLeast32BitUnsigned,
+{
+	pub fn is_active(&self) -> bool {
+		self.status == NodeStatus::Active
+	}
+}
+
 impl<BlockNumber> Default for Node<BlockNumber>
 where
-	BlockNumber: Default,
+	BlockNumber: Default + AtLeast32BitUnsigned,
 {
 	fn default() -> Self {
 		Node {
@@ -66,7 +76,8 @@ pub struct RaResult {
 	pub tea_id: TeaPubKey,
 	pub target_tea_id: TeaPubKey,
 	pub is_pass: bool,
-	pub target_status: NodeStatus,
+	/// None if target status not changed
+	pub target_status: Option<NodeStatus>,
 }
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
@@ -75,4 +86,22 @@ pub struct RuntimeActivity<BlockNumber> {
 	pub cid: Option<Cid>,
 	pub ephemeral_id: TeaPubKey,
 	pub update_height: BlockNumber,
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct ReportEvidence<BlockNumber>
+where
+	BlockNumber: Default + AtLeast32BitUnsigned,
+{
+	pub height: BlockNumber,
+	pub reporter: TeaPubKey,
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct OfflineEvidence<BlockNumber>
+where
+	BlockNumber: Default + AtLeast32BitUnsigned,
+{
+	pub height: BlockNumber,
+	pub tea_id: TeaPubKey,
 }

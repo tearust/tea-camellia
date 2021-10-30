@@ -318,6 +318,12 @@ pub mod cml {
 		MinerIpAlreadyExist,
 		/// Type B cml start mining should have orbit id
 		CmlBStartMiningShouldHaveOrbitId,
+		/// Can not schedule down when cml is not active state
+		CanNotScheduleDownWhenInactive,
+		/// Mining tree is not schedule down, no need to schedule up
+		NoNeedToScheduleUp,
+		/// Can not migrate when cml is active, should schedule down first
+		CannotMigrateWhenActive,
 
 		/// Specified staking index is over than the max length of current staking slots.
 		InvalidStakingIndex,
@@ -647,6 +653,7 @@ pub mod cml {
 								orbitdb_id: orbitdb_id.clone(),
 								status: MinerStatus::Active,
 								suspend_height: None,
+								schedule_down_height: None,
 							},
 						);
 						MinerIpSet::<T>::insert(miner_ip.clone(), ());
@@ -659,44 +666,114 @@ pub mod cml {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn suspend_mining(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
+		pub fn schedule_down(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
 			extrinsic_procedure(
 				&who,
 				|who| {
-					ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
-					let cml = CmlStore::<T>::get(cml_id);
+					Self::check_belongs(&cml_id, who)?;
+					let miner_item = Self::get_miner_item(cml_id)?;
 					ensure!(
-						who.eq(&T::BondingCurveOperation::npc_account()),
-						Error::<T>::OnlyNpcAccountAllowedToSuspend
+						miner_item.status == MinerStatus::Active,
+						Error::<T>::CanNotScheduleDownWhenInactive
 					);
-					let machine_id = cml.machine_id();
-					ensure!(machine_id.is_some(), Error::<T>::NotFoundMiner);
-					ensure!(
-						MinerItemStore::<T>::contains_key(machine_id.unwrap()),
-						Error::<T>::NotFoundMiner
-					);
-					ensure!(
-						MinerItemStore::<T>::get(machine_id.unwrap()).status == MinerStatus::Active,
-						Error::<T>::NoNeedToSuspend
-					);
+
 					Ok(())
 				},
 				|_who| {
 					if let Some(machine_id) = CmlStore::<T>::get(cml_id).machine_id() {
 						MinerItemStore::<T>::mutate(machine_id, |item| {
-							item.status = MinerStatus::Offline;
-							item.suspend_height = Some(frame_system::Pallet::<T>::block_number());
+							item.status = MinerStatus::ScheduleDown;
+							item.schedule_down_height =
+								Some(frame_system::Pallet::<T>::block_number());
 						});
 					}
 
 					T::BondingCurveOperation::cml_host_tapps(cml_id)
 						.iter()
 						.for_each(|tapp_id| {
-							T::BondingCurveOperation::pay_hosting_penalty(*tapp_id, cml_id);
 							T::BondingCurveOperation::try_deactive_tapp(*tapp_id);
 						});
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn schedule_up(sender: OriginFor<T>, cml_id: CmlId) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					Self::check_belongs(&cml_id, who)?;
+					let miner_item = Self::get_miner_item(cml_id)?;
+					ensure!(
+						miner_item.status == MinerStatus::ScheduleDown,
+						Error::<T>::NoNeedToScheduleUp
+					);
+
+					Ok(())
+				},
+				|_who| {
+					if let Some(machine_id) = CmlStore::<T>::get(cml_id).machine_id() {
+						MinerItemStore::<T>::mutate(machine_id, |item| {
+							item.status = MinerStatus::Active;
+							item.schedule_down_height = None;
+						});
+					}
+
+					T::BondingCurveOperation::cml_host_tapps(cml_id)
+						.iter()
+						.for_each(|tapp_id| {
+							T::BondingCurveOperation::try_active_tapp(*tapp_id);
+						});
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn migrate(
+			sender: OriginFor<T>,
+			cml_id: CmlId,
+			new_machine_id: MachineId,
+			new_miner_ip: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					Self::check_belongs(&cml_id, who)?;
+					let miner_item = Self::get_miner_item(cml_id)?;
+					if !miner_item.id.eq(&new_machine_id) {
+						ensure!(
+							!<MinerItemStore<T>>::contains_key(&new_machine_id),
+							Error::<T>::MinerAlreadyExist
+						);
+					}
+					if !miner_item.ip.eq(&new_miner_ip) {
+						ensure!(
+							!MinerIpSet::<T>::contains_key(&new_miner_ip),
+							Error::<T>::MinerIpAlreadyExist
+						);
+					}
+					ensure!(
+						miner_item.status != MinerStatus::Active,
+						Error::<T>::CannotMigrateWhenActive
+					);
+
+					Ok(())
+				},
+				|_who| {
+					if let Some(machine_id) = CmlStore::<T>::get(cml_id).machine_id() {
+						let mut miner_item = MinerItemStore::<T>::take(machine_id);
+						miner_item.id = new_machine_id;
+						miner_item.ip = new_miner_ip.clone();
+						MinerItemStore::<T>::insert(new_machine_id, miner_item);
+
+						CmlStore::<T>::mutate(cml_id, |cml| cml.migrate_to(new_machine_id));
+					}
 				},
 			)
 		}
@@ -709,16 +786,10 @@ pub mod cml {
 				&who,
 				|who| {
 					Self::check_belongs(&cml_id, who)?;
-					let cml = CmlStore::<T>::get(cml_id);
-					let machine_id = cml.machine_id();
-					ensure!(machine_id.is_some(), Error::<T>::NotFoundMiner);
+					let miner_item = Self::get_miner_item(cml_id)?;
+
 					ensure!(
-						MinerItemStore::<T>::contains_key(machine_id.unwrap()),
-						Error::<T>::NotFoundMiner
-					);
-					ensure!(
-						MinerItemStore::<T>::get(machine_id.unwrap()).status
-							== MinerStatus::Offline,
+						miner_item.status == MinerStatus::Offline,
 						Error::<T>::NoNeedToResume
 					);
 					ensure!(
@@ -1010,6 +1081,12 @@ pub trait CmlOperation {
 		DispatchError,
 	>;
 
+	fn cml_by_machine_id(
+		machine_id: &MachineId,
+	) -> Option<CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>>;
+
+	fn miner_item_by_machine_id(machine_id: &MachineId) -> Option<MinerItem<Self::BlockNumber>>;
+
 	/// Check if the given CML not belongs to specified account.
 	fn check_belongs(cml_id: &CmlId, who: &Self::AccountId) -> Result<(), DispatchError>;
 
@@ -1068,7 +1145,7 @@ pub trait CmlOperation {
 	) -> Vec<(Self::AccountId, CmlId, Self::Balance)>;
 
 	/// Get current mining cml list;
-	fn current_mining_cmls() -> Vec<CmlId>;
+	fn current_mining_cmls() -> Vec<(CmlId, MachineId)>;
 
 	/// return a pair of values, first is current performance calculated by given block height,
 	/// the second is the peak performance.
@@ -1084,6 +1161,10 @@ pub trait CmlOperation {
 	fn mining_status(cml_id: CmlId) -> (bool, MinerStatus);
 
 	fn is_cml_over_max_suspend_height(cml_id: CmlId, block_height: &Self::BlockNumber) -> bool;
+
+	fn check_miner(machine_id: MachineId, miner_account: &Self::AccountId) -> bool;
+
+	fn suspend_mining(machine_id: MachineId);
 }
 
 /// Operations to calculate staking rewards.

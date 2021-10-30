@@ -191,6 +191,7 @@ mod tests {
 					orbitdb_id: None,
 					status: MinerStatus::Active,
 					suspend_height: None,
+					schedule_down_height: None,
 				},
 			);
 			MinerItemStore::<Test>::insert(
@@ -202,6 +203,7 @@ mod tests {
 					orbitdb_id: None,
 					status: MinerStatus::Active,
 					suspend_height: None,
+					schedule_down_height: None,
 				},
 			);
 

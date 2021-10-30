@@ -13,6 +13,8 @@ networks:
     internal: true
   ferdie-network:
     internal: true
+  george-network:
+    internal: true
   blockchain-network:
 services:
   ##################    Layer1   #######################
@@ -111,5 +113,5 @@ services:
       - ./data:/tea-camellia
     command: bash -c "tea-camellia --validator --chain canary --name george --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all --genesis-coupons-path /tea-camellia/test.csv"
     networks:
-      - ferdie-network
+      - george-network
       - blockchain-network

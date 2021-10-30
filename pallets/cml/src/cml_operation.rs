@@ -17,6 +17,28 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		Ok(CmlStore::<T>::get(cml_id))
 	}
 
+	fn cml_by_machine_id(
+		machine_id: &MachineId,
+	) -> Option<CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>> {
+		match Self::miner_item_by_machine_id(machine_id) {
+			Some(miner_item) => {
+				if !CmlStore::<T>::contains_key(miner_item.cml_id) {
+					return None;
+				}
+
+				Some(CmlStore::<T>::get(miner_item.cml_id))
+			}
+			None => None,
+		}
+	}
+
+	fn miner_item_by_machine_id(machine_id: &MachineId) -> Option<MinerItem<Self::BlockNumber>> {
+		if !MinerItemStore::<T>::contains_key(machine_id) {
+			return None;
+		}
+		Some(MinerItemStore::<T>::get(machine_id))
+	}
+
 	/// Check if the given CML not belongs to specified account.
 	fn check_belongs(cml_id: &u64, who: &Self::AccountId) -> DispatchResult {
 		ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
@@ -219,9 +241,9 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		reward_statements
 	}
 
-	fn current_mining_cmls() -> Vec<CmlId> {
+	fn current_mining_cmls() -> Vec<(CmlId, MachineId)> {
 		MinerItemStore::<T>::iter()
-			.map(|(_, miner_item)| miner_item.cml_id)
+			.map(|(_, miner_item)| (miner_item.cml_id, miner_item.id))
 			.collect()
 	}
 
@@ -285,6 +307,30 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		}
 
 		false
+	}
+
+	fn check_miner(machine_id: MachineId, miner_account: &Self::AccountId) -> bool {
+		let miner_item = MinerItemStore::<T>::get(machine_id);
+		let cml = CmlStore::<T>::get(miner_item.cml_id);
+		match cml.owner() {
+			Some(owner) => owner.eq(miner_account),
+			None => false,
+		}
+	}
+
+	fn suspend_mining(machine_id: MachineId) {
+		MinerItemStore::<T>::mutate(&machine_id, |item| {
+			item.status = MinerStatus::Offline;
+			item.suspend_height = Some(frame_system::Pallet::<T>::block_number());
+
+			let cml_id = item.cml_id;
+			T::BondingCurveOperation::cml_host_tapps(cml_id)
+				.iter()
+				.for_each(|tapp_id| {
+					T::BondingCurveOperation::pay_hosting_penalty(*tapp_id, cml_id);
+					T::BondingCurveOperation::try_deactive_tapp(*tapp_id);
+				});
+		});
 	}
 }
 

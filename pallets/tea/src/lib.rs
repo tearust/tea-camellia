@@ -15,20 +15,32 @@ mod tests;
 mod benchmarking;
 
 mod functions;
+mod group;
+mod rpc;
 mod types;
 mod utils;
 mod weights;
 
-use frame_support::{dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify};
+use frame_support::{
+	dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Currency,
+};
 use frame_system::pallet_prelude::*;
-use pallet_cml::Task;
-use pallet_utils::{extrinsic_procedure, CommonUtils};
+use pallet_cml::{CmlOperation, CmlType, MinerStatus, SeedProperties, Task, TreeProperties};
+use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
 use sp_core::{ed25519, H256};
-use sp_std::prelude::*;
+use sp_io::hashing::blake2_256;
+use sp_runtime::traits::{One, Saturating};
+use sp_std::{
+	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+	prelude::*,
+};
 use tea_interface::TeaOperation;
 
 pub use types::*;
 pub use weights::WeightInfo;
+
+type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod tea {
@@ -39,19 +51,64 @@ pub mod tea {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		type Currency: Currency<Self::AccountId>;
+
 		/// If node dot not update runtime activity within the given block heights, status of the
 		/// node should become Inactive.
 		#[pallet::constant]
 		type RuntimeActivityThreshold: Get<u32>;
-		/// The minimum number of RA result commit to let the candidate node status become active.
+
 		#[pallet::constant]
-		type MinRaPassedThreshold: Get<u32>;
+		type PerRaTaskPoint: Get<u32>;
+
+		#[pallet::constant]
+		type UpdateValidatorsDuration: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type MaxGroupMemberCount: Get<u32>;
+
+		#[pallet::constant]
+		type MinGroupMemberCount: Get<u32>;
+
+		#[pallet::constant]
+		type MaxAllowedRaCommitDuration: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type PhishingAllowedDuration: Get<Self::BlockNumber>;
+
+		/// How long a offline evidence can be used to suspend a cml
+		#[pallet::constant]
+		type OfflineValidDuration: Get<Self::BlockNumber>;
+
+		/// How many offline evidences can suspend a cml
+		#[pallet::constant]
+		type OfflineEffectThreshold: Get<u32>;
+
+		#[pallet::constant]
+		type ReportRawardDuration: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type ReportRawardAmount: Get<BalanceOf<Self>>;
+
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 		/// Common utils trait
 		type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
 		/// Operations type about task execution
 		type TaskService: Task;
+
+		type CmlOperation: CmlOperation<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+			BlockNumber = Self::BlockNumber,
+		>;
+
+		/// Operations about currency that used in Tea Camellia.
+		type CurrencyOperations: CurrencyOperations<
+			AccountId = Self::AccountId,
+			Balance = BalanceOf<Self>,
+		>;
 	}
 
 	#[pallet::pallet]
@@ -62,38 +119,64 @@ pub mod tea {
 	/// information about a TEA node.
 	#[pallet::storage]
 	#[pallet::getter(fn nodes)]
-	pub(super) type Nodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>>;
+	pub(super) type Nodes<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>, ValueQuery>;
 
 	/// Bootstrap nodes set, key is TEA ID with type of `TeaPubKey`, value is an empty place holder.
 	///
 	/// Bootstrap node must have public IP address, and url list should record how to access it.
 	#[pallet::storage]
 	#[pallet::getter(fn boot_nodes)]
-	pub(super) type BootNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, ()>;
+	pub(super) type BootNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
 
 	/// Ephemeral ID map, key is Ephemeral ID with type of `TeaPubKey`, value is TEA ID with
 	/// type of `TeaPubKey`.
 	#[pallet::storage]
 	#[pallet::getter(fn ephemeral_ids)]
-	pub(super) type EphemeralIds<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, TeaPubKey>;
+	pub(super) type EphemeralIds<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, TeaPubKey, ValueQuery>;
 
 	/// PeerId ID map, key is Peer ID with type of `PeerId`, value is TEA ID with type of
 	/// `TeaPubKey`.
 	#[pallet::storage]
 	#[pallet::getter(fn peer_ids)]
-	pub(super) type PeerIds<T: Config> = StorageMap<_, Twox64Concat, PeerId, TeaPubKey>;
+	pub(super) type PeerIds<T: Config> = StorageMap<_, Twox64Concat, PeerId, TeaPubKey, ValueQuery>;
 
 	/// Builtin nodes used to startup the RA process, key is TEA ID with type of `TeaPubKey`,
 	/// value is an empty place holder.
 	#[pallet::storage]
 	#[pallet::getter(fn builtin_nodes)]
-	pub(super) type BuiltinNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, ()>;
+	pub(super) type BuiltinNodes<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn builtin_miners)]
+	pub(super) type BuiltinMiners<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, (), ValueQuery>;
 
 	/// Runtime activities of registered TEA nodes.
 	#[pallet::storage]
 	#[pallet::getter(fn runtime_activities)]
 	pub(super) type RuntimeActivities<T: Config> =
-		StorageMap<_, Twox64Concat, TeaPubKey, RuntimeActivity<T::BlockNumber>>;
+		StorageMap<_, Twox64Concat, TeaPubKey, RuntimeActivity<T::BlockNumber>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn validators_collection)]
+	pub(super) type ValidatorsCollection<T: Config> = StorageValue<_, Vec<TeaPubKey>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn validators_count)]
+	pub(super) type ValidatorGroupsCount<T: Config> =
+		StorageMap<_, Twox64Concat, u32, u32, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn report_evidences)]
+	pub(super) type ReportEvidences<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, ReportEvidence<T::BlockNumber>, ValueQuery>;
+
+	#[pallet::storage]
+	pub(super) type OfflineEvidences<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, Vec<OfflineEvidence<T::BlockNumber>>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -109,6 +192,9 @@ pub mod tea {
 
 		/// Fired after a TEA node update runtime activity successfully.
 		UpdateRuntimeActivity(T::AccountId, RuntimeActivity<T::BlockNumber>),
+
+		/// Fired after RA validators changed.
+		RaValidatorsChanged(Vec<TeaPubKey>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -125,36 +211,96 @@ pub mod tea {
 		/// Node is already activated. Because node will be activated after 3/4 RA nodes agreed,
 		/// so the rest 1/4 node commit RA results later shall fail.
 		NodeAlreadyActive,
-		/// Node is not in RA nodes list, so it is invalid to commit a RA result.
-		NotInRaNodes,
+		/// Node is not in RA validators list, so it is invalid to commit a RA result.
+		NotRaValidator,
 		/// Signature length not matched, that means signature is invalid.
 		InvalidSignatureLength,
 		/// Signature verify failed.
 		InvalidSignature,
+		/// User is not owner of the Tea ID.
+		InvalidTeaIdOwner,
+		/// User is not the built-in miner
+		InvalidBuiltinMiner,
+		/// Ra commit has expired.
+		RaCommitExpired,
+		/// Report node is not exist
+		ReportNodeNotExist,
+		/// Only B type cml can commit report
+		OnlyBTypeCmlCanCommitReport,
+		/// Only C type cml can report evidence
+		OnlyCTypeCmlCanReport,
+		/// Phishing report has been committedd multiple times
+		RedundantReport,
+		/// Phishing node not exist
+		PhishingNodeNotExist,
+		/// Phishing node is not in active state can't report again
+		PhishingNodeNotActive,
+		/// Report offline node is not exist
+		OfflineNodeNotExist,
+		/// Offline node is not in active state can't report again
+		OfflineNodeNotActive,
+		/// Phishing node can not commit report himself
+		PhishingNodeCannotCommitReport,
+		/// Type C cml is not allowed to phishing
+		PhishingNodeCannotBeTypeC,
+		/// Offline node can't be type C cml
+		OfflineNodeCannotBeTypeC,
+		/// Can not commit offline evidence multi time in short time
+		CanNotCommitOfflineEvidenceMultiTimes,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_finalize(n: BlockNumberFor<T>) {
-			Self::update_runtime_status(n);
+			if Self::should_update_validators(&n) {
+				Self::update_runtime_status(n);
+				Self::update_validators();
+				group::update_validator_groups_count::<T>();
+			}
+
+			if Self::should_pay_report_reward(&n) {
+				Self::pay_report_reward();
+			}
 		}
 	}
 
 	#[pallet::genesis_config]
-	#[derive(Default)]
-	pub struct GenesisConfig {
+	pub struct GenesisConfig<T: Config> {
 		pub builtin_nodes: Vec<TeaPubKey>,
+		pub builtin_miners: Vec<T::AccountId>,
+	}
+
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			GenesisConfig {
+				builtin_nodes: Default::default(),
+				builtin_miners: Default::default(),
+			}
+		}
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			// we must ensure sufficient RA builtin nodes to start up.
+			if self.builtin_nodes.len() < T::MinGroupMemberCount::get() as usize {
+				panic!("insufficient builtin RA nodes");
+			}
+
 			for tea_id in self.builtin_nodes.iter() {
 				let mut node = Node::default();
 				node.tea_id = tea_id.clone();
 				Nodes::<T>::insert(tea_id, node);
 				BuiltinNodes::<T>::insert(tea_id, ());
 			}
+
+			self.builtin_miners
+				.iter()
+				.for_each(|account| BuiltinMiners::<T>::insert(account, ()));
+
+			ValidatorsCollection::<T>::set(self.builtin_nodes.clone());
+			group::update_validator_groups_count::<T>();
 		}
 	}
 
@@ -173,25 +319,24 @@ pub mod tea {
 
 			extrinsic_procedure(
 				&sender,
-				|_sender| {
+				|sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
+					Self::check_tea_id_belongs(sender, &tea_id)?;
 					Ok(())
 				},
 				|sender| {
 					let old_node = Self::pop_existing_node(&tea_id);
-					let seed = T::CommonUtils::generate_random(sender.clone(), &tea_id.to_vec());
 
 					let current_block_number = frame_system::Pallet::<T>::block_number();
 					let urls_count = urls.len();
-					let ra_nodes = Self::select_ra_nodes(&tea_id, seed);
-					let status = Self::get_initial_node_status(&tea_id);
+					let status = Self::initial_node_status(&tea_id);
 					let node = Node {
 						tea_id,
 						ephemeral_id,
 						profile_cid: profile_cid.clone(),
 						urls: urls.clone(),
-						ra_nodes,
+						ra_nodes: vec![],
 						status,
 						peer_id: peer_id.clone(),
 						create_time: old_node.create_time,
@@ -221,32 +366,37 @@ pub mod tea {
 
 			extrinsic_procedure(
 				&sender,
-				|_sender| {
+				|sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(
 						Nodes::<T>::contains_key(&target_tea_id),
 						Error::<T>::ApplyNodeNotExist
 					);
-					let target_node = Nodes::<T>::get(&target_tea_id).unwrap();
+					Self::check_tea_id_belongs(sender, &tea_id)?;
+
+					let target_node = Nodes::<T>::get(&target_tea_id);
+					let current_block = frame_system::Pallet::<T>::block_number();
 					ensure!(
-						target_node.status != NodeStatus::Active,
-						Error::<T>::NodeAlreadyActive
+						current_block
+							<= target_node
+								.update_time
+								.saturating_add(T::MaxAllowedRaCommitDuration::get()),
+						Error::<T>::RaCommitExpired
+					);
+					ensure!(
+						Self::is_ra_validator(&tea_id, &target_tea_id, &target_node.update_time),
+						Error::<T>::NotRaValidator
 					);
 
-					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
-					ensure!(index.is_some(), Error::<T>::NotInRaNodes);
-
-					let my_node = Nodes::<T>::get(&tea_id).unwrap();
+					let my_node = Nodes::<T>::get(&tea_id);
 					let content =
 						crate::utils::encode_ra_request_content(&tea_id, &target_tea_id, is_pass);
 					Self::verify_ed25519_signature(&my_node.ephemeral_id, &content, &signature)?;
 					Ok(())
 				},
 				|sender| {
-					let index = Self::get_index_in_ra_nodes(&tea_id, &target_tea_id);
-					let target_status =
-						Self::update_node_status(&target_tea_id, index.unwrap(), is_pass);
-					T::TaskService::complete_ra_task(tea_id, 1);
+					let target_status = Self::update_node_status(&tea_id, &target_tea_id, is_pass);
+					T::TaskService::complete_ra_task(tea_id, T::PerRaTaskPoint::get());
 					Self::deposit_event(Event::CommitRaResult(
 						sender.clone(),
 						RaResult {
@@ -290,6 +440,156 @@ pub mod tea {
 						sender.clone(),
 						runtime_activity,
 					));
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn commit_report_evidence(
+			sender: OriginFor<T>,
+			tea_id: TeaPubKey,
+			report_tea_id: TeaPubKey,
+			phishing_tea_id: TeaPubKey,
+			_signature: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+			let current_height = frame_system::Pallet::<T>::block_number();
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					ensure!(
+						Nodes::<T>::contains_key(&report_tea_id),
+						Error::<T>::ReportNodeNotExist
+					);
+					ensure!(
+						Nodes::<T>::contains_key(&phishing_tea_id),
+						Error::<T>::PhishingNodeNotExist
+					);
+					ensure!(
+						!tea_id.eq(&phishing_tea_id),
+						Error::<T>::PhishingNodeCannotCommitReport
+					);
+					Self::check_tea_id_belongs(who, &tea_id)?;
+
+					let current_cml = T::CmlOperation::cml_by_machine_id(&tea_id);
+					ensure!(
+						current_cml.is_some() && current_cml.unwrap().cml_type() == CmlType::B,
+						Error::<T>::OnlyBTypeCmlCanCommitReport
+					);
+
+					let report_cml = T::CmlOperation::cml_by_machine_id(&report_tea_id);
+					ensure!(
+						report_cml.is_some() && report_cml.unwrap().cml_type() == CmlType::C,
+						Error::<T>::OnlyCTypeCmlCanReport
+					);
+
+					let phishing_cml = T::CmlOperation::cml_by_machine_id(&phishing_tea_id);
+					ensure!(
+						phishing_cml.is_some() && phishing_cml.unwrap().cml_type() != CmlType::C,
+						Error::<T>::PhishingNodeCannotBeTypeC
+					);
+					if ReportEvidences::<T>::contains_key(&phishing_tea_id) {
+						ensure!(
+							ReportEvidences::<T>::get(&phishing_tea_id)
+								.height
+								.saturating_add(T::PhishingAllowedDuration::get())
+								>= current_height.clone(),
+							Error::<T>::RedundantReport
+						);
+					}
+					let phishing_miner =
+						T::CmlOperation::miner_item_by_machine_id(&phishing_tea_id);
+					ensure!(
+						phishing_miner.is_some()
+							&& phishing_miner.unwrap().status == MinerStatus::Active,
+						Error::<T>::PhishingNodeNotActive
+					);
+
+					// todo check signature is signed by ephemeral key of tea_id
+
+					Ok(())
+				},
+				|_who| {
+					ReportEvidences::<T>::insert(
+						&phishing_tea_id,
+						ReportEvidence {
+							height: current_height,
+							reporter: report_tea_id,
+						},
+					);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn commit_offline_evidence(
+			sender: OriginFor<T>,
+			tea_id: TeaPubKey,
+			offline_tea_id: TeaPubKey,
+			_signature: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+			let current_height = frame_system::Pallet::<T>::block_number();
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					ensure!(
+						Nodes::<T>::contains_key(&offline_tea_id),
+						Error::<T>::OfflineNodeNotExist
+					);
+					Self::check_tea_id_belongs(who, &tea_id)?;
+
+					let offline_cml = T::CmlOperation::cml_by_machine_id(&offline_tea_id);
+					ensure!(
+						offline_cml.is_some() && offline_cml.unwrap().cml_type() != CmlType::C,
+						Error::<T>::OfflineNodeCannotBeTypeC
+					);
+
+					let current_cml = T::CmlOperation::cml_by_machine_id(&tea_id);
+					ensure!(
+						current_cml.is_some() && current_cml.unwrap().cml_type() == CmlType::B,
+						Error::<T>::OnlyBTypeCmlCanCommitReport
+					);
+
+					let offline_miner = T::CmlOperation::miner_item_by_machine_id(&offline_tea_id);
+					ensure!(
+						offline_miner.is_some()
+							&& offline_miner.unwrap().status == MinerStatus::Active,
+						Error::<T>::OfflineNodeNotActive
+					);
+
+					ensure!(
+						!OfflineEvidences::<T>::get(&offline_tea_id)
+							.iter()
+							.any(|ev| {
+								ev.tea_id.eq(&tea_id)
+									&& ev.height.saturating_add(T::OfflineValidDuration::get())
+										> current_height
+							}),
+						Error::<T>::CanNotCommitOfflineEvidenceMultiTimes
+					);
+
+					// todo check signature is signed by ephemeral key of tea_id
+
+					Ok(())
+				},
+				|_who| {
+					OfflineEvidences::<T>::mutate(&offline_tea_id, |evidences| {
+						evidences.retain(|ev| {
+							ev.height.saturating_add(T::OfflineValidDuration::get())
+								> current_height
+						});
+
+						evidences.push(OfflineEvidence {
+							height: current_height,
+							tea_id: tea_id,
+						});
+					});
+					Self::try_suspend_node(&offline_tea_id);
 				},
 			)
 		}

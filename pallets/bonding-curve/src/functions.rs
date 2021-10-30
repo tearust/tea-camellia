@@ -782,12 +782,13 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		let mining_cmls = T::CmlOperation::current_mining_cmls();
 
 		let mut unhosted_list = Vec::new();
-		mining_cmls.iter().for_each(|cml_id| {
+		mining_cmls.iter().for_each(|(cml_id, _)| {
 			if T::CmlOperation::is_cml_over_max_suspend_height(*cml_id, &current_block) {
 				CmlHostingTApps::<T>::get(cml_id)
 					.iter()
 					.for_each(|tapp_id| {
 						Self::unhost_tapp(*tapp_id, *cml_id, false);
+						unhosted_list.push((*tapp_id, *cml_id));
 					});
 			}
 
@@ -1608,10 +1609,11 @@ mod tests {
 			UserCmlStore::<Test>::insert(miner, cml_id, ());
 			CmlStore::<Test>::insert(cml_id, cml);
 
+			let machine_id = [1u8; 32];
 			assert_ok!(Cml::start_mining(
 				Origin::signed(miner),
 				cml_id,
-				[1u8; 32],
+				machine_id,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -1650,7 +1652,7 @@ mod tests {
 			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id));
 			assert_ok!(BondingCurve::host(Origin::signed(miner), cml_id, tapp_id2));
 
-			assert_ok!(Cml::suspend_mining(Origin::signed(npc), cml_id));
+			Cml::suspend_mining(machine_id);
 
 			frame_system::Pallet::<Test>::set_block_number(4000 + HOST_ARRANGE_DURATION + 1);
 			let (performance, _) =

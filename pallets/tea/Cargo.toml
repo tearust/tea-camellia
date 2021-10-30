@@ -13,6 +13,7 @@ version = '0.0.1'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
+log = "0.4.8"
 # external dependencies
 codec = {default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0'}
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
@@ -40,6 +41,9 @@ rand = '0.7.2'
 pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+auction-interface = { path = '../auction/interface' }
+genesis-exchange-interface = { path = "../genesis-exchange/interface" }
+bonding-curve-interface = { path = "../bonding-curve/interface" }
 
 [features]
 default = ['std']

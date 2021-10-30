@@ -235,7 +235,6 @@ pub const CML_B_MINING_REWARD_RATE: Balance = 5000;
 pub const CML_C_MINING_REWARD_RATE: Balance = 0;
 
 parameter_types! {
-	pub const MinRaPassedThreshold: u32 = 3;
 	pub const StakingPrice: Balance = STAKING_PRICE;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;

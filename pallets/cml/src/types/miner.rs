@@ -11,7 +11,7 @@ pub type MachineId = [u8; 32];
 pub enum MinerStatus {
 	Active,
 	Offline,
-	// ...
+	ScheduleDown,
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -25,6 +25,7 @@ where
 	pub status: MinerStatus,
 	pub orbitdb_id: Option<Vec<u8>>,
 	pub suspend_height: Option<BlockNumber>,
+	pub schedule_down_height: Option<BlockNumber>,
 }
 
 impl<BlockNumber> Default for MinerItem<BlockNumber>
@@ -39,6 +40,7 @@ where
 			orbitdb_id: None,
 			status: MinerStatus::Offline,
 			suspend_height: None,
+			schedule_down_height: None,
 		}
 	}
 }

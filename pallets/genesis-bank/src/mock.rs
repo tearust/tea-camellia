@@ -231,7 +231,6 @@ impl system::Config for Test {
 pub const STAKING_PRICE: Balance = 1000;
 
 parameter_types! {
-	pub const MinRaPassedThreshold: u32 = 3;
 	pub const StakingPrice: Balance = STAKING_PRICE;
 	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 	pub const StakingPeriodLength: u32 = 100;

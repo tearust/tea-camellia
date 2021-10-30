@@ -1,9 +1,14 @@
 use crate as pallet_tea;
+use auction_interface::AuctionOperation;
+use bonding_curve_interface::BondingCurveOperation;
+use codec::{Decode, Encode};
+use frame_benchmarking::Zero;
 use frame_support::parameter_types;
-use frame_support::traits::Everything;
+use frame_support::traits::{Everything, Get};
 use frame_system as system;
+use genesis_exchange_interface::MiningOperation;
 use node_primitives::Balance;
-use pallet_cml::{MachineId, ServiceTaskPoint, Task};
+use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -11,9 +16,151 @@ use sp_runtime::{
 };
 
 pub const RUNTIME_ACTIVITY_THRESHOLD: u32 = 6 * 60 * 10;
+pub const UPDATE_VALIDATORS_DURATION: u32 = 10 * 60 * 10;
+pub const MAX_GROUP_MEMBER_COUNT: u32 = 10;
+pub const MIN_GROUP_MEMBER_COUNT: u32 = 5;
+pub const MAX_ALLOWED_RA_COMMIT_DURATION: u32 = 10;
+pub const PHISHING_ALLOWED_DURATION: u32 = 100;
+pub const OFFLINE_VALID_DURATION: u32 = 150;
+pub const OFFLINE_EFFECT_THRESHOLD: u32 = 2;
+pub const REPORT_RAWARD_DURATION: u32 = 200;
+pub const REPORT_RAWARD_AMOUNT: u128 = 1000;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+
+pub const SEED_FRESH_DURATION: u64 = 7 * 24 * 60 * 10;
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+pub struct SeedFreshDuration {
+	duration: u64,
+}
+
+impl Get<u64> for SeedFreshDuration {
+	fn get() -> u64 {
+		SEED_FRESH_DURATION
+	}
+}
+
+pub struct MiningOperationMock {}
+
+impl Default for MiningOperationMock {
+	fn default() -> Self {
+		MiningOperationMock {}
+	}
+}
+
+impl MiningOperation for MiningOperationMock {
+	type AccountId = u64;
+
+	fn check_buying_mining_machine(
+		_who: &Self::AccountId,
+		_cml_id: u64,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+
+	fn buy_mining_machine(_who: &Self::AccountId, _cml_id: u64) {}
+
+	fn check_redeem_coupons(
+		_who: &Self::AccountId,
+		_a_coupon: u32,
+		_b_coupon: u32,
+		_c_coupon: u32,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+
+	fn redeem_coupons(_who: &Self::AccountId, _a_coupon: u32, _b_coupon: u32, _c_coupon: u32) {}
+}
+
+pub struct AuctionOperationMock {}
+
+impl Default for AuctionOperationMock {
+	fn default() -> Self {
+		AuctionOperationMock {}
+	}
+}
+impl AuctionOperation for AuctionOperationMock {
+	type AccountId = u64;
+	type Balance = Balance;
+	type BlockNumber = u64;
+
+	fn is_cml_in_auction(_cml_id: u64) -> bool {
+		false
+	}
+
+	fn create_new_bid(_sender: &Self::AccountId, _auction_id: &u64, _price: Self::Balance) {}
+
+	fn update_current_winner(_auction_id: &u64, _bid_user: &Self::AccountId) {}
+
+	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber) {
+		(Zero::zero(), Zero::zero())
+	}
+}
+
+pub struct BondingCurveOperationMock {}
+
+impl Default for BondingCurveOperationMock {
+	fn default() -> Self {
+		BondingCurveOperationMock {}
+	}
+}
+
+impl BondingCurveOperation for BondingCurveOperationMock {
+	type AccountId = u64;
+	type Balance = Balance;
+
+	fn list_tapp_ids() -> Vec<u64> {
+		vec![]
+	}
+
+	fn estimate_hosting_income_statements(
+		_tapp_id: u64,
+	) -> Vec<(Self::AccountId, u64, Self::Balance)> {
+		vec![]
+	}
+
+	fn current_price(_tapp_id: u64) -> (Self::Balance, Self::Balance) {
+		(0, 0)
+	}
+
+	fn tapp_user_token_asset(_who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
+		vec![]
+	}
+
+	fn is_cml_hosting(_cml_id: u64) -> bool {
+		false
+	}
+
+	fn transfer_reserved_tokens(_from: &Self::AccountId, _to: &Self::AccountId, _cml_id: u64) {}
+
+	fn npc_account() -> Self::AccountId {
+		0
+	}
+
+	fn cml_host_tapps(_cml_id: u64) -> Vec<u64> {
+		vec![]
+	}
+
+	fn try_active_tapp(_tapp_id: u64) -> bool {
+		true
+	}
+
+	fn try_deactive_tapp(_tapp_id: u64) -> bool {
+		true
+	}
+
+	fn pay_hosting_penalty(_tapp_id: u64, _cml_id: u64) {}
+
+	fn can_append_pledge(_cml_id: u64) -> bool {
+		true
+	}
+
+	fn append_pledge(_cml_id: u64) -> bool {
+		true
+	}
+}
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -24,6 +171,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Tea: pallet_tea::{Pallet, Call, Storage, Event<T>},
+		Cml: pallet_cml::{Pallet, Call, Storage, Event<T>},
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
@@ -65,7 +213,16 @@ impl system::Config for Test {
 
 parameter_types! {
 	pub const RuntimeActivityThreshold: u32 = RUNTIME_ACTIVITY_THRESHOLD;
-	pub const MinRaPassedThreshold: u32 = 3;
+	pub const PerRaTaskPoint: u32 = 100;
+	pub const UpdateValidatorsDuration: u32 = UPDATE_VALIDATORS_DURATION;
+	pub const MaxGroupMemberCount: u32 = MAX_GROUP_MEMBER_COUNT;
+	pub const MinGroupMemberCount: u32 = MIN_GROUP_MEMBER_COUNT;
+	pub const MaxAllowedRaCommitDuration: u32 = MAX_ALLOWED_RA_COMMIT_DURATION;
+	pub const PhishingAllowedDuration: u32 = PHISHING_ALLOWED_DURATION;
+	pub const OfflineValidDuration: u32 = OFFLINE_VALID_DURATION;
+	pub const OfflineEffectThreshold: u32 = OFFLINE_EFFECT_THRESHOLD;
+	pub const ReportRawardDuration: u32 = REPORT_RAWARD_DURATION;
+	pub const ReportRawardAmount: u128 = REPORT_RAWARD_AMOUNT;
 }
 
 impl pallet_utils::Config for Test {
@@ -96,11 +253,60 @@ impl pallet_balances::Config for Test {
 
 impl pallet_tea::Config for Test {
 	type Event = Event;
+	type Currency = Balances;
 	type RuntimeActivityThreshold = RuntimeActivityThreshold;
-	type MinRaPassedThreshold = MinRaPassedThreshold;
+	type UpdateValidatorsDuration = UpdateValidatorsDuration;
+	type MaxGroupMemberCount = MaxGroupMemberCount;
+	type MinGroupMemberCount = MinGroupMemberCount;
+	type MaxAllowedRaCommitDuration = MaxAllowedRaCommitDuration;
+	type PhishingAllowedDuration = PhishingAllowedDuration;
+	type OfflineValidDuration = OfflineValidDuration;
+	type OfflineEffectThreshold = OfflineEffectThreshold;
+	type ReportRawardDuration = ReportRawardDuration;
+	type ReportRawardAmount = ReportRawardAmount;
 	type WeightInfo = ();
 	type CommonUtils = Utils;
-	type TaskService = MockTaskService;
+	type CurrencyOperations = Utils;
+	type TaskService = Cml;
+	type CmlOperation = Cml;
+	type PerRaTaskPoint = PerRaTaskPoint;
+}
+
+pub const STAKING_PRICE: Balance = 1000;
+
+parameter_types! {
+	pub const StakingPrice: Balance = STAKING_PRICE;
+	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
+	pub const StakingPeriodLength: u32 = 100;
+	pub const StakingSlotsMaxLength: u32 = 1024;
+	pub const StopMiningPunishment: Balance = 100;
+	pub const MaxAllowedSuspendHeight: u32 = 1000;
+	pub const CmlAMiningRewardRate: Balance = 0;
+	pub const CmlBMiningRewardRate: Balance = 0;
+	pub const CmlCMiningRewardRate: Balance = 0;
+}
+
+impl pallet_cml::Config for Test {
+	type Event = Event;
+	type Currency = Balances;
+	type StakingPrice = StakingPrice;
+	type CouponTimoutHeight = SeedsTimeoutHeight;
+	type StakingPeriodLength = StakingPeriodLength;
+	type SeedFreshDuration = SeedFreshDuration;
+	type TeaOperation = Tea;
+	type CommonUtils = Utils;
+	type CurrencyOperations = Utils;
+	type StakingEconomics = Cml;
+	type AuctionOperation = AuctionOperationMock;
+	type StakingSlotsMaxLength = StakingSlotsMaxLength;
+	type StopMiningPunishment = StopMiningPunishment;
+	type MiningOperation = MiningOperationMock;
+	type BondingCurveOperation = BondingCurveOperationMock;
+	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
+	type CmlAMiningRewardRate = CmlAMiningRewardRate;
+	type CmlBMiningRewardRate = CmlBMiningRewardRate;
+	type CmlCMiningRewardRate = CmlCMiningRewardRate;
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.
@@ -109,19 +315,4 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.build_storage::<Test>()
 		.unwrap()
 		.into()
-}
-
-pub struct MockTaskService {}
-
-impl Default for MockTaskService {
-	fn default() -> Self {
-		MockTaskService {}
-	}
-}
-
-impl Task for MockTaskService {
-	/// Called after a miner has complete a RA task.
-	fn complete_ra_task(_machine_id: MachineId, _task_point: ServiceTaskPoint) {
-		// do nothing here
-	}
 }

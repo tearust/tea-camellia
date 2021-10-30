@@ -90,6 +90,22 @@ impl<T: cml::Config> cml::Pallet<T> {
 		dead_cmls
 	}
 
+	pub(crate) fn get_miner_item(
+		cml_id: CmlId,
+	) -> Result<MinerItem<T::BlockNumber>, DispatchError> {
+		let cml = CmlStore::<T>::get(cml_id);
+		let machine_id = cml.machine_id();
+		ensure!(machine_id.is_some(), Error::<T>::NotFoundMiner);
+
+		let machine_id = machine_id.unwrap();
+		ensure!(
+			MinerItemStore::<T>::contains_key(machine_id),
+			Error::<T>::NotFoundMiner
+		);
+
+		Ok(MinerItemStore::<T>::get(machine_id))
+	}
+
 	pub(crate) fn stop_mining_inner(who: &T::AccountId, cml_id: CmlId, machine_id: &MachineId) {
 		CmlStore::<T>::mutate(cml_id, |cml| {
 			let staking_slots_length = cml.staking_slots().len();

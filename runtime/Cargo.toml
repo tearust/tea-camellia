@@ -57,8 +57,6 @@ pallet-transaction-payment = {default-features = false, git = 'https://github.co
 pallet-transaction-payment-rpc-runtime-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-session = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-session-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-staking = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-staking-reward-curve = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-authorship = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-offences = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-offences-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
@@ -73,21 +71,19 @@ pallet-democracy = {default-features = false, git = 'https://github.com/parityte
 pallet-utility = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-multisig = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-identity = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-treasury = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 pallet-mmr = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-contracts = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-contracts-primitives = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-contracts-rpc-runtime-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 
 # local dependencies
 pallet-tea = {default-features = false, path = '../pallets/tea'}
+pallet-cml = {default-features = false, path = '../pallets/cml'}
 pallet-auction = {default-features = false, path = '../pallets/auction'}
 pallet-utils = {default-features = false, path = '../pallets/utils'}
 pallet-genesis-bank = {default-features = false, path = '../pallets/genesis-bank'}
 pallet-genesis-exchange = {default-features = false, path = '../pallets/genesis-exchange'}
 pallet-bonding-curve = {default-features = false, path = '../pallets/bonding-curve'}
+pallet-staking = {default-features = false, path = '../pallets/staking'}
 
-pallet-cml = {default-features = false, path = '../pallets/cml'}
+tea-runtime-api = {default-features = false, path = '../pallets/tea/runtime-api'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
 auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
 staking-economics = {default-features = false, path = '../pallets/cml/staking-economics'}
@@ -124,9 +120,7 @@ runtime-benchmarks = [
 	'pallet-utility/runtime-benchmarks',
 	'pallet-multisig/runtime-benchmarks',
 	'pallet-identity/runtime-benchmarks',
-	'pallet-treasury/runtime-benchmarks',
 	'pallet-mmr/runtime-benchmarks',
-	'pallet-contracts/runtime-benchmarks',
 
 	'pallet-tea/runtime-benchmarks',
 	'pallet-cml/runtime-benchmarks',
@@ -181,11 +175,7 @@ std = [
   'pallet-utility/std',
 	'pallet-multisig/std',
 	'pallet-identity/std',
-	'pallet-treasury/std',
 	'pallet-mmr/std',
-	'pallet-contracts/std',
-	'pallet-contracts-primitives/std',
-	'pallet-contracts-rpc-runtime-api/std',
 
 	'pallet-tea/std',
 	'pallet-cml/std',
@@ -200,6 +190,7 @@ std = [
 	'genesis-bank-runtime-api/std',
 	'genesis-exchange-runtime-api/std',
 	'bonding-curve-runtime-api/std',
+	'tea-runtime-api/std',
 
 	'staking-economics/std',
 	'bonding-curve-impl/std',
@@ -213,7 +204,6 @@ try-runtime = [
 	"pallet-babe/try-runtime",
 	"pallet-balances/try-runtime",
 	"pallet-collective/try-runtime",
-	"pallet-contracts/try-runtime",
 	"pallet-democracy/try-runtime",
 	"pallet-elections-phragmen/try-runtime",
 	"pallet-grandpa/try-runtime",
@@ -231,7 +221,6 @@ try-runtime = [
 	"pallet-election-provider-multi-phase/try-runtime",
 	"pallet-timestamp/try-runtime",
 	"pallet-transaction-payment/try-runtime",
-	"pallet-treasury/try-runtime",
 	"pallet-utility/try-runtime",
 
 	'pallet-tea/try-runtime',

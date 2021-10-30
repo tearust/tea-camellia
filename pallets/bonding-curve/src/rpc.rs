@@ -248,11 +248,11 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 
 		mining_cmls
 			.iter()
-			.filter(|cml_id| match T::CmlOperation::cml_by_id(cml_id) {
+			.filter(|(cml_id, _)| match T::CmlOperation::cml_by_id(cml_id) {
 				Ok(cml) => cml.owner().unwrap_or(&Default::default()).eq(who),
 				Err(_) => false,
 			})
-			.map(|cml_id| {
+			.map(|(cml_id, _)| {
 				let (current_performance, _) =
 					T::CmlOperation::miner_performance(*cml_id, &current_block);
 				let hosted_performance = Self::cml_total_used_performance(*cml_id);

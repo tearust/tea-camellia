@@ -8,3 +8,4 @@ cargo test -p pallet-genesis-exchange --lib
 cargo test -p pallet-bonding-curve --lib
 cargo test -p pallet-utils --lib
 cargo test -p bonding-curve-impl --lib
+cargo test -p pallet-staking --lib

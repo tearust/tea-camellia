@@ -2241,16 +2241,16 @@ fn host_should_fail_if_cml_is_suspended() {
 		UserCmlStore::<Test>::insert(miner, cml_id, ());
 		CmlStore::<Test>::insert(cml_id, cml);
 
+		let machine_id = [1u8; 32];
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner),
 			cml_id,
-			[1u8; 32],
+			machine_id,
 			b"miner_ip".to_vec(),
 			None,
 		));
 
-		let npc = NPCAccount::<Test>::get();
-		assert_ok!(Cml::suspend_mining(Origin::signed(npc), cml_id,));
+		Cml::suspend_mining(machine_id);
 
 		assert_ok!(create_default_tapp(tapp_owner));
 

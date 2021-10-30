@@ -211,8 +211,6 @@ pub fn new_full_base(
 	),
 ) -> Result<NewFullBase, ServiceError> {
 	config.impl_name = "tea-layer1".into();
-	// todo enable offchain worker later
-	config.offchain_worker.enabled = false;
 
 	let sc_service::PartialComponents {
 		client,

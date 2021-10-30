@@ -29,4 +29,6 @@ members = [
 	'pallets/bonding-curve/curve-impl',
 
 	'pallets/tea/interface',
+	'pallets/tea/rpc',
+	'pallets/tea/runtime-api',
 ]
