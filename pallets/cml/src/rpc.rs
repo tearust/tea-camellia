@@ -32,7 +32,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 	/// - CML Id
 	/// - Orbit Id
 	/// - Cml type, utf-8 encoded string
-	pub fn current_mining_cml_list() -> Vec<(u64, Vec<u8>, Vec<u8>)> {
+	/// - Machine Id
+	pub fn current_mining_cml_list() -> Vec<(u64, Vec<u8>, Vec<u8>, Vec<u8>)> {
 		MinerItemStore::<T>::iter()
 			.map(|(_, miner_item)| {
 				let cml = CmlStore::<T>::get(miner_item.cml_id);
@@ -41,10 +42,16 @@ impl<T: cml::Config> cml::Pallet<T> {
 					CmlType::B => "B",
 					CmlType::C => "C",
 				};
+				let machine_id = match cml.machine_id() {
+					Some(machine_id) => machine_id.to_vec(),
+					None => vec![],
+				};
+
 				(
 					miner_item.cml_id,
 					miner_item.orbitdb_id.unwrap_or(vec![]),
 					cml_type.as_bytes().to_vec(),
+					machine_id,
 				)
 			})
 			.collect()
