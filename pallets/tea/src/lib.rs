@@ -239,6 +239,14 @@ pub mod tea {
 		OfflineNodeNotExist,
 		/// Offline node is not in active state can't report again
 		OfflineNodeNotActive,
+		/// Phishing node can not commit report himself
+		PhishingNodeCannotCommitReport,
+		/// Type C cml is not allowed to phishing
+		PhishingNodeCannotBeTypeC,
+		/// Offline node can't be type C cml
+		OfflineNodeCannotBeTypeC,
+		/// Can not commit offline evidence multi time in short time
+		CanNotCommitOfflineEvidenceMultiTimes,
 	}
 
 	#[pallet::hooks]
@@ -459,6 +467,10 @@ pub mod tea {
 						Nodes::<T>::contains_key(&phishing_tea_id),
 						Error::<T>::PhishingNodeNotExist
 					);
+					ensure!(
+						!tea_id.eq(&phishing_tea_id),
+						Error::<T>::PhishingNodeCannotCommitReport
+					);
 					Self::check_tea_id_belongs(who, &tea_id)?;
 
 					let current_cml = T::CmlOperation::cml_by_machine_id(&tea_id);
@@ -473,12 +485,17 @@ pub mod tea {
 						Error::<T>::OnlyCTypeCmlCanReport
 					);
 
+					let phishing_cml = T::CmlOperation::cml_by_machine_id(&phishing_tea_id);
+					ensure!(
+						phishing_cml.is_some() && phishing_cml.unwrap().cml_type() != CmlType::C,
+						Error::<T>::PhishingNodeCannotBeTypeC
+					);
 					if ReportEvidences::<T>::contains_key(&phishing_tea_id) {
 						ensure!(
 							ReportEvidences::<T>::get(&phishing_tea_id)
 								.height
-								.saturating_add(current_height.clone())
-								>= T::PhishingAllowedDuration::get(),
+								.saturating_add(T::PhishingAllowedDuration::get())
+								>= current_height.clone(),
 							Error::<T>::RedundantReport
 						);
 					}
@@ -514,6 +531,7 @@ pub mod tea {
 			_signature: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
+			let current_height = frame_system::Pallet::<T>::block_number();
 
 			extrinsic_procedure(
 				&who,
@@ -525,11 +543,34 @@ pub mod tea {
 					);
 					Self::check_tea_id_belongs(who, &tea_id)?;
 
+					let offline_cml = T::CmlOperation::cml_by_machine_id(&offline_tea_id);
+					ensure!(
+						offline_cml.is_some() && offline_cml.unwrap().cml_type() != CmlType::C,
+						Error::<T>::OfflineNodeCannotBeTypeC
+					);
+
+					let current_cml = T::CmlOperation::cml_by_machine_id(&tea_id);
+					ensure!(
+						current_cml.is_some() && current_cml.unwrap().cml_type() == CmlType::B,
+						Error::<T>::OnlyBTypeCmlCanCommitReport
+					);
+
 					let offline_miner = T::CmlOperation::miner_item_by_machine_id(&offline_tea_id);
 					ensure!(
 						offline_miner.is_some()
 							&& offline_miner.unwrap().status == MinerStatus::Active,
-						Error::<T>::PhishingNodeNotActive
+						Error::<T>::OfflineNodeNotActive
+					);
+
+					ensure!(
+						!OfflineEvidences::<T>::get(&offline_tea_id)
+							.iter()
+							.any(|ev| {
+								ev.tea_id.eq(&tea_id)
+									&& ev.height.saturating_add(T::OfflineValidDuration::get())
+										> current_height
+							}),
+						Error::<T>::CanNotCommitOfflineEvidenceMultiTimes
 					);
 
 					// todo check signature is signed by ephemeral key of tea_id
@@ -537,8 +578,6 @@ pub mod tea {
 					Ok(())
 				},
 				|_who| {
-					let current_height = frame_system::Pallet::<T>::block_number();
-
 					OfflineEvidences::<T>::mutate(&offline_tea_id, |evidences| {
 						evidences.retain(|ev| {
 							ev.height.saturating_add(T::OfflineValidDuration::get())
