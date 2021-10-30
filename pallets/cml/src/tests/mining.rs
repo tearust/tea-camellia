@@ -824,6 +824,7 @@ fn dummy_ra_task_works() {
 				orbitdb_id: None,
 				status: MinerStatus::Active,
 				suspend_height: None,
+				schedule_down_height: None,
 			},
 		);
 
@@ -1016,6 +1017,522 @@ fn resume_mining_should_fail_free_balance_is_not_enough() {
 		assert_noop!(
 			Cml::resume_mining(Origin::signed(miner), cml_id),
 			Error::<Test>::InsufficientFreeBalanceToAppendPledge
+		);
+	})
+}
+
+#[test]
+fn schedule_down_works() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 1000));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Active);
+		assert_eq!(miner_item.schedule_down_height, None);
+
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		assert_ok!(Cml::schedule_down(Origin::signed(miner), cml_id));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::ScheduleDown);
+		assert_eq!(miner_item.schedule_down_height, Some(100));
+	})
+}
+
+#[test]
+fn schedule_down_should_fail_if_cml_not_exist() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+
+		assert_noop!(
+			Cml::schedule_down(Origin::signed(1), cml_id),
+			Error::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn schedule_down_should_fail_if_user_is_not_cml_owner() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let user = 2;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::schedule_down(Origin::signed(user), cml_id),
+			Error::<Test>::CMLOwnerInvalid
+		);
+	})
+}
+
+#[test]
+fn schedule_down_should_fail_if_cml_is_not_mining() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::schedule_down(Origin::signed(miner), cml_id),
+			Error::<Test>::NotFoundMiner
+		);
+	})
+}
+
+#[test]
+fn schedule_down_should_fail_if_cml_is_not_active() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		Cml::suspend_mining(machine_id);
+		assert_noop!(
+			Cml::schedule_down(Origin::signed(miner), cml_id),
+			Error::<Test>::CanNotScheduleDownWhenInactive
+		);
+	})
+}
+
+#[test]
+fn schedule_up_works() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 1000));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Active);
+		assert_eq!(miner_item.schedule_down_height, None);
+
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		assert_ok!(Cml::schedule_down(Origin::signed(miner), cml_id));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::ScheduleDown);
+		assert_eq!(miner_item.schedule_down_height, Some(100));
+
+		assert_ok!(Cml::schedule_up(Origin::signed(miner), cml_id));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Active);
+		assert_eq!(miner_item.schedule_down_height, None);
+	})
+}
+
+#[test]
+fn schedule_up_should_fail_if_cml_not_exist() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+
+		assert_noop!(
+			Cml::schedule_up(Origin::signed(1), cml_id),
+			Error::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn schedule_up_should_fail_if_user_is_not_cml_owner() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let user = 2;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::schedule_up(Origin::signed(user), cml_id),
+			Error::<Test>::CMLOwnerInvalid
+		);
+	})
+}
+
+#[test]
+fn schedule_up_should_fail_if_cml_is_not_mining() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::schedule_up(Origin::signed(miner), cml_id),
+			Error::<Test>::NotFoundMiner
+		);
+	})
+}
+
+#[test]
+fn schedule_up_should_fail_if_cml_is_offline() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		Cml::suspend_mining(machine_id);
+		assert_noop!(
+			Cml::schedule_up(Origin::signed(miner), cml_id),
+			Error::<Test>::NoNeedToScheduleUp
+		);
+	})
+}
+
+#[test]
+fn schedule_up_should_fail_if_cml_is_active() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Active);
+
+		assert_noop!(
+			Cml::schedule_up(Origin::signed(miner), cml_id),
+			Error::<Test>::NoNeedToScheduleUp
+		);
+	})
+}
+
+#[test]
+fn migrate_works_if_cml_is_offline() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		Cml::suspend_mining(machine_id);
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Offline);
+
+		let new_machine_id = [2u8; 32];
+		let new_miner_ip = b"miner_ip2".to_vec();
+		assert_ok!(Cml::migrate(
+			Origin::signed(miner),
+			cml_id,
+			new_machine_id,
+			new_miner_ip.clone()
+		));
+
+		assert!(!MinerItemStore::<Test>::contains_key(machine_id));
+		let miner_item = MinerItemStore::<Test>::get(new_machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Offline);
+		assert_eq!(miner_item.id, new_machine_id);
+		assert_eq!(miner_item.ip, new_miner_ip);
+	})
+}
+
+#[test]
+fn migrate_works_if_cml_is_schedule_down() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		assert_ok!(Cml::schedule_down(Origin::signed(miner), cml_id));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::ScheduleDown);
+
+		let new_machine_id = [2u8; 32];
+		let new_miner_ip = b"miner_ip2".to_vec();
+		assert_ok!(Cml::migrate(
+			Origin::signed(miner),
+			cml_id,
+			new_machine_id,
+			new_miner_ip.clone()
+		));
+
+		assert!(!MinerItemStore::<Test>::contains_key(machine_id));
+		let miner_item = MinerItemStore::<Test>::get(new_machine_id);
+		assert_eq!(miner_item.status, MinerStatus::ScheduleDown);
+		assert_eq!(miner_item.id, new_machine_id);
+		assert_eq!(miner_item.ip, new_miner_ip);
+	})
+}
+
+#[test]
+fn migrate_should_fail_if_cml_not_exist() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 4;
+
+		assert_noop!(
+			Cml::migrate(Origin::signed(1), cml_id, [1u8; 32], vec![]),
+			Error::<Test>::NotFoundCML
+		);
+	})
+}
+
+#[test]
+fn migrate_should_fail_if_user_is_not_cml_owner() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let user = 2;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::migrate(Origin::signed(user), cml_id, [1u8; 32], vec![]),
+			Error::<Test>::CMLOwnerInvalid
+		);
+	})
+}
+
+#[test]
+fn migrate_should_fail_if_cml_is_not_mining() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_noop!(
+			Cml::migrate(Origin::signed(miner), cml_id, [1u8; 32], vec![]),
+			Error::<Test>::NotFoundMiner
+		);
+	})
+}
+
+#[test]
+fn migrate_should_fail_if_cml_is_active() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+		let miner_item = MinerItemStore::<Test>::get(machine_id);
+		assert_eq!(miner_item.status, MinerStatus::Active);
+
+		assert_noop!(
+			Cml::migrate(Origin::signed(miner), cml_id, [1u8; 32], vec![]),
+			Error::<Test>::CannotMigrateWhenActive
+		);
+	})
+}
+
+#[test]
+fn migrate_should_fail_if_machine_id_already_exist() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let miner2 = 2;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+		<Test as Config>::Currency::make_free_balance_be(&miner2, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let cml_id2: CmlId = 5;
+		UserCmlStore::<Test>::insert(miner2, cml_id2, ());
+		let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100));
+		CmlStore::<Test>::insert(cml_id2, cml2);
+
+		let machine_id: MachineId = [1u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		let machine_id2: MachineId = [2u8; 32];
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner2),
+			cml_id2,
+			machine_id2,
+			b"miner_ip2".to_vec(),
+			None,
+		));
+
+		assert_noop!(
+			Cml::migrate(Origin::signed(miner), cml_id, machine_id2, vec![]),
+			Error::<Test>::MinerAlreadyExist
+		);
+	})
+}
+
+#[test]
+fn migrate_should_fail_if_ip_address_already_exist() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let miner2 = 2;
+		let amount = 100 * 1000;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+		<Test as Config>::Currency::make_free_balance_be(&miner2, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let cml_id2: CmlId = 5;
+		UserCmlStore::<Test>::insert(miner2, cml_id2, ());
+		let cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 100));
+		CmlStore::<Test>::insert(cml_id2, cml2);
+
+		let machine_id: MachineId = [1u8; 32];
+		let ip_address = b"miner_ip".to_vec();
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			ip_address,
+			None,
+		));
+
+		let machine_id2: MachineId = [2u8; 32];
+		let ip_address2 = b"miner_ip2".to_vec();
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner2),
+			cml_id2,
+			machine_id2,
+			ip_address2.clone(),
+			None,
+		));
+
+		assert_noop!(
+			Cml::migrate(Origin::signed(miner), cml_id, machine_id, ip_address2),
+			Error::<Test>::MinerIpAlreadyExist
 		);
 	})
 }

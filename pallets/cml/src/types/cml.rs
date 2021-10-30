@@ -627,6 +627,14 @@ where
 		self.machine_id = None;
 		self.staking_slot.clear();
 	}
+
+	fn migrate_to(&mut self, machine_id: MachineId) {
+		if !self.is_mining() {
+			return;
+		}
+
+		self.machine_id = Some(machine_id);
+	}
 }
 
 impl<AccountId, BlockNumber, Balance, FreshDuration> UtilsProperties<BlockNumber>

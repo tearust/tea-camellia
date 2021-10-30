@@ -157,6 +157,8 @@ pub trait MiningProperties<AccountId, BlockNumber, Balance> {
 	);
 
 	fn stop_mining(&mut self);
+
+	fn migrate_to(&mut self, machine_id: MachineId);
 }
 
 pub trait UtilsProperties<BlockNumber>
