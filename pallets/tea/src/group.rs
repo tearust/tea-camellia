@@ -23,7 +23,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 			.filter(|(_, tea_id)| Nodes::<T>::get(tea_id).is_active())
 			.map(|(_, tea_id)| tea_id.clone())
 			.collect();
-		BootNodes::<T>::iter().for_each(|(tea_id, _)| {
+		BuiltinNodes::<T>::iter().for_each(|(tea_id, _)| {
 			active_machines.insert(tea_id);
 		});
 		let machines: Vec<TeaPubKey> = active_machines.into_iter().collect();

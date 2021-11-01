@@ -122,13 +122,6 @@ pub mod tea {
 	pub(super) type Nodes<T: Config> =
 		StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>, ValueQuery>;
 
-	/// Bootstrap nodes set, key is TEA ID with type of `TeaPubKey`, value is an empty place holder.
-	///
-	/// Bootstrap node must have public IP address, and url list should record how to access it.
-	#[pallet::storage]
-	#[pallet::getter(fn boot_nodes)]
-	pub(super) type BootNodes<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
-
 	/// Ephemeral ID map, key is Ephemeral ID with type of `TeaPubKey`, value is TEA ID with
 	/// type of `TeaPubKey`.
 	#[pallet::storage]
@@ -329,7 +322,6 @@ pub mod tea {
 					let old_node = Self::pop_existing_node(&tea_id);
 
 					let current_block_number = frame_system::Pallet::<T>::block_number();
-					let urls_count = urls.len();
 					let status = Self::initial_node_status(&tea_id);
 					let node = Node {
 						tea_id,
@@ -345,9 +337,6 @@ pub mod tea {
 					Nodes::<T>::insert(&tea_id, &node);
 					EphemeralIds::<T>::insert(ephemeral_id, &tea_id);
 					PeerIds::<T>::insert(&peer_id, &tea_id);
-					if urls_count > 0 {
-						BootNodes::<T>::insert(&tea_id, ());
-					}
 
 					Self::deposit_event(Event::UpdateNodeProfile(sender.clone(), node));
 				},

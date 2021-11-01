@@ -42,7 +42,6 @@ impl<T: tea::Config> tea::Pallet<T> {
 
 	pub(crate) fn pop_existing_node(tea_id: &TeaPubKey) -> Node<T::BlockNumber> {
 		let old_node = Nodes::<T>::get(tea_id);
-		BootNodes::<T>::remove(&old_node.tea_id);
 		EphemeralIds::<T>::remove(&old_node.ephemeral_id);
 		PeerIds::<T>::remove(&old_node.peer_id);
 		old_node
