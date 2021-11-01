@@ -10,6 +10,6 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub fn list_boot_nodes() -> Vec<[u8; 32]> {
-		BootNodes::<T>::iter().map(|(id, _)| id).collect()
+		BuiltinNodes::<T>::iter().map(|(id, _)| id).collect()
 	}
 }
