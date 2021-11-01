@@ -8,4 +8,8 @@ impl<T: tea::Config> tea::Pallet<T> {
 	) -> bool {
 		Self::is_validator(tea_id, target_tea_id, block_number)
 	}
+
+	pub fn list_boot_nodes() -> Vec<[u8; 32]> {
+		BootNodes::<T>::iter().map(|(id, _)| id).collect()
+	}
 }

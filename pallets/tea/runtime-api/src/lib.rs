@@ -16,5 +16,7 @@ sp_api::decl_runtime_apis! {
 			target_tea_id: &[u8; 32],
 			block_number: BlockNumber,
 		) -> bool;
+
+		fn boot_nodes() -> Vec<[u8; 32]>;
 	}
 }

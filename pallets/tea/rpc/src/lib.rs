@@ -20,6 +20,9 @@ pub trait TeaApi<BlockHash, AccountId> {
 		block_number: BlockNumber,
 		at: Option<BlockHash>,
 	) -> Result<bool>;
+
+	#[rpc(name = "tea_bootNodes")]
+	fn boot_nodes(&self, at: Option<BlockHash>) -> Result<Vec<[u8; 32]>>;
 }
 
 pub struct TeaApiImpl<C, M> {
@@ -70,6 +73,16 @@ where
 		let result = api
 			.is_ra_validator(&at, &tea_id, &target_tea_id, block_number)
 			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
+	}
+
+	fn boot_nodes(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<[u8; 32]>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api.boot_nodes(&at).map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}
 }

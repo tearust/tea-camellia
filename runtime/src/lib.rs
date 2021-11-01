@@ -1353,6 +1353,10 @@ impl_runtime_apis! {
 		) -> bool {
 			Tea::is_ra_validator(tea_id, target_tea_id, &block_number)
 		}
+
+		fn boot_nodes() -> Vec<[u8; 32]> {
+			Tea::list_boot_nodes()
+		}
 	}
 
 	impl genesis_bank_runtime_api::GenesisBankApi<Block, AccountId> for Runtime {
