@@ -77,6 +77,9 @@ pub mod tea {
 		#[pallet::constant]
 		type PhishingAllowedDuration: Get<Self::BlockNumber>;
 
+		#[pallet::constant]
+		type TipsAllowedDuration: Get<Self::BlockNumber>;
+
 		/// How long a offline evidence can be used to suspend a cml
 		#[pallet::constant]
 		type OfflineValidDuration: Get<Self::BlockNumber>;
@@ -90,6 +93,9 @@ pub mod tea {
 
 		#[pallet::constant]
 		type ReportRawardAmount: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type TipsRawardAmount: Get<BalanceOf<Self>>;
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
@@ -166,6 +172,11 @@ pub mod tea {
 	#[pallet::getter(fn report_evidences)]
 	pub(super) type ReportEvidences<T: Config> =
 		StorageMap<_, Twox64Concat, TeaPubKey, ReportEvidence<T::BlockNumber>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn tips_evidences)]
+	pub(super) type TipsEvidences<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, TipsEvidence<T::BlockNumber>, ValueQuery>;
 
 	#[pallet::storage]
 	pub(super) type OfflineEvidences<T: Config> =
@@ -246,6 +257,8 @@ pub mod tea {
 		OfflineNodeCannotBeTypeC,
 		/// Can not commit offline evidence multi time in short time
 		CanNotCommitOfflineEvidenceMultiTimes,
+		/// Tips has been committedd multiple times
+		RedundantTips,
 	}
 
 	#[pallet::hooks]
@@ -440,12 +453,12 @@ pub mod tea {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn commit_report_evidence(
+		pub fn commit_tips_evidence(
 			sender: OriginFor<T>,
 			tea_id: TeaPubKey,
 			report_tea_id: TeaPubKey,
 			phishing_tea_id: TeaPubKey,
-			_signature: Vec<u8>,
+			signature: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 			let current_height = frame_system::Pallet::<T>::block_number();
@@ -453,38 +466,60 @@ pub mod tea {
 			extrinsic_procedure(
 				&who,
 				|who| {
-					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
-					ensure!(
-						Nodes::<T>::contains_key(&report_tea_id),
-						Error::<T>::ReportNodeNotExist
-					);
-					ensure!(
-						Nodes::<T>::contains_key(&phishing_tea_id),
-						Error::<T>::PhishingNodeNotExist
-					);
-					ensure!(
-						!tea_id.eq(&phishing_tea_id),
-						Error::<T>::PhishingNodeCannotCommitReport
-					);
-					Self::check_tea_id_belongs(who, &tea_id)?;
+					Self::check_type_c_evidence(
+						who,
+						&tea_id,
+						&report_tea_id,
+						&phishing_tea_id,
+						&signature,
+					)?;
 
-					let current_cml = T::CmlOperation::cml_by_machine_id(&tea_id);
-					ensure!(
-						current_cml.is_some() && current_cml.unwrap().cml_type() == CmlType::B,
-						Error::<T>::OnlyBTypeCmlCanCommitReport
-					);
+					if TipsEvidences::<T>::contains_key(&report_tea_id) {
+						ensure!(
+							TipsEvidences::<T>::get(&report_tea_id)
+								.height
+								.saturating_add(T::TipsAllowedDuration::get())
+								>= current_height.clone(),
+							Error::<T>::RedundantTips,
+						);
+					}
 
-					let report_cml = T::CmlOperation::cml_by_machine_id(&report_tea_id);
-					ensure!(
-						report_cml.is_some() && report_cml.unwrap().cml_type() == CmlType::C,
-						Error::<T>::OnlyCTypeCmlCanReport
+					Ok(())
+				},
+				|_who| {
+					TipsEvidences::<T>::insert(
+						&report_tea_id,
+						TipsEvidence {
+							height: current_height,
+							target: phishing_tea_id,
+						},
 					);
+				},
+			)
+		}
 
-					let phishing_cml = T::CmlOperation::cml_by_machine_id(&phishing_tea_id);
-					ensure!(
-						phishing_cml.is_some() && phishing_cml.unwrap().cml_type() != CmlType::C,
-						Error::<T>::PhishingNodeCannotBeTypeC
-					);
+		#[pallet::weight(195_000_000)]
+		pub fn commit_report_evidence(
+			sender: OriginFor<T>,
+			tea_id: TeaPubKey,
+			report_tea_id: TeaPubKey,
+			phishing_tea_id: TeaPubKey,
+			signature: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+			let current_height = frame_system::Pallet::<T>::block_number();
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					Self::check_type_c_evidence(
+						who,
+						&tea_id,
+						&report_tea_id,
+						&phishing_tea_id,
+						&signature,
+					)?;
+
 					if ReportEvidences::<T>::contains_key(&phishing_tea_id) {
 						ensure!(
 							ReportEvidences::<T>::get(&phishing_tea_id)
@@ -501,8 +536,6 @@ pub mod tea {
 							&& phishing_miner.unwrap().status == MinerStatus::Active,
 						Error::<T>::PhishingNodeNotActive
 					);
-
-					// todo check signature is signed by ephemeral key of tea_id
 
 					Ok(())
 				},

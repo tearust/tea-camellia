@@ -124,9 +124,63 @@ impl<T: tea::Config> tea::Pallet<T> {
 				}
 			}
 		});
+		TipsEvidences::<T>::iter().for_each(|(phisher, ev)| {
+			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.target) {
+				if let Some(owner) = cml.owner() {
+					T::CurrencyOperations::deposit_creating(owner, T::TipsRawardAmount::get());
+					statements.push((ev.target, phisher, T::TipsRawardAmount::get()));
+				}
+			}
+		});
+
 		ReportEvidences::<T>::remove_all(None);
+		TipsEvidences::<T>::remove_all(None);
 
 		Self::deposit_event(Event::ReportEvidencesStatements(statements));
+	}
+
+	pub(crate) fn check_type_c_evidence(
+		who: &T::AccountId,
+		tea_id: &TeaPubKey,
+		report_tea_id: &TeaPubKey,
+		phishing_tea_id: &TeaPubKey,
+		_signature: &Vec<u8>,
+	) -> DispatchResult {
+		ensure!(Nodes::<T>::contains_key(tea_id), Error::<T>::NodeNotExist);
+		ensure!(
+			Nodes::<T>::contains_key(report_tea_id),
+			Error::<T>::ReportNodeNotExist
+		);
+		ensure!(
+			Nodes::<T>::contains_key(phishing_tea_id),
+			Error::<T>::PhishingNodeNotExist
+		);
+		ensure!(
+			!tea_id.eq(phishing_tea_id),
+			Error::<T>::PhishingNodeCannotCommitReport
+		);
+		Self::check_tea_id_belongs(who, tea_id)?;
+
+		let current_cml = T::CmlOperation::cml_by_machine_id(tea_id);
+		ensure!(
+			current_cml.is_some() && current_cml.unwrap().cml_type() == CmlType::B,
+			Error::<T>::OnlyBTypeCmlCanCommitReport
+		);
+
+		let report_cml = T::CmlOperation::cml_by_machine_id(report_tea_id);
+		ensure!(
+			report_cml.is_some() && report_cml.unwrap().cml_type() == CmlType::C,
+			Error::<T>::OnlyCTypeCmlCanReport
+		);
+
+		let phishing_cml = T::CmlOperation::cml_by_machine_id(phishing_tea_id);
+		ensure!(
+			phishing_cml.is_some() && phishing_cml.unwrap().cml_type() != CmlType::C,
+			Error::<T>::PhishingNodeCannotBeTypeC
+		);
+
+		// todo check signature is signed by ephemeral key of tea_id
+		Ok(())
 	}
 }
 

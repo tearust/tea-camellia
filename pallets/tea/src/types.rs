@@ -98,6 +98,15 @@ where
 }
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct TipsEvidence<BlockNumber>
+where
+	BlockNumber: Default + AtLeast32BitUnsigned,
+{
+	pub height: BlockNumber,
+	pub target: TeaPubKey,
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
 pub struct OfflineEvidence<BlockNumber>
 where
 	BlockNumber: Default + AtLeast32BitUnsigned,
