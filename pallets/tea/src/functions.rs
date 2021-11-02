@@ -114,14 +114,19 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub(crate) fn pay_report_reward() {
-		ReportEvidences::<T>::iter().for_each(|(_, ev)| {
+		let mut statements = Vec::new();
+
+		ReportEvidences::<T>::iter().for_each(|(phisher, ev)| {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.reporter) {
 				if let Some(owner) = cml.owner() {
 					T::CurrencyOperations::deposit_creating(owner, T::ReportRawardAmount::get());
+					statements.push((ev.reporter, phisher, T::ReportRawardAmount::get()));
 				}
 			}
 		});
 		ReportEvidences::<T>::remove_all(None);
+
+		Self::deposit_event(Event::ReportEvidencesStatements(statements));
 	}
 }
 

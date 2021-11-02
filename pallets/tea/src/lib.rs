@@ -188,6 +188,12 @@ pub mod tea {
 
 		/// Fired after RA validators changed.
 		RaValidatorsChanged(Vec<TeaPubKey>),
+
+		/// Statements items fields:
+		/// - Reporter (reward owner)
+		/// - Phisher
+		/// - Reward amount
+		ReportEvidencesStatements(Vec<(TeaPubKey, TeaPubKey, BalanceOf<T>)>),
 	}
 
 	// Errors inform users that something went wrong.
