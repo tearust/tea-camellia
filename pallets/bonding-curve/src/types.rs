@@ -28,6 +28,7 @@ pub enum TAppType {
 	YouTube,
 	Reddit,
 	Twitter,
+	Bbs,
 }
 
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -82,6 +83,7 @@ impl<AccountId, Balance, BlockNumber> TAppItem<AccountId, Balance, BlockNumber> 
 			TAppType::YouTube => 2000,
 			TAppType::Reddit => 1000,
 			TAppType::Twitter => 1000,
+			TAppType::Bbs => 2000,
 		}
 	}
 }
