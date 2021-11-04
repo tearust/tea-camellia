@@ -17,6 +17,7 @@ use sc_service::{ChainType, Properties};
 use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
+use sp_core::sp_std::cmp::max;
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
@@ -47,6 +48,8 @@ const BONDING_CURVE_RESERVED_BALANCE_ADDRESS: &str =
 const BONDING_CURVE_NPC_ADDRESS: &str = "5Eo1WB2ieinHgcneq6yUgeJHromqWTzfjKnnhbn43Guq4gVP";
 const BONDING_CURVE_NPC_INITIAL_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
 const BONDING_CURVE_NPC_INITIAL_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
+
+const DESIRED_VALIDATOR_COUNT: u32 = 10;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -479,7 +482,7 @@ fn testnet_genesis(
 				})
 				.collect(),
 			validator_count: initial_authorities.len() as u32 * 2,
-			minimum_validator_count: initial_authorities.len() as u32,
+			minimum_validator_count: max(initial_authorities.len() as u32, DESIRED_VALIDATOR_COUNT),
 			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
 			slash_reward_fraction: Perbill::from_percent(10),
 			..Default::default()
