@@ -139,6 +139,10 @@ pub mod genesis_exchange {
 	pub type USDDebt<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn enable_borrow_usd)]
+	pub type EnableBorrowUSD<T: Config> = StorageValue<_, bool, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub operation_account: T::AccountId,
@@ -168,6 +172,8 @@ pub mod genesis_exchange {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			EnableBorrowUSD::<T>::set(false);
+
 			OperationAccount::<T>::set(self.operation_account.clone());
 			NPCAccount::<T>::set(self.npc_account.clone());
 			AMMCurveKCoefficient::<T>::set(self.operation_usd_amount * self.operation_tea_amount);
@@ -261,6 +267,8 @@ pub mod genesis_exchange {
 		OnlyAllowedNpcAccountToRegister,
 		/// Only allowed competition account to borrow USD
 		OnlyAllowedCompetitionUserBorrowUSD,
+		/// It's not allowed to borrow USD
+		ForbitBorrowUSD,
 	}
 
 	#[pallet::hooks]
@@ -297,6 +305,19 @@ pub mod genesis_exchange {
 				&root,
 				|_root| Ok(()),
 				|_root| BorrowDebtRatioCap::<T>::set(ratio_cap),
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn set_enable_borrow_usd(sender: OriginFor<T>, enable: bool) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					EnableBorrowUSD::<T>::set(enable);
+				},
 			)
 		}
 
@@ -423,6 +444,7 @@ pub mod genesis_exchange {
 			extrinsic_procedure(
 				&who,
 				|who| {
+					ensure!(EnableBorrowUSD::<T>::get(), Error::<T>::ForbitBorrowUSD);
 					ensure!(!amount.is_zero(), Error::<T>::BorrowAmountShouldNotBeZero);
 					ensure!(
 						USDDebt::<T>::get(who).checked_add(&amount).is_some(),

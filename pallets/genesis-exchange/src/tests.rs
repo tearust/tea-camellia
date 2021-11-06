@@ -493,6 +493,7 @@ fn sell_usd_to_tea_should_fail_if_user_do_not_have_enough_tea() {
 #[test]
 fn borrow_usd_works() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
@@ -511,6 +512,7 @@ fn borrow_usd_works() {
 #[test]
 fn borrow_usd_works_if_usd_store_is_not_zero() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
@@ -530,6 +532,7 @@ fn borrow_usd_works_if_usd_store_is_not_zero() {
 #[test]
 fn borrow_usd_should_fail_if_borrow_amount_is_zero() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		assert_noop!(
 			GenesisExchange::borrow_usd(Origin::signed(1), 0),
 			Error::<Test>::BorrowAmountShouldNotBeZero
@@ -540,6 +543,7 @@ fn borrow_usd_should_fail_if_borrow_amount_is_zero() {
 #[test]
 fn borrow_usd_should_fail_if_borrowed_debt_is_overflow() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
@@ -559,6 +563,7 @@ fn borrow_usd_should_fail_if_borrowed_debt_is_overflow() {
 #[test]
 fn borrow_usd_should_fail_if_borrowed_amount_is_overflow() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 
 		USDStore::<Test>::insert(user, 100);
@@ -575,6 +580,7 @@ fn borrow_usd_should_fail_if_borrowed_amount_is_overflow() {
 #[test]
 fn borrow_usd_works_if_borrowed_amount_less_than_borrow_allowance() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
@@ -592,6 +598,7 @@ fn borrow_usd_works_if_borrowed_amount_less_than_borrow_allowance() {
 #[test]
 fn borrow_usd_should_if_user_not_competition_user() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		assert_noop!(
 			GenesisExchange::borrow_usd(Origin::signed(user), BORROW_ALLOWANCE + 1),
@@ -603,6 +610,7 @@ fn borrow_usd_should_if_user_not_competition_user() {
 #[test]
 fn borrow_usd_should_if_initial_amount_larger_than_borrow_allowance() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
@@ -618,6 +626,7 @@ fn borrow_usd_should_if_initial_amount_larger_than_borrow_allowance() {
 #[test]
 fn borrow_usd_should_if_borrowed_max_allowance_amount_usd_and_continue_borrow() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
@@ -640,6 +649,7 @@ fn borrow_usd_should_if_borrowed_max_allowance_amount_usd_and_continue_borrow() 
 #[test]
 fn if_asset_larger_than_max_borrow_allowance_user_borrowed_amount_should_lower_than_ratio_cap() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
@@ -671,6 +681,7 @@ fn if_asset_larger_than_max_borrow_allowance_user_borrowed_amount_should_lower_t
 #[test]
 fn repay_usd_debts_works() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
@@ -694,6 +705,7 @@ fn repay_usd_debts_works() {
 #[test]
 fn repay_usd_debts_works_if_pay_out_all_debts() {
 	new_test_ext().execute_with(|| {
+		EnableBorrowUSD::<Test>::set(true);
 		let user = 1;
 		let default1: Vec<u8> = Vec::new();
 		let default2: Vec<u8> = Vec::new();
