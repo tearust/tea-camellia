@@ -152,10 +152,8 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			total = total
 				.saturating_add(cml)
 				.saturating_add(tea)
-				.saturating_add(usd)
 				.saturating_add(tapp_balance)
-				.saturating_sub(loan_credit)
-				.saturating_sub(usd_debt);
+				.saturating_sub(loan_credit);
 
 			total_assets.push((
 				user.clone(),
@@ -193,8 +191,6 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	fn collect_genesis_loan_credit() -> BTreeMap<T::AccountId, BalanceOf<T>> {
 		let mut asset_usd_map = BTreeMap::new();
-		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
-		let one_tea_dollar = Self::one_tea_dollar();
 
 		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
 			let mut credit_total: BalanceOf<T> = Zero::zero();
@@ -203,7 +199,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 					T::GenesisBankOperation::calculate_loan_amount(cml_id, false),
 				);
 			}
-			asset_usd_map.insert(user, credit_total * current_exchange_rate / one_tea_dollar);
+			asset_usd_map.insert(user, credit_total);
 		});
 		asset_usd_map
 	}
@@ -227,28 +223,17 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	fn collect_tea_assets() -> BTreeMap<T::AccountId, BalanceOf<T>> {
 		let mut asset_usd_map = BTreeMap::new();
-		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
-		let one_tea_dollar = Self::one_tea_dollar();
 
 		CompetitionUsers::<T>::iter().for_each(|(user, _)| {
-			Self::new_or_add_assets(
-				&user,
-				Self::single_user_tea_asset(&user, &current_exchange_rate, &one_tea_dollar),
-				&mut asset_usd_map,
-			)
+			Self::new_or_add_assets(&user, Self::single_tea_asset(&user), &mut asset_usd_map)
 		});
 		asset_usd_map
 	}
 
-	pub(crate) fn single_user_tea_asset(
-		user: &T::AccountId,
-		current_exchange_rate: &BalanceOf<T>,
-		one_tea_dollar: &BalanceOf<T>,
-	) -> BalanceOf<T> {
+	fn single_tea_asset(user: &T::AccountId) -> BalanceOf<T> {
 		let tea_free_amount = T::CurrencyOperations::free_balance(user);
 		let tea_reserved_amount = T::CurrencyOperations::reserved_balance(user);
-		(tea_free_amount.saturating_add(tea_reserved_amount)) * (*current_exchange_rate)
-			/ *one_tea_dollar
+		tea_free_amount.saturating_add(tea_reserved_amount)
 	}
 
 	pub(crate) fn collect_tapp_token_assets() -> BTreeMap<T::AccountId, BalanceOf<T>> {
@@ -263,7 +248,6 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			});
 
 		let one_tea_dollar = Self::one_tea_dollar();
-		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
 		for (who, _) in CompetitionUsers::<T>::iter() {
 			let mut total_amount_in_tea: BalanceOf<T> = Zero::zero();
 			T::BondingCurveOperation::tapp_user_token_asset(&who)
@@ -276,11 +260,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 					total_amount_in_tea = total_amount_in_tea.saturating_add(tea_amount);
 				});
 
-			Self::new_or_add_assets(
-				&who,
-				total_amount_in_tea * current_exchange_rate / one_tea_dollar,
-				&mut asset_usd_map,
-			);
+			Self::new_or_add_assets(&who, total_amount_in_tea, &mut asset_usd_map);
 		}
 
 		asset_usd_map
@@ -302,17 +282,13 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 				}
 			},
 		);
-		let (current_exchange_rate, _, _, _, _) = Self::current_exchange_rate();
-		let one_tea_dollar = Self::one_tea_dollar();
 		for (user, _, single_block_reward) in cml_reward_statements {
 			if !CompetitionUsers::<T>::contains_key(&user) {
 				continue;
 			}
 
 			let reward_in_tea = Self::estimate_cml_asset_value(single_block_reward);
-			let reward_in_usd = reward_in_tea * current_exchange_rate / one_tea_dollar;
-
-			Self::new_or_add_assets(&user, reward_in_usd, &mut asset_usd_map);
+			Self::new_or_add_assets(&user, reward_in_tea, &mut asset_usd_map);
 		}
 
 		let hosting_income_statements = Self::all_hosting_income_statements();
@@ -322,9 +298,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			}
 
 			let reward_in_tea = Self::estimate_hosting_income_value(one_host_duration_reward);
-			let reward_in_usd = reward_in_tea * current_exchange_rate / one_tea_dollar;
-
-			Self::new_or_add_assets(&user, reward_in_usd, &mut asset_usd_map);
+			Self::new_or_add_assets(&user, reward_in_tea, &mut asset_usd_map);
 		}
 
 		asset_usd_map
@@ -531,8 +505,8 @@ mod tests {
 			let asset_usd_map = GenesisExchange::collect_genesis_loan_credit();
 
 			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 0);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 300_292);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 100_097);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 300_300);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 100_100);
 		})
 	}
 
@@ -575,9 +549,9 @@ mod tests {
 
 			let asset_usd_map = GenesisExchange::collect_tea_assets();
 			assert_eq!(asset_usd_map.len(), 3);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 99);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 199);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 299);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 100);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 200);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 300);
 		})
 	}
 
@@ -621,9 +595,9 @@ mod tests {
 			let asset_usd_map = GenesisExchange::collect_cml_assets();
 
 			assert_eq!(asset_usd_map.len(), 3);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 14399640008);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 7199820004);
-			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 7199820004);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS1], 14400000000);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS2], 7200000000);
+			assert_eq!(asset_usd_map[&COMPETITION_USERS3], 7200000000);
 		});
 	}
 
@@ -743,39 +717,39 @@ mod tests {
 				asset_list[0],
 				(
 					COMPETITION_USERS1,
-					14399640008,
-					99,
+					14400000000,
+					100,
 					COMPETITION_USER_USD_AMOUNT,
 					0,
 					0,
 					0,
-					COMPETITION_USER_USD_AMOUNT + 99 + 14399640008
+					100 + 14400000000
 				)
 			);
 			assert_eq!(
 				asset_list[1],
 				(
 					COMPETITION_USERS3,
-					7199820004,
-					299,
+					7200000000,
+					300,
 					COMPETITION_USER_USD_AMOUNT,
 					0,
-					100097,
+					100100,
 					0,
-					COMPETITION_USER_USD_AMOUNT + 299 + 7199820004 - 100097
+					300 + 7200000000 - 100100
 				)
 			);
 			assert_eq!(
 				asset_list[2],
 				(
 					COMPETITION_USERS2,
-					7199820004,
-					199,
+					7200000000,
+					200,
 					COMPETITION_USER_USD_AMOUNT,
 					0,
-					300_292,
+					300_300,
 					0,
-					COMPETITION_USER_USD_AMOUNT + 199 + 7199820004 - 300_292
+					200 + 7200000000 - 300_300
 				)
 			);
 		})
