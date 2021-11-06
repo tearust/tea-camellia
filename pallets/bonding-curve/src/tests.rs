@@ -2284,7 +2284,7 @@ fn host_should_fail_if_not_enough_money() {
 		let miner = 2;
 		let tapp_owner = 1;
 		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, 100000000);
-		<Test as Config>::Currency::make_free_balance_be(&miner, STAKING_PRICE);
+		<Test as Config>::Currency::make_free_balance_be(&miner, STAKING_PRICE + 1);
 
 		let cml_id = 11;
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100, 4000));

@@ -56,6 +56,9 @@ pub mod cml {
 		#[pallet::constant]
 		type StakingPrice: Get<BalanceOf<Self>>;
 
+		#[pallet::constant]
+		type MachineAccountTopUpAmount: Get<BalanceOf<Self>>;
+
 		/// The latest block height to draw seeds use coupon, after this block height the left
 		/// seeds shall be destroyed.
 		#[pallet::constant]
@@ -621,7 +624,7 @@ pub mod cml {
 					let cml = CmlStore::<T>::get(cml_id);
 					cml.check_start_mining(&current_block_number)
 						.map_err(|e| Error::<T>::from(e))?;
-					Self::check_miner_first_staking(&sender)?;
+					Self::check_miner_balance(&sender)?;
 					if cml.cml_type() == CmlType::B {
 						ensure!(
 							orbitdb_id.is_some(),
@@ -634,6 +637,16 @@ pub mod cml {
 				|sender| {
 					// Prepare the mining machine at first.
 					T::MiningOperation::buy_mining_machine(sender, cml_id);
+					if let Err(e) = T::CurrencyOperations::transfer(
+						sender,
+						&controller_account,
+						T::MachineAccountTopUpAmount::get(),
+						ExistenceRequirement::KeepAlive,
+					) {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("transfer error: {:?}", e);
+						return;
+					}
 
 					let ip = miner_ip.clone();
 					CmlStore::<T>::mutate(cml_id, |cml| {

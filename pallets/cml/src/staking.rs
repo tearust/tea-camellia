@@ -79,8 +79,12 @@ impl<T: cml::Config> cml::Pallet<T> {
 		MiningCmlTaskPoints::<T>::get(cml_id) * TaskPointBase::<T>::get()
 	}
 
-	pub(crate) fn check_miner_first_staking(who: &T::AccountId) -> DispatchResult {
-		Self::check_balance_staking(who)?;
+	pub(crate) fn check_miner_balance(who: &T::AccountId) -> DispatchResult {
+		ensure!(
+			T::CurrencyOperations::free_balance(who)
+				>= T::StakingPrice::get() + T::MachineAccountTopUpAmount::get(),
+			Error::<T>::InsufficientFreeBalance,
+		);
 		Ok(())
 	}
 

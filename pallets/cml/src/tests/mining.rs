@@ -453,7 +453,10 @@ fn stop_mining_works() {
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
-		<Test as Config>::Currency::make_free_balance_be(&1, STAKING_PRICE);
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			STAKING_PRICE + MACHINE_ACCOUNT_TOP_UP_AMOUNT,
+		);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml_id,
@@ -685,7 +688,10 @@ fn stop_mining_should_fail_if_miner_free_balance_is_not_enoungh_pay_for_stakers(
 		let user1 = 2;
 		let user2 = 3;
 		let amount = 100 * 1000;
-		<Test as Config>::Currency::make_free_balance_be(&miner, STAKING_PRICE);
+		<Test as Config>::Currency::make_free_balance_be(
+			&miner,
+			STAKING_PRICE + MACHINE_ACCOUNT_TOP_UP_AMOUNT,
+		);
 		<Test as Config>::Currency::make_free_balance_be(&user1, amount);
 		<Test as Config>::Currency::make_free_balance_be(&user2, amount);
 
@@ -716,14 +722,20 @@ fn stop_mining_should_fail_if_miner_free_balance_is_not_enoungh_pay_for_stakers(
 			None,
 			None
 		));
-		assert_eq!(<Test as Config>::Currency::free_balance(&miner), 0);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&miner),
+			MACHINE_ACCOUNT_TOP_UP_AMOUNT
+		);
 
 		assert_noop!(
 			Cml::stop_mining(Origin::signed(1), cml_id, machine_id),
 			Error::<Test>::InsufficientFreeBalanceToPayForPunishment
 		);
 
-		assert_eq!(<Test as Config>::Currency::free_balance(&miner), 0);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&miner),
+			MACHINE_ACCOUNT_TOP_UP_AMOUNT
+		);
 		assert_eq!(Utils::free_balance(&user1), amount - STAKING_PRICE);
 		assert_eq!(Utils::free_balance(&user2), amount - STAKING_PRICE);
 	})
@@ -741,7 +753,10 @@ fn stop_mining_should_fail_if_cml_not_belongs_to_user() {
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
-		<Test as Config>::Currency::make_free_balance_be(&user1, STAKING_PRICE);
+		<Test as Config>::Currency::make_free_balance_be(
+			&user1,
+			STAKING_PRICE + MACHINE_ACCOUNT_TOP_UP_AMOUNT,
+		);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(user1),
 			cml_id,

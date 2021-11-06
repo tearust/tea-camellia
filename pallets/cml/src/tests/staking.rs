@@ -183,7 +183,10 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_the_max_length() {
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
-		<Test as Config>::Currency::make_free_balance_be(&1, STAKING_PRICE);
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			STAKING_PRICE + MACHINE_ACCOUNT_TOP_UP_AMOUNT,
+		);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml_id,
@@ -228,7 +231,10 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_acceptable_index() {
 		UserCmlStore::<Test>::insert(1, cml_id, ());
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
-		<Test as Config>::Currency::make_free_balance_be(&1, STAKING_PRICE);
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			STAKING_PRICE + MACHINE_ACCOUNT_TOP_UP_AMOUNT,
+		);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(1),
 			cml_id,
@@ -400,7 +406,10 @@ fn stop_staking_works_with_mixed_staking_items() {
 		UserCmlStore::<Test>::insert(user1, cml1_id, ());
 		let cml1 = CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100));
 		CmlStore::<Test>::insert(cml1_id, cml1);
-		<Test as Config>::Currency::make_free_balance_be(&user1, STAKING_PRICE);
+		<Test as Config>::Currency::make_free_balance_be(
+			&user1,
+			STAKING_PRICE + MACHINE_ACCOUNT_TOP_UP_AMOUNT,
+		);
 		assert_ok!(Cml::start_mining(
 			Origin::signed(user1),
 			cml1_id,

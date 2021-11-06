@@ -282,6 +282,7 @@ pub const STAKING_PRICE: Balance = 1000;
 
 parameter_types! {
 	pub const StakingPrice: Balance = STAKING_PRICE;
+	pub const MachineAccountTopUpAmount: Balance = 1;
 	pub const SeedsTimeoutHeight: u32 = 1 * 30 * 24 * 60 * 10;
 	pub const StakingPeriodLength: u32 = 100;
 	pub const StakingSlotsMaxLength: u32 = 1024;
@@ -296,6 +297,7 @@ impl pallet_cml::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
+	type MachineAccountTopUpAmount = MachineAccountTopUpAmount;
 	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
 	type SeedFreshDuration = SeedFreshDuration;

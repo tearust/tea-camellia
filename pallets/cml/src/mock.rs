@@ -227,6 +227,7 @@ impl system::Config for Test {
 pub const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
 pub const STAKING_PERIOD_LENGTH: u32 = 100;
 pub const STAKING_PRICE: Balance = 1000;
+pub const MACHINE_ACCOUNT_TOP_UP_AMOUNT: Balance = 1;
 pub const STAKING_SLOTS_MAX_LENGTH: u32 = 100;
 pub const STOP_MINING_PUNISHMENT: Balance = 100;
 pub const MAX_ALLOWED_SUSPEND_HEIGHT: u32 = 1000;
@@ -236,6 +237,7 @@ pub const CML_C_MINING_REWARD_RATE: Balance = 0;
 
 parameter_types! {
 	pub const StakingPrice: Balance = STAKING_PRICE;
+	pub const MachineAccountTopUpAmount: Balance = MACHINE_ACCOUNT_TOP_UP_AMOUNT;
 	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
@@ -250,6 +252,7 @@ impl pallet_cml::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
+	type MachineAccountTopUpAmount = MachineAccountTopUpAmount;
 	type StakingPeriodLength = StakingPeriodLength;
 	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type SeedFreshDuration = SeedFreshDuration;
