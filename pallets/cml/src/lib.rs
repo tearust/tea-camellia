@@ -238,8 +238,8 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			// disable transfer coupon by default
-			EnableTransferCoupon::<T>::set(false);
+			// enable transfer coupon by default
+			EnableTransferCoupon::<T>::set(true);
 
 			TaskPointBase::<T>::set(self.initial_task_point_base);
 			crate::functions::init_from_genesis_coupons::<T>(&self.genesis_coupons);
