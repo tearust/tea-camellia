@@ -876,6 +876,7 @@ const SEED_FRESH_DURATION: u32 = 30 * 10;
 parameter_types! {
 	/// Investors need to pay StakingPrice for each staking slots of CML regardless the index number
 	pub const StakingPrice: Balance = 1000 * DOLLARS;
+	pub const MachineAccountTopUpAmount: Balance = 1 * DOLLARS;
 	/// After SeedsTimeoutHeight, coupon will be expired
 	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
 	/// Every StakingPeriodLength, DAO will calculate the staking earning and pay to reward balance
@@ -895,6 +896,7 @@ impl pallet_cml::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type StakingPrice = StakingPrice;
+	type MachineAccountTopUpAmount = MachineAccountTopUpAmount;
 	type CouponTimoutHeight = SeedsTimeoutHeight;
 	type StakingPeriodLength = StakingPeriodLength;
 	type SeedFreshDuration = SeedFreshDuration;
