@@ -172,7 +172,7 @@ pub mod cml {
 	#[pallet::storage]
 	#[pallet::getter(fn miner_item_store)]
 	pub type MinerItemStore<T: Config> =
-		StorageMap<_, Twox64Concat, MachineId, MinerItem<T::BlockNumber>, ValueQuery>;
+		StorageMap<_, Twox64Concat, MachineId, MinerItem<T::BlockNumber, T::AccountId>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn miner_ip_set)]
@@ -594,6 +594,7 @@ pub mod cml {
 			sender: OriginFor<T>,
 			cml_id: CmlId,
 			machine_id: MachineId,
+			controller_account: T::AccountId,
 			miner_ip: Vec<u8>,
 			orbitdb_id: Option<Vec<u8>>,
 		) -> DispatchResult {
@@ -650,6 +651,7 @@ pub mod cml {
 								cml_id,
 								ip,
 								id: machine_id.clone(),
+								controller_account: controller_account.clone(),
 								orbitdb_id: orbitdb_id.clone(),
 								status: MinerStatus::Active,
 								suspend_height: None,
@@ -1068,7 +1070,7 @@ pub mod cml {
 
 /// Operations about CML that called by other pallets to interact with.
 pub trait CmlOperation {
-	type AccountId: PartialEq + Clone;
+	type AccountId: PartialEq + Clone + Default;
 	type Balance: Clone;
 	type BlockNumber: Default + AtLeast32BitUnsigned + Clone;
 	type FreshDuration: Get<Self::BlockNumber>;
@@ -1085,7 +1087,9 @@ pub trait CmlOperation {
 		machine_id: &MachineId,
 	) -> Option<CML<Self::AccountId, Self::BlockNumber, Self::Balance, Self::FreshDuration>>;
 
-	fn miner_item_by_machine_id(machine_id: &MachineId) -> Option<MinerItem<Self::BlockNumber>>;
+	fn miner_item_by_machine_id(
+		machine_id: &MachineId,
+	) -> Option<MinerItem<Self::BlockNumber, Self::AccountId>>;
 
 	/// Check if the given CML not belongs to specified account.
 	fn check_belongs(cml_id: &CmlId, who: &Self::AccountId) -> Result<(), DispatchError>;

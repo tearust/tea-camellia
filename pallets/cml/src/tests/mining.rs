@@ -27,6 +27,7 @@ fn start_mining_with_frozen_seed_works() {
 			Origin::signed(user_id),
 			cml_id,
 			machine_id,
+			user_id,
 			miner_ip.clone(),
 			None,
 		));
@@ -66,6 +67,7 @@ fn start_mining_should_fail_with_insufficient_balance() {
 				Origin::signed(user_id),
 				cml_id,
 				machine_id,
+				user_id,
 				b"miner_ip".to_vec(),
 				None,
 			),
@@ -93,6 +95,7 @@ fn start_mining_not_belongs_to_me_should_fail() {
 				Origin::signed(2),
 				cml_id,
 				[1u8; 32],
+				2,
 				b"miner_ip".to_vec(),
 				None,
 			),
@@ -128,6 +131,7 @@ fn start_mining_with_same_machine_id_should_fail() {
 			Origin::signed(1),
 			cml1_id,
 			machine_id,
+			1,
 			miner_ip.clone(),
 			None,
 		));
@@ -137,6 +141,7 @@ fn start_mining_with_same_machine_id_should_fail() {
 				Origin::signed(1),
 				cml2_id,
 				machine_id,
+				1,
 				miner_ip.clone(),
 				None,
 			),
@@ -167,6 +172,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 			Origin::signed(1),
 			cml1_id,
 			machine_id_1,
+			1,
 			miner_ip_1.clone(),
 			None,
 		));
@@ -176,6 +182,7 @@ fn start_mining_with_same_cmd_planted_into_two_machine_id_should_fail() {
 				Origin::signed(1),
 				cml1_id,
 				machine_id_2,
+				1,
 				miner_ip_2.clone(),
 				None,
 			),
@@ -203,6 +210,7 @@ fn start_mining_with_multiple_times_should_fail() {
 			Origin::signed(1),
 			cml_id,
 			machine_id,
+			1,
 			miner_ip.clone(),
 			None,
 		));
@@ -212,6 +220,7 @@ fn start_mining_with_multiple_times_should_fail() {
 				Origin::signed(1),
 				cml_id,
 				machine_id,
+				1,
 				miner_ip.clone(),
 				None,
 			),
@@ -246,6 +255,7 @@ fn start_mining_with_insufficient_free_balance_should_fail() {
 				Origin::signed(1),
 				cml_id,
 				[1u8; 32],
+				1,
 				b"miner_id".to_vec(),
 				None,
 			),
@@ -271,6 +281,7 @@ fn start_mining_should_fail_if_miner_ip_already_registered() {
 			Origin::signed(owner1),
 			cml_id1,
 			[1u8; 32],
+			owner1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -284,6 +295,7 @@ fn start_mining_should_fail_if_miner_ip_already_registered() {
 				Origin::signed(owner2),
 				cml_id2,
 				[2u8; 32],
+				owner2,
 				b"miner_ip".to_vec(),
 				None,
 			),
@@ -310,6 +322,7 @@ fn start_mining_should_fail_if_cml_is_not_valid() {
 				Origin::signed(1),
 				cml_id,
 				[1u8; 32],
+				1,
 				b"miner_id".to_vec(),
 				None,
 			),
@@ -341,6 +354,7 @@ fn miner_ip_is_empty_or_invalid_should_fail() {
 				Origin::signed(1),
 				cml_id,
 				machine_id,
+				1,
 				miner_ip.clone(),
 				None,
 			),
@@ -371,6 +385,7 @@ fn active_cml_to_already_started_mining_machine_should_fail() {
 			Origin::signed(1),
 			cml_id,
 			machine_id,
+			1,
 			miner_ip.clone(),
 			None,
 		));
@@ -390,6 +405,7 @@ fn active_cml_to_already_started_mining_machine_should_fail() {
 				Origin::signed(2),
 				cml_id,
 				machine_id,
+				2,
 				miner_ip.clone(),
 				None,
 			),
@@ -419,6 +435,7 @@ fn start_mining_with_frozen_cml_should_fail() {
 				Origin::signed(1),
 				cml_id,
 				machine_id,
+				1,
 				miner_ip.clone(),
 				None,
 			),
@@ -441,6 +458,7 @@ fn stop_mining_works() {
 			Origin::signed(1),
 			cml_id,
 			machine_id,
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -482,6 +500,7 @@ fn stop_mining_works_with_balance_staking() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -564,6 +583,7 @@ fn stop_mining_works_with_cml_staking() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -628,6 +648,7 @@ fn stop_mining_works_if_only_miner_stakes() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -678,6 +699,7 @@ fn stop_mining_should_fail_if_miner_free_balance_is_not_enoungh_pay_for_stakers(
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -724,6 +746,7 @@ fn stop_mining_should_fail_if_cml_not_belongs_to_user() {
 			Origin::signed(user1),
 			cml_id,
 			machine_id,
+			user1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -794,6 +817,7 @@ fn stop_mining_should_fail_if_is_hosting() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -822,6 +846,7 @@ fn dummy_ra_task_works() {
 				id: machine_id,
 				ip: vec![],
 				orbitdb_id: None,
+				controller_account: Default::default(),
 				status: MinerStatus::Active,
 				suspend_height: None,
 				schedule_down_height: None,
@@ -863,6 +888,7 @@ fn suspend_mining_works() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -895,6 +921,7 @@ fn resume_mining_works() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -980,6 +1007,7 @@ fn resume_mining_should_fail_if_cml_is_active_already() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1008,6 +1036,7 @@ fn resume_mining_should_fail_free_balance_is_not_enough() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1038,6 +1067,7 @@ fn schedule_down_works() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1122,6 +1152,7 @@ fn schedule_down_should_fail_if_cml_is_not_active() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1151,6 +1182,7 @@ fn schedule_up_works() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1240,6 +1272,7 @@ fn schedule_up_should_fail_if_cml_is_offline() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1269,6 +1302,7 @@ fn schedule_up_should_fail_if_cml_is_active() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1299,6 +1333,7 @@ fn migrate_works_if_cml_is_offline() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1341,6 +1376,7 @@ fn migrate_works_if_cml_is_schedule_down() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1434,6 +1470,7 @@ fn migrate_should_fail_if_cml_is_active() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1471,6 +1508,7 @@ fn migrate_should_fail_if_machine_id_already_exist() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1480,6 +1518,7 @@ fn migrate_should_fail_if_machine_id_already_exist() {
 			Origin::signed(miner2),
 			cml_id2,
 			machine_id2,
+			miner2,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -1516,6 +1555,7 @@ fn migrate_should_fail_if_ip_address_already_exist() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			ip_address,
 			None,
 		));
@@ -1526,6 +1566,7 @@ fn migrate_should_fail_if_ip_address_already_exist() {
 			Origin::signed(miner2),
 			cml_id2,
 			machine_id2,
+			miner2,
 			ip_address2.clone(),
 			None,
 		));

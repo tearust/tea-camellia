@@ -19,6 +19,7 @@ fn start_staking_with_balance_works() {
 			Origin::signed(1),
 			cml_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -49,6 +50,7 @@ fn start_staking_with_cml_works() {
 			Origin::signed(1),
 			cml1_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -186,6 +188,7 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_the_max_length() {
 			Origin::signed(1),
 			cml_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -230,6 +233,7 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_acceptable_index() {
 			Origin::signed(1),
 			cml_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -274,6 +278,7 @@ fn stop_staking_with_balance_works() {
 			Origin::signed(1),
 			cml_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -310,6 +315,7 @@ fn stop_staking_with_balance_works_if_reserved_balance_has_been_slashed() {
 			Origin::signed(1),
 			cml_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -362,6 +368,7 @@ fn stop_staking_with_cml_works() {
 			Origin::signed(1),
 			cml1_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -398,6 +405,7 @@ fn stop_staking_works_with_mixed_staking_items() {
 			Origin::signed(user1),
 			cml1_id,
 			[1u8; 32],
+			user1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -503,6 +511,7 @@ fn stop_first_slot_staking_should_fail() {
 			Origin::signed(1),
 			cml_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -545,6 +554,7 @@ fn stop_staking_should_fail_if_staking_index_larger_than_staking_slots() {
 			Origin::signed(1),
 			cml_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -573,6 +583,7 @@ fn stop_staking_should_fail_if_staking_not_belongs_to_user() {
 			Origin::signed(1),
 			cml_id,
 			[1u8; 32],
+			1,
 			b"miner_ip".to_vec(),
 			None,
 		));

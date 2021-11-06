@@ -92,7 +92,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn get_miner_item(
 		cml_id: CmlId,
-	) -> Result<MinerItem<T::BlockNumber>, DispatchError> {
+	) -> Result<MinerItem<T::BlockNumber, T::AccountId>, DispatchError> {
 		let cml = CmlStore::<T>::get(cml_id);
 		let machine_id = cml.machine_id();
 		ensure!(machine_id.is_some(), Error::<T>::NotFoundMiner);
@@ -1113,6 +1113,7 @@ mod tests {
 				Origin::signed(user1),
 				cml1_id,
 				machine1_id,
+				user1,
 				b"machine1 ip".to_vec(),
 				None,
 			));
@@ -1127,6 +1128,7 @@ mod tests {
 				Origin::signed(user2),
 				cml2_id,
 				machine2_id,
+				user2,
 				b"machine2 ip".to_vec(),
 				None,
 			));
@@ -1187,6 +1189,7 @@ mod tests {
 				Origin::signed(user3),
 				cml3_id,
 				machine3_id,
+				user3,
 				b"machine3 ip".to_vec(),
 				None,
 			));

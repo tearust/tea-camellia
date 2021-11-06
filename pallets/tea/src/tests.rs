@@ -79,6 +79,7 @@ fn builtin_node_update_node_profile_should_fail_if_not_in_builtin_miners_list() 
 fn normal_node_update_node_profile_works() {
 	new_test_ext().execute_with(|| {
 		let owner = 2;
+		let owner_controller = 22;
 		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
 		frame_system::Pallet::<Test>::set_block_number(100);
 
@@ -95,12 +96,13 @@ fn normal_node_update_node_profile_works() {
 			Origin::signed(owner),
 			cml_id,
 			tea_id,
+			owner_controller,
 			b"miner_ip".to_vec(),
 			None,
 		));
 
 		assert_ok!(Tea::update_node_profile(
-			Origin::signed(owner),
+			Origin::signed(owner_controller),
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
@@ -188,6 +190,7 @@ fn remote_attestation_works() {
 		let validator_4 = hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6");
 
 		let owner1 = 2;
+		let owner1_controller = 22;
 		<Test as Config>::Currency::make_free_balance_be(&owner1, 10000);
 		let cml_id1 = 1;
 		let mut cml1 = CML::from_genesis_seed(seed_from_lifespan(cml_id1, 100));
@@ -198,11 +201,13 @@ fn remote_attestation_works() {
 			Origin::signed(owner1),
 			cml_id1,
 			validator_1,
+			owner1_controller,
 			b"miner_ip1".to_vec(),
 			None,
 		));
 
-		let owner2 = 2;
+		let owner2 = 3;
+		let owner2_controller = 33;
 		<Test as Config>::Currency::make_free_balance_be(&owner2, 20000);
 		let cml_id2 = 2;
 		let mut cml2 = CML::from_genesis_seed(seed_from_lifespan(cml_id2, 200));
@@ -213,11 +218,13 @@ fn remote_attestation_works() {
 			Origin::signed(owner2),
 			cml_id2,
 			validator_2,
+			owner2_controller,
 			b"miner_ip2".to_vec(),
 			None,
 		));
 
-		let owner3 = 3;
+		let owner3 = 4;
+		let owner3_controller = 44;
 		<Test as Config>::Currency::make_free_balance_be(&owner3, 30000);
 		let cml_id3 = 3;
 		let mut cml3 = CML::from_genesis_seed(seed_from_lifespan(cml_id3, 300));
@@ -228,11 +235,13 @@ fn remote_attestation_works() {
 			Origin::signed(owner3),
 			cml_id3,
 			validator_3,
+			owner3_controller,
 			b"miner_ip3".to_vec(),
 			None,
 		));
 
-		let owner4 = 4;
+		let owner4 = 5;
+		let owner4_controller = 55;
 		<Test as Config>::Currency::make_free_balance_be(&owner4, 40000);
 		let cml_id4 = 4;
 		let mut cml4 = CML::from_genesis_seed(seed_from_lifespan(cml_id4, 400));
@@ -243,6 +252,7 @@ fn remote_attestation_works() {
 			Origin::signed(owner4),
 			cml_id4,
 			validator_4,
+			owner4_controller,
 			b"miner_ip4".to_vec(),
 			None,
 		));
@@ -282,7 +292,7 @@ fn remote_attestation_works() {
 		update_validator_groups_count::<Test>();
 
 		assert_ok!(Tea::remote_attestation(
-			Origin::signed(owner1),
+			Origin::signed(owner1_controller),
 			validator_1,
 			tea_id.clone(),
 			true,
@@ -291,7 +301,7 @@ fn remote_attestation_works() {
 		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Pending);
 
 		assert_ok!(Tea::remote_attestation(
-			Origin::signed(owner2),
+			Origin::signed(owner2_controller),
 			validator_2,
 			tea_id.clone(),
 			false,
@@ -300,7 +310,7 @@ fn remote_attestation_works() {
 		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Pending);
 
 		assert_ok!(Tea::remote_attestation(
-			Origin::signed(owner3),
+			Origin::signed(owner3_controller),
 			validator_3,
 			tea_id.clone(),
 			true,
@@ -309,7 +319,7 @@ fn remote_attestation_works() {
 		assert_eq!(Nodes::<Test>::get(&tea_id).status, NodeStatus::Active);
 
 		assert_ok!(Tea::remote_attestation(
-			Origin::signed(owner4),
+			Origin::signed(owner4_controller),
 			validator_4,
 			tea_id.clone(),
 			true,
@@ -366,6 +376,7 @@ fn ra_node_not_exist() {
 fn remote_attestation_should_fail_if_ra_commit_has_expired() {
 	new_test_ext().execute_with(|| {
 		let owner = 2;
+		let owner_controller = 22;
 		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
 
 		let last_update_height = 100;
@@ -387,6 +398,7 @@ fn remote_attestation_should_fail_if_ra_commit_has_expired() {
 			Origin::signed(owner),
 			cml_id,
 			validator_tea_id,
+			owner_controller,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -396,7 +408,7 @@ fn remote_attestation_should_fail_if_ra_commit_has_expired() {
 		);
 		assert_noop!(
 			Tea::remote_attestation(
-				Origin::signed(owner),
+				Origin::signed(owner_controller),
 				validator_tea_id,
 				tea_id,
 				true,
@@ -411,6 +423,7 @@ fn remote_attestation_should_fail_if_ra_commit_has_expired() {
 fn validator_not_in_ra_nodes() {
 	new_test_ext().execute_with(|| {
 		let owner = 2;
+		let owner_controller = 22;
 		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
 
 		let (mut node, tea_id, _, _) = new_node();
@@ -431,13 +444,14 @@ fn validator_not_in_ra_nodes() {
 			Origin::signed(owner),
 			cml_id,
 			validator_tea_id,
+			owner_controller,
 			b"miner_ip".to_vec(),
 			None,
 		));
 
 		assert_noop!(
 			Tea::remote_attestation(
-				Origin::signed(owner),
+				Origin::signed(owner_controller),
 				validator_tea_id,
 				tea_id,
 				true,
@@ -494,8 +508,11 @@ fn update_runtime_activity_when_node_registered() {
 fn commit_report_evidence_works() {
 	new_test_ext().execute_with(|| {
 		let committer = 2;
+		let committer_controller = 22;
 		let reporter = 3;
+		let reporter_controller = 33;
 		let phisher = 4;
+		let phisher_controler = 44;
 		<Test as Config>::Currency::make_free_balance_be(&committer, 10000);
 		<Test as Config>::Currency::make_free_balance_be(&reporter, 10000);
 		<Test as Config>::Currency::make_free_balance_be(&phisher, 10000);
@@ -516,6 +533,7 @@ fn commit_report_evidence_works() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer_controller,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -529,6 +547,7 @@ fn commit_report_evidence_works() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter_controller,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -542,6 +561,7 @@ fn commit_report_evidence_works() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher_controler,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -550,7 +570,7 @@ fn commit_report_evidence_works() {
 		frame_system::Pallet::<Test>::set_block_number(current_height);
 
 		assert_ok!(Tea::commit_report_evidence(
-			Origin::signed(committer),
+			Origin::signed(committer_controller),
 			committer_tea_id,
 			reporter_tea_id,
 			phisher_tea_id,
@@ -653,6 +673,7 @@ fn commit_report_evidence_should_fail_if_user_is_not_the_owner_of_commit_tea_id(
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -692,6 +713,7 @@ fn commit_report_evidence_should_fail_if_commit_cml_is_not_b_type() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -735,6 +757,7 @@ fn commit_report_evidence_should_fail_if_report_cml_is_not_c_type() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -748,6 +771,7 @@ fn commit_report_evidence_should_fail_if_report_cml_is_not_c_type() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -761,6 +785,7 @@ fn commit_report_evidence_should_fail_if_report_cml_is_not_c_type() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -804,6 +829,7 @@ fn commit_report_evidence_should_fail_if_phishing_cml_is_c_type() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -817,6 +843,7 @@ fn commit_report_evidence_should_fail_if_phishing_cml_is_c_type() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -830,6 +857,7 @@ fn commit_report_evidence_should_fail_if_phishing_cml_is_c_type() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -873,6 +901,7 @@ fn commit_report_evidence_should_fail_if_repoted_not_long_ago() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -886,6 +915,7 @@ fn commit_report_evidence_should_fail_if_repoted_not_long_ago() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -899,6 +929,7 @@ fn commit_report_evidence_should_fail_if_repoted_not_long_ago() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -960,6 +991,7 @@ fn commit_report_evidence_should_fail_if_phishing_cml_is_inactive() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -973,6 +1005,7 @@ fn commit_report_evidence_should_fail_if_phishing_cml_is_inactive() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -986,6 +1019,7 @@ fn commit_report_evidence_should_fail_if_phishing_cml_is_inactive() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1011,7 +1045,9 @@ fn commit_report_evidence_should_fail_if_phishing_cml_is_inactive() {
 fn commit_offline_evidence_works() {
 	new_test_ext().execute_with(|| {
 		let miner = 2;
+		let miner_controller = 22;
 		let reporter = 3;
+		let reporter_controller = 33;
 		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
 		<Test as Config>::Currency::make_free_balance_be(&reporter, 10000);
 
@@ -1028,6 +1064,7 @@ fn commit_offline_evidence_works() {
 			Origin::signed(miner),
 			miner_cml_id,
 			miner_tea_id,
+			miner_controller,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1041,6 +1078,7 @@ fn commit_offline_evidence_works() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter_controller,
 			b"miner_ip2".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1049,7 +1087,7 @@ fn commit_offline_evidence_works() {
 		frame_system::Pallet::<Test>::set_block_number(current_height);
 
 		assert_ok!(Tea::commit_offline_evidence(
-			Origin::signed(reporter),
+			Origin::signed(reporter_controller),
 			reporter_tea_id,
 			miner_tea_id,
 			vec![]
@@ -1087,6 +1125,7 @@ fn commit_offline_evidence_works_if_commit_multi_times_and_suspend_the_node() {
 			Origin::signed(miner),
 			miner_cml_id,
 			miner_tea_id,
+			miner,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1100,6 +1139,7 @@ fn commit_offline_evidence_works_if_commit_multi_times_and_suspend_the_node() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1113,6 +1153,7 @@ fn commit_offline_evidence_works_if_commit_multi_times_and_suspend_the_node() {
 			Origin::signed(reporter2),
 			reporter_cml_id2,
 			reporter_tea_id2,
+			reporter2,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id3".to_vec()),
 		));
@@ -1174,6 +1215,7 @@ fn commit_offline_evidence_works_if_commit_multi_times_and_not_suspend_the_node(
 			Origin::signed(miner),
 			miner_cml_id,
 			miner_tea_id,
+			miner,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1187,6 +1229,7 @@ fn commit_offline_evidence_works_if_commit_multi_times_and_not_suspend_the_node(
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1200,6 +1243,7 @@ fn commit_offline_evidence_works_if_commit_multi_times_and_not_suspend_the_node(
 			Origin::signed(reporter2),
 			reporter_cml_id2,
 			reporter_tea_id2,
+			reporter2,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id3".to_vec()),
 		));
@@ -1295,6 +1339,7 @@ fn commit_offline_evidence_should_fail_if_reporter_is_not_type_b_cml() {
 			Origin::signed(miner),
 			miner_cml_id,
 			miner_tea_id,
+			miner,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1308,6 +1353,7 @@ fn commit_offline_evidence_should_fail_if_reporter_is_not_type_b_cml() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1345,6 +1391,7 @@ fn commit_offline_evidence_should_fail_if_offline_cml_is_c_type() {
 			Origin::signed(miner),
 			miner_cml_id,
 			miner_tea_id,
+			miner,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1358,6 +1405,7 @@ fn commit_offline_evidence_should_fail_if_offline_cml_is_c_type() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1395,6 +1443,7 @@ fn commit_offline_evidence_should_fail_if_reporter_is_inactive_already() {
 			Origin::signed(miner),
 			miner_cml_id,
 			miner_tea_id,
+			miner,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1408,6 +1457,7 @@ fn commit_offline_evidence_should_fail_if_reporter_is_inactive_already() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1431,8 +1481,11 @@ fn commit_offline_evidence_should_fail_if_reporter_is_inactive_already() {
 fn commit_tips_evidence_works() {
 	new_test_ext().execute_with(|| {
 		let committer = 2;
+		let committer_controller = 22;
 		let reporter = 3;
+		let reporter_controller = 33;
 		let phisher = 4;
+		let phisher_controller = 44;
 		<Test as Config>::Currency::make_free_balance_be(&committer, 10000);
 		<Test as Config>::Currency::make_free_balance_be(&reporter, 10000);
 		<Test as Config>::Currency::make_free_balance_be(&phisher, 10000);
@@ -1453,6 +1506,7 @@ fn commit_tips_evidence_works() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer_controller,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1466,6 +1520,7 @@ fn commit_tips_evidence_works() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter_controller,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -1479,6 +1534,7 @@ fn commit_tips_evidence_works() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher_controller,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1487,7 +1543,7 @@ fn commit_tips_evidence_works() {
 		frame_system::Pallet::<Test>::set_block_number(current_height);
 
 		assert_ok!(Tea::commit_tips_evidence(
-			Origin::signed(committer),
+			Origin::signed(committer_controller),
 			committer_tea_id,
 			reporter_tea_id,
 			phisher_tea_id,
@@ -1590,6 +1646,7 @@ fn commit_tips_evidence_should_fail_if_user_is_not_the_owner_of_commit_tea_id() 
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1629,6 +1686,7 @@ fn commit_tips_evidence_should_fail_if_commit_cml_is_not_b_type() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1672,6 +1730,7 @@ fn commit_tips_evidence_should_fail_if_report_cml_is_not_c_type() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1685,6 +1744,7 @@ fn commit_tips_evidence_should_fail_if_report_cml_is_not_c_type() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -1698,6 +1758,7 @@ fn commit_tips_evidence_should_fail_if_report_cml_is_not_c_type() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1741,6 +1802,7 @@ fn commit_tips_evidence_should_fail_if_phishing_cml_is_c_type() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1754,6 +1816,7 @@ fn commit_tips_evidence_should_fail_if_phishing_cml_is_c_type() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -1767,6 +1830,7 @@ fn commit_tips_evidence_should_fail_if_phishing_cml_is_c_type() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));
@@ -1810,6 +1874,7 @@ fn commit_tips_evidence_should_fail_if_repoted_not_long_ago() {
 			Origin::signed(committer),
 			committer_cml_id,
 			committer_tea_id,
+			committer,
 			b"miner_ip1".to_vec(),
 			Some(b"orbit_id1".to_vec()),
 		));
@@ -1823,6 +1888,7 @@ fn commit_tips_evidence_should_fail_if_repoted_not_long_ago() {
 			Origin::signed(reporter),
 			reporter_cml_id,
 			reporter_tea_id,
+			reporter,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -1836,6 +1902,7 @@ fn commit_tips_evidence_should_fail_if_repoted_not_long_ago() {
 			Origin::signed(phisher),
 			phisher_cml_id,
 			phisher_tea_id,
+			phisher,
 			b"miner_ip3".to_vec(),
 			Some(b"orbit_id2".to_vec()),
 		));

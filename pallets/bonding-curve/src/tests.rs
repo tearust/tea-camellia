@@ -1546,6 +1546,7 @@ fn consume_works_with_miner() {
 			Origin::signed(miner1),
 			cml_id1,
 			[1u8; 32],
+			miner1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1553,6 +1554,7 @@ fn consume_works_with_miner() {
 			Origin::signed(miner2),
 			cml_id2,
 			[2u8; 32],
+			miner2,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -1631,6 +1633,7 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 			Origin::signed(miner1),
 			cml_id1,
 			[1u8; 32],
+			miner1,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1638,6 +1641,7 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 			Origin::signed(miner2),
 			cml_id2,
 			[2u8; 32],
+			miner2,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -1762,6 +1766,7 @@ fn expense_works_if_expense_amount_more_than_reserved_balance() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1799,6 +1804,7 @@ fn host_works_with_fixed_fee() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1874,6 +1880,7 @@ fn host_works_fixed_token() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1936,6 +1943,7 @@ fn fixed_token_host_works_with_miner_hosts_multi_times() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1943,6 +1951,7 @@ fn fixed_token_host_works_with_miner_hosts_multi_times() {
 			Origin::signed(miner),
 			cml_id2,
 			[2u8; 32],
+			miner,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -2032,6 +2041,7 @@ fn host_should_fail_if_cml_is_already_hosting() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2068,6 +2078,7 @@ fn host_should_fail_if_cml_c_type() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2104,6 +2115,7 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2111,6 +2123,7 @@ fn host_should_fail_if_tapp_hosts_if_full() {
 			Origin::signed(miner),
 			cml_id2,
 			[2u8; 32],
+			miner,
 			b"miner_ip2".to_vec(),
 			None,
 		));
@@ -2166,6 +2179,7 @@ fn host_should_fail_if_cml_is_full_load() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2246,6 +2260,7 @@ fn host_should_fail_if_cml_is_suspended() {
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2280,6 +2295,7 @@ fn host_should_fail_if_not_enough_money() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2336,6 +2352,7 @@ fn unhost_works() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2397,6 +2414,7 @@ fn unhost_should_fail_if_not_after_locking_block_height() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2429,6 +2447,7 @@ fn unhost_should_fail_if_cml_not_belongs_to_user() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -2463,6 +2482,7 @@ fn unhost_should_fail_if_tapp_id_not_exist() {
 			Origin::signed(miner),
 			cml_id,
 			[1u8; 32],
+			miner,
 			b"miner_ip".to_vec(),
 			None,
 		));

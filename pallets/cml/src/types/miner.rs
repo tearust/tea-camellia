@@ -15,28 +15,32 @@ pub enum MinerStatus {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct MinerItem<BlockNumber>
+pub struct MinerItem<BlockNumber, AccountId>
 where
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	AccountId: Default,
 {
 	pub cml_id: CmlId,
 	pub id: MachineId,
 	pub ip: Vec<u8>,
+	pub controller_account: AccountId,
 	pub status: MinerStatus,
 	pub orbitdb_id: Option<Vec<u8>>,
 	pub suspend_height: Option<BlockNumber>,
 	pub schedule_down_height: Option<BlockNumber>,
 }
 
-impl<BlockNumber> Default for MinerItem<BlockNumber>
+impl<BlockNumber, AccountId> Default for MinerItem<BlockNumber, AccountId>
 where
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	AccountId: Default,
 {
 	fn default() -> Self {
 		MinerItem {
 			cml_id: 0,
 			id: [0; 32],
 			ip: vec![],
+			controller_account: Default::default(),
 			orbitdb_id: None,
 			status: MinerStatus::Offline,
 			suspend_height: None,

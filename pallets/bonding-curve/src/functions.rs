@@ -1117,6 +1117,7 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				[1u8; 32],
+				miner,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -1124,6 +1125,7 @@ mod tests {
 				Origin::signed(miner),
 				cml_id2,
 				[2u8; 32],
+				miner,
 				b"miner_ip2".to_vec(),
 				None,
 			));
@@ -1293,6 +1295,7 @@ mod tests {
 				Origin::signed(miner1),
 				cml_id1,
 				[1u8; 32],
+				miner1,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -1300,6 +1303,7 @@ mod tests {
 				Origin::signed(miner2),
 				cml_id2,
 				[2u8; 32],
+				miner2,
 				b"miner_ip2".to_vec(),
 				None,
 			));
@@ -1398,6 +1402,7 @@ mod tests {
 				Origin::signed(miner1),
 				cml_id1,
 				[1u8; 32],
+				miner1,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -1405,6 +1410,7 @@ mod tests {
 				Origin::signed(miner2),
 				cml_id2,
 				[2u8; 32],
+				miner2,
 				b"miner_ip2".to_vec(),
 				None,
 			));
@@ -1470,6 +1476,7 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				[1u8; 32],
+				miner,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -1477,6 +1484,7 @@ mod tests {
 				Origin::signed(miner),
 				cml_id2,
 				[2u8; 32],
+				miner,
 				b"miner_ip2".to_vec(),
 				None,
 			));
@@ -1484,6 +1492,7 @@ mod tests {
 				Origin::signed(miner),
 				cml_id4,
 				[4u8; 32],
+				miner,
 				b"miner_ip4".to_vec(),
 				None,
 			));
@@ -1544,6 +1553,7 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				[1u8; 32],
+				miner,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -1614,6 +1624,7 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				machine_id,
+				miner,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -1688,6 +1699,7 @@ mod tests {
 				Origin::signed(miner),
 				cml_id,
 				[1u8; 32],
+				miner,
 				b"miner_ip".to_vec(),
 				None,
 			));

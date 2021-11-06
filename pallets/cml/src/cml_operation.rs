@@ -32,7 +32,9 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		}
 	}
 
-	fn miner_item_by_machine_id(machine_id: &MachineId) -> Option<MinerItem<Self::BlockNumber>> {
+	fn miner_item_by_machine_id(
+		machine_id: &MachineId,
+	) -> Option<MinerItem<Self::BlockNumber, Self::AccountId>> {
 		if !MinerItemStore::<T>::contains_key(machine_id) {
 			return None;
 		}
@@ -311,11 +313,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 
 	fn check_miner(machine_id: MachineId, miner_account: &Self::AccountId) -> bool {
 		let miner_item = MinerItemStore::<T>::get(machine_id);
-		let cml = CmlStore::<T>::get(miner_item.cml_id);
-		match cml.owner() {
-			Some(owner) => owner.eq(miner_account),
-			None => false,
-		}
+		miner_item.controller_account.eq(miner_account)
 	}
 
 	fn suspend_mining(machine_id: MachineId) {
@@ -354,7 +352,7 @@ mod tests {
 			assert_eq!(Cml::mining_status(cml_id), (false, MinerStatus::Offline));
 
 			let machine_id: MachineId = [1u8; 32];
-			let mut miner_item: MinerItem<u64> = Default::default();
+			let mut miner_item: MinerItem<u64, u64> = Default::default();
 			miner_item.status = MinerStatus::Active;
 			MinerItemStore::<Test>::insert(machine_id, miner_item.clone());
 			cml.start_mining(machine_id, Default::default(), &0);
@@ -377,7 +375,7 @@ mod tests {
 
 			assert!(!Cml::is_cml_over_max_suspend_height(cml_id, &u64::MAX));
 			let machine_id: MachineId = [1u8; 32];
-			let mut miner_item: MinerItem<u64> = Default::default();
+			let mut miner_item: MinerItem<u64, u64> = Default::default();
 			MinerItemStore::<Test>::insert(machine_id, miner_item.clone());
 			cml.start_mining(machine_id, Default::default(), &0);
 			CmlStore::<Test>::insert(cml_id, cml.clone());
@@ -417,6 +415,7 @@ mod tests {
 				Origin::signed(owner),
 				cml_id,
 				[1u8; 32],
+				owner,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -467,6 +466,7 @@ mod tests {
 				Origin::signed(owner),
 				cml_id,
 				[1u8; 32],
+				owner,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -520,6 +520,7 @@ mod tests {
 				Origin::signed(owner1),
 				cml_id1,
 				[1u8; 32],
+				owner1,
 				b"miner_ip".to_vec(),
 				None,
 			));
@@ -536,6 +537,7 @@ mod tests {
 				Origin::signed(owner2),
 				cml_id2,
 				[2u8; 32],
+				owner2,
 				b"miner_ip2".to_vec(),
 				Some(b"orbit_id".to_vec()),
 			));

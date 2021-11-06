@@ -24,6 +24,7 @@ fn active_cml_for_nitro_works() {
 			Origin::signed(1),
 			cml_id,
 			machine_id,
+			1,
 			miner_ip.clone(),
 			None,
 		));
