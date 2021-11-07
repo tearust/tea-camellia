@@ -115,8 +115,8 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	/// each of list items contains the following field:
 	/// 1. Account
-	/// 2. Projected  7 day mining income (USD)
-	/// 3. TEA Account balance (in USD)
+	/// 2. Projected  7 day mining income (TEA)
+	/// 3. TEA Account balance (in TEA)
 	/// 4. USD account balance
 	/// 5. TApp token balance
 	/// 6. genesis loan

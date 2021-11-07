@@ -38,8 +38,8 @@ pub trait GenesisExchangeApi<BlockHash, AccountId> {
 
 	/// each of list items contains the following field:
 	/// 1. Account
-	/// 2. Projected  7 day mining income (USD)
-	/// 3. TEA Account balance (in USD)
+	/// 2. Projected  7 day mining income (TEA)
+	/// 3. TEA Account balance (in TEA)
 	/// 4. USD account balance
 	/// 5. TApp token balance
 	/// 6. genesis loan
@@ -129,8 +129,8 @@ where
 
 	/// each of list items contains the following field:
 	/// 1. Account
-	/// 2. Projected  7 day mining income (USD)
-	/// 3. TEA Account balance (in USD)
+	/// 2. Projected  7 day mining income (TEA)
+	/// 3. TEA Account balance (in TEA)
 	/// 4. USD account balance
 	/// 5. genesis loan
 	/// 6. USD debt
