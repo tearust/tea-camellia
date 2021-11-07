@@ -119,16 +119,16 @@ impl<T: tea::Config> tea::Pallet<T> {
 		ReportEvidences::<T>::iter().for_each(|(phisher, ev)| {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.reporter) {
 				if let Some(owner) = cml.owner() {
-					T::CurrencyOperations::deposit_creating(owner, T::ReportRawardAmount::get());
-					statements.push((ev.reporter, phisher, T::ReportRawardAmount::get()));
+					T::CurrencyOperations::deposit_creating(owner, ReportRawardAmount::<T>::get());
+					statements.push((ev.reporter, phisher, ReportRawardAmount::<T>::get()));
 				}
 			}
 		});
 		TipsEvidences::<T>::iter().for_each(|(phisher, ev)| {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.target) {
 				if let Some(owner) = cml.owner() {
-					T::CurrencyOperations::deposit_creating(owner, T::TipsRawardAmount::get());
-					statements.push((ev.target, phisher, T::TipsRawardAmount::get()));
+					T::CurrencyOperations::deposit_creating(owner, TipsRawardAmount::<T>::get());
+					statements.push((ev.target, phisher, TipsRawardAmount::<T>::get()));
 				}
 			}
 		});

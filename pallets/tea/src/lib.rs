@@ -91,12 +91,6 @@ pub mod tea {
 		#[pallet::constant]
 		type ReportRawardDuration: Get<Self::BlockNumber>;
 
-		#[pallet::constant]
-		type ReportRawardAmount: Get<BalanceOf<Self>>;
-
-		#[pallet::constant]
-		type TipsRawardAmount: Get<BalanceOf<Self>>;
-
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 		/// Common utils trait
@@ -179,8 +173,17 @@ pub mod tea {
 		StorageMap<_, Twox64Concat, TeaPubKey, TipsEvidence<T::BlockNumber>, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn offline_evidences)]
 	pub(super) type OfflineEvidences<T: Config> =
 		StorageMap<_, Twox64Concat, TeaPubKey, Vec<OfflineEvidence<T::BlockNumber>>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn report_reward_amount)]
+	pub(super) type ReportRawardAmount<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn tips_reward_amount)]
+	pub(super) type TipsRawardAmount<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -280,6 +283,8 @@ pub mod tea {
 	pub struct GenesisConfig<T: Config> {
 		pub builtin_nodes: Vec<TeaPubKey>,
 		pub builtin_miners: Vec<T::AccountId>,
+		pub report_reward_amount: BalanceOf<T>,
+		pub tips_reward_amount: BalanceOf<T>,
 	}
 
 	#[cfg(feature = "std")]
@@ -288,6 +293,8 @@ pub mod tea {
 			GenesisConfig {
 				builtin_nodes: Default::default(),
 				builtin_miners: Default::default(),
+				report_reward_amount: Default::default(),
+				tips_reward_amount: Default::default(),
 			}
 		}
 	}
@@ -295,6 +302,9 @@ pub mod tea {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			ReportRawardAmount::<T>::set(self.report_reward_amount);
+			TipsRawardAmount::<T>::set(self.tips_reward_amount);
+
 			// we must ensure sufficient RA builtin nodes to start up.
 			if self.builtin_nodes.len() < T::MinGroupMemberCount::get() as usize {
 				panic!("insufficient builtin RA nodes");
@@ -318,6 +328,24 @@ pub mod tea {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(195_000_000)]
+		pub fn set_reward_amount(
+			sender: OriginFor<T>,
+			report_reward: BalanceOf<T>,
+			tips_reward: BalanceOf<T>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					ReportRawardAmount::<T>::set(report_reward);
+					TipsRawardAmount::<T>::set(tips_reward);
+				},
+			)
+		}
+
 		#[pallet::weight(T::WeightInfo::update_node_profile())]
 		pub fn update_node_profile(
 			origin: OriginFor<T>,

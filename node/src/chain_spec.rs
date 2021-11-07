@@ -1,5 +1,5 @@
 use camellia_runtime::{
-	constants::currency::DOLLARS,
+	constants::currency::{CENTS, DOLLARS},
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisCoupons, GenesisSeeds},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, Block,
@@ -519,6 +519,8 @@ fn testnet_genesis(
 				hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
 			],
 			builtin_miners: endowed_accounts,
+			report_reward_amount: 10 * DOLLARS,
+			tips_reward_amount: 10 * CENTS,
 		},
 		cml: CmlConfig {
 			genesis_coupons,

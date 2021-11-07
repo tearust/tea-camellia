@@ -823,8 +823,6 @@ parameter_types! {
 	pub const OfflineValidDuration: u32 = 100;
 	pub const OfflineEffectThreshold: u32 = 2;
 	pub const ReportRawardDuration: u32 = 100;
-	pub const ReportRawardAmount: Balance = 10 * DOLLARS;
-	pub const TipsRawardAmount: Balance = 10 * CENTS;
 }
 
 impl pallet_tea::Config for Runtime {
@@ -840,8 +838,6 @@ impl pallet_tea::Config for Runtime {
 	type OfflineValidDuration = OfflineValidDuration;
 	type OfflineEffectThreshold = OfflineEffectThreshold;
 	type ReportRawardDuration = ReportRawardDuration;
-	type ReportRawardAmount = ReportRawardAmount;
-	type TipsRawardAmount = TipsRawardAmount;
 	type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
 	type CurrencyOperations = Utils;
 	type CommonUtils = Utils;

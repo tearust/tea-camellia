@@ -268,6 +268,7 @@ pub mod pallet {
 	pub type ErasStartSessionIndex<T> = StorageMap<_, Twox64Concat, EraIndex, SessionIndex>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn eras_total_reward)]
 	pub type EraTotalReward<T> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	/// Exposure of validator at era.
