@@ -918,8 +918,6 @@ const LOAN_TERM_DURATION: BlockNumber = 33000; //about 55 hours. good for fast t
 parameter_types! {
 	/// Borrower has to repay the loan before LoanTermDuration, otherwise in default
 	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
-	/// The appraisal for seed regardless types
-	pub const GenesisCmlLoanAmount: Balance = 500 * DOLLARS;
 	/// The Genesis Bank calculate interest every BillingCycle. If borrower repay the loan before a billing cycle ends,
 	/// the interest is calculated to the end of this billing cycle.
 	pub const BillingCycle: BlockNumber = 1000;
