@@ -1,8 +1,8 @@
 use crate::param::{GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::tests::{new_genesis_frozen_seed, new_genesis_seed, seed_from_lifespan};
 use crate::{
-	mock::*, types::*, CmlOperation, CmlStore, Config, Error, MinerItemStore, MiningCmlTaskPoints,
-	UserCmlStore,
+	mock::*, types::*, CmlOperation, CmlStore, Config, Error, MinerIpSet, MinerItemStore,
+	MiningCmlTaskPoints, UserCmlStore,
 };
 use frame_support::{assert_noop, assert_ok, traits::Currency};
 use pallet_utils::CurrencyOperations;
@@ -1345,18 +1345,20 @@ fn migrate_works_if_cml_is_offline() {
 
 		let miner_controller = 2;
 		let machine_id: MachineId = [1u8; 32];
+		let miner_ip = b"miner_ip".to_vec();
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
 			miner_controller,
-			b"miner_ip".to_vec(),
+			miner_ip.clone(),
 			None,
 		));
 
 		Cml::suspend_mining(machine_id);
 		let miner_item = MinerItemStore::<Test>::get(machine_id);
 		assert_eq!(miner_item.status, MinerStatus::Offline);
+		assert!(MinerIpSet::<Test>::contains_key(&miner_ip));
 
 		let new_miner_controller = 3;
 		let new_machine_id = [2u8; 32];
@@ -1378,6 +1380,8 @@ fn migrate_works_if_cml_is_offline() {
 		assert_eq!(miner_item.ip, new_miner_ip);
 		assert_eq!(miner_item.controller_account, new_miner_controller);
 		assert_eq!(miner_item.orbitdb_id, Some(new_orbit_id));
+		assert!(!MinerIpSet::<Test>::contains_key(&miner_ip));
+		assert!(MinerIpSet::<Test>::contains_key(&new_miner_ip));
 	})
 }
 
@@ -1394,14 +1398,16 @@ fn migrate_works_if_cml_is_schedule_down() {
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		let machine_id: MachineId = [1u8; 32];
+		let miner_ip = b"miner_ip".to_vec();
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
 			miner,
-			b"miner_ip".to_vec(),
+			miner_ip.clone(),
 			None,
 		));
+		assert!(MinerIpSet::<Test>::contains_key(&miner_ip));
 
 		assert_ok!(Cml::schedule_down(Origin::signed(miner), cml_id));
 		let miner_item = MinerItemStore::<Test>::get(machine_id);
@@ -1425,6 +1431,8 @@ fn migrate_works_if_cml_is_schedule_down() {
 		assert_eq!(miner_item.id, new_machine_id);
 		assert_eq!(miner_item.ip, new_miner_ip);
 		assert_eq!(miner_item.controller_account, new_miner_controller);
+		assert!(!MinerIpSet::<Test>::contains_key(&miner_ip));
+		assert!(MinerIpSet::<Test>::contains_key(&new_miner_ip));
 	})
 }
 

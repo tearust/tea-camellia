@@ -785,11 +785,13 @@ pub mod cml {
 				|_who| {
 					if let Some(machine_id) = CmlStore::<T>::get(cml_id).machine_id() {
 						let mut miner_item = MinerItemStore::<T>::take(machine_id);
+						MinerIpSet::<T>::remove(&miner_item.ip);
 						miner_item.id = new_machine_id;
 						miner_item.ip = new_miner_ip.clone();
 						miner_item.controller_account = controller_account.clone();
 						miner_item.orbitdb_id = orbitdb_id.clone();
 						MinerItemStore::<T>::insert(new_machine_id, miner_item);
+						MinerIpSet::<T>::insert(new_miner_ip.clone(), ());
 
 						CmlStore::<T>::mutate(cml_id, |cml| cml.migrate_to(new_machine_id));
 					}
