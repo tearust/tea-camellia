@@ -125,10 +125,6 @@ pub mod pallet {
 		/// Interface for interacting with a session pallet.
 		type SessionInterface: SessionInterface<Self::AccountId>;
 
-		/// Total reward of an era
-		#[pallet::constant]
-		type EraTotalReward: Get<BalanceOf<Self>>;
-
 		/// Something that can estimate the next session change, accurately or as a best effort
 		/// guess.
 		type NextNewSession: EstimateNextNewSession<Self::BlockNumber>;
@@ -270,6 +266,9 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn eras_start_session_index)]
 	pub type ErasStartSessionIndex<T> = StorageMap<_, Twox64Concat, EraIndex, SessionIndex>;
+
+	#[pallet::storage]
+	pub type EraTotalReward<T> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	/// Exposure of validator at era.
 	///
@@ -461,6 +460,7 @@ pub mod pallet {
 		)>,
 		pub min_nominator_bond: BalanceOf<T>,
 		pub min_validator_bond: BalanceOf<T>,
+		pub era_total_reward: BalanceOf<T>,
 	}
 
 	#[cfg(feature = "std")]
@@ -477,6 +477,7 @@ pub mod pallet {
 				stakers: Default::default(),
 				min_nominator_bond: Default::default(),
 				min_validator_bond: Default::default(),
+				era_total_reward: Default::default(),
 			}
 		}
 	}
@@ -494,6 +495,7 @@ pub mod pallet {
 			StorageVersion::<T>::put(Releases::V7_0_0);
 			MinNominatorBond::<T>::put(self.min_nominator_bond);
 			MinValidatorBond::<T>::put(self.min_validator_bond);
+			EraTotalReward::<T>::put(self.era_total_reward);
 
 			for &(ref stash, ref controller, balance, ref status) in &self.stakers {
 				assert!(
@@ -1084,6 +1086,13 @@ pub mod pallet {
 					<Ledger<T>>::insert(&controller, l);
 				}
 			}
+			Ok(())
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn set_era_total_reward(origin: OriginFor<T>, reward: BalanceOf<T>) -> DispatchResult {
+			ensure_root(origin)?;
+			EraTotalReward::<T>::set(reward);
 			Ok(())
 		}
 

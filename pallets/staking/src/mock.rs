@@ -132,7 +132,6 @@ parameter_types! {
 	pub static SlashDeferDuration: EraIndex = 0;
 	pub static Period: BlockNumber = 5;
 	pub static Offset: BlockNumber = 0;
-	pub const EraTotalReward: Balance = ERA_TOTAL_REWARD;
 }
 
 impl frame_system::Config for Test {
@@ -258,7 +257,6 @@ impl Config for Test {
 	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
 	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
 	type GenesisElectionProvider = Self::ElectionProvider;
-	type EraTotalReward = EraTotalReward;
 	type WeightInfo = ();
 }
 
@@ -492,6 +490,7 @@ impl ExtBuilder {
 			slash_reward_fraction: Perbill::from_percent(10),
 			min_nominator_bond: self.min_nominator_bond,
 			min_validator_bond: self.min_validator_bond,
+			era_total_reward: ERA_TOTAL_REWARD,
 			..Default::default()
 		}
 		.assimilate_storage(&mut storage);

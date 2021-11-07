@@ -368,7 +368,7 @@ impl<T: Config> Pallet<T> {
 	fn end_era(active_era: ActiveEraInfo, _session_index: SessionIndex) {
 		// Note: active_era_start can be None if end era is called during genesis config.
 		if let Some(_active_era_start) = active_era.start {
-			let validator_payout = T::EraTotalReward::get();
+			let validator_payout = EraTotalReward::<T>::get();
 
 			Self::deposit_event(Event::<T>::EraPaid(active_era.index, validator_payout));
 			// Set ending era reward.

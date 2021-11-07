@@ -485,6 +485,7 @@ fn testnet_genesis(
 			minimum_validator_count: max(initial_authorities.len() as u32, DESIRED_VALIDATOR_COUNT),
 			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
 			slash_reward_fraction: Perbill::from_percent(10),
+			era_total_reward: 1000 * DOLLARS,
 			..Default::default()
 		},
 		im_online: ImOnlineConfig { keys: vec![] },
