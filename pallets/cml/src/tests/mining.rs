@@ -1343,12 +1343,13 @@ fn migrate_works_if_cml_is_offline() {
 		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
 		CmlStore::<Test>::insert(cml_id, cml);
 
+		let miner_controller = 2;
 		let machine_id: MachineId = [1u8; 32];
 		assert_ok!(Cml::start_mining(
 			Origin::signed(miner),
 			cml_id,
 			machine_id,
-			miner,
+			miner_controller,
 			b"miner_ip".to_vec(),
 			None,
 		));
@@ -1357,13 +1358,17 @@ fn migrate_works_if_cml_is_offline() {
 		let miner_item = MinerItemStore::<Test>::get(machine_id);
 		assert_eq!(miner_item.status, MinerStatus::Offline);
 
+		let new_miner_controller = 3;
 		let new_machine_id = [2u8; 32];
 		let new_miner_ip = b"miner_ip2".to_vec();
+		let new_orbit_id = b"orbit_id2".to_vec();
 		assert_ok!(Cml::migrate(
 			Origin::signed(miner),
 			cml_id,
 			new_machine_id,
-			new_miner_ip.clone()
+			new_miner_ip.clone(),
+			new_miner_controller,
+			Some(new_orbit_id.clone()),
 		));
 
 		assert!(!MinerItemStore::<Test>::contains_key(machine_id));
@@ -1371,6 +1376,8 @@ fn migrate_works_if_cml_is_offline() {
 		assert_eq!(miner_item.status, MinerStatus::Offline);
 		assert_eq!(miner_item.id, new_machine_id);
 		assert_eq!(miner_item.ip, new_miner_ip);
+		assert_eq!(miner_item.controller_account, new_miner_controller);
+		assert_eq!(miner_item.orbitdb_id, Some(new_orbit_id));
 	})
 }
 
@@ -1400,13 +1407,16 @@ fn migrate_works_if_cml_is_schedule_down() {
 		let miner_item = MinerItemStore::<Test>::get(machine_id);
 		assert_eq!(miner_item.status, MinerStatus::ScheduleDown);
 
+		let new_miner_controller = 3;
 		let new_machine_id = [2u8; 32];
 		let new_miner_ip = b"miner_ip2".to_vec();
 		assert_ok!(Cml::migrate(
 			Origin::signed(miner),
 			cml_id,
 			new_machine_id,
-			new_miner_ip.clone()
+			new_miner_ip.clone(),
+			new_miner_controller,
+			None,
 		));
 
 		assert!(!MinerItemStore::<Test>::contains_key(machine_id));
@@ -1414,6 +1424,7 @@ fn migrate_works_if_cml_is_schedule_down() {
 		assert_eq!(miner_item.status, MinerStatus::ScheduleDown);
 		assert_eq!(miner_item.id, new_machine_id);
 		assert_eq!(miner_item.ip, new_miner_ip);
+		assert_eq!(miner_item.controller_account, new_miner_controller);
 	})
 }
 
@@ -1423,7 +1434,7 @@ fn migrate_should_fail_if_cml_not_exist() {
 		let cml_id: CmlId = 4;
 
 		assert_noop!(
-			Cml::migrate(Origin::signed(1), cml_id, [1u8; 32], vec![]),
+			Cml::migrate(Origin::signed(1), cml_id, [1u8; 32], vec![], 2, None),
 			Error::<Test>::NotFoundCML
 		);
 	})
@@ -1443,7 +1454,7 @@ fn migrate_should_fail_if_user_is_not_cml_owner() {
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_noop!(
-			Cml::migrate(Origin::signed(user), cml_id, [1u8; 32], vec![]),
+			Cml::migrate(Origin::signed(user), cml_id, [1u8; 32], vec![], user, None),
 			Error::<Test>::CMLOwnerInvalid
 		);
 	})
@@ -1462,7 +1473,14 @@ fn migrate_should_fail_if_cml_is_not_mining() {
 		CmlStore::<Test>::insert(cml_id, cml);
 
 		assert_noop!(
-			Cml::migrate(Origin::signed(miner), cml_id, [1u8; 32], vec![]),
+			Cml::migrate(
+				Origin::signed(miner),
+				cml_id,
+				[1u8; 32],
+				vec![],
+				miner,
+				None
+			),
 			Error::<Test>::NotFoundMiner
 		);
 	})
@@ -1493,7 +1511,14 @@ fn migrate_should_fail_if_cml_is_active() {
 		assert_eq!(miner_item.status, MinerStatus::Active);
 
 		assert_noop!(
-			Cml::migrate(Origin::signed(miner), cml_id, [1u8; 32], vec![]),
+			Cml::migrate(
+				Origin::signed(miner),
+				cml_id,
+				[1u8; 32],
+				vec![],
+				miner,
+				None
+			),
 			Error::<Test>::CannotMigrateWhenActive
 		);
 	})
@@ -1539,7 +1564,14 @@ fn migrate_should_fail_if_machine_id_already_exist() {
 		));
 
 		assert_noop!(
-			Cml::migrate(Origin::signed(miner), cml_id, machine_id2, vec![]),
+			Cml::migrate(
+				Origin::signed(miner),
+				cml_id,
+				machine_id2,
+				vec![],
+				miner,
+				None
+			),
 			Error::<Test>::MinerAlreadyExist
 		);
 	})
@@ -1587,7 +1619,14 @@ fn migrate_should_fail_if_ip_address_already_exist() {
 		));
 
 		assert_noop!(
-			Cml::migrate(Origin::signed(miner), cml_id, machine_id, ip_address2),
+			Cml::migrate(
+				Origin::signed(miner),
+				cml_id,
+				machine_id,
+				ip_address2,
+				miner,
+				None
+			),
 			Error::<Test>::MinerIpAlreadyExist
 		);
 	})

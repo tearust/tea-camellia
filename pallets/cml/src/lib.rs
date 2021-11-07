@@ -753,6 +753,8 @@ pub mod cml {
 			cml_id: CmlId,
 			new_machine_id: MachineId,
 			new_miner_ip: Vec<u8>,
+			controller_account: T::AccountId,
+			orbitdb_id: Option<Vec<u8>>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
@@ -785,6 +787,8 @@ pub mod cml {
 						let mut miner_item = MinerItemStore::<T>::take(machine_id);
 						miner_item.id = new_machine_id;
 						miner_item.ip = new_miner_ip.clone();
+						miner_item.controller_account = controller_account.clone();
+						miner_item.orbitdb_id = orbitdb_id.clone();
 						MinerItemStore::<T>::insert(new_machine_id, miner_item);
 
 						CmlStore::<T>::mutate(cml_id, |cml| cml.migrate_to(new_machine_id));
