@@ -41,7 +41,6 @@ fn builtin_node_update_node_profile_works() {
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
-			Vec::new(),
 			peer_id,
 		));
 		assert!(Tea::is_builtin_node(&tea_id));
@@ -66,7 +65,6 @@ fn builtin_node_update_node_profile_should_fail_if_not_in_builtin_miners_list() 
 				Origin::signed(1),
 				tea_id.clone(),
 				ephemeral_id.clone(),
-				Vec::new(),
 				Vec::new(),
 				peer_id,
 			),
@@ -106,7 +104,6 @@ fn normal_node_update_node_profile_works() {
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
-			Vec::new(),
 			peer_id,
 		));
 		assert!(!Tea::is_builtin_node(&tea_id));
@@ -131,7 +128,6 @@ fn normal_node_update_node_profile_should_fail_if_not_the_owner_of_tea_id() {
 				tea_id.clone(),
 				ephemeral_id.clone(),
 				Vec::new(),
-				Vec::new(),
 				peer_id,
 			),
 			Error::<Test>::InvalidTeaIdOwner
@@ -149,7 +145,6 @@ fn update_node_profile_before_register_node() {
 				Origin::signed(1),
 				tea_id.clone(),
 				ephemeral_id.clone(),
-				Vec::new(),
 				Vec::new(),
 				peer_id,
 			),
@@ -169,7 +164,6 @@ fn update_node_profile_with_empty_peer_id() {
 				Origin::signed(1),
 				tea_id.clone(),
 				ephemeral_id.clone(),
-				Vec::new(),
 				Vec::new(),
 				Vec::new(),
 			),

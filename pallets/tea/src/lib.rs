@@ -352,7 +352,6 @@ pub mod tea {
 			tea_id: TeaPubKey,
 			ephemeral_id: TeaPubKey,
 			profile_cid: Cid,
-			urls: Vec<Url>,
 			peer_id: PeerId,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -374,7 +373,6 @@ pub mod tea {
 						tea_id,
 						ephemeral_id,
 						profile_cid: profile_cid.clone(),
-						urls: urls.clone(),
 						ra_nodes: vec![],
 						status,
 						peer_id: peer_id.clone(),
