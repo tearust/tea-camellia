@@ -883,7 +883,8 @@ parameter_types! {
 	pub const CmlAMiningRewardRate: Balance = 0;
 	/// Type B cml miner will get 50% reward
 	pub const CmlBMiningRewardRate: Balance = 5000;
-	pub const CmlCMiningRewardRate: Balance = 0;
+	/// Type C cml miner will get 50% reward
+	pub const CmlCMiningRewardRate: Balance = 5000;
 }
 
 impl pallet_cml::Config for Runtime {
