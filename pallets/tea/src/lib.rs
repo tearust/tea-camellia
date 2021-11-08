@@ -185,6 +185,11 @@ pub mod tea {
 	#[pallet::getter(fn tips_reward_amount)]
 	pub(super) type TipsRawardAmount<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn allowed_pcr_values)]
+	pub(super) type AllowedPcrValues<T: Config> =
+		StorageMap<_, Twox64Concat, H256, PcrSlots, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -262,6 +267,10 @@ pub mod tea {
 		CanNotCommitOfflineEvidenceMultiTimes,
 		/// Tips has been committedd multiple times
 		RedundantTips,
+		/// The pcr has registered already
+		PcrAlreadyExists,
+		/// The pcr not registered so cannot unregister
+		PcrNotExists,
 	}
 
 	#[pallet::hooks]
@@ -342,6 +351,51 @@ pub mod tea {
 				|_| {
 					ReportRawardAmount::<T>::set(report_reward);
 					TipsRawardAmount::<T>::set(tips_reward);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn register_pcr(
+			sender: OriginFor<T>,
+			slots: Vec<PcrValue>,
+			description: Vec<u8>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+			let hash = Self::pcr_slots_hash(&slots);
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						!AllowedPcrValues::<T>::contains_key(&hash),
+						Error::<T>::PcrAlreadyExists,
+					);
+
+					Ok(())
+				},
+				move |_| {
+					AllowedPcrValues::<T>::insert(hash, PcrSlots { slots, description });
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn unregister_pcr(sender: OriginFor<T>, hash: H256) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						AllowedPcrValues::<T>::contains_key(&hash),
+						Error::<T>::PcrNotExists,
+					);
+
+					Ok(())
+				},
+				move |_| {
+					AllowedPcrValues::<T>::remove(hash);
 				},
 			)
 		}

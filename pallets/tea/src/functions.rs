@@ -182,6 +182,10 @@ impl<T: tea::Config> tea::Pallet<T> {
 		// todo check signature is signed by ephemeral key of tea_id
 		Ok(())
 	}
+
+	pub(crate) fn pcr_slots_hash(slots: &Vec<PcrValue>) -> H256 {
+		slots.using_encoded(blake2_256).into()
+	}
 }
 
 #[cfg(test)]

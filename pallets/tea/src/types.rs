@@ -109,3 +109,10 @@ where
 	pub height: BlockNumber,
 	pub tea_id: TeaPubKey,
 }
+
+pub type PcrValue = Vec<u8>;
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct PcrSlots {
+	pub slots: Vec<PcrValue>,
+	pub description: Vec<u8>,
+}

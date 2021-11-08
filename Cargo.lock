@@ -8686,6 +8686,7 @@ dependencies = [
  "serde",
  "sp-api",
  "sp-blockchain",
+ "sp-core",
  "sp-rpc",
  "sp-runtime",
  "tea-runtime-api",
@@ -8698,6 +8699,7 @@ dependencies = [
  "node-primitives",
  "parity-scale-codec",
  "sp-api",
+ "sp-core",
  "sp-std",
 ]
 

@@ -10,6 +10,7 @@ edition = "2018"
 codec = {default-features = false,  package = "parity-scale-codec", version = "2.0.0" }
 sp-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 sp-std = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
+sp-core = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
 node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 
 [features]
@@ -18,5 +19,6 @@ std = [
     'codec/std',
     'sp-api/std',
     'sp-std/std',
+    'sp-core/std',
     'node-primitives/std',
 ]

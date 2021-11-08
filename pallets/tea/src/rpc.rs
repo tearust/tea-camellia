@@ -12,4 +12,10 @@ impl<T: tea::Config> tea::Pallet<T> {
 	pub fn list_boot_nodes() -> Vec<[u8; 32]> {
 		BuiltinNodes::<T>::iter().map(|(id, _)| id).collect()
 	}
+
+	pub fn list_allowed_pcrs() -> Vec<(H256, Vec<PcrValue>)> {
+		AllowedPcrValues::<T>::iter()
+			.map(|(hash, v)| (hash, v.slots))
+			.collect()
+	}
 }

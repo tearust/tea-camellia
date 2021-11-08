@@ -4,6 +4,7 @@
 
 use codec::Codec;
 use node_primitives::BlockNumber;
+use sp_core::H256;
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
@@ -18,5 +19,7 @@ sp_api::decl_runtime_apis! {
 		) -> bool;
 
 		fn boot_nodes() -> Vec<[u8; 32]>;
+
+		fn allowed_pcrs() -> Vec<(H256, Vec<Vec<u8>>)>;
 	}
 }

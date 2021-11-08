@@ -1,15 +1,97 @@
 use crate::{
-	group::update_validator_groups_count, mock::*, types::*, BuiltinMiners, BuiltinNodes, Config,
-	Error, Nodes, OfflineEvidences, ReportEvidences, TipsEvidences,
+	group::update_validator_groups_count, mock::*, types::*, AllowedPcrValues, BuiltinMiners,
+	BuiltinNodes, Config, Error, Nodes, OfflineEvidences, ReportEvidences, TipsEvidences,
 };
-use frame_support::{assert_noop, assert_ok, traits::Currency};
+use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
 use hex_literal::hex;
 use pallet_cml::{
 	CmlId, CmlStore, CmlType, DefrostScheduleType, MinerItemStore, MinerStatus, Seed, UserCmlStore,
 	CML,
 };
+use sp_core::H256;
 use sp_runtime::traits::AtLeast32BitUnsigned;
 use tea_interface::TeaOperation;
+
+#[test]
+fn register_pcr_works() {
+	new_test_ext().execute_with(|| {
+		let pcr = b"test pcr".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_eq!(AllowedPcrValues::<Test>::iter().count(), 0);
+		assert_ok!(Tea::register_pcr(Origin::root(), vec![pcr], desc));
+		assert_eq!(AllowedPcrValues::<Test>::iter().count(), 1);
+	})
+}
+
+#[test]
+fn register_pcr_should_fail_if_not_root_user() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Tea::register_pcr(
+				Origin::signed(1),
+				vec![b"test pcr".to_vec()],
+				b"test desc".to_vec()
+			),
+			DispatchError::BadOrigin
+		);
+	})
+}
+
+#[test]
+fn register_pcr_should_faild_if_register_twice() {
+	new_test_ext().execute_with(|| {
+		let pcr = b"test pcr".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_ok!(Tea::register_pcr(
+			Origin::root(),
+			vec![pcr.clone()],
+			desc.clone()
+		));
+		assert_noop!(
+			Tea::register_pcr(Origin::root(), vec![pcr], desc),
+			Error::<Test>::PcrAlreadyExists
+		);
+	})
+}
+
+#[test]
+fn unregister_pcr_works() {
+	new_test_ext().execute_with(|| {
+		let pcr = b"test pcr".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_ok!(Tea::register_pcr(Origin::root(), vec![pcr], desc));
+		assert_eq!(AllowedPcrValues::<Test>::iter().count(), 1);
+
+		let hashes: Vec<H256> = AllowedPcrValues::<Test>::iter()
+			.map(|(hash, _)| hash)
+			.collect();
+		assert_ok!(Tea::unregister_pcr(Origin::root(), hashes[0]));
+		assert_eq!(AllowedPcrValues::<Test>::iter().count(), 0);
+	})
+}
+
+#[test]
+fn unregister_pcr_should_fail_if_not_root_user() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Tea::unregister_pcr(Origin::signed(1), Default::default(),),
+			DispatchError::BadOrigin
+		);
+	})
+}
+
+#[test]
+fn unregister_pcr_should_fail_if_not_exist() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Tea::unregister_pcr(Origin::root(), Default::default()),
+			Error::<Test>::PcrNotExists
+		);
+	})
+}
 
 #[test]
 fn add_new_node_works() {
