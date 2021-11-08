@@ -1,5 +1,7 @@
 SR25519
-Secret phrase kit carpet delay walk ugly blossom soon diamond year whale motion initial is account:
+Secret phrase 
+kit carpet delay walk ugly blossom soon diamond year whale motion initial 
+
 Secret seed: 0x2d746c9edfa254f7b53a4f379030e31276819f4c8680b923856f965405729748
 Public key (hex): 0x2ac9277ba6745a7864161469c3479fd13f44381544d37f6c017311cca5424e76
 Public key (SS58): 5D2od84fg3GScGR139Li56raDWNQQhzgYbV7QsEJKS4KfTGv
@@ -7,7 +9,7 @@ Account ID: 0x2ac9277ba6745a7864161469c3479fd13f44381544d37f6c017311cca5424e76
 SS58 Address: 5D2od84fg3GScGR139Li56raDWNQQhzgYbV7QsEJKS4KfTGv
 
 ED25519
-Secret phrase kit carpet delay walk ugly blossom soon diamond year whale motion initial is account:
+Secret phrase kit carpet delay walk ugly blossom soon diamond year whale motion initial 
 Secret seed: 0x2d746c9edfa254f7b53a4f379030e31276819f4c8680b923856f965405729748
 Public key (hex): 0x0c5acb8dfbc48ba6c6054a5cdf68936b0ac81638dcf51769b32fba4a93f44a1e
 Public key (SS58): 5CLuQMrByXAEfM8C3AUqWuD5yr1g92kTKpxEJDkqYL6WEpVa
