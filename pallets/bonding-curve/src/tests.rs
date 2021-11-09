@@ -417,6 +417,60 @@ fn create_new_tapp_should_fail_if_name_already_exist() {
 }
 
 #[test]
+fn create_new_tapp_should_word_if_name_already_exist_with_bbs_type() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_ok!(create_default_tapp(user));
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(user),
+			b"test name".to_vec(),
+			b"tea2".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			10,
+			TAppType::Bbs,
+			true,
+			None,
+			Some(1000),
+			None,
+			None,
+		));
+	})
+}
+
+#[test]
+fn create_new_tapp_should_word_if_link_not_exist_with_bbs_type() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user = 1;
+		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
+
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(user),
+			b"test name".to_vec(),
+			b"tea2".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			10,
+			TAppType::Bbs,
+			true,
+			None,
+			Some(1000),
+			None,
+			None,
+		));
+		// bbs tapp should not have tapp link lease
+		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99999534);
+	})
+}
+
+#[test]
 fn create_new_tapp_should_fail_if_ticker_already_exist() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
@@ -1228,10 +1282,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
 		assert!(!TAppNames::<Test>::contains_key(name));
 		assert!(!TAppTickers::<Test>::contains_key(ticker));
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&owner),
-			DOLLARS - RESERVED_LINK_RENT_AMOUNT
-		);
+		assert_eq!(<Test as Config>::Currency::free_balance(&owner), DOLLARS);
 	})
 }
 

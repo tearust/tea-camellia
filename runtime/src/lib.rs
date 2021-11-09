@@ -988,7 +988,7 @@ parameter_types! {
 	pub const DefaultBuyCurveTheta: u32 = 10;
 	pub const DefaultSellCurveTheta: u32 = 7;
 	pub const HostPledgeAmount: Balance = 100 * DOLLARS;
-	pub const ReservedLinkRentAmount: Balance = 100 * DOLLARS
+	pub const ReservedLinkRentAmount: Balance = 100 * DOLLARS;
 }
 
 impl pallet_bonding_curve::Config for Runtime {

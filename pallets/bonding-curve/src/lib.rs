@@ -696,10 +696,13 @@ pub mod bonding_curve {
 						Error::<T>::BuyCurveThetaShouldLargerEqualThanSellCurveTheta
 					);
 
-					ensure!(
-						!TAppNames::<T>::contains_key(&tapp_name),
-						Error::<T>::TAppNameAlreadyExist
-					);
+					let link_related = tapp_type != TAppType::Bbs;
+					if link_related {
+						ensure!(
+							!TAppNames::<T>::contains_key(&tapp_name),
+							Error::<T>::TAppNameAlreadyExist
+						);
+					}
 					ensure!(
 						!TAppTickers::<T>::contains_key(&ticker),
 						Error::<T>::TAppTickerAlreadyExist
@@ -708,14 +711,20 @@ pub mod bonding_curve {
 						!init_fund.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-					ensure!(
-						TAppApprovedLinks::<T>::contains_key(&link),
-						Error::<T>::LinkNotInApprovedList
-					);
+
+					if link_related {
+						ensure!(
+							TAppApprovedLinks::<T>::contains_key(&link),
+							Error::<T>::LinkNotInApprovedList
+						);
+					}
+
 					let link_info = TAppApprovedLinks::<T>::get(&link);
-					ensure!(link_info.tapp_id.is_none(), Error::<T>::LinkAlreadyBeUsed);
-					if let Some(ref creator) = link_info.creator {
-						ensure!(creator.eq(who), Error::<T>::UserReservedLink);
+					if link_related {
+						ensure!(link_info.tapp_id.is_none(), Error::<T>::LinkAlreadyBeUsed);
+						if let Some(ref creator) = link_info.creator {
+							ensure!(creator.eq(who), Error::<T>::UserReservedLink);
+						}
 					}
 
 					let mut deposit_tea_amount =
@@ -728,7 +737,7 @@ pub mod bonding_curve {
 						!deposit_tea_amount.is_zero(),
 						Error::<T>::BuyTeaAmountCanNotBeZero
 					);
-					if link_info.creator.is_none() {
+					if link_related && link_info.creator.is_none() {
 						deposit_tea_amount += T::ReservedLinkRentAmount::get();
 					}
 					ensure!(
@@ -744,10 +753,15 @@ pub mod bonding_curve {
 					Ok(())
 				},
 				|who| {
+					let link_related = tapp_type != TAppType::Bbs;
 					let id = Self::next_id();
-					TAppNames::<T>::insert(&tapp_name, id);
+					if link_related {
+						TAppNames::<T>::insert(&tapp_name, id);
+						TAppApprovedLinks::<T>::mutate(&link, |link_info| {
+							link_info.tapp_id = Some(id)
+						});
+					}
 					TAppTickers::<T>::insert(&ticker, id);
-					TAppApprovedLinks::<T>::mutate(&link, |link_info| link_info.tapp_id = Some(id));
 
 					let buy_curve_k = buy_curve_k.unwrap_or(T::DefaultBuyCurveTheta::get());
 					let sell_curve_k = sell_curve_k.unwrap_or(T::DefaultSellCurveTheta::get());
@@ -777,7 +791,9 @@ pub mod bonding_curve {
 						},
 					);
 					Self::buy_token_inner(who, id, init_fund);
-					T::CurrencyOperations::slash(who, T::ReservedLinkRentAmount::get());
+					if link_related && TAppApprovedLinks::<T>::get(&link).creator.is_none() {
+						T::CurrencyOperations::slash(who, T::ReservedLinkRentAmount::get());
+					}
 
 					Self::deposit_event(Event::TAppCreated(id, tapp_name.clone(), who.clone()));
 				},
