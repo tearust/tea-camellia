@@ -1,6 +1,6 @@
 use crate::{
 	group::update_validator_groups_count, mock::*, types::*, AllowedPcrValues, BuiltinMiners,
-	BuiltinNodes, Config, Error, Nodes, OfflineEvidences, ReportEvidences, TipsEvidences,
+	BuiltinNodes, Config, Error, NodePcr, Nodes, OfflineEvidences, ReportEvidences, TipsEvidences,
 };
 use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
 use hex_literal::hex;
@@ -68,8 +68,13 @@ fn unregister_pcr_works() {
 		let hashes: Vec<H256> = AllowedPcrValues::<Test>::iter()
 			.map(|(hash, _)| hash)
 			.collect();
-		assert_ok!(Tea::unregister_pcr(Origin::root(), hashes[0]));
+		let hash = hashes[0];
+
+		NodePcr::<Test>::insert([1; 32], hash);
+
+		assert_ok!(Tea::unregister_pcr(Origin::root(), hash));
 		assert_eq!(AllowedPcrValues::<Test>::iter().count(), 0);
+		assert_eq!(NodePcr::<Test>::iter().count(), 0);
 	})
 }
 
@@ -118,18 +123,57 @@ fn builtin_node_update_node_profile_works() {
 		BuiltinNodes::<Test>::insert(&tea_id, ());
 		BuiltinMiners::<Test>::insert(builtin_miner, ());
 
+		let pcr_slots = vec![b"test pcr".to_vec()];
+		let pcr_hash = Tea::pcr_slots_hash(&pcr_slots);
+		AllowedPcrValues::<Test>::insert(
+			&pcr_hash,
+			PcrSlots {
+				slots: pcr_slots,
+				description: vec![],
+			},
+		);
+
 		assert_ok!(Tea::update_node_profile(
 			Origin::signed(builtin_miner),
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
 			peer_id,
+			pcr_hash,
 		));
 		assert!(Tea::is_builtin_node(&tea_id));
 
 		let new_node = Nodes::<Test>::get(&tea_id);
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Active, new_node.status);
+	})
+}
+
+#[test]
+fn builtin_node_update_node_profile_should_fail_if_pcr_hash_not_allowed() {
+	new_test_ext().execute_with(|| {
+		frame_system::Pallet::<Test>::set_block_number(100);
+		let builtin_miner = 1;
+
+		let (node, tea_id, ephemeral_id, peer_id) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+		BuiltinNodes::<Test>::insert(&tea_id, ());
+		BuiltinMiners::<Test>::insert(builtin_miner, ());
+
+		let pcr_slots = vec![b"test pcr".to_vec()];
+		let pcr_hash = Tea::pcr_slots_hash(&pcr_slots);
+
+		assert_noop!(
+			Tea::update_node_profile(
+				Origin::signed(builtin_miner),
+				tea_id.clone(),
+				ephemeral_id.clone(),
+				Vec::new(),
+				peer_id,
+				pcr_hash,
+			),
+			Error::<Test>::InvalidPcrHash
+		);
 	})
 }
 
@@ -149,6 +193,7 @@ fn builtin_node_update_node_profile_should_fail_if_not_in_builtin_miners_list() 
 				ephemeral_id.clone(),
 				Vec::new(),
 				peer_id,
+				Default::default(),
 			),
 			Error::<Test>::InvalidBuiltinMiner
 		);
@@ -181,18 +226,72 @@ fn normal_node_update_node_profile_works() {
 			None,
 		));
 
+		let pcr_slots = vec![b"test pcr".to_vec()];
+		let pcr_hash = Tea::pcr_slots_hash(&pcr_slots);
+		AllowedPcrValues::<Test>::insert(
+			&pcr_hash,
+			PcrSlots {
+				slots: pcr_slots,
+				description: vec![],
+			},
+		);
+
 		assert_ok!(Tea::update_node_profile(
 			Origin::signed(owner_controller),
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
 			peer_id,
+			pcr_hash,
 		));
 		assert!(!Tea::is_builtin_node(&tea_id));
 
 		let new_node = Nodes::<Test>::get(&tea_id);
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Pending, new_node.status);
+	})
+}
+
+#[test]
+fn normal_node_update_node_profile_should_fail_if_pcr_is_invalid() {
+	new_test_ext().execute_with(|| {
+		let owner = 2;
+		let owner_controller = 22;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let (node, tea_id, ephemeral_id, peer_id) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			tea_id,
+			owner_controller,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		let pcr_slots = vec![b"test pcr".to_vec()];
+		let pcr_hash = Tea::pcr_slots_hash(&pcr_slots);
+
+		assert_noop!(
+			Tea::update_node_profile(
+				Origin::signed(owner_controller),
+				tea_id.clone(),
+				ephemeral_id.clone(),
+				Vec::new(),
+				peer_id,
+				pcr_hash,
+			),
+			Error::<Test>::InvalidPcrHash
+		);
 	})
 }
 
@@ -211,6 +310,7 @@ fn normal_node_update_node_profile_should_fail_if_not_the_owner_of_tea_id() {
 				ephemeral_id.clone(),
 				Vec::new(),
 				peer_id,
+				Default::default(),
 			),
 			Error::<Test>::InvalidTeaIdOwner
 		);
@@ -229,6 +329,7 @@ fn update_node_profile_before_register_node() {
 				ephemeral_id.clone(),
 				Vec::new(),
 				peer_id,
+				Default::default(),
 			),
 			Error::<Test>::NodeNotExist
 		);
@@ -248,6 +349,7 @@ fn update_node_profile_with_empty_peer_id() {
 				ephemeral_id.clone(),
 				Vec::new(),
 				Vec::new(),
+				Default::default(),
 			),
 			Error::<Test>::InvalidPeerId
 		);

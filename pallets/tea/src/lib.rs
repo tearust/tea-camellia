@@ -122,6 +122,10 @@ pub mod tea {
 	pub(super) type Nodes<T: Config> =
 		StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn node_pcr)]
+	pub(crate) type NodePcr<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, H256, ValueQuery>;
+
 	/// Ephemeral ID map, key is Ephemeral ID with type of `TeaPubKey`, value is TEA ID with
 	/// type of `TeaPubKey`.
 	#[pallet::storage]
@@ -271,6 +275,8 @@ pub mod tea {
 		PcrAlreadyExists,
 		/// The pcr not registered so cannot unregister
 		PcrNotExists,
+		/// The pcr hash not in registered pcr list
+		InvalidPcrHash,
 	}
 
 	#[pallet::hooks]
@@ -396,6 +402,12 @@ pub mod tea {
 				},
 				move |_| {
 					AllowedPcrValues::<T>::remove(hash);
+
+					NodePcr::<T>::iter().for_each(|(key, node_hash)| {
+						if node_hash.eq(&hash) {
+							NodePcr::<T>::remove(key);
+						}
+					});
 				},
 			)
 		}
@@ -407,6 +419,7 @@ pub mod tea {
 			ephemeral_id: TeaPubKey,
 			profile_cid: Cid,
 			peer_id: PeerId,
+			pcr_hash: H256,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
@@ -416,6 +429,10 @@ pub mod tea {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
 					Self::check_tea_id_belongs(sender, &tea_id)?;
+					ensure!(
+						AllowedPcrValues::<T>::contains_key(&pcr_hash),
+						Error::<T>::InvalidPcrHash
+					);
 					Ok(())
 				},
 				|sender| {
@@ -434,6 +451,7 @@ pub mod tea {
 						update_time: current_block_number,
 					};
 					Nodes::<T>::insert(&tea_id, &node);
+					NodePcr::<T>::insert(&tea_id, pcr_hash);
 					EphemeralIds::<T>::insert(ephemeral_id, &tea_id);
 					PeerIds::<T>::insert(&peer_id, &tea_id);
 
