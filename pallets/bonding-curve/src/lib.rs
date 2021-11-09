@@ -115,6 +115,9 @@ pub mod bonding_curve {
 
 		#[pallet::constant]
 		type HostPledgeAmount: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type ReservedLinkRentAmount: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -711,11 +714,11 @@ pub mod bonding_curve {
 					);
 					let link_info = TAppApprovedLinks::<T>::get(&link);
 					ensure!(link_info.tapp_id.is_none(), Error::<T>::LinkAlreadyBeUsed);
-					if let Some(creator) = link_info.creator {
+					if let Some(ref creator) = link_info.creator {
 						ensure!(creator.eq(who), Error::<T>::UserReservedLink);
 					}
 
-					let deposit_tea_amount =
+					let mut deposit_tea_amount =
 						Self::calculate_increase_amount_from_raise_curve_total_supply(
 							buy_curve_k.unwrap_or(T::DefaultBuyCurveTheta::get()),
 							0u32.into(),
@@ -725,6 +728,9 @@ pub mod bonding_curve {
 						!deposit_tea_amount.is_zero(),
 						Error::<T>::BuyTeaAmountCanNotBeZero
 					);
+					if link_info.creator.is_none() {
+						deposit_tea_amount += T::ReservedLinkRentAmount::get();
+					}
 					ensure!(
 						T::CurrencyOperations::free_balance(who) >= deposit_tea_amount,
 						Error::<T>::InsufficientFreeBalance,
@@ -771,6 +777,7 @@ pub mod bonding_curve {
 						},
 					);
 					Self::buy_token_inner(who, id, init_fund);
+					T::CurrencyOperations::slash(who, T::ReservedLinkRentAmount::get());
 
 					Self::deposit_event(Event::TAppCreated(id, tapp_name.clone(), who.clone()));
 				},

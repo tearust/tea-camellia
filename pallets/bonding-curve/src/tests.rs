@@ -221,7 +221,10 @@ fn create_new_fixed_fee_tapp_works() {
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
 		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
 		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
-		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99999534);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			99999534 - RESERVED_LINK_RENT_AMOUNT
+		);
 		assert_eq!(tapp_item.max_allowed_hosts, 10);
 		assert_eq!(tapp_item.billing_mode, BillingMode::FixedHostingFee(10000));
 		assert_eq!(tapp_item.tapp_type, TAppType::Twitter);
@@ -280,7 +283,10 @@ fn create_new_fixed_token_tapp_works() {
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
 		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
 		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
-		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99999534);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			99999534 - RESERVED_LINK_RENT_AMOUNT
+		);
 		assert_eq!(tapp_item.max_allowed_hosts, 10);
 		assert_eq!(tapp_item.billing_mode, BillingMode::FixedHostingToken(1000));
 		assert_eq!(tapp_item.tapp_type, TAppType::Reddit);
@@ -341,7 +347,10 @@ fn create_new_tapp_with_custom_theta_works() {
 		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
 		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
 		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
-		assert_eq!(<Test as Config>::Currency::free_balance(&user), 99993400);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			99993400 - RESERVED_LINK_RENT_AMOUNT
+		);
 		assert_eq!(tapp_item.max_allowed_hosts, 10);
 		assert_eq!(tapp_item.billing_mode, BillingMode::FixedHostingToken(1000));
 		assert_eq!(tapp_item.tapp_type, TAppType::Reddit);
@@ -1219,7 +1228,10 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
 		assert!(!TAppNames::<Test>::contains_key(name));
 		assert!(!TAppTickers::<Test>::contains_key(ticker));
-		assert_eq!(<Test as Config>::Currency::free_balance(&owner), DOLLARS);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&owner),
+			DOLLARS - RESERVED_LINK_RENT_AMOUNT
+		);
 	})
 }
 
