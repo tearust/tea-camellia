@@ -1021,11 +1021,6 @@ const AUCTION_WINDOW_BLOCK: BlockNumber = 100;
 #[cfg(not(feature = "fast"))]
 const AUCTION_WINDOW_BLOCK: BlockNumber = 1000;
 
-#[cfg(feature = "fast")]
-const NEW_BID_LIMIT_DURATION: BlockNumber = 30;
-#[cfg(not(feature = "fast"))]
-const NEW_BID_LIMIT_DURATION: BlockNumber = 300;
-
 parameter_types! {
 	/// Every AuctionDealWindowBLock blocks, the auction window closed. the highest bidder is winner.
 	/// There is a count down in the UI so that the bidder know when the window close
@@ -1041,7 +1036,6 @@ parameter_types! {
 	pub const MaxUsersPerAuction: u64 = 10000;
 	/// Auction fee. Every new auction window, the auctioneer needs to pay such fee if choose to renew to continue to next auction window
 	pub const AuctionFeePerWindow: Balance = 1 * DOLLARS;
-	pub const NewBidLimitDuration: BlockNumber = NEW_BID_LIMIT_DURATION;
 }
 impl pallet_auction::Config for Runtime {
 	type Event = Event;
@@ -1057,7 +1051,6 @@ impl pallet_auction::Config for Runtime {
 	type AuctionPledgeAmount = AuctionPledgeAmount;
 	type MaxUsersPerAuction = MaxUsersPerAuction;
 	type AuctionFeePerWindow = AuctionFeePerWindow;
-	type NewBidLimitDuration = NewBidLimitDuration;
 	type WeightInfo = weights::pallet_auction::WeightInfo<Runtime>;
 }
 
