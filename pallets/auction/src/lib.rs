@@ -82,9 +82,6 @@ pub mod auction {
 		type AuctionDealWindowBLock: Get<Self::BlockNumber>;
 
 		#[pallet::constant]
-		type NewBidLimitDuration: Get<Self::BlockNumber>;
-
-		#[pallet::constant]
 		type MinPriceForBid: Get<BalanceOf<Self>>;
 
 		#[pallet::constant]
@@ -121,8 +118,6 @@ pub mod auction {
 		BuyNowPriceShouldHigherThanStartingPrice,
 		CannotSellACollateral,
 		CmlAlreadyInAuction,
-		/// New bid should early than the duration in a block to avoid "last-minute-auction"
-		NewBidOverThanMaxAllowedDuration,
 	}
 
 	#[pallet::event]
@@ -263,15 +258,6 @@ pub mod auction {
 			extrinsic_procedure_with_weight(
 				&sender,
 				|sender| {
-					if !BidStore::<T>::contains_key(&sender, &auction_id) {
-						let current_height = frame_system::Pallet::<T>::block_number();
-						let (_, next_window) = Self::get_window_block();
-						ensure!(
-							current_height
-								< next_window.saturating_sub(T::NewBidLimitDuration::get()),
-							Error::<T>::NewBidOverThanMaxAllowedDuration
-						);
-					}
 					Self::check_bid_for_auction(&sender, &auction_id, price)?;
 
 					let auction_item = AuctionStore::<T>::get(auction_id);
