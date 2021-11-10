@@ -18,4 +18,13 @@ impl<T: tea::Config> tea::Pallet<T> {
 			.map(|(hash, v)| (hash, v.slots))
 			.collect()
 	}
+
+	pub fn find_tea_id_by_peer_id(peer_id: &[u8]) -> Option<[u8; 32]> {
+		for (id, node) in Nodes::<T>::iter() {
+			if node.peer_id.eq(peer_id) {
+				return Some(id);
+			}
+		}
+		None
+	}
 }

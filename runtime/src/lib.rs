@@ -1359,6 +1359,10 @@ impl_runtime_apis! {
 		fn allowed_pcrs() -> Vec<(H256, Vec<Vec<u8>>)> {
 			Tea::list_allowed_pcrs()
 		}
+
+		fn find_tea_id_by_peer_id(peer_id: Vec<u8>) -> Option<[u8; 32]> {
+			Tea::find_tea_id_by_peer_id(&peer_id)
+		}
 	}
 
 	impl genesis_bank_runtime_api::GenesisBankApi<Block, AccountId> for Runtime {
