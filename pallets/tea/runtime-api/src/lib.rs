@@ -22,6 +22,6 @@ sp_api::decl_runtime_apis! {
 
 		fn allowed_pcrs() -> Vec<(H256, Vec<Vec<u8>>)>;
 
-		fn find_tea_id_by_peer_id(peer_id: Vec<u8>) -> Option<[u8; 32]>;
+		fn find_tea_id_by_peer_id(peer_id: Vec<u8>) -> Vec<[u8; 32]>;
 	}
 }

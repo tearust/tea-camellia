@@ -33,7 +33,7 @@ pub trait TeaApi<BlockHash, AccountId> {
 		&self,
 		peer_id: Vec<u8>,
 		at: Option<BlockHash>,
-	) -> Result<Option<[u8; 32]>>;
+	) -> Result<Vec<[u8; 32]>>;
 }
 
 pub struct TeaApiImpl<C, M> {
@@ -114,7 +114,7 @@ where
 		&self,
 		peer_id: Vec<u8>,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Option<[u8; 32]>> {
+	) -> Result<Vec<[u8; 32]>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
