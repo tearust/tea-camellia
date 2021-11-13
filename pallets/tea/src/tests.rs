@@ -581,6 +581,10 @@ fn commit_report_evidence_works() {
 		let evidence = ReportEvidences::<Test>::get(phisher_tea_id);
 		assert_eq!(evidence.height, current_height);
 		assert_eq!(evidence.reporter, reporter_tea_id);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(committer_controller),
+			1 + 195000000
+		);
 	})
 }
 
@@ -1097,6 +1101,10 @@ fn commit_offline_evidence_works() {
 		assert_eq!(evidences.len(), 1);
 		assert_eq!(evidences[0].height, current_height);
 		assert_eq!(evidences[0].tea_id, reporter_tea_id);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(reporter_controller),
+			1 + 195000000
+		);
 	})
 }
 
@@ -1554,6 +1562,10 @@ fn commit_tips_evidence_works() {
 		let evidence = TipsEvidences::<Test>::get(reporter_tea_id);
 		assert_eq!(evidence.height, current_height);
 		assert_eq!(evidence.target, phisher_tea_id);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(committer_controller),
+			1 + 195000000
+		);
 	})
 }
 

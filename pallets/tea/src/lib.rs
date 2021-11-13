@@ -514,7 +514,7 @@ pub mod tea {
 
 					Ok(())
 				},
-				|_who| {
+				|who| {
 					TipsEvidences::<T>::insert(
 						&report_tea_id,
 						TipsEvidence {
@@ -522,6 +522,7 @@ pub mod tea {
 							target: phishing_tea_id,
 						},
 					);
+					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
 				},
 			)
 		}
@@ -567,7 +568,7 @@ pub mod tea {
 
 					Ok(())
 				},
-				|_who| {
+				|who| {
 					ReportEvidences::<T>::insert(
 						&phishing_tea_id,
 						ReportEvidence {
@@ -575,6 +576,7 @@ pub mod tea {
 							reporter: report_tea_id,
 						},
 					);
+					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
 				},
 			)
 		}
@@ -633,7 +635,7 @@ pub mod tea {
 
 					Ok(())
 				},
-				|_who| {
+				|who| {
 					OfflineEvidences::<T>::mutate(&offline_tea_id, |evidences| {
 						evidences.retain(|ev| {
 							ev.height.saturating_add(T::OfflineValidDuration::get())
@@ -646,6 +648,7 @@ pub mod tea {
 						});
 					});
 					Self::try_suspend_node(&offline_tea_id);
+					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
 				},
 			)
 		}
