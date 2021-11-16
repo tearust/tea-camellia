@@ -120,7 +120,13 @@ impl<T: tea::Config> tea::Pallet<T> {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.reporter) {
 				if let Some(owner) = cml.owner() {
 					T::CurrencyOperations::deposit_creating(owner, ReportRawardAmount::<T>::get());
-					statements.push((ev.reporter, phisher, ReportRawardAmount::<T>::get()));
+					statements.push((
+						owner.clone(),
+						cml.id(),
+						ev.reporter,
+						phisher,
+						ReportRawardAmount::<T>::get(),
+					));
 				}
 			}
 		});
@@ -128,7 +134,13 @@ impl<T: tea::Config> tea::Pallet<T> {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.target) {
 				if let Some(owner) = cml.owner() {
 					T::CurrencyOperations::deposit_creating(owner, TipsRawardAmount::<T>::get());
-					statements.push((ev.target, phisher, TipsRawardAmount::<T>::get()));
+					statements.push((
+						owner.clone(),
+						cml.id(),
+						ev.target,
+						phisher,
+						TipsRawardAmount::<T>::get(),
+					));
 				}
 			}
 		});
