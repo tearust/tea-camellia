@@ -25,7 +25,7 @@ use frame_support::{
 	dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Currency,
 };
 use frame_system::pallet_prelude::*;
-use pallet_cml::{CmlOperation, CmlType, MinerStatus, SeedProperties, Task, TreeProperties};
+use pallet_cml::{CmlId, CmlOperation, CmlType, MinerStatus, SeedProperties, Task, TreeProperties};
 use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
 use sp_core::{ed25519, H256};
 use sp_io::hashing::blake2_256;
@@ -213,10 +213,12 @@ pub mod tea {
 		RaValidatorsChanged(Vec<TeaPubKey>),
 
 		/// Statements items fields:
-		/// - Reporter (reward owner)
-		/// - Phisher
+		/// - Reporter account
+		/// - Reporter cml id
+		/// - Reporter machine id (reward owner)
+		/// - Phisher machine id
 		/// - Reward amount
-		ReportEvidencesStatements(Vec<(TeaPubKey, TeaPubKey, BalanceOf<T>)>),
+		ReportEvidencesStatements(Vec<(T::AccountId, CmlId, TeaPubKey, TeaPubKey, BalanceOf<T>)>),
 	}
 
 	// Errors inform users that something went wrong.
