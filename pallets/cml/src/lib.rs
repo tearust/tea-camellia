@@ -1188,6 +1188,8 @@ pub trait CmlOperation {
 	fn check_miner(machine_id: MachineId, miner_account: &Self::AccountId) -> bool;
 
 	fn suspend_mining(machine_id: MachineId);
+
+	fn append_reward(account: &Self::AccountId, amount: Self::Balance);
 }
 
 /// Operations to calculate staking rewards.

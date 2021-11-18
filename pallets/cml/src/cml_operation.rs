@@ -330,6 +330,12 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 				});
 		});
 	}
+
+	fn append_reward(account: &Self::AccountId, amount: Self::Balance) {
+		AccountRewards::<T>::mutate(account, |balance| {
+			*balance = balance.saturating_add(amount);
+		});
+	}
 }
 
 #[cfg(test)]
