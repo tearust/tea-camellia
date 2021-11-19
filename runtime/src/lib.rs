@@ -923,8 +923,8 @@ parameter_types! {
 	/// the interest is calculated to the end of this billing cycle.
 	pub const BillingCycle: BlockNumber = 1000;
 	pub const CmlALoanAmount: Balance = 2000 * DOLLARS;
-	pub const CmlBLoanBmount: Balance = 1000 * DOLLARS;
-	pub const CmlCLoanCmount: Balance = 500 * DOLLARS;
+	pub const CmlBLoanBmount: Balance = 3000 * DOLLARS;
+	pub const CmlCLoanCmount: Balance = 1500 * DOLLARS;
 }
 
 impl pallet_genesis_bank::Config for Runtime {
