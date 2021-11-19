@@ -269,6 +269,8 @@ pub mod genesis_exchange {
 		OnlyAllowedCompetitionUserBorrowUSD,
 		/// It's not allowed to borrow USD
 		ForbitBorrowUSD,
+		/// The competition user not exist
+		CompetitionUserNotExist,
 	}
 
 	#[pallet::hooks]
@@ -317,6 +319,22 @@ pub mod genesis_exchange {
 				|_| Ok(()),
 				|_| {
 					EnableBorrowUSD::<T>::set(enable);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn remove_competition_user(sender: OriginFor<T>, user: T::AccountId) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(CompetitionUsers::<T>::contains_key(&user), Error::<T>::CompetitionUserNotExist);
+					Ok(())
+				},
+				|_| {
+					CompetitionUsers::<T>::remove(&user);
 				},
 			)
 		}

@@ -848,3 +848,39 @@ fn register_for_competition_should_fail_if_already_registered() {
 		);
 	})
 }
+
+#[test]
+fn remove_competition_user_works() {
+	new_test_ext().execute_with(|| {
+		let user2 = 2;
+
+		let erc20 = b"test erc20".to_vec();
+		let email = b"test email".to_vec();
+		assert_ok!(GenesisExchange::register_for_competition(
+			Origin::signed(user2),
+			3,
+			erc20.clone(),
+			email.clone(),
+		));
+
+		assert!(CompetitionUsers::<Test>::contains_key(user2));
+		assert_eq!(CompetitionUsers::<Test>::get(user2), (erc20, email));
+
+		assert_ok!(GenesisExchange::remove_competition_user(Origin::root(), user2));
+		assert!(!CompetitionUsers::<Test>::contains_key(user2));
+	})
+}
+
+#[test]
+fn remove_competition_user_should_fail_if_not_root_user() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(GenesisExchange::remove_competition_user(Origin::signed(2), 1), DispatchError::BadOrigin);
+	})
+}
+
+#[test]
+fn remove_competition_user_should_fail_if_user_not_exist() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(GenesisExchange::remove_competition_user(Origin::root(), 1), Error::<Test>::CompetitionUserNotExist);
+	})
+}
