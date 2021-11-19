@@ -793,8 +793,8 @@ fn register_for_competition_works() {
 		let erc20 = b"test erc20".to_vec();
 		let email = b"test email".to_vec();
 		assert_ok!(GenesisExchange::register_for_competition(
-			Origin::signed(NPC_ACCOUNT),
-			user2,
+			Origin::signed(user2),
+			3,
 			erc20.clone(),
 			email.clone(),
 		));
@@ -804,26 +804,26 @@ fn register_for_competition_works() {
 	})
 }
 
-#[test]
-fn register_for_competition_should_fail_if_user_is_not_npc_accout() {
-	new_test_ext().execute_with(|| {
-		let user = 1;
-		let user2 = 2;
+// #[test]
+// fn register_for_competition_should_fail_if_user_is_not_npc_accout() {
+// 	new_test_ext().execute_with(|| {
+// 		let user = 1;
+// 		let user2 = 2;
 
-		let erc20 = b"test erc20".to_vec();
-		let email = b"test email".to_vec();
-		assert_noop!(
-			GenesisExchange::register_for_competition(
-				Origin::signed(user),
-				user2,
-				erc20.clone(),
-				email.clone(),
-			),
-			Error::<Test>::OnlyAllowedNpcAccountToRegister
-		);
-		assert!(!CompetitionUsers::<Test>::contains_key(user2));
-	})
-}
+// 		let erc20 = b"test erc20".to_vec();
+// 		let email = b"test email".to_vec();
+// 		assert_noop!(
+// 			GenesisExchange::register_for_competition(
+// 				Origin::signed(user),
+// 				user2,
+// 				erc20.clone(),
+// 				email.clone(),
+// 			),
+// 			Error::<Test>::OnlyAllowedNpcAccountToRegister
+// 		);
+// 		assert!(!CompetitionUsers::<Test>::contains_key(user2));
+// 	})
+// }
 
 #[test]
 fn register_for_competition_should_fail_if_already_registered() {

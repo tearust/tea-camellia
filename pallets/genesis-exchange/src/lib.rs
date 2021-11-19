@@ -532,7 +532,7 @@ pub mod genesis_exchange {
 		#[pallet::weight(195_000_000)]
 		pub fn register_for_competition(
 			sender: OriginFor<T>,
-			user: T::AccountId,
+			_user: T::AccountId,
 			erc20_address: Vec<u8>,
 			email_address: Vec<u8>,
 		) -> DispatchResult {
@@ -542,18 +542,18 @@ pub mod genesis_exchange {
 				&who,
 				|who| {
 					ensure!(
-						!CompetitionUsers::<T>::contains_key(&user),
+						!CompetitionUsers::<T>::contains_key(who),
 						Error::<T>::CompetitionUserAlreadyRegistered
 					);
-					ensure!(
-						who.eq(&NPCAccount::<T>::get()),
-						Error::<T>::OnlyAllowedNpcAccountToRegister
-					);
+					// ensure!(
+					// 	who.eq(&NPCAccount::<T>::get()),
+					// 	Error::<T>::OnlyAllowedNpcAccountToRegister
+					// );
 					Ok(())
 				},
-				|_who| {
+				|who| {
 					CompetitionUsers::<T>::insert(
-						&user,
+						who,
 						(erc20_address.clone(), email_address.clone()),
 					);
 				},
