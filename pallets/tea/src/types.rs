@@ -3,9 +3,6 @@ use scale_info::TypeInfo;
 use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_std::prelude::*;
 
-/// Url is a normal literal string.
-pub type Url = Vec<u8>;
-
 /// Tea public key generated from the TEA secure module (Tpm, Aws Nitro etc.) used to identify
 /// the TEA node.
 pub type TeaPubKey = [u8; 32];
@@ -35,7 +32,6 @@ where
 	pub tea_id: TeaPubKey,
 	pub ephemeral_id: TeaPubKey,
 	pub profile_cid: Cid,
-	pub urls: Vec<Url>,
 	pub peer_id: PeerId,
 	pub create_time: BlockNumber,
 	pub update_time: BlockNumber,
@@ -61,7 +57,6 @@ where
 			tea_id: [0u8; 32],
 			ephemeral_id: [0u8; 32],
 			profile_cid: Vec::new(),
-			urls: Vec::new(),
 			peer_id: Vec::new(),
 			create_time: BlockNumber::default(),
 			update_time: BlockNumber::default(),
@@ -113,4 +108,11 @@ where
 {
 	pub height: BlockNumber,
 	pub tea_id: TeaPubKey,
+}
+
+pub type PcrValue = Vec<u8>;
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct PcrSlots {
+	pub slots: Vec<PcrValue>,
+	pub description: Vec<u8>,
 }

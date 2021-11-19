@@ -35,7 +35,7 @@ use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_core::{
 	crypto::KeyTypeId,
 	u32_trait::{_1, _2, _3, _4},
-	OpaqueMetadata,
+	OpaqueMetadata, H256,
 };
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
@@ -1350,6 +1350,14 @@ impl_runtime_apis! {
 
 		fn boot_nodes() -> Vec<[u8; 32]> {
 			Tea::list_boot_nodes()
+		}
+
+		fn allowed_pcrs() -> Vec<(H256, Vec<Vec<u8>>)> {
+			Tea::list_allowed_pcrs()
+		}
+
+		fn find_tea_id_by_peer_id(peer_id: Vec<u8>) -> Vec<[u8; 32]> {
+			Tea::find_tea_id_by_peer_id(&peer_id)
 		}
 	}
 

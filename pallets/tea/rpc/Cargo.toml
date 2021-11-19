@@ -15,6 +15,7 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 
 node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 sp-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-core = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 sp-blockchain = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 sp-rpc = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 sp-runtime = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
@@ -30,6 +31,7 @@ std = [
     "serde",
     "codec/std",
     "sp-api/std",
+    "sp-core/std",
     "sp-runtime/std",
     "node-primitives/std",
     "tea-runtime-api/std"

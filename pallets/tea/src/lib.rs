@@ -122,6 +122,10 @@ pub mod tea {
 	pub(super) type Nodes<T: Config> =
 		StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn node_pcr)]
+	pub(crate) type NodePcr<T: Config> = StorageMap<_, Twox64Concat, TeaPubKey, H256, ValueQuery>;
+
 	/// Ephemeral ID map, key is Ephemeral ID with type of `TeaPubKey`, value is TEA ID with
 	/// type of `TeaPubKey`.
 	#[pallet::storage]
@@ -184,6 +188,11 @@ pub mod tea {
 	#[pallet::storage]
 	#[pallet::getter(fn tips_reward_amount)]
 	pub(super) type TipsRawardAmount<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn allowed_pcr_values)]
+	pub(super) type AllowedPcrValues<T: Config> =
+		StorageMap<_, Twox64Concat, H256, PcrSlots, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -264,6 +273,12 @@ pub mod tea {
 		CanNotCommitOfflineEvidenceMultiTimes,
 		/// Tips has been committedd multiple times
 		RedundantTips,
+		/// The pcr has registered already
+		PcrAlreadyExists,
+		/// The pcr not registered so cannot unregister
+		PcrNotExists,
+		/// The pcr hash not in registered pcr list
+		InvalidPcrHash,
 	}
 
 	#[pallet::hooks]
@@ -348,14 +363,65 @@ pub mod tea {
 			)
 		}
 
+		#[pallet::weight(195_000_000)]
+		pub fn register_pcr(
+			sender: OriginFor<T>,
+			slots: Vec<PcrValue>,
+			description: Vec<u8>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+			let hash = Self::pcr_slots_hash(&slots);
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						!AllowedPcrValues::<T>::contains_key(&hash),
+						Error::<T>::PcrAlreadyExists,
+					);
+
+					Ok(())
+				},
+				move |_| {
+					AllowedPcrValues::<T>::insert(hash, PcrSlots { slots, description });
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn unregister_pcr(sender: OriginFor<T>, hash: H256) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						AllowedPcrValues::<T>::contains_key(&hash),
+						Error::<T>::PcrNotExists,
+					);
+
+					Ok(())
+				},
+				move |_| {
+					AllowedPcrValues::<T>::remove(hash);
+
+					NodePcr::<T>::iter().for_each(|(key, node_hash)| {
+						if node_hash.eq(&hash) {
+							NodePcr::<T>::remove(key);
+						}
+					});
+				},
+			)
+		}
+
 		#[pallet::weight(T::WeightInfo::update_node_profile())]
 		pub fn update_node_profile(
 			origin: OriginFor<T>,
 			tea_id: TeaPubKey,
 			ephemeral_id: TeaPubKey,
 			profile_cid: Cid,
-			urls: Vec<Url>,
 			peer_id: PeerId,
+			pcr_hash: H256,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
@@ -365,6 +431,10 @@ pub mod tea {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
 					Self::check_tea_id_belongs(sender, &tea_id)?;
+					ensure!(
+						AllowedPcrValues::<T>::contains_key(&pcr_hash),
+						Error::<T>::InvalidPcrHash
+					);
 					Ok(())
 				},
 				|sender| {
@@ -376,7 +446,6 @@ pub mod tea {
 						tea_id,
 						ephemeral_id,
 						profile_cid: profile_cid.clone(),
-						urls: urls.clone(),
 						ra_nodes: vec![],
 						status,
 						peer_id: peer_id.clone(),
@@ -384,6 +453,7 @@ pub mod tea {
 						update_time: current_block_number,
 					};
 					Nodes::<T>::insert(&tea_id, &node);
+					NodePcr::<T>::insert(&tea_id, pcr_hash);
 					EphemeralIds::<T>::insert(ephemeral_id, &tea_id);
 					PeerIds::<T>::insert(&peer_id, &tea_id);
 

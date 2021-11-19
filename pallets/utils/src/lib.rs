@@ -90,7 +90,7 @@ pub fn extrinsic_procedure<AccountId, CheckFn, SetFn>(
 ) -> DispatchResult
 where
 	CheckFn: Fn(&AccountId) -> DispatchResult,
-	SetFn: Fn(&AccountId),
+	SetFn: FnOnce(&AccountId),
 {
 	ck_fn(who)?;
 	set_fn(who);
