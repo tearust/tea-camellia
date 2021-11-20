@@ -26,7 +26,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 		sender: &T::AccountId,
 		tea_id: &TeaPubKey,
 	) -> DispatchResult {
-		if !BuiltinNodes::<T>::contains_key(tea_id) {
+		if !Self::is_builtin_node(tea_id) {
 			ensure!(
 				T::CmlOperation::check_miner(*tea_id, sender),
 				Error::<T>::InvalidTeaIdOwner

@@ -150,7 +150,7 @@ fn builtin_node_update_node_profile_works() {
 }
 
 #[test]
-fn builtin_node_update_node_profile_should_fail_if_pcr_hash_not_allowed() {
+fn builtin_node_update_node_profile_works_if_pcr_hash_not_allowed() {
 	new_test_ext().execute_with(|| {
 		frame_system::Pallet::<Test>::set_block_number(100);
 		let builtin_miner = 1;
@@ -163,17 +163,14 @@ fn builtin_node_update_node_profile_should_fail_if_pcr_hash_not_allowed() {
 		let pcr_slots = vec![b"test pcr".to_vec()];
 		let pcr_hash = Tea::pcr_slots_hash(&pcr_slots);
 
-		assert_noop!(
-			Tea::update_node_profile(
-				Origin::signed(builtin_miner),
-				tea_id.clone(),
-				ephemeral_id.clone(),
-				Vec::new(),
-				peer_id,
-				pcr_hash,
-			),
-			Error::<Test>::InvalidPcrHash
-		);
+		assert_ok!(Tea::update_node_profile(
+			Origin::signed(builtin_miner),
+			tea_id.clone(),
+			ephemeral_id.clone(),
+			Vec::new(),
+			peer_id,
+			pcr_hash,
+		));
 	})
 }
 
