@@ -421,6 +421,7 @@ pub mod tea {
 			ephemeral_id: TeaPubKey,
 			profile_cid: Cid,
 			peer_id: PeerId,
+			conn_id: ConnId,
 			pcr_hash: H256,
 		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -450,6 +451,7 @@ pub mod tea {
 						profile_cid: profile_cid.clone(),
 						ra_nodes: vec![],
 						status,
+						conn_id,
 						peer_id: peer_id.clone(),
 						create_time: old_node.create_time,
 						update_time: current_block_number,

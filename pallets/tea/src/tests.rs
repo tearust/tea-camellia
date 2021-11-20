@@ -133,12 +133,14 @@ fn builtin_node_update_node_profile_works() {
 			},
 		);
 
+		let conn_id = vec![1u8; 32];
 		assert_ok!(Tea::update_node_profile(
 			Origin::signed(builtin_miner),
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
 			peer_id,
+			conn_id.clone(),
 			pcr_hash,
 		));
 		assert!(Tea::is_builtin_node(&tea_id));
@@ -146,6 +148,7 @@ fn builtin_node_update_node_profile_works() {
 		let new_node = Nodes::<Test>::get(&tea_id);
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Active, new_node.status);
+		assert_eq!(conn_id, new_node.conn_id);
 	})
 }
 
@@ -169,6 +172,7 @@ fn builtin_node_update_node_profile_works_if_pcr_hash_not_allowed() {
 			ephemeral_id.clone(),
 			Vec::new(),
 			peer_id,
+			vec![],
 			pcr_hash,
 		));
 	})
@@ -190,6 +194,7 @@ fn builtin_node_update_node_profile_should_fail_if_not_in_builtin_miners_list() 
 				ephemeral_id.clone(),
 				Vec::new(),
 				peer_id,
+				vec![],
 				Default::default(),
 			),
 			Error::<Test>::InvalidBuiltinMiner
@@ -233,12 +238,14 @@ fn normal_node_update_node_profile_works() {
 			},
 		);
 
+		let conn_id = vec![3u8; 32];
 		assert_ok!(Tea::update_node_profile(
 			Origin::signed(owner_controller),
 			tea_id.clone(),
 			ephemeral_id.clone(),
 			Vec::new(),
 			peer_id,
+			conn_id.clone(),
 			pcr_hash,
 		));
 		assert!(!Tea::is_builtin_node(&tea_id));
@@ -246,6 +253,7 @@ fn normal_node_update_node_profile_works() {
 		let new_node = Nodes::<Test>::get(&tea_id);
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Pending, new_node.status);
+		assert_eq!(conn_id, new_node.conn_id);
 	})
 }
 
@@ -285,6 +293,7 @@ fn normal_node_update_node_profile_should_fail_if_pcr_is_invalid() {
 				ephemeral_id.clone(),
 				Vec::new(),
 				peer_id,
+				vec![],
 				pcr_hash,
 			),
 			Error::<Test>::InvalidPcrHash
@@ -307,6 +316,7 @@ fn normal_node_update_node_profile_should_fail_if_not_the_owner_of_tea_id() {
 				ephemeral_id.clone(),
 				Vec::new(),
 				peer_id,
+				vec![],
 				Default::default(),
 			),
 			Error::<Test>::InvalidTeaIdOwner
@@ -326,6 +336,7 @@ fn update_node_profile_before_register_node() {
 				ephemeral_id.clone(),
 				Vec::new(),
 				peer_id,
+				vec![],
 				Default::default(),
 			),
 			Error::<Test>::NodeNotExist
@@ -344,6 +355,7 @@ fn update_node_profile_with_empty_peer_id() {
 				Origin::signed(1),
 				tea_id.clone(),
 				ephemeral_id.clone(),
+				Vec::new(),
 				Vec::new(),
 				Vec::new(),
 				Default::default(),

@@ -10,6 +10,9 @@ pub type TeaPubKey = [u8; 32];
 /// Peer ID is from IPFS used to identify an IPFS node.
 pub type PeerId = Vec<u8>;
 
+/// Peer ID is from libp2p provider used to identify an layer2 node.
+pub type ConnId = Vec<u8>;
+
 /// Cid is from IPFS used to identify an persistent data.
 pub type Cid = Vec<u8>;
 
@@ -33,6 +36,7 @@ where
 	pub ephemeral_id: TeaPubKey,
 	pub profile_cid: Cid,
 	pub peer_id: PeerId,
+	pub conn_id: ConnId,
 	pub create_time: BlockNumber,
 	pub update_time: BlockNumber,
 	pub ra_nodes: Vec<(TeaPubKey, bool)>,
@@ -58,6 +62,7 @@ where
 			ephemeral_id: [0u8; 32],
 			profile_cid: Vec::new(),
 			peer_id: Vec::new(),
+			conn_id: Vec::new(),
 			create_time: BlockNumber::default(),
 			update_time: BlockNumber::default(),
 			ra_nodes: Vec::new(),
