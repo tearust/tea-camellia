@@ -448,7 +448,7 @@ impl<T: auction::Config> auction::Pallet<T> {
 		let (essential_balance, deposit_staking) =
 			Self::essential_bid_balance(price, &auction_item.cml_id);
 		ensure!(
-			T::CurrencyOperations::free_balance(sender) >= essential_balance,
+			T::CurrencyOperations::can_reserve(sender, essential_balance),
 			match deposit_staking {
 				true => Error::<T>::NotEnoughBalanceForBidAndFirstStakingSlot,
 				false => Error::<T>::NotEnoughBalanceForBid,

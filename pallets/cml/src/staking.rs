@@ -11,7 +11,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn check_balance_staking(who: &T::AccountId) -> DispatchResult {
 		ensure!(
-			T::CurrencyOperations::free_balance(who) >= T::StakingPrice::get(),
+			T::CurrencyOperations::can_reserve(who, T::StakingPrice::get()),
 			Error::<T>::InsufficientFreeBalance,
 		);
 		Ok(())
@@ -81,8 +81,10 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 	pub(crate) fn check_miner_balance(who: &T::AccountId) -> DispatchResult {
 		ensure!(
-			T::CurrencyOperations::free_balance(who)
-				>= T::StakingPrice::get() + T::MachineAccountTopUpAmount::get(),
+			T::CurrencyOperations::can_reserve(
+				who,
+				T::StakingPrice::get() + T::MachineAccountTopUpAmount::get()
+			),
 			Error::<T>::InsufficientFreeBalance,
 		);
 		Ok(())

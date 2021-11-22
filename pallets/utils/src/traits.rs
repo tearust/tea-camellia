@@ -57,6 +57,10 @@ pub trait CurrencyOperations {
 	/// collapsed to zero if it ever becomes less than `ExistentialDeposit`.
 	fn reserved_balance(who: &Self::AccountId) -> Self::Balance;
 
+	/// Same result as `reserve(who, value)` (but without the side-effects) assuming there
+	/// are no balance changes in the meantime.
+	fn can_reserve(who: &Self::AccountId, value: Self::Balance) -> bool;
+
 	/// Moves `value` from balance to reserved balance.
 	///
 	/// If the free balance is lower than `value`, then no funds will be moved and an `Err` will

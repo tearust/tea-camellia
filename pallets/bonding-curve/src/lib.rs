@@ -1060,7 +1060,7 @@ pub mod bonding_curve {
 						Error::<T>::CmlMachineIsFullLoad
 					);
 					ensure!(
-						T::CurrencyOperations::free_balance(who) >= T::HostPledgeAmount::get(),
+						T::CurrencyOperations::can_reserve(who, T::HostPledgeAmount::get()),
 						Error::<T>::InsufficientFreeBalance
 					);
 					Ok(())

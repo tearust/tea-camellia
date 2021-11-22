@@ -144,9 +144,11 @@ impl<T: bonding_curve::Config> BondingCurveOperation for bonding_curve::Pallet<T
 		match T::CmlOperation::cml_by_id(&cml_id) {
 			Ok(cml) => {
 				if let Some(owner) = cml.owner() {
-					return T::CurrencyOperations::free_balance(owner)
-						>= T::HostPledgeAmount::get()
-							* (CmlHostingTApps::<T>::get(cml_id).len() as u32).into();
+					return T::CurrencyOperations::can_reserve(
+						owner,
+						T::HostPledgeAmount::get()
+							* (CmlHostingTApps::<T>::get(cml_id).len() as u32).into(),
+					);
 				}
 				false
 			}

@@ -62,7 +62,7 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		let cml = CmlStore::<T>::get(cml_id);
 		if cml.is_mining() {
 			ensure!(
-				T::CurrencyOperations::free_balance(target_account) >= T::StakingPrice::get(),
+				T::CurrencyOperations::can_reserve(target_account, T::StakingPrice::get()),
 				Error::<T>::InsufficientFreeBalance
 			);
 		}

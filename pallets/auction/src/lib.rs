@@ -199,8 +199,10 @@ pub mod auction {
 					let cml_item = T::CmlOperation::cml_by_id(&cml_id)?;
 					T::CmlOperation::check_belongs(&cml_id, &sender)?;
 					ensure!(
-						T::CurrencyOperations::free_balance(&sender)
-							>= T::AuctionPledgeAmount::get() + T::AuctionFeePerWindow::get(),
+						T::CurrencyOperations::can_reserve(
+							&sender,
+							T::AuctionPledgeAmount::get() + T::AuctionFeePerWindow::get()
+						),
 						Error::<T>::NotEnoughBalanceForAuction
 					);
 					if let Some(buy_now_price) = buy_now_price.as_ref() {

@@ -46,6 +46,10 @@ impl<T: utils::Config> CurrencyOperations for utils::Pallet<T> {
 		T::Currency::reserved_balance(who)
 	}
 
+	fn can_reserve(who: &Self::AccountId, value: Self::Balance) -> bool {
+		T::Currency::can_reserve(who, value)
+	}
+
 	fn reserve(who: &Self::AccountId, amount: Self::Balance) -> DispatchResult {
 		T::Currency::reserve(who, amount)
 	}
