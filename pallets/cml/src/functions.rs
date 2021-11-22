@@ -335,7 +335,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 				staking_to.stake(&who, &current_height, None, Some(cml))
 			}),
 			None => {
-				T::CurrencyOperations::reserve(&who, T::StakingPrice::get()).unwrap();
+				if let Err(e) = T::CurrencyOperations::reserve(&who, T::StakingPrice::get()) {
+					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+					log::error!("stake reserve balance failed: {:?}", e);
+					return None;
+				}
 				staking_to
 					.stake::<CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>>(
 						&who,
