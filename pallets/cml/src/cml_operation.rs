@@ -311,9 +311,18 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		false
 	}
 
-	fn check_miner(machine_id: MachineId, miner_account: &Self::AccountId) -> bool {
+	fn check_miner_controller(machine_id: MachineId, miner_account: &Self::AccountId) -> bool {
 		let miner_item = MinerItemStore::<T>::get(machine_id);
 		miner_item.controller_account.eq(miner_account)
+	}
+
+	fn check_miner_stash(machine_id: MachineId, miner_account: &Self::AccountId) -> bool {
+		let miner_item = MinerItemStore::<T>::get(machine_id);
+		let cml = CmlStore::<T>::get(miner_item.cml_id);
+		match cml.owner() {
+			Some(owner) => owner.eq(miner_account),
+			None => false,
+		}
 	}
 
 	fn suspend_mining(machine_id: MachineId) {

@@ -1,6 +1,7 @@
 use crate::{
-	group::update_validator_groups_count, mock::*, types::*, AllowedPcrValues, BuiltinMiners,
-	BuiltinNodes, Config, Error, NodePcr, Nodes, OfflineEvidences, ReportEvidences, TipsEvidences,
+	group::update_validator_groups_count, mock::*, types::*, AllowedPcrValues, AllowedVersions,
+	BuiltinMiners, BuiltinNodes, Config, Error, NodePcr, Nodes, OfflineEvidences, ReportEvidences,
+	TipsEvidences,
 };
 use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
 use hex_literal::hex;
@@ -94,6 +95,100 @@ fn unregister_pcr_should_fail_if_not_exist() {
 		assert_noop!(
 			Tea::unregister_pcr(Origin::root(), Default::default()),
 			Error::<Test>::PcrNotExists
+		);
+	})
+}
+
+#[test]
+fn register_versions_works() {
+	new_test_ext().execute_with(|| {
+		let version_key1 = b"version_key1".to_vec();
+		let version_value1 = b"version_value1".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_ok!(Tea::register_versions(
+			Origin::root(),
+			vec![(version_key1.clone(), version_value1.clone())],
+			desc,
+		));
+		assert_eq!(AllowedVersions::<Test>::iter().count(), 1);
+	})
+}
+
+#[test]
+fn register_versions_should_fail_if_not_root_user() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Tea::register_versions(
+				Origin::signed(1),
+				vec![(b"test key".to_vec(), b"test value".to_vec())],
+				b"test desc".to_vec()
+			),
+			DispatchError::BadOrigin
+		);
+	})
+}
+
+#[test]
+fn register_versions_should_faild_if_register_twice() {
+	new_test_ext().execute_with(|| {
+		let version_key1 = b"version_key1".to_vec();
+		let version_value1 = b"version_value1".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_ok!(Tea::register_versions(
+			Origin::root(),
+			vec![(version_key1.clone(), version_value1.clone())],
+			desc.clone()
+		));
+		assert_noop!(
+			Tea::register_versions(Origin::root(), vec![(version_key1, version_value1)], desc),
+			Error::<Test>::VersionsAlreadyExists
+		);
+	})
+}
+
+#[test]
+fn unregister_versions_works() {
+	new_test_ext().execute_with(|| {
+		let version_key1 = b"version_key1".to_vec();
+		let version_value1 = b"version_value1".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_eq!(AllowedVersions::<Test>::iter().count(), 0);
+		assert_ok!(Tea::register_versions(
+			Origin::root(),
+			vec![(version_key1.clone(), version_value1.clone())],
+			desc,
+		));
+		assert_eq!(AllowedVersions::<Test>::iter().count(), 1);
+
+		let hashes: Vec<H256> = AllowedVersions::<Test>::iter()
+			.map(|(hash, _)| hash)
+			.collect();
+		let hash = hashes[0];
+
+		assert_ok!(Tea::unregister_versions(Origin::root(), hash));
+		assert_eq!(AllowedVersions::<Test>::iter().count(), 0);
+	})
+}
+
+#[test]
+fn unregister_versions_should_fail_if_not_root_user() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Tea::unregister_versions(Origin::signed(1), Default::default(),),
+			DispatchError::BadOrigin
+		);
+	})
+}
+
+#[test]
+fn unregister_versions_should_fail_if_not_exist() {
+	new_test_ext().execute_with(|| {
+		assert_noop!(
+			Tea::unregister_versions(Origin::root(), Default::default()),
+			Error::<Test>::VersionsNotExist
 		);
 	})
 }

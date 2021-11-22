@@ -121,3 +121,12 @@ pub struct PcrSlots {
 	pub slots: Vec<PcrValue>,
 	pub description: Vec<u8>,
 }
+
+// First field is the version key, second field is version value
+pub type VersionItem = (Vec<u8>, Vec<u8>);
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug, TypeInfo)]
+pub struct RuntimeVersionSet {
+	pub versions: Vec<VersionItem>,
+	pub description: Vec<u8>,
+}

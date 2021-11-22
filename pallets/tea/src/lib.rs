@@ -194,6 +194,16 @@ pub mod tea {
 	pub(super) type AllowedPcrValues<T: Config> =
 		StorageMap<_, Twox64Concat, H256, PcrSlots, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn allowed_versions)]
+	pub(super) type AllowedVersions<T: Config> =
+		StorageMap<_, Twox64Concat, H256, RuntimeVersionSet, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn version_expired_nodes)]
+	pub(super) type VersionExpiredNodes<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -279,6 +289,10 @@ pub mod tea {
 		PcrNotExists,
 		/// The pcr hash not in registered pcr list
 		InvalidPcrHash,
+		/// The versions has registered already
+		VersionsAlreadyExists,
+		/// The versions not registered so cannot unregister
+		VersionsNotExist,
 	}
 
 	#[pallet::hooks]
@@ -410,6 +424,101 @@ pub mod tea {
 							NodePcr::<T>::remove(key);
 						}
 					});
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn register_versions(
+			sender: OriginFor<T>,
+			versions: Vec<VersionItem>,
+			description: Vec<u8>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+			let hash = Self::versions_hash(&versions);
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						!AllowedVersions::<T>::contains_key(&hash),
+						Error::<T>::VersionsAlreadyExists,
+					);
+
+					Ok(())
+				},
+				move |_| {
+					AllowedVersions::<T>::insert(
+						hash,
+						RuntimeVersionSet {
+							versions,
+							description,
+						},
+					);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn unregister_versions(sender: OriginFor<T>, hash: H256) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						AllowedVersions::<T>::contains_key(&hash),
+						Error::<T>::VersionsNotExist,
+					);
+
+					Ok(())
+				},
+				move |_| {
+					AllowedVersions::<T>::remove(hash);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn report_node_expired(origin: OriginFor<T>, tea_id: TeaPubKey) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					Self::check_tea_id_belongs(sender, &tea_id)?;
+					Ok(())
+				},
+				|_sender| {
+					VersionExpiredNodes::<T>::insert(tea_id, ());
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn reset_expired_state(origin: OriginFor<T>, tea_id: TeaPubKey) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+
+			extrinsic_procedure(
+				&sender,
+				|sender| {
+					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					if !Self::is_builtin_node(&tea_id) {
+						ensure!(
+							T::CmlOperation::check_miner_stash(tea_id, sender),
+							Error::<T>::InvalidTeaIdOwner
+						);
+					} else {
+						ensure!(
+							BuiltinMiners::<T>::contains_key(sender),
+							Error::<T>::InvalidBuiltinMiner
+						);
+					}
+					Ok(())
+				},
+				|_sender| {
+					VersionExpiredNodes::<T>::remove(tea_id);
 				},
 			)
 		}

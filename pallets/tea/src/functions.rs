@@ -28,7 +28,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 	) -> DispatchResult {
 		if !Self::is_builtin_node(tea_id) {
 			ensure!(
-				T::CmlOperation::check_miner(*tea_id, sender),
+				T::CmlOperation::check_miner_controller(*tea_id, sender),
 				Error::<T>::InvalidTeaIdOwner
 			);
 		} else {
@@ -197,6 +197,10 @@ impl<T: tea::Config> tea::Pallet<T> {
 
 	pub(crate) fn pcr_slots_hash(slots: &Vec<PcrValue>) -> H256 {
 		slots.using_encoded(blake2_256).into()
+	}
+
+	pub(crate) fn versions_hash(versions: &Vec<VersionItem>) -> H256 {
+		versions.using_encoded(blake2_256).into()
 	}
 }
 
