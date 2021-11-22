@@ -1357,7 +1357,7 @@ impl_runtime_apis! {
 		}
 
 		fn allowed_versions() -> Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>)> {
-			Tea::allowed_versions()
+			Tea::list_allowed_versions()
 		}
 
 		fn find_tea_id_by_peer_id(peer_id: Vec<u8>) -> Vec<[u8; 32]> {
