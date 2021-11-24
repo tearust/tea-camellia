@@ -25,6 +25,10 @@ impl<T: tea::Config> tea::Pallet<T> {
 			.collect()
 	}
 
+	pub fn list_version_expired_nodes() -> Vec<[u8; 32]> {
+		VersionExpiredNodes::<T>::iter().map(|(id, _)| id).collect()
+	}
+
 	pub fn find_tea_id_by_peer_id(peer_id: &[u8]) -> Vec<[u8; 32]> {
 		Nodes::<T>::iter()
 			.filter(|(_, node)| node.peer_id.eq(peer_id))
