@@ -1,7 +1,7 @@
 use crate::{
 	group::update_validator_groups_count, mock::*, types::*, AllowedPcrValues, AllowedVersions,
 	BuiltinMiners, BuiltinNodes, Config, Error, NodePcr, Nodes, OfflineEvidences, ReportEvidences,
-	TipsEvidences,
+	TipsEvidences, VersionExpiredNodes,
 };
 use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
 use hex_literal::hex;
@@ -2228,6 +2228,155 @@ fn commit_tips_evidence_should_fail_if_repoted_not_long_ago() {
 				vec![]
 			),
 			Error::<Test>::RedundantTips
+		);
+	})
+}
+
+#[test]
+fn report_node_expired_works() {
+	new_test_ext().execute_with(|| {
+		let owner = 2;
+		let owner_controller = 22;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let (node, tea_id, _, _) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			tea_id,
+			owner_controller,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		let block_height = 100;
+		frame_system::Pallet::<Test>::set_block_number(block_height);
+		assert_ok!(Tea::report_node_expired(
+			Origin::signed(owner_controller),
+			tea_id.clone(),
+		));
+
+		assert!(VersionExpiredNodes::<Test>::contains_key(&tea_id));
+		assert_eq!(VersionExpiredNodes::<Test>::get(&tea_id), block_height);
+	})
+}
+
+#[test]
+fn report_node_expired_should_fail_if_use_stash_account() {
+	new_test_ext().execute_with(|| {
+		let owner = 2;
+		let owner_controller = 22;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let (node, tea_id, _, _) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			tea_id,
+			owner_controller,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		assert_noop!(
+			Tea::report_node_expired(Origin::signed(owner), tea_id.clone(),),
+			Error::<Test>::InvalidTeaIdOwner
+		);
+	})
+}
+
+#[test]
+fn reset_expired_state_works() {
+	new_test_ext().execute_with(|| {
+		let owner = 2;
+		let owner_controller = 22;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let (node, tea_id, _, _) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			tea_id,
+			owner_controller,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		assert_ok!(Tea::report_node_expired(
+			Origin::signed(owner_controller),
+			tea_id.clone(),
+		));
+		assert!(VersionExpiredNodes::<Test>::contains_key(&tea_id));
+
+		assert_ok!(Tea::reset_expired_state(
+			Origin::signed(owner),
+			tea_id.clone(),
+		));
+		assert!(!VersionExpiredNodes::<Test>::contains_key(&tea_id));
+	})
+}
+
+#[test]
+fn reset_expired_state_should_fail_if_use_controller_account() {
+	new_test_ext().execute_with(|| {
+		let owner = 2;
+		let owner_controller = 22;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let (node, tea_id, _, _) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			tea_id,
+			owner_controller,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		assert_ok!(Tea::report_node_expired(
+			Origin::signed(owner_controller),
+			tea_id.clone(),
+		));
+
+		assert_noop!(
+			Tea::reset_expired_state(Origin::signed(owner_controller), tea_id.clone(),),
+			Error::<Test>::InvalidTeaIdOwner
 		);
 	})
 }

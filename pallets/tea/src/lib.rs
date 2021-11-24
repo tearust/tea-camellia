@@ -202,7 +202,7 @@ pub mod tea {
 	#[pallet::storage]
 	#[pallet::getter(fn version_expired_nodes)]
 	pub(super) type VersionExpiredNodes<T: Config> =
-		StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
+		StorageMap<_, Twox64Concat, TeaPubKey, T::BlockNumber, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -491,7 +491,8 @@ pub mod tea {
 					Ok(())
 				},
 				|_sender| {
-					VersionExpiredNodes::<T>::insert(tea_id, ());
+					let current_block = frame_system::Pallet::<T>::block_number();
+					VersionExpiredNodes::<T>::insert(tea_id, current_block);
 				},
 			)
 		}
