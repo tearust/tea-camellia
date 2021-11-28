@@ -34,7 +34,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 	/// - Cml type, utf-8 encoded string
 	/// - Miner status, utf-8 encoded string
 	/// - Machine Id
-	pub fn current_mining_cml_list() -> Vec<(u64, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>)> {
+	/// - Hosting tapp count
+	pub fn current_mining_cml_list() -> Vec<(u64, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, u32)> {
 		MinerItemStore::<T>::iter()
 			.map(|(_, miner_item)| {
 				let cml = CmlStore::<T>::get(miner_item.cml_id);
@@ -52,6 +53,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 					MinerStatus::Offline => "Offline",
 					MinerStatus::ScheduleDown => "ScheduleDown",
 				};
+				let hosting_tapps = T::BondingCurveOperation::cml_host_tapps(miner_item.cml_id);
 
 				(
 					miner_item.cml_id,
@@ -59,6 +61,7 @@ impl<T: cml::Config> cml::Pallet<T> {
 					cml_type.as_bytes().to_vec(),
 					miner_status.as_bytes().to_vec(),
 					machine_id,
+					hosting_tapps.len() as u32,
 				)
 			})
 			.collect()
