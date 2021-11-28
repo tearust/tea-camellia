@@ -114,6 +114,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub(crate) fn pay_report_reward() {
+		let current_height = frame_system::Pallet::<T>::block_number();
 		let mut statements = Vec::new();
 
 		ReportEvidences::<T>::iter().for_each(|(phisher, ev)| {
@@ -125,7 +126,11 @@ impl<T: tea::Config> tea::Pallet<T> {
 						cml.id(),
 						ev.reporter,
 						phisher,
-						ReportRawardAmount::<T>::get(),
+						Self::cml_reward_by_performance(
+							cml.id(),
+							ReportRawardAmount::<T>::get(),
+							&current_height,
+						),
 					));
 				}
 			}
@@ -139,7 +144,11 @@ impl<T: tea::Config> tea::Pallet<T> {
 						cml.id(),
 						ev.target,
 						phisher,
-						TipsRawardAmount::<T>::get(),
+						Self::cml_reward_by_performance(
+							cml.id(),
+							TipsRawardAmount::<T>::get(),
+							&current_height,
+						),
 					));
 				}
 			}
@@ -149,6 +158,19 @@ impl<T: tea::Config> tea::Pallet<T> {
 		TipsEvidences::<T>::remove_all(None);
 
 		Self::deposit_event(Event::ReportEvidencesStatements(statements));
+	}
+
+	fn cml_reward_by_performance(
+		cml_id: CmlId,
+		base_reward: BalanceOf<T>,
+		block_height: &T::BlockNumber,
+	) -> BalanceOf<T> {
+		let (current_performance, peak_performance) =
+			T::CmlOperation::miner_performance(cml_id, block_height);
+		match current_performance {
+			Some(performance) => base_reward * performance.into() / peak_performance.into(),
+			None => Default::default(),
+		}
 	}
 
 	pub(crate) fn check_type_c_evidence(
