@@ -342,6 +342,8 @@ pub mod cml {
 		StakingSlotsOverAcceptableIndex,
 		/// It is forbidden to stake a cml that is in aution.
 		CannotStakeWhenCmlIsInAuction,
+		/// Not allowed type C cml to be staked.
+		NotAllowedCToBeStaked,
 
 		/// Defrost time should have value when defrost.
 		CmlDefrostTimeIsNone,
@@ -926,6 +928,10 @@ pub mod cml {
 					ensure!(
 						cml.staking_slots().len() <= T::StakingSlotsMaxLength::get() as usize,
 						Error::<T>::StakingSlotsOverTheMaxLength
+					);
+					ensure!(
+						cml.cml_type() != CmlType::C,
+						Error::<T>::NotAllowedCToBeStaked
 					);
 					cml.check_can_be_stake(&current_block_number, &amount?, &staking_cml)
 						.map_err(|e| Error::<T>::from(e))?;

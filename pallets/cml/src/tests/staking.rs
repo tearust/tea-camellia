@@ -223,6 +223,36 @@ fn start_staking_should_fail_if_the_stakee_slots_over_than_the_max_length() {
 }
 
 #[test]
+fn start_staking_should_fail_if_the_staking_to_cml_is_c_type() {
+	new_test_ext().execute_with(|| {
+		let cml_id: CmlId = 0;
+		UserCmlStore::<Test>::insert(1, cml_id, ());
+		let mut seed = seed_from_lifespan(cml_id, 100);
+		seed.cml_type = CmlType::C;
+		let cml = CML::from_genesis_seed(seed);
+		CmlStore::<Test>::insert(cml_id, cml);
+		<Test as Config>::Currency::make_free_balance_be(
+			&1,
+			STAKING_PRICE + MACHINE_ACCOUNT_TOP_UP_AMOUNT,
+		);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml_id,
+			[1u8; 32],
+			1,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		<Test as Config>::Currency::make_free_balance_be(&2, 100 * 1000);
+		assert_noop!(
+			Cml::start_staking(Origin::signed(2), cml_id, None, None),
+			Error::<Test>::NotAllowedCToBeStaked
+		);
+	})
+}
+
+#[test]
 fn start_staking_should_fail_if_the_stakee_slots_over_than_acceptable_index() {
 	new_test_ext().execute_with(|| {
 		let amount = 100 * 1000; // Unit * StakingPrice
