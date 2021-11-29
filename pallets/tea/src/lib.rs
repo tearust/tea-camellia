@@ -229,6 +229,23 @@ pub mod tea {
 		/// - Phisher machine id
 		/// - Reward amount
 		ReportEvidencesStatements(Vec<(T::AccountId, CmlId, TeaPubKey, TeaPubKey, BalanceOf<T>)>),
+
+		/// Event fields:
+		/// - report_tea_id
+		///	- commit_tea_id
+		///	- phishing_tea_id
+		NewTipsEvidence(TeaPubKey, TeaPubKey, TeaPubKey),
+
+		/// Event fields:
+		/// - report_tea_id
+		///	- commit_tea_id
+		///	- phishing_tea_id
+		NewReportEvidence(TeaPubKey, TeaPubKey, TeaPubKey),
+
+		/// Event fields:
+		/// - commit_tea_id
+		///	- offline_tea_id
+		NewOfflineEvidence(TeaPubKey, TeaPubKey),
 	}
 
 	// Errors inform users that something went wrong.
@@ -709,6 +726,12 @@ pub mod tea {
 						},
 					);
 					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
+
+					Self::deposit_event(Event::NewTipsEvidence(
+						report_tea_id,
+						tea_id,
+						phishing_tea_id,
+					));
 				},
 			)
 		}
@@ -763,6 +786,12 @@ pub mod tea {
 						},
 					);
 					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
+
+					Self::deposit_event(Event::NewReportEvidence(
+						report_tea_id,
+						tea_id,
+						phishing_tea_id,
+					));
 				},
 			)
 		}
@@ -835,6 +864,8 @@ pub mod tea {
 					});
 					Self::try_suspend_node(&offline_tea_id);
 					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
+
+					Self::deposit_event(Event::NewOfflineEvidence(tea_id, offline_tea_id));
 				},
 			)
 		}
