@@ -222,6 +222,14 @@ pub mod bonding_curve {
 	#[pallet::storage]
 	pub(crate) type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
 
+	#[pallet::storage]
+	pub(crate) type TappNotificationAccount<T: Config> =
+		StorageMap<_, Twox64Concat, TAppId, T::AccountId, ValueQuery>;
+
+	#[pallet::storage]
+	pub(crate) type UserNotifications<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, Vec<T::BlockNumber>, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
@@ -495,6 +503,12 @@ pub mod bonding_curve {
 		MiningCmlStatusShouldBeActive,
 		/// Not allowed type C cml to host tapp
 		NotAllowedTypeCHostingTApp,
+		/// Only notification account allowed to push notification
+		NotAllowedPushNotification,
+		/// Notification list should at least have one message
+		NotificationListIsEmpty,
+		/// Notification list and account list should be matched
+		NotificationAndAccountListNotMatched,
 	}
 
 	#[pallet::hooks]
@@ -1218,6 +1232,80 @@ pub mod bonding_curve {
 						tapp_operation_account.clone(),
 						amount,
 					));
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn push_notifications(
+			sender: OriginFor<T>,
+			tapp_id: TAppId,
+			accounts: Vec<T::AccountId>,
+			expired_heights: Vec<T::BlockNumber>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						TAppBondingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						TappNotificationAccount::<T>::get(tapp_id).eq(who),
+						Error::<T>::NotAllowedPushNotification
+					);
+					ensure!(
+						accounts.len() == expired_heights.len(),
+						Error::<T>::NotificationAndAccountListNotMatched
+					);
+					ensure!(!accounts.is_empty(), Error::<T>::NotificationListIsEmpty);
+					Ok(())
+				},
+				|who| {
+					for i in 0..accounts.len() {
+						UserNotifications::<T>::mutate(&accounts[i], |notification_list| {
+							notification_list.push(expired_heights[i])
+						});
+					}
+					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn read_notification(
+			sender: OriginFor<T>,
+			tapp_id: TAppId,
+			account: T::AccountId,
+			expired_height: T::BlockNumber,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						TAppBondingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						TappNotificationAccount::<T>::get(tapp_id).eq(who),
+						Error::<T>::NotAllowedPushNotification
+					);
+					Ok(())
+				},
+				|who| {
+					UserNotifications::<T>::mutate(account, |notification_list| {
+						// try remove the first matched element
+						if let Some(index) =
+							notification_list.iter().position(|x| x.eq(&expired_height))
+						{
+							notification_list.remove(index);
+						}
+					});
+					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
 				},
 			)
 		}

@@ -1520,6 +1520,10 @@ impl_runtime_apis! {
 		fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)> {
 			BondingCurve::approved_links()
 		}
+
+		fn user_notification_count(account: AccountId) -> u32 {
+			BondingCurve::user_notification_count(account)
+		}
 	}
 
 	impl fg_primitives::GrandpaApi<Block> for Runtime {

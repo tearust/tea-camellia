@@ -231,6 +231,9 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 		&self,
 		at: Option<BlockHash>,
 	) -> Result<Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)>>;
+
+	#[rpc(name = "cml_userNotificationCount")]
+	fn user_notification_count(&self, account: AccountId, at: Option<BlockHash>) -> Result<u32>;
 }
 
 pub struct BondingCurveApiImpl<C, M> {
@@ -681,6 +684,22 @@ where
 
 		let result = api
 			.approved_links(&at)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
+	}
+
+	fn user_notification_count(
+		&self,
+		account: AccountId,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<u32> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.user_notification_count(&at, account)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

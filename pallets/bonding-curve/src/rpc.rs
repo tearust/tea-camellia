@@ -417,6 +417,14 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			})
 			.collect()
 	}
+
+	pub fn user_notification_count(account: T::AccountId) -> u32 {
+		let current_height = frame_system::Pallet::<T>::block_number();
+		UserNotifications::<T>::get(account)
+			.iter()
+			.filter(|expired_height| **expired_height >= current_height)
+			.count() as u32
+	}
 }
 
 #[cfg(test)]
