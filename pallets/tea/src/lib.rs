@@ -710,7 +710,7 @@ pub mod tea {
 							TipsEvidences::<T>::get(&report_tea_id)
 								.height
 								.saturating_add(T::TipsAllowedDuration::get())
-								>= current_height.clone(),
+								< current_height.clone(),
 							Error::<T>::RedundantTips,
 						);
 					}
@@ -767,7 +767,7 @@ pub mod tea {
 							ReportEvidences::<T>::get(&phishing_tea_id)
 								.height
 								.saturating_add(T::PhishingAllowedDuration::get())
-								>= current_height.clone(),
+								< current_height.clone(),
 							Error::<T>::RedundantReport
 						);
 					}

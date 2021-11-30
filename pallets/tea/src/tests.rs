@@ -909,21 +909,6 @@ fn commit_report_evidence_should_fail_if_phishing_tea_id_not_exist() {
 }
 
 #[test]
-fn commit_report_evidence_should_fail_if_phishing_and_commiting_tea_id_are_same() {
-	new_test_ext().execute_with(|| {
-		let committer = [1u8; 32];
-		let reporter = [2u8; 32];
-		Nodes::<Test>::insert(committer, Node::<u64>::default());
-		Nodes::<Test>::insert(reporter, Node::<u64>::default());
-
-		assert_noop!(
-			Tea::commit_report_evidence(Origin::signed(1), committer, reporter, committer, vec![]),
-			Error::<Test>::PhishingNodeCannotCommitReport
-		);
-	})
-}
-
-#[test]
 fn commit_report_evidence_should_fail_if_user_is_not_the_owner_of_commit_tea_id() {
 	new_test_ext().execute_with(|| {
 		let committer = [1u8; 32];
@@ -1162,6 +1147,63 @@ fn commit_report_evidence_should_fail_if_phishing_cml_is_c_type() {
 }
 
 #[test]
+fn commit_report_evidence_should_fail_if_phishing_and_commiting_tea_id_are_same() {
+	new_test_ext().execute_with(|| {
+		let reporter = 3;
+		let phisher = 4;
+		<Test as Config>::Currency::make_free_balance_be(&reporter, 10000);
+		<Test as Config>::Currency::make_free_balance_be(&phisher, 10000);
+
+		let reporter_cml_id = 2;
+		let reporter_tea_id = [2u8; 32];
+		let phisher_cml_id = 3;
+		let phisher_tea_id = [3u8; 32];
+
+		let mut reporter_cml =
+			CML::from_genesis_seed(seed_from_type(reporter_cml_id, 100, CmlType::C));
+		reporter_cml.set_owner(&reporter);
+		UserCmlStore::<Test>::insert(reporter, reporter_cml_id, ());
+		CmlStore::<Test>::insert(reporter_cml_id, reporter_cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(reporter),
+			reporter_cml_id,
+			reporter_tea_id,
+			reporter,
+			b"miner_ip2".to_vec(),
+			None,
+		));
+
+		let mut phisher_cml =
+			CML::from_genesis_seed(seed_from_type(phisher_cml_id, 100, CmlType::B));
+		phisher_cml.set_owner(&phisher);
+		UserCmlStore::<Test>::insert(phisher, phisher_cml_id, ());
+		CmlStore::<Test>::insert(phisher_cml_id, phisher_cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(phisher),
+			phisher_cml_id,
+			phisher_tea_id,
+			phisher,
+			b"miner_ip3".to_vec(),
+			Some(b"orbit_id2".to_vec()),
+		));
+
+		let current_height = 55;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		assert_noop!(
+			Tea::commit_report_evidence(
+				Origin::signed(phisher),
+				phisher_tea_id,
+				reporter_tea_id,
+				phisher_tea_id,
+				vec![]
+			),
+			Error::<Test>::PhishingNodeCannotCommitReport
+		);
+	})
+}
+
+#[test]
 fn commit_report_evidence_should_fail_if_repoted_not_long_ago() {
 	new_test_ext().execute_with(|| {
 		let committer = 2;
@@ -1236,7 +1278,7 @@ fn commit_report_evidence_should_fail_if_repoted_not_long_ago() {
 		);
 
 		frame_system::Pallet::<Test>::set_block_number(
-			current_height + PHISHING_ALLOWED_DURATION as u64 + 1,
+			current_height + PHISHING_ALLOWED_DURATION as u64,
 		);
 		assert_noop!(
 			Tea::commit_report_evidence(
@@ -1248,6 +1290,17 @@ fn commit_report_evidence_should_fail_if_repoted_not_long_ago() {
 			),
 			Error::<Test>::RedundantReport
 		);
+
+		frame_system::Pallet::<Test>::set_block_number(
+			current_height + PHISHING_ALLOWED_DURATION as u64 + 1,
+		);
+		assert_ok!(Tea::commit_report_evidence(
+			Origin::signed(committer),
+			committer_tea_id,
+			reporter_tea_id,
+			phisher_tea_id,
+			vec![]
+		));
 	})
 }
 
@@ -1571,6 +1624,89 @@ fn commit_offline_evidence_works_if_commit_multi_times_and_not_suspend_the_node(
 }
 
 #[test]
+fn commit_offline_evidence_should_fail_if_same_cml_commit_multi_times_in_a_short_time() {
+	new_test_ext().execute_with(|| {
+		let miner = 2;
+		let reporter = 3;
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+		<Test as Config>::Currency::make_free_balance_be(&reporter, 10000);
+
+		let miner_cml_id = 1;
+		let miner_tea_id = [1u8; 32];
+		let reporter_cml_id = 2;
+		let reporter_tea_id = [2u8; 32];
+
+		let mut miner_cml = CML::from_genesis_seed(seed_from_type(miner_cml_id, 100, CmlType::B));
+		miner_cml.set_owner(&miner);
+		UserCmlStore::<Test>::insert(miner, miner_cml_id, ());
+		CmlStore::<Test>::insert(miner_cml_id, miner_cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			miner_cml_id,
+			miner_tea_id,
+			miner,
+			b"miner_ip1".to_vec(),
+			Some(b"orbit_id1".to_vec()),
+		));
+
+		let mut reporter_cml =
+			CML::from_genesis_seed(seed_from_type(reporter_cml_id, 100, CmlType::B));
+		reporter_cml.set_owner(&reporter);
+		UserCmlStore::<Test>::insert(reporter, reporter_cml_id, ());
+		CmlStore::<Test>::insert(reporter_cml_id, reporter_cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(reporter),
+			reporter_cml_id,
+			reporter_tea_id,
+			reporter,
+			b"miner_ip2".to_vec(),
+			Some(b"orbit_id2".to_vec()),
+		));
+
+		let current_height = 55;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		assert_ok!(Tea::commit_offline_evidence(
+			Origin::signed(reporter),
+			reporter_tea_id,
+			miner_tea_id,
+			vec![]
+		));
+		assert!(OfflineEvidences::<Test>::contains_key(miner_tea_id));
+		let evidences = OfflineEvidences::<Test>::get(miner_tea_id);
+		assert_eq!(evidences.len(), 1);
+		assert_eq!(evidences[0].height, current_height);
+		assert_eq!(evidences[0].tea_id, reporter_tea_id);
+
+		let current_height2 = current_height + OFFLINE_VALID_DURATION as u64 - 1;
+		frame_system::Pallet::<Test>::set_block_number(current_height2);
+		assert_noop!(
+			Tea::commit_offline_evidence(
+				Origin::signed(reporter),
+				reporter_tea_id,
+				miner_tea_id,
+				vec![]
+			),
+			Error::<Test>::CanNotCommitOfflineEvidenceMultiTimes
+		);
+
+		let current_height3 = current_height + OFFLINE_VALID_DURATION as u64;
+		frame_system::Pallet::<Test>::set_block_number(current_height3);
+		assert_ok!(Tea::commit_offline_evidence(
+			Origin::signed(reporter),
+			reporter_tea_id,
+			miner_tea_id,
+			vec![]
+		));
+		assert!(OfflineEvidences::<Test>::contains_key(miner_tea_id));
+		let evidences = OfflineEvidences::<Test>::get(miner_tea_id);
+		assert_eq!(evidences.len(), 1);
+		assert_eq!(evidences[0].height, current_height3);
+		assert_eq!(evidences[0].tea_id, reporter_tea_id);
+	})
+}
+
+#[test]
 fn commit_offline_evidence_should_fail_if_reporter_not_exist() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
@@ -1852,6 +1988,62 @@ fn commit_tips_evidence_works() {
 }
 
 #[test]
+fn commit_tips_evidence_works_if_phishing_and_commiting_tea_id_are_same() {
+	new_test_ext().execute_with(|| {
+		let reporter = 3;
+		let reporter_controller = 33;
+		let phisher = 4;
+		let phisher_controller = 44;
+		<Test as Config>::Currency::make_free_balance_be(&reporter, 10000);
+		<Test as Config>::Currency::make_free_balance_be(&phisher, 10000);
+
+		let reporter_cml_id = 2;
+		let reporter_tea_id = [2u8; 32];
+		let phisher_cml_id = 3;
+		let phisher_tea_id = [3u8; 32];
+
+		let mut reporter_cml =
+			CML::from_genesis_seed(seed_from_type(reporter_cml_id, 100, CmlType::C));
+		reporter_cml.set_owner(&reporter);
+		UserCmlStore::<Test>::insert(reporter, reporter_cml_id, ());
+		CmlStore::<Test>::insert(reporter_cml_id, reporter_cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(reporter),
+			reporter_cml_id,
+			reporter_tea_id,
+			reporter_controller,
+			b"miner_ip2".to_vec(),
+			None,
+		));
+
+		let mut phisher_cml =
+			CML::from_genesis_seed(seed_from_type(phisher_cml_id, 100, CmlType::B));
+		phisher_cml.set_owner(&phisher);
+		UserCmlStore::<Test>::insert(phisher, phisher_cml_id, ());
+		CmlStore::<Test>::insert(phisher_cml_id, phisher_cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(phisher),
+			phisher_cml_id,
+			phisher_tea_id,
+			phisher_controller,
+			b"miner_ip3".to_vec(),
+			Some(b"orbit_id2".to_vec()),
+		));
+
+		let current_height = 55;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		assert_ok!(Tea::commit_tips_evidence(
+			Origin::signed(phisher_controller),
+			phisher_tea_id,
+			reporter_tea_id,
+			phisher_tea_id,
+			vec![]
+		));
+	})
+}
+
+#[test]
 fn commit_tips_evidence_should_fail_if_commit_tea_id_not_exist() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
@@ -1885,21 +2077,6 @@ fn commit_tips_evidence_should_fail_if_phishing_tea_id_not_exist() {
 		assert_noop!(
 			Tea::commit_tips_evidence(Origin::signed(1), committer, reporter, [3u8; 32], vec![]),
 			Error::<Test>::PhishingNodeNotExist
-		);
-	})
-}
-
-#[test]
-fn commit_tips_evidence_should_fail_if_phishing_and_commiting_tea_id_are_same() {
-	new_test_ext().execute_with(|| {
-		let committer = [1u8; 32];
-		let reporter = [2u8; 32];
-		Nodes::<Test>::insert(committer, Node::<u64>::default());
-		Nodes::<Test>::insert(reporter, Node::<u64>::default());
-
-		assert_noop!(
-			Tea::commit_tips_evidence(Origin::signed(1), committer, reporter, committer, vec![]),
-			Error::<Test>::PhishingNodeCannotCommitReport
 		);
 	})
 }
@@ -2217,7 +2394,7 @@ fn commit_tips_evidence_should_fail_if_repoted_not_long_ago() {
 		);
 
 		frame_system::Pallet::<Test>::set_block_number(
-			current_height + TIPS_ALLOWED_DURATION as u64 + 1,
+			current_height + TIPS_ALLOWED_DURATION as u64,
 		);
 		assert_noop!(
 			Tea::commit_tips_evidence(
@@ -2229,6 +2406,17 @@ fn commit_tips_evidence_should_fail_if_repoted_not_long_ago() {
 			),
 			Error::<Test>::RedundantTips
 		);
+
+		frame_system::Pallet::<Test>::set_block_number(
+			current_height + TIPS_ALLOWED_DURATION as u64 + 1,
+		);
+		assert_ok!(Tea::commit_tips_evidence(
+			Origin::signed(committer),
+			committer_tea_id,
+			reporter_tea_id,
+			phisher_tea_id,
+			vec![]
+		));
 	})
 }
 
