@@ -189,10 +189,6 @@ impl<T: tea::Config> tea::Pallet<T> {
 			Nodes::<T>::contains_key(phishing_tea_id),
 			Error::<T>::PhishingNodeNotExist
 		);
-		ensure!(
-			!tea_id.eq(phishing_tea_id),
-			Error::<T>::PhishingNodeCannotCommitReport
-		);
 		Self::check_tea_id_belongs(who, tea_id)?;
 
 		let current_cml = T::CmlOperation::cml_by_machine_id(tea_id);

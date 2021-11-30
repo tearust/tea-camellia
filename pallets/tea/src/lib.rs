@@ -757,6 +757,10 @@ pub mod tea {
 						&phishing_tea_id,
 						&signature,
 					)?;
+					ensure!(
+						!tea_id.eq(&phishing_tea_id),
+						Error::<T>::PhishingNodeCannotCommitReport
+					);
 
 					if ReportEvidences::<T>::contains_key(&phishing_tea_id) {
 						ensure!(
