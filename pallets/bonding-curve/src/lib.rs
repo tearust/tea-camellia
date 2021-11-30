@@ -223,8 +223,7 @@ pub mod bonding_curve {
 	pub(crate) type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
 
 	#[pallet::storage]
-	pub(crate) type TappNotificationAccount<T: Config> =
-		StorageMap<_, Twox64Concat, TAppId, T::AccountId, ValueQuery>;
+	pub(crate) type NotificationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
 	#[pallet::storage]
 	pub(crate) type UserNotifications<T: Config> =
@@ -234,6 +233,7 @@ pub mod bonding_curve {
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
 		pub npc_account: T::AccountId,
+		pub notification_account: T::AccountId,
 		pub user_create_tapp: bool,
 	}
 	#[cfg(feature = "std")]
@@ -242,6 +242,7 @@ pub mod bonding_curve {
 			GenesisConfig {
 				reserved_balance_account: Default::default(),
 				npc_account: Default::default(),
+				notification_account: Default::default(),
 				user_create_tapp: false,
 			}
 		}
@@ -254,6 +255,7 @@ pub mod bonding_curve {
 
 			ReservedBalanceAccount::<T>::set(self.reserved_balance_account.clone());
 			NPCAccount::<T>::set(self.npc_account.clone());
+			NotificationAccount::<T>::set(self.notification_account.clone());
 
 			EnableUserCreateTApp::<T>::set(self.user_create_tapp);
 		}
@@ -509,6 +511,10 @@ pub mod bonding_curve {
 		NotificationListIsEmpty,
 		/// Notification list and account list should be matched
 		NotificationAndAccountListNotMatched,
+		/// Not found the given notification user
+		NotFoundNotificationUser,
+		/// No user notification to read
+		NoUserNotificationToRead,
 	}
 
 	#[pallet::hooks]
@@ -1239,7 +1245,6 @@ pub mod bonding_curve {
 		#[pallet::weight(195_000_000)]
 		pub fn push_notifications(
 			sender: OriginFor<T>,
-			tapp_id: TAppId,
 			accounts: Vec<T::AccountId>,
 			expired_heights: Vec<T::BlockNumber>,
 		) -> DispatchResult {
@@ -1249,11 +1254,7 @@ pub mod bonding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBondingCurve::<T>::contains_key(tapp_id),
-						Error::<T>::TAppIdNotExist
-					);
-					ensure!(
-						TappNotificationAccount::<T>::get(tapp_id).eq(who),
+						NotificationAccount::<T>::get().eq(who),
 						Error::<T>::NotAllowedPushNotification
 					);
 					ensure!(
@@ -1277,7 +1278,6 @@ pub mod bonding_curve {
 		#[pallet::weight(195_000_000)]
 		pub fn read_notification(
 			sender: OriginFor<T>,
-			tapp_id: TAppId,
 			account: T::AccountId,
 			expired_height: T::BlockNumber,
 		) -> DispatchResult {
@@ -1287,17 +1287,24 @@ pub mod bonding_curve {
 				&who,
 				|who| {
 					ensure!(
-						TAppBondingCurve::<T>::contains_key(tapp_id),
-						Error::<T>::TAppIdNotExist
+						NotificationAccount::<T>::get().eq(who),
+						Error::<T>::NotAllowedPushNotification
 					);
 					ensure!(
-						TappNotificationAccount::<T>::get(tapp_id).eq(who),
-						Error::<T>::NotAllowedPushNotification
+						UserNotifications::<T>::contains_key(&account),
+						Error::<T>::NotFoundNotificationUser
+					);
+					ensure!(
+						UserNotifications::<T>::get(&account)
+							.iter()
+							.position(|x| x.eq(&expired_height))
+							.is_some(),
+						Error::<T>::NoUserNotificationToRead
 					);
 					Ok(())
 				},
 				|who| {
-					UserNotifications::<T>::mutate(account, |notification_list| {
+					UserNotifications::<T>::mutate(&account, |notification_list| {
 						// try remove the first matched element
 						if let Some(index) =
 							notification_list.iter().position(|x| x.eq(&expired_height))

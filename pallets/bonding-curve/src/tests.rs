@@ -2725,6 +2725,212 @@ fn topup_should_fail_if_user_balance_is_not_enough() {
 	})
 }
 
+#[test]
+fn push_notifications_works() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		let expired_height1 = 50;
+		let expired_height2 = 80;
+		assert_ok!(BondingCurve::push_notifications(
+			Origin::signed(notification_account),
+			vec![user1, user2],
+			vec![expired_height1, expired_height2]
+		));
+
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
+		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
+	})
+}
+
+#[test]
+fn push_notifications_should_fail_if_committer_not_notification_account() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		assert_noop!(
+			BondingCurve::push_notifications(Origin::signed(user1), vec![], vec![]),
+			Error::<Test>::NotAllowedPushNotification
+		);
+	})
+}
+
+#[test]
+fn push_notifications_should_fail_if_notification_and_account_list_not_matched() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		assert_noop!(
+			BondingCurve::push_notifications(
+				Origin::signed(notification_account),
+				vec![user1, user2],
+				vec![11]
+			),
+			Error::<Test>::NotificationAndAccountListNotMatched
+		);
+	})
+}
+
+#[test]
+fn push_notifications_should_fail_if_account_list_is_empty() {
+	new_test_ext().execute_with(|| {
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		assert_noop!(
+			BondingCurve::push_notifications(Origin::signed(notification_account), vec![], vec![]),
+			Error::<Test>::NotificationListIsEmpty
+		);
+	})
+}
+
+#[test]
+fn read_notification_works() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		let expired_height1 = 50;
+		let expired_height2 = 80;
+		assert_ok!(BondingCurve::push_notifications(
+			Origin::signed(notification_account),
+			vec![user1, user2],
+			vec![expired_height1, expired_height2]
+		));
+
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
+		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
+
+		assert_ok!(BondingCurve::read_notification(
+			Origin::signed(notification_account),
+			user1,
+			expired_height1,
+		));
+
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 0);
+		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
+	})
+}
+
+#[test]
+fn read_notification_works_if_has_multi_notifications_with_same_height() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		let expired_height1 = 50;
+		let expired_height2 = 80;
+		assert_ok!(BondingCurve::push_notifications(
+			Origin::signed(notification_account),
+			vec![user1, user1, user1],
+			vec![expired_height1, expired_height1, expired_height2]
+		));
+
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 3);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
+		assert_eq!(UserNotifications::<Test>::get(user1)[1], expired_height1);
+		assert_eq!(UserNotifications::<Test>::get(user1)[2], expired_height2);
+
+		assert_ok!(BondingCurve::read_notification(
+			Origin::signed(notification_account),
+			user1,
+			expired_height1,
+		));
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 2);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
+		assert_eq!(UserNotifications::<Test>::get(user1)[1], expired_height2);
+
+		assert_ok!(BondingCurve::read_notification(
+			Origin::signed(notification_account),
+			user1,
+			expired_height2,
+		));
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
+	})
+}
+
+#[test]
+fn read_notification_should_fail_if_committer_not_notification_account() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		assert_noop!(
+			BondingCurve::read_notification(Origin::signed(user1), user1, 11,),
+			Error::<Test>::NotAllowedPushNotification
+		);
+	})
+}
+
+#[test]
+fn read_notification_should_fail_if_not_found_notification() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		assert_noop!(
+			BondingCurve::read_notification(Origin::signed(notification_account), user1, 11,),
+			Error::<Test>::NotFoundNotificationUser
+		);
+	})
+}
+
+#[test]
+fn read_notification_should_failed_if_no_read_matched() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		let expired_height1 = 50;
+		let expired_height2 = 80;
+		assert_ok!(BondingCurve::push_notifications(
+			Origin::signed(notification_account),
+			vec![user1, user2],
+			vec![expired_height1, expired_height2]
+		));
+
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
+		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
+
+		assert_noop!(
+			BondingCurve::read_notification(
+				Origin::signed(notification_account),
+				user1,
+				expired_height2,
+			),
+			Error::<Test>::NoUserNotificationToRead
+		);
+
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
+		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
+		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
+	})
+}
+
 pub fn create_default_tapp(tapp_owner: u64) -> DispatchResult {
 	let npc = NPCAccount::<Test>::get();
 	let link = b"https://teaproject.org".to_vec();
