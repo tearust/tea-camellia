@@ -120,36 +120,26 @@ impl<T: tea::Config> tea::Pallet<T> {
 		ReportEvidences::<T>::iter().for_each(|(phisher, ev)| {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.reporter) {
 				if let Some(owner) = cml.owner() {
-					T::CmlOperation::append_reward(owner, ReportRawardAmount::<T>::get());
-					statements.push((
-						owner.clone(),
+					let reward = Self::cml_reward_by_performance(
 						cml.id(),
-						ev.reporter,
-						phisher,
-						Self::cml_reward_by_performance(
-							cml.id(),
-							ReportRawardAmount::<T>::get(),
-							&current_height,
-						),
-					));
+						ReportRawardAmount::<T>::get(),
+						&current_height,
+					);
+					T::CmlOperation::append_reward(owner, reward.clone());
+					statements.push((owner.clone(), cml.id(), ev.reporter, phisher, reward));
 				}
 			}
 		});
-		TipsEvidences::<T>::iter().for_each(|(phisher, ev)| {
-			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.target) {
+		TipsEvidences::<T>::iter().for_each(|(reporter, ev)| {
+			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&reporter) {
 				if let Some(owner) = cml.owner() {
-					T::CmlOperation::append_reward(owner, TipsRawardAmount::<T>::get());
-					statements.push((
-						owner.clone(),
+					let reward = Self::cml_reward_by_performance(
 						cml.id(),
-						ev.target,
-						phisher,
-						Self::cml_reward_by_performance(
-							cml.id(),
-							TipsRawardAmount::<T>::get(),
-							&current_height,
-						),
-					));
+						TipsRawardAmount::<T>::get(),
+						&current_height,
+					);
+					T::CmlOperation::append_reward(owner, reward.clone());
+					statements.push((owner.clone(), cml.id(), reporter, ev.target, reward));
 				}
 			}
 		});
