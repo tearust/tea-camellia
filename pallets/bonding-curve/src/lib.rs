@@ -118,6 +118,9 @@ pub mod bonding_curve {
 
 		#[pallet::constant]
 		type ReservedLinkRentAmount: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type NotificationsArrangeDuration: Get<Self::BlockNumber>;
 	}
 
 	#[pallet::pallet]
@@ -525,6 +528,9 @@ pub mod bonding_curve {
 			}
 			if Self::need_collect_host_cost(n) {
 				Self::collect_host_cost();
+			}
+			if Self::need_arrange_notifications(n) {
+				Self::arrange_notificatioins();
 			}
 		}
 

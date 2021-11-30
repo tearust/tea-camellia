@@ -989,6 +989,7 @@ parameter_types! {
 	pub const DefaultSellCurveTheta: u32 = 7;
 	pub const HostPledgeAmount: Balance = 100 * DOLLARS;
 	pub const ReservedLinkRentAmount: Balance = 100 * DOLLARS;
+	pub const NotificationsArrangeDuration: BlockNumber = 1000;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -1014,6 +1015,7 @@ impl pallet_bonding_curve::Config for Runtime {
 	type DefaultSellCurveTheta = DefaultSellCurveTheta;
 	type HostPledgeAmount = HostPledgeAmount;
 	type ReservedLinkRentAmount = ReservedLinkRentAmount;
+	type NotificationsArrangeDuration = NotificationsArrangeDuration;
 }
 
 #[cfg(feature = "fast")]

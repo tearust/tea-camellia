@@ -168,6 +168,7 @@ pub const DEFAULT_BUY_CURVE_THETA: u32 = 10;
 pub const DEFAULT_SELL_CURVE_THETA: u32 = 7;
 pub const HOST_PLEDGE_AMOUNT: Balance = 100;
 pub const RESERVED_LINK_RENT_AMOUNT: Balance = 100;
+pub const NOTIFICATIONS_ARRANGE_DURATION: u64 = 1000;
 
 parameter_types! {
 	pub const TAppNameMaxLength: u32 = TAPP_NAME_MAX_LENGTH;
@@ -188,6 +189,7 @@ parameter_types! {
 	pub const DefaultSellCurveTheta: u32 = DEFAULT_SELL_CURVE_THETA;
 	pub const HostPledgeAmount: Balance = HOST_PLEDGE_AMOUNT;
 	pub const ReservedLinkRentAmount: Balance = RESERVED_LINK_RENT_AMOUNT;
+	pub const NotificationsArrangeDuration: u64 = NOTIFICATIONS_ARRANGE_DURATION;
 }
 
 impl pallet_bonding_curve::Config for Test {
@@ -213,6 +215,7 @@ impl pallet_bonding_curve::Config for Test {
 	type DefaultSellCurveTheta = DefaultSellCurveTheta;
 	type HostPledgeAmount = HostPledgeAmount;
 	type ReservedLinkRentAmount = ReservedLinkRentAmount;
+	type NotificationsArrangeDuration = NotificationsArrangeDuration;
 }
 
 pub const STAKING_PRICE: Balance = 1000;
