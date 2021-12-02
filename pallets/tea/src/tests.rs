@@ -751,12 +751,14 @@ fn update_runtime_activity_works() {
 	use rand::rngs::OsRng;
 
 	new_test_ext().execute_with(|| {
-		let (node, tea_id, _, _) = new_node();
-		Nodes::<Test>::insert(&tea_id, node);
+		let (mut node, tea_id, _, _) = new_node();
 
 		let mut csprng = OsRng {};
 		let kp = Keypair::generate(&mut csprng);
 		let signature = kp.sign(&tea_id);
+
+		node.ephemeral_id.copy_from_slice(kp.public.as_bytes());
+		Nodes::<Test>::insert(&tea_id, node);
 
 		assert_ok!(Tea::update_runtime_activity(
 			Origin::signed(1),
@@ -769,7 +771,34 @@ fn update_runtime_activity_works() {
 }
 
 #[test]
-fn update_runtime_activity_when_node_registered() {
+fn update_runtime_activity_should_fail_if_ephemeral_id_not_match() {
+	use ed25519_dalek::ed25519::signature::Signature;
+	use ed25519_dalek::{Keypair, Signer};
+	use rand::rngs::OsRng;
+
+	new_test_ext().execute_with(|| {
+		let (node, tea_id, _, _) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+
+		let mut csprng = OsRng {};
+		let kp = Keypair::generate(&mut csprng);
+		let signature = kp.sign(&tea_id);
+
+		assert_noop!(
+			Tea::update_runtime_activity(
+				Origin::signed(1),
+				tea_id,
+				None,
+				kp.public.as_bytes().clone(),
+				signature.as_bytes().to_vec(),
+			),
+			Error::<Test>::NodeEphemeralIdNotMatch
+		);
+	})
+}
+
+#[test]
+fn update_runtime_activity_when_node_not_registered() {
 	new_test_ext().execute_with(|| {
 		let (_, tea_id, ephemeral_id, _) = new_node::<u32>();
 

@@ -310,6 +310,9 @@ pub mod tea {
 		VersionsAlreadyExists,
 		/// The versions not registered so cannot unregister
 		VersionsNotExist,
+		/// The given ephemeral id not matched the ephemeral id registered
+		/// when update node profile
+		NodeEphemeralIdNotMatch,
 	}
 
 	#[pallet::hooks]
@@ -663,6 +666,8 @@ pub mod tea {
 				&sender,
 				|_sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					let node = Nodes::<T>::get(&tea_id);
+					ensure!(node.ephemeral_id.eq(&ephemeral_id), Error::<T>::NodeEphemeralIdNotMatch);
 					Self::verify_ed25519_signature(&ephemeral_id, &tea_id, &signature)?;
 					Ok(())
 				},
