@@ -384,7 +384,13 @@ pub mod bonding_curve {
 		/// 2. From account
 		/// 3. To account
 		/// 4. Topup amount
-		TAppTopup(TAppId, T::AccountId, T::AccountId, BalanceOf<T>),
+		TAppTopup(
+			TAppId,
+			T::AccountId,
+			T::AccountId,
+			BalanceOf<T>,
+			T::BlockNumber,
+		),
 
 		/// Fired after tapp actived, event parameters:
 		/// 1. TApp Id
@@ -1238,11 +1244,13 @@ pub mod bonding_curve {
 						return;
 					}
 
+					let current_height = frame_system::Pallet::<T>::block_number();
 					Self::deposit_event(Event::TAppTopup(
 						tapp_id,
 						who.clone(),
 						tapp_operation_account.clone(),
 						amount,
+						current_height,
 					));
 				},
 			)
