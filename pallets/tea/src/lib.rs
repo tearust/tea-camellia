@@ -313,6 +313,8 @@ pub mod tea {
 		/// The given ephemeral id not matched the ephemeral id registered
 		/// when update node profile
 		NodeEphemeralIdNotMatch,
+		/// The size of version keys and values not match
+		VersionKvpSizeNotMatch,
 	}
 
 	#[pallet::hooks]
@@ -451,10 +453,20 @@ pub mod tea {
 		#[pallet::weight(195_000_000)]
 		pub fn register_versions(
 			sender: OriginFor<T>,
-			versions: Vec<VersionItem>,
+			version_keys: Vec<Vec<u8>>,
+			version_values: Vec<Vec<u8>>,
 			description: Vec<u8>,
 		) -> DispatchResult {
 			let root = ensure_root(sender)?;
+			ensure!(
+				version_keys.len() == version_values.len(),
+				Error::<T>::VersionKvpSizeNotMatch
+			);
+			let mut versions = Vec::new();
+			for i in 0..version_keys.len() {
+				versions.push((version_keys[i].clone(), version_values[i].clone()));
+			}
+
 			let hash = Self::versions_hash(&versions);
 
 			extrinsic_procedure(
@@ -667,7 +679,10 @@ pub mod tea {
 				|_sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					let node = Nodes::<T>::get(&tea_id);
-					ensure!(node.ephemeral_id.eq(&ephemeral_id), Error::<T>::NodeEphemeralIdNotMatch);
+					ensure!(
+						node.ephemeral_id.eq(&ephemeral_id),
+						Error::<T>::NodeEphemeralIdNotMatch
+					);
 					Self::verify_ed25519_signature(&ephemeral_id, &tea_id, &signature)?;
 					Ok(())
 				},

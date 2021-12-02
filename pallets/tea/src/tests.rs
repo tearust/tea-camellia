@@ -108,7 +108,8 @@ fn register_versions_works() {
 
 		assert_ok!(Tea::register_versions(
 			Origin::root(),
-			vec![(version_key1.clone(), version_value1.clone())],
+			vec![version_key1.clone()],
+			vec![version_value1.clone()],
 			desc,
 		));
 		assert_eq!(AllowedVersions::<Test>::iter().count(), 1);
@@ -121,7 +122,8 @@ fn register_versions_should_fail_if_not_root_user() {
 		assert_noop!(
 			Tea::register_versions(
 				Origin::signed(1),
-				vec![(b"test key".to_vec(), b"test value".to_vec())],
+				vec![b"test key".to_vec()],
+				vec![b"test value".to_vec()],
 				b"test desc".to_vec()
 			),
 			DispatchError::BadOrigin
@@ -138,11 +140,17 @@ fn register_versions_should_faild_if_register_twice() {
 
 		assert_ok!(Tea::register_versions(
 			Origin::root(),
-			vec![(version_key1.clone(), version_value1.clone())],
+			vec![version_key1.clone()],
+			vec![version_value1.clone()],
 			desc.clone()
 		));
 		assert_noop!(
-			Tea::register_versions(Origin::root(), vec![(version_key1, version_value1)], desc),
+			Tea::register_versions(
+				Origin::root(),
+				vec![version_key1],
+				vec![version_value1],
+				desc
+			),
 			Error::<Test>::VersionsAlreadyExists
 		);
 	})
@@ -158,7 +166,8 @@ fn unregister_versions_works() {
 		assert_eq!(AllowedVersions::<Test>::iter().count(), 0);
 		assert_ok!(Tea::register_versions(
 			Origin::root(),
-			vec![(version_key1.clone(), version_value1.clone())],
+			vec![version_key1.clone()],
+			vec![version_value1.clone()],
 			desc,
 		));
 		assert_eq!(AllowedVersions::<Test>::iter().count(), 1);
