@@ -75,6 +75,7 @@ pub struct TAppItem<AccountId, Balance, BlockNumber> {
 	pub billing_mode: BillingMode<Balance>,
 	pub buy_curve_k: u32,
 	pub sell_curve_k: u32,
+	pub created_at: BlockNumber,
 }
 
 impl<AccountId, Balance, BlockNumber> TAppItem<AccountId, Balance, BlockNumber> {
@@ -92,6 +93,7 @@ impl<AccountId, Balance, BlockNumber> Default for TAppItem<AccountId, Balance, B
 where
 	AccountId: Default,
 	Balance: AtLeast32BitUnsigned + Default,
+	BlockNumber: Default,
 {
 	fn default() -> Self {
 		TAppItem {
@@ -108,6 +110,7 @@ where
 			billing_mode: BillingMode::FixedHostingToken(Default::default()),
 			buy_curve_k: 10,
 			sell_curve_k: 7,
+			created_at: Default::default(),
 		}
 	}
 }

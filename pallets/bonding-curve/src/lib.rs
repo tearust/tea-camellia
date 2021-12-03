@@ -271,7 +271,8 @@ pub mod bonding_curve {
 		/// 1. TApp Id
 		/// 2. TApp name array encoded with UTF8
 		/// 3. TApp owner Account Id
-		TAppCreated(TAppId, Vec<u8>, T::AccountId),
+		/// 4. Created block number
+		TAppCreated(TAppId, Vec<u8>, T::AccountId, T::BlockNumber),
 
 		/// Fired after TApp token bought successfully, event parameters:
 		/// 1. TApp Id
@@ -805,6 +806,7 @@ pub mod bonding_curve {
 							reward_per_1k_performance.unwrap_or(Zero::zero()),
 						),
 					};
+					let current_block = frame_system::Pallet::<T>::block_number();
 					TAppBondingCurve::<T>::insert(
 						id,
 						TAppItem {
@@ -819,6 +821,7 @@ pub mod bonding_curve {
 							max_allowed_hosts,
 							tapp_type,
 							billing_mode,
+							created_at: current_block.clone(),
 							..Default::default()
 						},
 					);
@@ -827,7 +830,12 @@ pub mod bonding_curve {
 						T::CurrencyOperations::slash(who, T::ReservedLinkRentAmount::get());
 					}
 
-					Self::deposit_event(Event::TAppCreated(id, tapp_name.clone(), who.clone()));
+					Self::deposit_event(Event::TAppCreated(
+						id,
+						tapp_name.clone(),
+						who.clone(),
+						current_block,
+					));
 				},
 			)
 		}

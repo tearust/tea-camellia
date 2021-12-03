@@ -66,6 +66,7 @@ pub(crate) mod v0 {
 	where
 		AccountId: Default,
 		Balance: AtLeast32BitUnsigned + Default,
+		BlockNumber: Default,
 	{
 		fn default() -> Self {
 			TAppItemV0 {
@@ -91,6 +92,7 @@ pub(crate) mod v0 {
 	where
 		AccountId: Default,
 		Balance: AtLeast32BitUnsigned + Default,
+		BlockNumber: Default,
 	{
 		fn into(self) -> TAppItem<AccountId, Balance, BlockNumber> {
 			let to_theta = |t| match t {
@@ -113,6 +115,7 @@ pub(crate) mod v0 {
 				billing_mode: self.billing_mode,
 				buy_curve_k: to_theta(self.buy_curve),
 				sell_curve_k: to_theta(self.sell_curve),
+				created_at: Default::default(),
 			}
 		}
 	}
