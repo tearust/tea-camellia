@@ -987,7 +987,7 @@ parameter_types! {
 	pub const TAppLinkDescriptionMaxLength: u32 = 140;
 	pub const DefaultBuyCurveTheta: u32 = 10;
 	pub const DefaultSellCurveTheta: u32 = 7;
-	pub const HostPledgeAmount: Balance = 100 * DOLLARS;
+	pub const HostPledgeAmount: Balance = 0 * DOLLARS;
 	pub const ReservedLinkRentAmount: Balance = 100 * DOLLARS;
 	pub const NotificationsArrangeDuration: BlockNumber = 1000;
 }
