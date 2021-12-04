@@ -1359,6 +1359,10 @@ fn migrate_works_if_cml_is_offline() {
 		let miner_item = MinerItemStore::<Test>::get(machine_id);
 		assert_eq!(miner_item.status, MinerStatus::Offline);
 		assert!(MinerIpSet::<Test>::contains_key(&miner_ip));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&miner),
+			amount - STAKING_PRICE - MACHINE_ACCOUNT_TOP_UP_AMOUNT
+		);
 
 		let new_miner_controller = 3;
 		let new_machine_id = [2u8; 32];
@@ -1382,6 +1386,10 @@ fn migrate_works_if_cml_is_offline() {
 		assert_eq!(miner_item.orbitdb_id, Some(new_orbit_id));
 		assert!(!MinerIpSet::<Test>::contains_key(&miner_ip));
 		assert!(MinerIpSet::<Test>::contains_key(&new_miner_ip));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&miner),
+			amount - STAKING_PRICE - MACHINE_ACCOUNT_TOP_UP_AMOUNT * 2
+		);
 	})
 }
 
@@ -1408,6 +1416,10 @@ fn migrate_works_if_cml_is_schedule_down() {
 			None,
 		));
 		assert!(MinerIpSet::<Test>::contains_key(&miner_ip));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&miner),
+			amount - STAKING_PRICE
+		);
 
 		assert_ok!(Cml::schedule_down(Origin::signed(miner), cml_id));
 		let miner_item = MinerItemStore::<Test>::get(machine_id);
@@ -1433,6 +1445,52 @@ fn migrate_works_if_cml_is_schedule_down() {
 		assert_eq!(miner_item.controller_account, new_miner_controller);
 		assert!(!MinerIpSet::<Test>::contains_key(&miner_ip));
 		assert!(MinerIpSet::<Test>::contains_key(&new_miner_ip));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&miner),
+			amount - STAKING_PRICE - MACHINE_ACCOUNT_TOP_UP_AMOUNT
+		);
+	})
+}
+
+#[test]
+fn migrate_should_fail_if_user_not_enough_free_balance() {
+	new_test_ext().execute_with(|| {
+		let miner = 1;
+		let amount = STAKING_PRICE + MACHINE_ACCOUNT_TOP_UP_AMOUNT;
+		<Test as Config>::Currency::make_free_balance_be(&miner, amount);
+
+		let cml_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(miner, cml_id, ());
+		let cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		let miner_controller = 2;
+		let machine_id: MachineId = [1u8; 32];
+		let miner_ip = b"miner_ip".to_vec();
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			cml_id,
+			machine_id,
+			miner_controller,
+			miner_ip.clone(),
+			None,
+		));
+
+		Cml::suspend_mining(machine_id);
+		assert_eq!(<Test as Config>::Currency::free_balance(&miner), 0);
+
+		let new_miner_controller = 3;
+		assert_noop!(
+			Cml::migrate(
+				Origin::signed(miner),
+				cml_id,
+				machine_id,
+				miner_ip.clone(),
+				new_miner_controller,
+				None,
+			),
+			Error::<Test>::InsufficientFreeBalance
+		);
 	})
 }
 

@@ -643,7 +643,7 @@ pub mod cml {
 						sender,
 						&controller_account,
 						T::MachineAccountTopUpAmount::get(),
-						ExistenceRequirement::KeepAlive,
+						ExistenceRequirement::AllowDeath,
 					) {
 						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 						log::error!("transfer error: {:?}", e);
@@ -781,10 +781,26 @@ pub mod cml {
 						miner_item.status != MinerStatus::Active,
 						Error::<T>::CannotMigrateWhenActive
 					);
+					ensure!(
+						T::CurrencyOperations::free_balance(who)
+							>= T::MachineAccountTopUpAmount::get(),
+						Error::<T>::InsufficientFreeBalance,
+					);
 
 					Ok(())
 				},
-				|_who| {
+				|who| {
+					if let Err(e) = T::CurrencyOperations::transfer(
+						who,
+						&controller_account,
+						T::MachineAccountTopUpAmount::get(),
+						ExistenceRequirement::AllowDeath,
+					) {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("transfer error: {:?}", e);
+						return;
+					}
+
 					if let Some(machine_id) = CmlStore::<T>::get(cml_id).machine_id() {
 						let mut miner_item = MinerItemStore::<T>::take(machine_id);
 						MinerIpSet::<T>::remove(&miner_item.ip);
