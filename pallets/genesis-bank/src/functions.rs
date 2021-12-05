@@ -14,6 +14,18 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 				match id.asset_type {
 					AssetType::CML => {
 						if let Ok(cml_id) = to_cml_id(&id.inner_id) {
+							match Self::cml_loan_initial_amount(cml_id) {
+								Ok(compensation_amount) => {
+									T::CurrencyOperations::deposit_creating(
+										&OperationAccount::<T>::get(),
+										compensation_amount,
+									);
+								}
+								Err(e) => {
+									log::warn!("get cml loan initial amount failed: {:?}", e);
+								}
+							}
+
 							T::CmlOperation::remove_cml(cml_id);
 						}
 					}
@@ -316,7 +328,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 mod tests {
 	use crate::mock::*;
 	use crate::*;
-	use pallet_cml::CmlId;
+	use pallet_cml::{CmlId, CmlStore, DefrostScheduleType, Seed, CML};
 
 	#[test]
 	fn cml_need_to_pay_works() {
@@ -401,10 +413,26 @@ mod tests {
 	#[test]
 	fn try_clean_default_loan_works() {
 		new_test_ext().execute_with(|| {
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				BANK_INITIAL_BALANCE
+			);
+
 			let user1 = 11;
 			let user2 = 22;
-			let id1 = new_id(1);
-			let id2 = new_id(2);
+			let cml1 = 1;
+			let cml2 = 2;
+			CmlStore::<Test>::insert(
+				cml1,
+				CML::from_genesis_seed(seed_from_type(cml1, CmlType::A)),
+			);
+			CmlStore::<Test>::insert(
+				cml2,
+				CML::from_genesis_seed(seed_from_type(cml2, CmlType::B)),
+			);
+
+			let id1 = new_id(cml1);
+			let id2 = new_id(cml2);
 			let start_height1 = 0;
 			let start_height2 = 1000;
 			CollateralStore::<Test>::insert(&id1, new_lien(user1, start_height1));
@@ -429,6 +457,12 @@ mod tests {
 			assert!(!UserCollateralStore::<Test>::contains_key(&user1, &id1));
 			assert!(CollateralStore::<Test>::contains_key(&id2));
 			assert!(UserCollateralStore::<Test>::contains_key(&user2, &id2));
+			assert!(!CmlStore::<Test>::contains_key(&cml1));
+			assert!(CmlStore::<Test>::contains_key(&cml2));
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				BANK_INITIAL_BALANCE + CML_A_LOAN_AMOUNT
+			);
 
 			frame_system::Pallet::<Test>::set_block_number(
 				LOAN_TERM_DURATION as u64 + start_height2,
@@ -443,6 +477,11 @@ mod tests {
 			assert_eq!(cleaned_ids[0], id2);
 			assert!(!CollateralStore::<Test>::contains_key(&id2));
 			assert!(!UserCollateralStore::<Test>::contains_key(&user2, &id2));
+			assert!(!CmlStore::<Test>::contains_key(&cml2));
+			assert_eq!(
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				BANK_INITIAL_BALANCE + CML_A_LOAN_AMOUNT + CML_B_LOAN_AMOUNT
+			);
 		})
 	}
 
@@ -459,6 +498,17 @@ mod tests {
 			start_at,
 			term_update_at: start_at,
 			..Default::default()
+		}
+	}
+
+	fn seed_from_type(id: CmlId, cml_type: CmlType) -> Seed {
+		Seed {
+			id,
+			cml_type,
+			defrost_schedule: Some(DefrostScheduleType::Team),
+			defrost_time: Some(0),
+			lifespan: 100,
+			performance: 0,
 		}
 	}
 }
