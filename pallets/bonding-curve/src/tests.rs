@@ -2444,6 +2444,7 @@ fn unhost_works() {
 			TAppHostPledge::<Test>::get(tapp_id, cml_id),
 			HOST_PLEDGE_AMOUNT
 		);
+		assert_eq!(TAppReservedBalance::<Test>::get(tapp_id, miner).len(), 1);
 
 		frame_system::Pallet::<Test>::set_block_number(1001);
 		assert_ok!(BondingCurve::unhost(Origin::signed(miner), cml_id, tapp_id));
@@ -2457,6 +2458,7 @@ fn unhost_works() {
 		assert_eq!(Utils::free_balance(&miner), 10000 - STAKING_PRICE);
 		assert_eq!(Utils::reserved_balance(&miner), STAKING_PRICE);
 		assert!(!TAppHostPledge::<Test>::contains_key(tapp_id, cml_id));
+		assert!(!TAppReservedBalance::<Test>::contains_key(tapp_id, miner));
 	})
 }
 

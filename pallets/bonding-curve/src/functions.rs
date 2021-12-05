@@ -765,7 +765,12 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 							.filter(|(_, cml)| *cml != cml_id)
 							.map(|(balance, cml)| (balance.clone(), *cml))
 							.collect();
-						TAppReservedBalance::<T>::insert(tapp_id, account, updated_list);
+
+						if !updated_list.is_empty() {
+							TAppReservedBalance::<T>::insert(tapp_id, account, updated_list);
+						} else {
+							TAppReservedBalance::<T>::remove(tapp_id, account);
+						}
 					},
 				);
 			}
