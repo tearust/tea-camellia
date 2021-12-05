@@ -268,6 +268,23 @@ pub mod cml {
 		Staked(T::AccountId, CmlId, StakingIndex),
 		/// Event fired when end of staking window.
 		RewardStatements(Vec<(T::AccountId, CmlId, BalanceOf<T>)>),
+		/// Event fields:
+		///
+		/// - CmlId
+		/// - MachineId: mining TEA Id
+		/// - Ip address
+		MiningStarted(CmlId, MachineId, Vec<u8>),
+		/// Event fields:
+		///
+		/// - CmlId
+		/// - MachineId: mining TEA Id
+		MiningStoped(CmlId, MachineId),
+		/// Event fields:
+		///
+		/// - CmlId
+		/// - MachineId: mining TEA Id
+		/// - Ip address
+		Migrated(CmlId, MachineId, Vec<u8>),
 	}
 
 	#[pallet::error]
@@ -677,6 +694,12 @@ pub mod cml {
 
 						// todo verify machine id later
 						T::TeaOperation::add_new_node(machine_id, sender);
+
+						Self::deposit_event(Event::MiningStarted(
+							cml_id,
+							machine_id,
+							miner_ip.clone(),
+						));
 					});
 				},
 			)
@@ -705,13 +728,15 @@ pub mod cml {
 							item.schedule_down_height =
 								Some(frame_system::Pallet::<T>::block_number());
 						});
-					}
 
-					T::BondingCurveOperation::cml_host_tapps(cml_id)
-						.iter()
-						.for_each(|tapp_id| {
-							T::BondingCurveOperation::try_deactive_tapp(*tapp_id);
-						});
+						T::BondingCurveOperation::cml_host_tapps(cml_id)
+							.iter()
+							.for_each(|tapp_id| {
+								T::BondingCurveOperation::try_deactive_tapp(*tapp_id);
+							});
+
+						Self::deposit_event(Event::MiningStoped(cml_id, machine_id.clone()));
+					}
 				},
 			)
 		}
@@ -812,6 +837,12 @@ pub mod cml {
 						MinerIpSet::<T>::insert(new_miner_ip.clone(), ());
 
 						CmlStore::<T>::mutate(cml_id, |cml| cml.migrate_to(new_machine_id));
+
+						Self::deposit_event(Event::Migrated(
+							cml_id,
+							machine_id.clone(),
+							new_miner_ip.clone(),
+						));
 					}
 				},
 			)
