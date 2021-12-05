@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+set -e
+
 cargo test -p pallet-tea --lib
 cargo test -p pallet-cml --lib
 cargo test -p pallet-auction --lib
