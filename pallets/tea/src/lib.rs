@@ -574,12 +574,12 @@ pub mod tea {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
 					Self::check_tea_id_belongs(sender, &tea_id)?;
-					if !Self::is_builtin_node(&tea_id) {
-						ensure!(
-							AllowedPcrValues::<T>::contains_key(&pcr_hash),
-							Error::<T>::InvalidPcrHash
-						);
-					}
+					// if !Self::is_builtin_node(&tea_id) {
+					// 	ensure!(
+					// 		AllowedPcrValues::<T>::contains_key(&pcr_hash),
+					// 		Error::<T>::InvalidPcrHash
+					// 	);
+					// }
 					Ok(())
 				},
 				|sender| {
