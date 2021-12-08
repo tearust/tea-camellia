@@ -823,6 +823,7 @@ parameter_types! {
 	pub const OfflineValidDuration: u32 = 100;
 	pub const OfflineEffectThreshold: u32 = 2;
 	pub const ReportRawardDuration: u32 = 100;
+	pub const UpdateNodeProfileDuration: u32 = 100;
 }
 
 impl pallet_tea::Config for Runtime {
@@ -844,6 +845,7 @@ impl pallet_tea::Config for Runtime {
 	type TaskService = Cml;
 	type CmlOperation = Cml;
 	type PerRaTaskPoint = PerRaTaskPoint;
+	type UpdateNodeProfileDuration = UpdateNodeProfileDuration;
 }
 
 #[cfg(not(feature = "fast"))]

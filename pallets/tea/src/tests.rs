@@ -237,6 +237,7 @@ fn builtin_node_update_node_profile_works() {
 			},
 		);
 
+		assert_eq!(<Test as Config>::Currency::free_balance(&builtin_miner), 0);
 		let conn_id = vec![1u8; 32];
 		assert_ok!(Tea::update_node_profile(
 			Origin::signed(builtin_miner),
@@ -253,6 +254,11 @@ fn builtin_node_update_node_profile_works() {
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Active, new_node.status);
 		assert_eq!(conn_id, new_node.conn_id);
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&builtin_miner),
+			195000000
+		);
 	})
 }
 
@@ -342,6 +348,10 @@ fn normal_node_update_node_profile_works() {
 			},
 		);
 
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&owner_controller),
+			1
+		);
 		let conn_id = vec![3u8; 32];
 		assert_ok!(Tea::update_node_profile(
 			Origin::signed(owner_controller),
@@ -358,6 +368,10 @@ fn normal_node_update_node_profile_works() {
 		assert_eq!(ephemeral_id, new_node.ephemeral_id);
 		assert_eq!(NodeStatus::Pending, new_node.status);
 		assert_eq!(conn_id, new_node.conn_id);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&owner_controller),
+			195000000 + 1
+		);
 	})
 }
 
@@ -390,18 +404,96 @@ fn normal_node_update_node_profile_should_fail_if_pcr_is_invalid() {
 		let pcr_slots = vec![b"test pcr".to_vec()];
 		let pcr_hash = Tea::pcr_slots_hash(&pcr_slots);
 
+		assert_ok!(Tea::update_node_profile(
+			Origin::signed(owner_controller),
+			tea_id.clone(),
+			ephemeral_id.clone(),
+			Vec::new(),
+			peer_id,
+			vec![],
+			pcr_hash,
+		));
+		// todo uncomment if verify pcr related logic is on
+		// assert_noop!(
+		// 	Tea::update_node_profile(
+		// 		Origin::signed(owner_controller),
+		// 		tea_id.clone(),
+		// 		ephemeral_id.clone(),
+		// 		Vec::new(),
+		// 		peer_id,
+		// 		vec![],
+		// 		pcr_hash,
+		// 	),
+		// 	Error::<Test>::InvalidPcrHash
+		// );
+	})
+}
+
+#[test]
+fn node_update_node_profile_should_fail_if_update_multi_times_in_short_time() {
+	new_test_ext().execute_with(|| {
+		let owner = 2;
+		let owner_controller = 22;
+		<Test as Config>::Currency::make_free_balance_be(&owner, 10000);
+		frame_system::Pallet::<Test>::set_block_number(100);
+
+		let (node, tea_id, ephemeral_id, peer_id) = new_node();
+		Nodes::<Test>::insert(&tea_id, node);
+
+		let cml_id = 1;
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml_id, 100));
+		cml.set_owner(&owner);
+		UserCmlStore::<Test>::insert(owner, cml_id, ());
+		CmlStore::<Test>::insert(cml_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(owner),
+			cml_id,
+			tea_id,
+			owner_controller,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		let pcr_slots = vec![b"test pcr".to_vec()];
+		let pcr_hash = Tea::pcr_slots_hash(&pcr_slots);
+
+		assert_ok!(Tea::update_node_profile(
+			Origin::signed(owner_controller),
+			tea_id.clone(),
+			ephemeral_id.clone(),
+			Vec::new(),
+			peer_id.clone(),
+			vec![],
+			pcr_hash,
+		));
+
+		frame_system::Pallet::<Test>::set_block_number(
+			100 - 1 + UPDATE_NODE_PROFILE_DURATION as u64,
+		);
 		assert_noop!(
 			Tea::update_node_profile(
 				Origin::signed(owner_controller),
 				tea_id.clone(),
 				ephemeral_id.clone(),
 				Vec::new(),
-				peer_id,
+				peer_id.clone(),
 				vec![],
 				pcr_hash,
 			),
-			Error::<Test>::InvalidPcrHash
+			Error::<Test>::CanNotUpdateNodeProfileMultiTimes
 		);
+
+		frame_system::Pallet::<Test>::set_block_number(100 + UPDATE_NODE_PROFILE_DURATION as u64);
+		assert_ok!(Tea::update_node_profile(
+			Origin::signed(owner_controller),
+			tea_id.clone(),
+			ephemeral_id.clone(),
+			Vec::new(),
+			peer_id,
+			vec![],
+			pcr_hash,
+		));
 	})
 }
 

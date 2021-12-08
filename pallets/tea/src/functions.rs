@@ -9,7 +9,6 @@ impl<T: tea::Config> TeaOperation for tea::Pallet<T> {
 		let mut new_node = Node::default();
 		new_node.tea_id = machine_id.clone();
 		new_node.create_time = current_block_number;
-		new_node.update_time = current_block_number;
 		Nodes::<T>::insert(machine_id, new_node.clone());
 
 		Self::deposit_event(Event::NewNodeJoined(sender.clone(), new_node));
