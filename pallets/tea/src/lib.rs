@@ -200,6 +200,11 @@ pub mod tea {
 		StorageMap<_, Twox64Concat, H256, RuntimeVersionSet, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn versions_expired_height)]
+	pub(super) type VersionsExpiredHeight<T: Config> =
+		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn version_expired_nodes)]
 	pub(super) type VersionExpiredNodes<T: Config> =
 		StorageMap<_, Twox64Concat, TeaPubKey, T::BlockNumber, ValueQuery>;
@@ -315,6 +320,8 @@ pub mod tea {
 		NodeEphemeralIdNotMatch,
 		/// The size of version keys and values not match
 		VersionKvpSizeNotMatch,
+		/// Version expired height should larger than current height
+		InvalidVersionExpireHeight,
 	}
 
 	#[pallet::hooks]
@@ -507,6 +514,36 @@ pub mod tea {
 				},
 				move |_| {
 					AllowedVersions::<T>::remove(hash);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn set_version_expired_height(
+			sender: OriginFor<T>,
+			hash: H256,
+			height: T::BlockNumber,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						AllowedVersions::<T>::contains_key(&hash),
+						Error::<T>::VersionsNotExist,
+					);
+
+					let current_block = frame_system::Pallet::<T>::block_number();
+					ensure!(
+						height > current_block,
+						Error::<T>::InvalidVersionExpireHeight
+					);
+
+					Ok(())
+				},
+				move |_| {
+					VersionsExpiredHeight::<T>::insert(hash, height);
 				},
 			)
 		}
@@ -890,6 +927,29 @@ pub mod tea {
 					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
 
 					Self::deposit_event(Event::NewOfflineEvidence(tea_id, offline_tea_id));
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn report_self_offline(
+			sender: OriginFor<T>,
+			tea_id: TeaPubKey,
+			_signature: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
+					Self::check_tea_id_belongs(who, &tea_id)?;
+
+					Ok(())
+				},
+				|who| {
+					T::CmlOperation::suspend_mining(tea_id);
+					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
 				},
 			)
 		}
