@@ -230,7 +230,7 @@ fn set_version_expired_height_works() {
 			height
 		));
 		assert!(VersionsExpiredHeight::<Test>::contains_key(hash));
-		assert_eq!(VersionsExpiredHeight::<Test>::get(hash), height);
+		assert_eq!(VersionsExpiredHeight::<Test>::get(hash), Some(height));
 	})
 }
 

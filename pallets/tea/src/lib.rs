@@ -202,7 +202,7 @@ pub mod tea {
 	#[pallet::storage]
 	#[pallet::getter(fn versions_expired_height)]
 	pub(super) type VersionsExpiredHeight<T: Config> =
-		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
+		StorageMap<_, Twox64Concat, H256, T::BlockNumber>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn version_expired_nodes)]

@@ -32,7 +32,7 @@ pub trait TeaApi<BlockHash, AccountId> {
 	fn allowed_versions(
 		&self,
 		at: Option<BlockHash>,
-	) -> Result<Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>)>>;
+	) -> Result<Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>, Option<BlockNumber>)>>;
 
 	#[rpc(name = "tea_findTeaIdByPeerId")]
 	fn find_tea_id_by_peer_id(
@@ -122,7 +122,7 @@ where
 	fn allowed_versions(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>)>> {
+	) -> Result<Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>, Option<BlockNumber>)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.

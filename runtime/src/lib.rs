@@ -1358,7 +1358,7 @@ impl_runtime_apis! {
 			Tea::list_allowed_pcrs()
 		}
 
-		fn allowed_versions() -> Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>)> {
+		fn allowed_versions() -> Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>, Option<BlockNumber> )> {
 			Tea::list_allowed_versions()
 		}
 
