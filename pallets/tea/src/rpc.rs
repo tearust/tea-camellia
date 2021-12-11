@@ -19,9 +19,12 @@ impl<T: tea::Config> tea::Pallet<T> {
 			.collect()
 	}
 
-	pub fn list_allowed_versions() -> Vec<(H256, Vec<VersionItem>)> {
+	pub fn list_allowed_versions() -> Vec<(H256, Vec<VersionItem>, Option<T::BlockNumber>)> {
 		AllowedVersions::<T>::iter()
-			.map(|(hash, v)| (hash, v.versions))
+			.map(|(hash, v)| {
+				let height = VersionsExpiredHeight::<T>::get(hash);
+				(hash, v.versions, height)
+			})
 			.collect()
 	}
 

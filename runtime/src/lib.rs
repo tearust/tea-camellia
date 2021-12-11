@@ -148,7 +148,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 102,
+	spec_version: 103,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1360,7 +1360,7 @@ impl_runtime_apis! {
 			Tea::list_allowed_pcrs()
 		}
 
-		fn allowed_versions() -> Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>)> {
+		fn allowed_versions() -> Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>, Option<BlockNumber> )> {
 			Tea::list_allowed_versions()
 		}
 

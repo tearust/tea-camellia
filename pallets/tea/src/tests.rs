@@ -1,7 +1,7 @@
 use crate::{
 	group::update_validator_groups_count, mock::*, types::*, AllowedPcrValues, AllowedVersions,
 	BuiltinMiners, BuiltinNodes, Config, Error, NodePcr, Nodes, OfflineEvidences, ReportEvidences,
-	TipsEvidences, VersionExpiredNodes,
+	TipsEvidences, VersionExpiredNodes, VersionsExpiredHeight,
 };
 use frame_support::{assert_noop, assert_ok, dispatch::DispatchError, traits::Currency};
 use hex_literal::hex;
@@ -197,6 +197,113 @@ fn unregister_versions_should_fail_if_not_exist() {
 	new_test_ext().execute_with(|| {
 		assert_noop!(
 			Tea::unregister_versions(Origin::root(), Default::default()),
+			Error::<Test>::VersionsNotExist
+		);
+	})
+}
+
+#[test]
+fn set_version_expired_height_works() {
+	new_test_ext().execute_with(|| {
+		let version_key1 = b"version_key1".to_vec();
+		let version_value1 = b"version_value1".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_ok!(Tea::register_versions(
+			Origin::root(),
+			vec![version_key1.clone()],
+			vec![version_value1.clone()],
+			desc,
+		));
+
+		let hashes: Vec<H256> = AllowedVersions::<Test>::iter()
+			.map(|(hash, _)| hash)
+			.collect();
+		let hash = hashes[0];
+
+		assert!(!VersionsExpiredHeight::<Test>::contains_key(hash));
+
+		let height = 100;
+		assert_ok!(Tea::set_version_expired_height(
+			Origin::root(),
+			hash,
+			height
+		));
+		assert!(VersionsExpiredHeight::<Test>::contains_key(hash));
+		assert_eq!(VersionsExpiredHeight::<Test>::get(hash), Some(height));
+	})
+}
+
+#[test]
+fn set_version_expired_height_should_fail_if_user_is_not_root_account() {
+	new_test_ext().execute_with(|| {
+		let version_key1 = b"version_key1".to_vec();
+		let version_value1 = b"version_value1".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_ok!(Tea::register_versions(
+			Origin::root(),
+			vec![version_key1.clone()],
+			vec![version_value1.clone()],
+			desc,
+		));
+
+		let hashes: Vec<H256> = AllowedVersions::<Test>::iter()
+			.map(|(hash, _)| hash)
+			.collect();
+		let hash = hashes[0];
+
+		assert_noop!(
+			Tea::set_version_expired_height(Origin::signed(1), hash, 100,),
+			DispatchError::BadOrigin
+		);
+	})
+}
+
+#[test]
+fn set_version_expired_height_should_fail_if_hash_not_exist() {
+	new_test_ext().execute_with(|| {
+		let version_key1 = b"version_key1".to_vec();
+		let version_value1 = b"version_value1".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_ok!(Tea::register_versions(
+			Origin::root(),
+			vec![version_key1.clone()],
+			vec![version_value1.clone()],
+			desc,
+		));
+
+		assert_noop!(
+			Tea::set_version_expired_height(Origin::root(), Default::default(), 100),
+			Error::<Test>::VersionsNotExist
+		);
+	})
+}
+
+#[test]
+fn set_version_expired_height_should_fail_if_setting_height_lower_equal_than_current_height() {
+	new_test_ext().execute_with(|| {
+		let version_key1 = b"version_key1".to_vec();
+		let version_value1 = b"version_value1".to_vec();
+		let desc = b"test desc".to_vec();
+
+		assert_ok!(Tea::register_versions(
+			Origin::root(),
+			vec![version_key1.clone()],
+			vec![version_value1.clone()],
+			desc,
+		));
+
+		let current_height = 100;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		assert_noop!(
+			Tea::set_version_expired_height(Origin::root(), Default::default(), current_height - 1),
+			Error::<Test>::VersionsNotExist
+		);
+		assert_noop!(
+			Tea::set_version_expired_height(Origin::root(), Default::default(), current_height),
 			Error::<Test>::VersionsNotExist
 		);
 	})
@@ -2694,6 +2801,97 @@ fn reset_expired_state_should_fail_if_use_controller_account() {
 
 		assert_noop!(
 			Tea::reset_expired_state(Origin::signed(owner_controller), tea_id.clone(),),
+			Error::<Test>::InvalidTeaIdOwner
+		);
+	})
+}
+
+#[test]
+fn report_self_offline_works() {
+	new_test_ext().execute_with(|| {
+		let miner = 2;
+		let miner_controller = 3;
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let miner_cml_id = 1;
+		let miner_tea_id = [1u8; 32];
+
+		let mut miner_cml = CML::from_genesis_seed(seed_from_type(miner_cml_id, 100, CmlType::B));
+		miner_cml.set_owner(&miner);
+		UserCmlStore::<Test>::insert(miner, miner_cml_id, ());
+		CmlStore::<Test>::insert(miner_cml_id, miner_cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			miner_cml_id,
+			miner_tea_id,
+			miner_controller,
+			b"miner_ip1".to_vec(),
+			Some(b"orbit_id1".to_vec()),
+		));
+
+		let current_height = 66;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(miner_controller),
+			1
+		);
+
+		assert_ok!(Tea::report_self_offline(
+			Origin::signed(miner_controller),
+			miner_tea_id,
+			vec![]
+		));
+		assert_eq!(
+			MinerItemStore::<Test>::get(miner_tea_id).status,
+			MinerStatus::Offline
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(miner_controller),
+			195000000 + 1
+		);
+	})
+}
+
+#[test]
+fn report_self_offline_failed_if_node_not_exist() {
+	new_test_ext().execute_with(|| {
+		let miner = 2;
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let miner_tea_id = [1u8; 32];
+		assert_noop!(
+			Tea::report_self_offline(Origin::signed(miner), miner_tea_id, vec![]),
+			Error::<Test>::NodeNotExist
+		);
+	})
+}
+
+#[test]
+fn report_self_offline_should_fail_if_user_not_controller_account() {
+	new_test_ext().execute_with(|| {
+		let miner = 2;
+		let miner_controller = 3;
+		<Test as Config>::Currency::make_free_balance_be(&miner, 10000);
+
+		let miner_cml_id = 1;
+		let miner_tea_id = [1u8; 32];
+
+		let mut miner_cml = CML::from_genesis_seed(seed_from_type(miner_cml_id, 100, CmlType::B));
+		miner_cml.set_owner(&miner);
+		UserCmlStore::<Test>::insert(miner, miner_cml_id, ());
+		CmlStore::<Test>::insert(miner_cml_id, miner_cml);
+		assert_ok!(Cml::start_mining(
+			Origin::signed(miner),
+			miner_cml_id,
+			miner_tea_id,
+			miner_controller,
+			b"miner_ip1".to_vec(),
+			Some(b"orbit_id1".to_vec()),
+		));
+
+		assert_noop!(
+			Tea::report_self_offline(Origin::signed(miner), miner_tea_id, vec![]),
 			Error::<Test>::InvalidTeaIdOwner
 		);
 	})
