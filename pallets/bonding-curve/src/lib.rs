@@ -495,8 +495,6 @@ pub mod bonding_curve {
 		LinkUrlAlreadyExist,
 		/// Link description is too long
 		LinkDescriptionIsTooLong,
-		/// Only registered link are allowed to create tapp
-		LinkNotInApprovedList,
 		/// Link already used by other tapp
 		LinkAlreadyBeUsed,
 		/// Only NPC account allowed to update activity
@@ -744,13 +742,6 @@ pub mod bonding_curve {
 						!init_fund.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-
-					if link_related {
-						ensure!(
-							TAppApprovedLinks::<T>::contains_key(&link),
-							Error::<T>::LinkNotInApprovedList
-						);
-					}
 
 					let link_info = TAppApprovedLinks::<T>::get(&link);
 					if link_related {

@@ -600,30 +600,27 @@ fn create_new_tapp_should_fail_if_stake_token_is_none_in_fixed_token_mode() {
 }
 
 #[test]
-fn create_new_tapp_should_fail_if_link_not_in_approve_list() {
+fn create_new_tapp_works_if_link_not_in_approve_list() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
-		assert_noop!(
-			BondingCurve::create_new_tapp(
-				Origin::signed(user),
-				b"test name".to_vec(),
-				b"tea".to_vec(),
-				1_000_000,
-				b"test detail".to_vec(),
-				b"https://teaproject.org".to_vec(),
-				10,
-				TAppType::Twitter,
-				true,
-				None,
-				Some(1000),
-				None,
-				None,
-			),
-			Error::<Test>::LinkNotInApprovedList,
-		);
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(user),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			b"https://teaproject.org".to_vec(),
+			10,
+			TAppType::Twitter,
+			true,
+			None,
+			Some(1000),
+			None,
+			None,
+		),);
 	})
 }
 
