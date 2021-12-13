@@ -659,13 +659,14 @@ fn create_new_tapp_works_if_link_not_in_approve_list() {
 		let user = 1;
 		<Test as Config>::Currency::make_free_balance_be(&user, 100000000);
 
+		let link = b"https://teaproject.org".to_vec();
 		assert_ok!(BondingCurve::create_new_tapp(
 			Origin::signed(user),
 			b"test name".to_vec(),
 			b"tea".to_vec(),
 			1_000_000,
 			b"test detail".to_vec(),
-			b"https://teaproject.org".to_vec(),
+			link.clone(),
 			10,
 			TAppType::Twitter,
 			true,
@@ -673,7 +674,9 @@ fn create_new_tapp_works_if_link_not_in_approve_list() {
 			Some(1000),
 			None,
 			None,
-		),);
+		));
+
+		assert!(!TAppApprovedLinks::<Test>::contains_key(&link));
 	})
 }
 

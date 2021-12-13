@@ -806,9 +806,11 @@ pub mod bonding_curve {
 					let id = Self::next_id();
 					if link_related {
 						TAppNames::<T>::insert(&tapp_name, id);
-						TAppApprovedLinks::<T>::mutate(&link, |link_info| {
-							link_info.tapp_id = Some(id)
-						});
+						if TAppApprovedLinks::<T>::contains_key(&link) {
+							TAppApprovedLinks::<T>::mutate(&link, |link_info| {
+								link_info.tapp_id = Some(id)
+							});
+						}
 					}
 					TAppTickers::<T>::insert(&ticker, id);
 
