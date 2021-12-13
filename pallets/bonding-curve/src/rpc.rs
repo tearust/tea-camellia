@@ -161,7 +161,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	)> {
 		AccountTable::<T>::iter_prefix(who)
 			.filter(|(id, amount)| {
-				amount.is_zero() && Self::user_tapp_total_reserved_balance(*id, who).is_zero()
+				!amount.is_zero() || !Self::user_tapp_total_reserved_balance(*id, who).is_zero()
 			})
 			.map(|(id, amount)| {
 				let (_, sell_price) = Self::query_price(id);
