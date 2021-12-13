@@ -171,6 +171,59 @@ fn register_tapp_link_should_fail_if_link_already_exist() {
 }
 
 #[test]
+fn unregister_tapp_link_works() {
+	new_test_ext().execute_with(|| {
+		let npc = NPCAccount::<Test>::get();
+		let link: Vec<u8> = "https://teaproject.org".into();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			link.clone(),
+			"test description".into(),
+			None,
+		));
+
+		assert!(TAppApprovedLinks::<Test>::contains_key(&link));
+		assert_ok!(BondingCurve::unregister_tapp_link(
+			Origin::signed(npc),
+			link.clone(),
+		));
+		assert!(!TAppApprovedLinks::<Test>::contains_key(&link));
+	})
+}
+
+#[test]
+fn unregister_tapp_link_should_fail_if_user_not_npc_account() {
+	new_test_ext().execute_with(|| {
+		let npc = NPCAccount::<Test>::get();
+		let link: Vec<u8> = "https://teaproject.org".into();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			link.clone(),
+			"test description".into(),
+			None,
+		));
+
+		assert_noop!(
+			BondingCurve::unregister_tapp_link(Origin::signed(11), link.clone(),),
+			Error::<Test>::OnlyNPCAccountAllowedToRegisterLinkUrl
+		);
+	})
+}
+
+#[test]
+fn unregister_tapp_link_should_fail_if_link_not_registered() {
+	new_test_ext().execute_with(|| {
+		let npc = NPCAccount::<Test>::get();
+		let link: Vec<u8> = "https://teaproject.org".into();
+
+		assert_noop!(
+			BondingCurve::unregister_tapp_link(Origin::signed(npc), link.clone()),
+			Error::<Test>::LinkUrlNotExist
+		);
+	})
+}
+
+#[test]
 fn create_new_fixed_fee_tapp_works() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);

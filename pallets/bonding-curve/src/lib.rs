@@ -493,6 +493,8 @@ pub mod bonding_curve {
 		OnlyNPCAccountAllowedToRegisterLinkUrl,
 		/// Link url already registered
 		LinkUrlAlreadyExist,
+		/// Link url not registered
+		LinkUrlNotExist,
 		/// Link description is too long
 		LinkDescriptionIsTooLong,
 		/// Link already used by other tapp
@@ -651,6 +653,29 @@ pub mod bonding_curve {
 							creator: creator.clone(),
 						},
 					);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn unregister_tapp_link(sender: OriginFor<T>, link_url: Vec<u8>) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						who.eq(&NPCAccount::<T>::get()),
+						Error::<T>::OnlyNPCAccountAllowedToRegisterLinkUrl
+					);
+					ensure!(
+						TAppApprovedLinks::<T>::contains_key(&link_url),
+						Error::<T>::LinkUrlNotExist
+					);
+					Ok(())
+				},
+				|_who| {
+					TAppApprovedLinks::<T>::remove(&link_url);
 				},
 			)
 		}
