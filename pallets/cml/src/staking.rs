@@ -142,8 +142,8 @@ impl<T: cml::Config> StakingEconomics<BalanceOf<T>, T::AccountId> for cml::Palle
 
 #[cfg(test)]
 mod tests {
-	use crate::mock::*;
 	use crate::tests::new_genesis_seed;
+	use crate::{mock::*, MiningCmlTaskPoints, TaskPointBase};
 	use crate::{
 		AccountRewards, ActiveStakingSnapshot, CmlStore, CmlType, MinerItem, MinerItemStore,
 		MinerStatus, StakingCategory, StakingItem, StakingProperties, StakingSnapshotItem, CML,
@@ -315,6 +315,9 @@ mod tests {
 				],
 			);
 
+			TaskPointBase::<Test>::set(1000);
+			MiningCmlTaskPoints::<Test>::insert(cml_id1, 10);
+			MiningCmlTaskPoints::<Test>::insert(cml_id2, 10);
 			Cml::calculate_staking();
 
 			assert_eq!(AccountRewards::<Test>::iter().count(), 5);
@@ -324,6 +327,63 @@ mod tests {
 			for user_id in 3..=5 {
 				assert_eq!(AccountRewards::<Test>::get(user_id), DOLLARS);
 			}
+		})
+	}
+
+	#[test]
+	fn calculate_staking_will_filter_with_reward_greator_than_0() {
+		new_test_ext().execute_with(|| {
+			let cml_id1 = 1;
+			ActiveStakingSnapshot::<Test>::insert(
+				cml_id1,
+				vec![
+					StakingSnapshotItem {
+						owner: 1,
+						weight: 1,
+						staking_at: 0,
+					},
+					StakingSnapshotItem {
+						owner: 2,
+						weight: 2,
+						staking_at: 1,
+					},
+				],
+			);
+
+			let cml_id2 = 2;
+			ActiveStakingSnapshot::<Test>::insert(
+				cml_id2,
+				vec![
+					StakingSnapshotItem {
+						owner: 3,
+						weight: 1,
+						staking_at: 0,
+					},
+					StakingSnapshotItem {
+						owner: 4,
+						weight: 3,
+						staking_at: 1,
+					},
+					StakingSnapshotItem {
+						owner: 5,
+						weight: 1,
+						staking_at: 4,
+					},
+				],
+			);
+
+			TaskPointBase::<Test>::set(1000);
+
+			Cml::calculate_staking();
+			assert_eq!(AccountRewards::<Test>::iter().count(), 0);
+
+			MiningCmlTaskPoints::<Test>::insert(cml_id1, 10);
+			Cml::calculate_staking();
+			assert_eq!(AccountRewards::<Test>::iter().count(), 2);
+
+			MiningCmlTaskPoints::<Test>::insert(cml_id2, 10);
+			Cml::calculate_staking();
+			assert_eq!(AccountRewards::<Test>::iter().count(), 5);
 		})
 	}
 

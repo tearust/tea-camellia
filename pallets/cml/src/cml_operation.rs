@@ -203,11 +203,13 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 			ActiveStakingSnapshot::<T>::iter().collect();
 		for (cml_id, snapshot_items) in snapshots {
 			if let Some((_, rest_reward)) = miner_total_rewards.get(&cml_id) {
-				reward_statements.append(&mut Self::single_cml_staking_reward_statements(
-					cml_id,
-					&snapshot_items,
-					rest_reward.clone(),
-				));
+				if !rest_reward.is_zero() {
+					reward_statements.append(&mut Self::single_cml_staking_reward_statements(
+						cml_id,
+						&snapshot_items,
+						rest_reward.clone(),
+					));
+				}
 			}
 		}
 
