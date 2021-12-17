@@ -29,6 +29,7 @@ pub enum TAppType {
 	Reddit,
 	Twitter,
 	Bbs,
+	ReferralCode,
 }
 
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -81,7 +82,8 @@ pub struct TAppItem<AccountId, Balance, BlockNumber> {
 impl<AccountId, Balance, BlockNumber> TAppItem<AccountId, Balance, BlockNumber> {
 	pub fn host_performance(&self) -> Performance {
 		match self.tapp_type {
-			TAppType::YouTube => 2000,
+			TAppType::YouTube => 3000,
+			TAppType::ReferralCode => 2000,
 			TAppType::Reddit => 1000,
 			TAppType::Twitter => 1000,
 			TAppType::Bbs => 2000,
