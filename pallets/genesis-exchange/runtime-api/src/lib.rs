@@ -36,7 +36,7 @@ sp_api::decl_runtime_apis! {
 		/// 6. genesis loan
 		/// 7. USD debt
 		/// 8. Total account value
-		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance, Balance)>;
+		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance, Balance, Balance)>;
 
 		fn user_borrowing_usd_margin(who: &AccountId) -> Balance;
 	}

@@ -1404,7 +1404,7 @@ impl_runtime_apis! {
 			GenesisExchange::estimate_amount(withdraw_amount, buy_tea)
 		}
 
-		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance, Balance)> {
+		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance, Balance, Balance)> {
 			GenesisExchange::user_asset_list()
 		}
 

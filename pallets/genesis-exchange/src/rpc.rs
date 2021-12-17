@@ -122,8 +122,10 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	/// 6. genesis loan
 	/// 7. USD debt
 	/// 8. Total account value
+	/// 9. Mainnet coupon
 	pub fn user_asset_list() -> Vec<(
 		T::AccountId,
+		BalanceOf<T>,
 		BalanceOf<T>,
 		BalanceOf<T>,
 		BalanceOf<T>,
@@ -148,6 +150,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			let tapp_balance = Self::amount_from_map(&user, &tapp_assets);
 			let loan_credit = Self::amount_from_map(&user, &genesis_loan_credits);
 			let usd_debt = Self::amount_from_map(&user, &usd_debts);
+			let mainnet_coupon = UserMainnetCoupons::<T>::get(&user);
 			let mut total: BalanceOf<T> = Zero::zero();
 			total = total
 				.saturating_add(cml)
@@ -164,10 +167,11 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 				loan_credit,
 				usd_debt,
 				total,
+				mainnet_coupon,
 			));
 		}
 
-		total_assets.sort_by(|(_, _, _, _, _, _, _, a), (_, _, _, _, _, _, _, b)| a.cmp(b));
+		total_assets.sort_by(|(_, _, _, _, _, _, _, a, _), (_, _, _, _, _, _, _, b, _)| a.cmp(b));
 		total_assets.reverse();
 		total_assets
 	}
@@ -723,7 +727,8 @@ mod tests {
 					0,
 					0,
 					0,
-					100 + 14400000000
+					100 + 14400000000,
+					0,
 				)
 			);
 			assert_eq!(
@@ -736,7 +741,8 @@ mod tests {
 					0,
 					100100,
 					0,
-					300 + 7200000000 - 100100
+					300 + 7200000000 - 100100,
+					0,
 				)
 			);
 			assert_eq!(
@@ -749,7 +755,8 @@ mod tests {
 					0,
 					300_300,
 					0,
-					200 + 7200000000 - 300_300
+					200 + 7200000000 - 300_300,
+					0,
 				)
 			);
 		})

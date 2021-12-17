@@ -49,7 +49,7 @@ pub trait GenesisExchangeApi<BlockHash, AccountId> {
 	fn user_asset_list(
 		&self,
 		at: Option<BlockHash>,
-	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price, Price)>>;
+	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price, Price, Price)>>;
 
 	#[rpc(name = "cml_userBorrowingUsdMargin")]
 	fn user_borrowing_usd_margin(&self, who: AccountId, at: Option<BlockHash>) -> Result<Price>;
@@ -138,7 +138,7 @@ where
 	fn user_asset_list(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price, Price)>> {
+	) -> Result<Vec<(AccountId, Price, Price, Price, Price, Price, Price, Price, Price)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
@@ -153,12 +153,13 @@ where
 			Balance,
 			Balance,
 			Balance,
+			Balance,
 		)> = api.user_asset_list(&at)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result
 			.iter()
 			.map(
-				|(account_id, cml, tea, usd, tapp_balance, loan, usd_debt, total)| {
+				|(account_id, cml, tea, usd, tapp_balance, loan, usd_debt, total, mainnet_coupon)| {
 					(
 						account_id.clone(),
 						Price(*cml),
@@ -168,6 +169,7 @@ where
 						Price(*loan),
 						Price(*usd_debt),
 						Price(*total),
+						Price(*mainnet_coupon),
 					)
 				},
 			)

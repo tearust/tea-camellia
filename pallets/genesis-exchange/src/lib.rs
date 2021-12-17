@@ -143,6 +143,11 @@ pub mod genesis_exchange {
 	#[pallet::getter(fn enable_borrow_usd)]
 	pub type EnableBorrowUSD<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn user_mainnet_coupons)]
+	pub type UserMainnetCoupons<T: Config> = 
+		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub operation_account: T::AccountId,
@@ -335,6 +340,21 @@ pub mod genesis_exchange {
 				},
 				|_| {
 					CompetitionUsers::<T>::remove(&user);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn set_mainnet_coupon(sender: OriginFor<T>, user: T::AccountId, coupon: BalanceOf<T>) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					Ok(())
+				},
+				|_| {
+					UserMainnetCoupons::<T>::mutate(user, |amount| *amount = coupon);
 				},
 			)
 		}
