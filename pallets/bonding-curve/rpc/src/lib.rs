@@ -229,6 +229,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	#[rpc(name = "cml_approvedLinks")]
 	fn approved_links(
 		&self,
+		allowed: bool,
 		at: Option<BlockHash>,
 	) -> Result<Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)>>;
 
@@ -675,6 +676,7 @@ where
 
 	fn approved_links(
 		&self,
+		allowed: bool,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)>> {
 		let api = self.client.runtime_api();
@@ -683,7 +685,7 @@ where
 			self.client.info().best_hash));
 
 		let result = api
-			.approved_links(&at)
+			.approved_links(&at, allowed)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

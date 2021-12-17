@@ -1521,8 +1521,8 @@ impl_runtime_apis! {
 			BondingCurve::cml_performance(cml_id)
 		}
 
-		fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)> {
-			BondingCurve::approved_links()
+		fn approved_links(allowed: bool) -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)> {
+			BondingCurve::approved_links(allowed)
 		}
 
 		fn user_notification_count(account: AccountId) -> u32 {

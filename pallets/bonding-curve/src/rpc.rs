@@ -408,8 +408,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	/// - Tapp id, if not created based on the link value will be none
 	/// - Link description
 	/// - Creator
-	pub fn approved_links() -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<T::AccountId>)> {
+	pub fn approved_links(allowed: bool) -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<T::AccountId>)> {
 		TAppApprovedLinks::<T>::iter()
+			.filter(|(_, link_info)| !allowed || link_info.tapp_id.is_some())
 			.map(|(link, link_info)| {
 				(
 					link,
