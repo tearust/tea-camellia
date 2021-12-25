@@ -526,6 +526,7 @@ fn testnet_genesis(
 			builtin_miners: endowed_accounts,
 			report_reward_amount: 10 * DOLLARS,
 			tips_reward_amount: 10 * CENTS,
+			desired_tapp_store_node_count: 10,
 		},
 		cml: CmlConfig {
 			genesis_coupons,

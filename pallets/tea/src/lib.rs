@@ -212,6 +212,10 @@ pub mod tea {
 	pub(super) type VersionExpiredNodes<T: Config> =
 		StorageMap<_, Twox64Concat, TeaPubKey, T::BlockNumber, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn desired_tapp_store_node_count)]
+	pub(super) type DesiredTappStoreNodeCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -350,6 +354,7 @@ pub mod tea {
 		pub builtin_miners: Vec<T::AccountId>,
 		pub report_reward_amount: BalanceOf<T>,
 		pub tips_reward_amount: BalanceOf<T>,
+		pub desired_tapp_store_node_count: u32,
 	}
 
 	#[cfg(feature = "std")]
@@ -360,6 +365,7 @@ pub mod tea {
 				builtin_miners: Default::default(),
 				report_reward_amount: Default::default(),
 				tips_reward_amount: Default::default(),
+				desired_tapp_store_node_count: Default::default(),
 			}
 		}
 	}
@@ -369,6 +375,7 @@ pub mod tea {
 		fn build(&self) {
 			ReportRawardAmount::<T>::set(self.report_reward_amount);
 			TipsRawardAmount::<T>::set(self.tips_reward_amount);
+			DesiredTappStoreNodeCount::<T>::set(self.desired_tapp_store_node_count);
 
 			// we must ensure sufficient RA builtin nodes to start up.
 			if self.builtin_nodes.len() < T::MinGroupMemberCount::get() as usize {
@@ -407,6 +414,22 @@ pub mod tea {
 				|_| {
 					ReportRawardAmount::<T>::set(report_reward);
 					TipsRawardAmount::<T>::set(tips_reward);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn set_desired_tapp_store_count(
+			sender: OriginFor<T>,
+			new_value: u32,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					DesiredTappStoreNodeCount::<T>::set(new_value);
 				},
 			)
 		}
