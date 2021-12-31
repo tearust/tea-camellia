@@ -154,6 +154,11 @@ pub mod tea {
 	pub(super) type BuiltinMiners<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, (), ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn tapp_store_startup_nodes)]
+	pub(crate) type TappStoreStartupNodes<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
+
 	/// Runtime activities of registered TEA nodes.
 	#[pallet::storage]
 	#[pallet::getter(fn runtime_activities)]
@@ -387,6 +392,7 @@ pub mod tea {
 				node.tea_id = tea_id.clone();
 				Nodes::<T>::insert(tea_id, node);
 				BuiltinNodes::<T>::insert(tea_id, ());
+				TappStoreStartupNodes::<T>::insert(tea_id, ());
 			}
 
 			self.builtin_miners
@@ -430,6 +436,25 @@ pub mod tea {
 				|_| Ok(()),
 				|_| {
 					DesiredTappStoreNodeCount::<T>::set(new_value);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn reset_tapp_store_startup_nodes(
+			sender: OriginFor<T>,
+			nodes: Vec<TeaPubKey>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					TappStoreStartupNodes::<T>::remove_all(None);
+					nodes
+						.into_iter()
+						.for_each(|pk| TappStoreStartupNodes::<T>::insert(pk, ()));
 				},
 			)
 		}
