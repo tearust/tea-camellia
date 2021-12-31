@@ -1357,7 +1357,7 @@ impl_runtime_apis! {
 		}
 
 		fn tapp_store_startup_nodes() -> Vec<[u8; 32]> {
-			Tea::tapp_store_startup_nodes()
+			Tea::list_tapp_store_startup_nodes()
 		}
 
 		fn allowed_pcrs() -> Vec<(H256, Vec<Vec<u8>>)> {
