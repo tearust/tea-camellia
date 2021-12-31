@@ -25,6 +25,9 @@ pub trait TeaApi<BlockHash, AccountId> {
 	#[rpc(name = "tea_bootNodes")]
 	fn boot_nodes(&self, at: Option<BlockHash>) -> Result<Vec<[u8; 32]>>;
 
+	#[rpc(name = "tea_tappStoreStartupNodes")]
+	fn tapp_store_startup_nodes(&self, at: Option<BlockHash>) -> Result<Vec<[u8; 32]>>;
+
 	#[rpc(name = "tea_allowedPcrs")]
 	fn allowed_pcrs(&self, at: Option<BlockHash>) -> Result<Vec<(H256, Vec<Vec<u8>>)>>;
 
@@ -103,6 +106,21 @@ where
 			self.client.info().best_hash));
 
 		let result = api.boot_nodes(&at).map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
+	}
+
+	fn tapp_store_startup_nodes(
+		&self,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<[u8; 32]>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.tapp_store_startup_nodes(&at)
+			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}
 
