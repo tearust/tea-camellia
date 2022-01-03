@@ -148,7 +148,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 108,
+	spec_version: 109,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -852,8 +852,8 @@ impl pallet_tea::Config for Runtime {
 /// Timeout height is (1 * 30 * 24 * 60 * 10 * 6secs) about 1 month
 const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
 #[cfg(feature = "fast")]
-/// Timeout height is (2 * 7 * 24 * 60 * 10 * 6secs) about 2 weeks
-const SEEDS_TIMEOUT_HEIGHT: u32 = 2 * 7 * 24 * 60 * 10;
+/// Fast mode seed never timeout
+const SEEDS_TIMEOUT_HEIGHT: u32 = u32::MAX;
 
 #[cfg(not(feature = "fast"))]
 /// Staking period length is (1 * 24 * 60 * 10) about 1 day
