@@ -29,7 +29,7 @@ use pallet_cml::{CmlId, CmlOperation, CmlType, MinerStatus, SeedProperties, Task
 use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
 use sp_core::{ed25519, H256};
 use sp_io::hashing::blake2_256;
-use sp_runtime::traits::{One, Saturating, Zero};
+use sp_runtime::traits::{One, Saturating};
 use sp_std::{
 	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
 	prelude::*,
@@ -90,9 +90,6 @@ pub mod tea {
 
 		#[pallet::constant]
 		type ReportRawardDuration: Get<Self::BlockNumber>;
-
-		#[pallet::constant]
-		type UpdateNodeProfileDuration: Get<Self::BlockNumber>;
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
@@ -332,8 +329,6 @@ pub mod tea {
 		NodeEphemeralIdNotMatch,
 		/// The size of version keys and values not match
 		VersionKvpSizeNotMatch,
-		/// Can not commit offline evidence multi time in short time
-		CanNotUpdateNodeProfileMultiTimes,
 		/// Version expired height should larger than current height
 		InvalidVersionExpireHeight,
 	}
@@ -663,7 +658,6 @@ pub mod tea {
 				&sender,
 				|sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
-					let node = Nodes::<T>::get(&tea_id);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
 					Self::check_tea_id_belongs(sender, &tea_id)?;
 					// if !Self::is_builtin_node(&tea_id) {
@@ -672,13 +666,6 @@ pub mod tea {
 					// 		Error::<T>::InvalidPcrHash
 					// 	);
 					// }
-					if !node.update_time.is_zero() {
-						ensure!(
-							current_block_number
-								>= node.update_time + T::UpdateNodeProfileDuration::get(),
-							Error::<T>::CanNotUpdateNodeProfileMultiTimes
-						);
-					}
 					Ok(())
 				},
 				|sender| {

@@ -224,7 +224,6 @@ parameter_types! {
 	pub const OfflineValidDuration: u32 = OFFLINE_VALID_DURATION;
 	pub const OfflineEffectThreshold: u32 = OFFLINE_EFFECT_THRESHOLD;
 	pub const ReportRawardDuration: u32 = REPORT_RAWARD_DURATION;
-	pub const UpdateNodeProfileDuration: u32 = UPDATE_NODE_PROFILE_DURATION;
 }
 
 impl pallet_utils::Config for Test {
@@ -266,7 +265,6 @@ impl pallet_tea::Config for Test {
 	type OfflineValidDuration = OfflineValidDuration;
 	type OfflineEffectThreshold = OfflineEffectThreshold;
 	type ReportRawardDuration = ReportRawardDuration;
-	type UpdateNodeProfileDuration = UpdateNodeProfileDuration;
 	type WeightInfo = ();
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
