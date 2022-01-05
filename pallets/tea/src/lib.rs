@@ -688,7 +688,6 @@ pub mod tea {
 					EphemeralIds::<T>::insert(ephemeral_id, &tea_id);
 					PeerIds::<T>::insert(&peer_id, &tea_id);
 
-					T::CurrencyOperations::deposit_creating(sender, 195000000u32.into());
 					Self::deposit_event(Event::UpdateNodeProfile(sender.clone(), node));
 				},
 			)
