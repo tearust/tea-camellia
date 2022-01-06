@@ -362,10 +362,7 @@ fn builtin_node_update_node_profile_works() {
 		assert_eq!(NodeStatus::Active, new_node.status);
 		assert_eq!(conn_id, new_node.conn_id);
 
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&builtin_miner),
-			195000000
-		);
+		assert_eq!(<Test as Config>::Currency::free_balance(&builtin_miner), 0);
 	})
 }
 
@@ -477,7 +474,7 @@ fn normal_node_update_node_profile_works() {
 		assert_eq!(conn_id, new_node.conn_id);
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&owner_controller),
-			195000000 + 1
+			1
 		);
 	})
 }

@@ -25,7 +25,6 @@ pub const TIPS_ALLOWED_DURATION: u32 = 100;
 pub const OFFLINE_VALID_DURATION: u32 = 150;
 pub const OFFLINE_EFFECT_THRESHOLD: u32 = 2;
 pub const REPORT_RAWARD_DURATION: u32 = 200;
-pub const UPDATE_NODE_PROFILE_DURATION: u32 = 100;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
