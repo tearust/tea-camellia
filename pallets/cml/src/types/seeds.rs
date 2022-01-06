@@ -79,33 +79,40 @@ impl Default for GenesisSeeds {
 
 impl GenesisSeeds {
 	pub fn generate(
+		mut seq_id: u64,
+		a_count: u64,
+		b_count: u64,
+		c_count: u64,
+		team_percentage: u64,
 		gen_defrost_time: impl Fn(DefrostScheduleType, u64) -> BlockNumber,
 		gen_lifespan: impl Fn(CmlType, u64) -> BlockNumber,
 		gen_performance: impl Fn(CmlType, u64) -> Performance,
 	) -> Self {
-		let mut seq_id: u64 = 0;
 		let a_seeds = Self::generate_batch_type_seeds(
-			GENESIS_SEED_A_COUNT,
+			a_count,
 			CmlType::A,
 			&mut seq_id,
+			team_percentage,
 			&gen_defrost_time,
 			&gen_lifespan,
 			&gen_performance,
 		);
 
 		let b_seeds = Self::generate_batch_type_seeds(
-			GENESIS_SEED_B_COUNT,
+			b_count,
 			CmlType::B,
 			&mut seq_id,
+			team_percentage,
 			&gen_defrost_time,
 			&gen_lifespan,
 			&gen_performance,
 		);
 
 		let c_seeds = Self::generate_batch_type_seeds(
-			GENESIS_SEED_C_COUNT,
+			c_count,
 			CmlType::C,
 			&mut seq_id,
+			team_percentage,
 			&gen_defrost_time,
 			&gen_lifespan,
 			&gen_performance,
@@ -122,6 +129,7 @@ impl GenesisSeeds {
 		count: u64,
 		cml_type: CmlType,
 		seq_id: &mut u64,
+		team_percentage: u64,
 		gen_defrost_time: &impl Fn(DefrostScheduleType, u64) -> BlockNumber,
 		gen_lifespan: &impl Fn(CmlType, u64) -> BlockNumber,
 		gen_performance: &impl Fn(CmlType, u64) -> Performance,
@@ -129,7 +137,7 @@ impl GenesisSeeds {
 		let mut seeds: Vec<Seed> = Vec::new();
 
 		for i in 0..count {
-			if i < count * TEAM_PERCENTAGE / 100 {
+			if i < count * team_percentage / 100 {
 				seeds.push(Seed::generate(
 					cml_type,
 					*seq_id,

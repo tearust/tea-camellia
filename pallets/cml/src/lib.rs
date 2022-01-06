@@ -27,6 +27,7 @@ use frame_support::{
 	ensure,
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement, Get},
+	Hashable,
 };
 use frame_system::pallet_prelude::*;
 use genesis_exchange_interface::MiningOperation;
@@ -330,8 +331,6 @@ pub mod cml {
 		NoNeedToSuspend,
 		/// Mining tree is already active, no need to resume
 		NoNeedToResume,
-		/// Only NPC account allowed to suspend mining tree
-		OnlyNpcAccountAllowedToSuspend,
 		/// Insufficient free balance to append pledge
 		InsufficientFreeBalanceToAppendPledge,
 		/// The given IP address is already registerd
@@ -459,6 +458,50 @@ pub mod cml {
 				|_| Ok(()),
 				|_| {
 					EnableTransferCoupon::<T>::set(enable);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn generate_coupon(
+			sender: OriginFor<T>,
+			to_account: T::AccountId,
+			a_amount: u32,
+			b_amount: u32,
+			c_amount: u32,
+			schedule_type: DefrostScheduleType,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					Self::add_coupon_amount(&to_account, CmlType::A, a_amount, schedule_type);
+					Self::add_coupon_amount(&to_account, CmlType::B, b_amount, schedule_type);
+					Self::add_coupon_amount(&to_account, CmlType::C, c_amount, schedule_type);
+
+					let mut salt = vec![schedule_type as u8];
+					salt.append(&mut a_amount.to_le_bytes().to_vec());
+					salt.append(&mut b_amount.to_le_bytes().to_vec());
+					salt.append(&mut c_amount.to_le_bytes().to_vec());
+
+					let team_percentage = match schedule_type {
+						DefrostScheduleType::Investor => 0,
+						DefrostScheduleType::Team => 100,
+					};
+					let rand_value = sp_core::U256::from(
+						T::CommonUtils::generate_random(to_account.clone(), &salt).as_bytes(),
+					);
+					let seeds = generator::construct_seeds(
+						LastCmlId::<T>::get(),
+						rand_value.twox_256(),
+						a_amount as u64,
+						b_amount as u64,
+						c_amount as u64,
+						team_percentage,
+					);
+					crate::functions::init_from_genesis_seeds::<T>(&seeds);
 				},
 			)
 		}

@@ -1,7 +1,10 @@
 use crate::generator::defrost::make_generate_defrost_time_fn;
 use crate::generator::lifespan::make_generate_lifespan_fn;
 use crate::generator::performance::make_generate_performance_fn;
-use crate::{CmlType, DefrostScheduleType, GenesisSeeds};
+use crate::{
+	CmlType, DefrostScheduleType, GenesisSeeds, GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT,
+	GENESIS_SEED_C_COUNT, TEAM_PERCENTAGE,
+};
 use log::info;
 
 mod defrost;
@@ -15,6 +18,31 @@ pub type ShortSeed = [u8; 16];
 pub fn init_genesis(seed: WideSeed) -> GenesisSeeds {
 	info!("init_genesis");
 	GenesisSeeds::generate(
+		0,
+		GENESIS_SEED_A_COUNT,
+		GENESIS_SEED_B_COUNT,
+		GENESIS_SEED_C_COUNT,
+		TEAM_PERCENTAGE,
+		make_generate_defrost_time_fn(seed),
+		make_generate_lifespan_fn(seed),
+		make_generate_performance_fn(seed),
+	)
+}
+
+pub fn construct_seeds(
+	seq_id: u64,
+	seed: WideSeed,
+	a_count: u64,
+	b_count: u64,
+	c_count: u64,
+	team_percentage: u64,
+) -> GenesisSeeds {
+	GenesisSeeds::generate(
+		seq_id,
+		a_count,
+		b_count,
+		c_count,
+		team_percentage,
 		make_generate_defrost_time_fn(seed),
 		make_generate_lifespan_fn(seed),
 		make_generate_performance_fn(seed),
