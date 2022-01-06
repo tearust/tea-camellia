@@ -1010,9 +1010,9 @@ mod tests {
 
 			let mut rng = thread_rng();
 			for i in 0..SEEDS_COUNT {
-				let user_id = rng.gen_range(START_USER_ID..STOP_USER_ID);
-				let plant_time = rng.gen_range(START_HEIGHT..STOP_HEIGHT);
-				let lifespan = rng.gen_range(START_HEIGHT..STOP_HEIGHT) as u32;
+				let user_id = rng.gen_range(START_USER_ID, STOP_USER_ID);
+				let plant_time = rng.gen_range(START_HEIGHT, STOP_HEIGHT);
+				let lifespan = rng.gen_range(START_HEIGHT, STOP_HEIGHT) as u32;
 
 				let mut cml = CML::from_genesis_seed(seed_from_lifespan(
 					i as u64,

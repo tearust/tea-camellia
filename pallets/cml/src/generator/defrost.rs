@@ -1,17 +1,18 @@
+use super::WideSeed;
 use crate::generator::{defrost_schedule_sub_type_value, generate_individual_seed};
 use crate::param::{
 	BLOCKS_IN_A_DAY, BLOCKS_IN_A_MONTH, BLOCKS_IN_HALF_MONTH, UNFROZEN_SEEDS_PERCENTAGE_INVESTOR,
 };
 use crate::DefrostScheduleType;
 use node_primitives::BlockNumber;
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
+use sp_std::prelude::*;
 
 const DEFROST_CLASS_VALUE: u8 = 1;
 
 ///create a closure. this closure is used to generate the random defrost time for different kinds of DefrostSchedule (team or investor).
 pub fn make_generate_defrost_time_fn(
-	seed: [u8; 32],
+	seed: WideSeed,
 ) -> impl Fn(DefrostScheduleType, u64) -> BlockNumber {
 	move |defrost_schedule: DefrostScheduleType, seq_id: u64| {
 		let mut defrost_time_point = Vec::new();
@@ -20,7 +21,7 @@ pub fn make_generate_defrost_time_fn(
 				i * BLOCKS_IN_A_MONTH - BLOCKS_IN_A_MONTH / 2, //every mid_of_a_month is a defrost time point
 			)
 		}
-		let mut rng: StdRng = SeedableRng::from_seed(generate_individual_seed(
+		let mut rng: SmallRng = SmallRng::from_seed(generate_individual_seed(
 			seed,
 			DEFROST_CLASS_VALUE,
 			defrost_schedule_sub_type_value(defrost_schedule),
