@@ -1,15 +1,15 @@
+use super::WideSeed;
 use crate::generator::{cml_type_sub_type_value, generate_individual_seed};
 use crate::param::{BASE_LIFESPAN_A, BASE_LIFESPAN_B, BASE_LIFESPAN_C, DEVIATION};
 use crate::CmlType;
 use node_primitives::BlockNumber;
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 
 const LIFESPAN_CLASS_VALUE: u8 = 2;
 
-pub fn make_generate_lifespan_fn(seed: [u8; 32]) -> impl Fn(CmlType, u64) -> BlockNumber {
+pub fn make_generate_lifespan_fn(seed: WideSeed) -> impl Fn(CmlType, u64) -> BlockNumber {
 	move |cml_type: CmlType, seq_id: u64| {
-		let mut rng: StdRng = SeedableRng::from_seed(generate_individual_seed(
+		let mut rng: SmallRng = SmallRng::from_seed(generate_individual_seed(
 			seed,
 			LIFESPAN_CLASS_VALUE,
 			cml_type_sub_type_value(cml_type),

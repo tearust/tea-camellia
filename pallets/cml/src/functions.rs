@@ -205,6 +205,34 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 	}
 
+	pub(crate) fn add_coupon_amount(
+		account: &T::AccountId,
+		cml_type: CmlType,
+		amount: u32,
+		schedule_type: DefrostScheduleType,
+	) {
+		match schedule_type {
+			DefrostScheduleType::Investor => {
+				InvestorCouponStore::<T>::mutate(account, cml_type, |coupon| {
+					if let Some(coupon) = coupon.as_mut() {
+						coupon.amount = coupon.amount.saturating_add(amount);
+					} else {
+						*coupon = Some(Coupon { amount, cml_type });
+					}
+				});
+			}
+			DefrostScheduleType::Team => {
+				TeamCouponStore::<T>::mutate(account, cml_type, |coupon| {
+					if let Some(coupon) = coupon.as_mut() {
+						coupon.amount = coupon.amount.saturating_add(amount);
+					} else {
+						*coupon = Some(Coupon { amount, cml_type });
+					}
+				});
+			}
+		}
+	}
+
 	pub(crate) fn fetch_coupons(
 		who: &T::AccountId,
 		schedule_type: DefrostScheduleType,
@@ -474,24 +502,25 @@ where
 		BalanceOf<T>,
 		T::SeedFreshDuration,
 	>(&genesis_seeds.c_seeds);
-	LuckyDrawBox::<T>::insert(
-		CmlType::A,
-		DefrostScheduleType::Investor,
-		investor_a_draw_box,
-	);
-	LuckyDrawBox::<T>::insert(CmlType::A, DefrostScheduleType::Team, team_a_draw_box);
-	LuckyDrawBox::<T>::insert(
-		CmlType::B,
-		DefrostScheduleType::Investor,
-		investor_b_draw_box,
-	);
-	LuckyDrawBox::<T>::insert(CmlType::B, DefrostScheduleType::Team, team_b_draw_box);
-	LuckyDrawBox::<T>::insert(
-		CmlType::C,
-		DefrostScheduleType::Investor,
-		investor_c_draw_box,
-	);
-	LuckyDrawBox::<T>::insert(CmlType::C, DefrostScheduleType::Team, team_c_draw_box);
+
+	LuckyDrawBox::<T>::mutate(CmlType::A, DefrostScheduleType::Investor, |list| {
+		list.extend(investor_a_draw_box);
+	});
+	LuckyDrawBox::<T>::mutate(CmlType::A, DefrostScheduleType::Team, |list| {
+		list.extend(team_a_draw_box);
+	});
+	LuckyDrawBox::<T>::mutate(CmlType::B, DefrostScheduleType::Investor, |list| {
+		list.extend(investor_b_draw_box);
+	});
+	LuckyDrawBox::<T>::mutate(CmlType::B, DefrostScheduleType::Team, |list| {
+		list.extend(team_b_draw_box);
+	});
+	LuckyDrawBox::<T>::mutate(CmlType::C, DefrostScheduleType::Investor, |list| {
+		list.extend(investor_c_draw_box);
+	});
+	LuckyDrawBox::<T>::mutate(CmlType::C, DefrostScheduleType::Team, |list| {
+		list.extend(team_c_draw_box);
+	});
 
 	a_cml_list
 		.into_iter()
@@ -499,10 +528,13 @@ where
 		.chain(c_cml_list.into_iter())
 		.for_each(|cml| CmlStore::<T>::insert(cml.id(), cml));
 
-	LastCmlId::<T>::set(
-		(genesis_seeds.a_seeds.len() + genesis_seeds.b_seeds.len() + genesis_seeds.c_seeds.len())
-			as CmlId,
-	)
+	LastCmlId::<T>::mutate(|old_last| {
+		*old_last = old_last.saturating_add(
+			(genesis_seeds.a_seeds.len()
+				+ genesis_seeds.b_seeds.len()
+				+ genesis_seeds.c_seeds.len()) as CmlId,
+		);
+	});
 }
 
 pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber, Balance, FreshDuration>(
@@ -640,6 +672,7 @@ mod tests {
 					.amount,
 				6
 			);
+			assert_eq!(LastCmlId::<Test>::get(), 0);
 		})
 	}
 
@@ -680,6 +713,209 @@ mod tests {
 			assert_eq!(
 				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Investor).len() as u64,
 				GENESIS_SEED_C_COUNT * (100 - TEAM_PERCENTAGE) / 100
+			);
+
+			assert_eq!(
+				LastCmlId::<Test>::get(),
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
+			);
+			assert_eq!(
+				CmlStore::<Test>::iter().count() as u64,
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
+			);
+		})
+	}
+
+	#[test]
+	fn generate_coupon_works() {
+		new_test_ext().execute_with(|| {
+			frame_system::Pallet::<Test>::set_block_number(10);
+			assert_eq!(LastCmlId::<Test>::get(), 0);
+
+			let to_account = 1;
+
+			assert_ok!(Cml::generate_coupon(
+				Origin::root(),
+				to_account,
+				1,
+				2,
+				3,
+				DefrostScheduleType::Team
+			));
+			assert_eq!(
+				TeamCouponStore::<Test>::get(to_account, CmlType::A)
+					.unwrap()
+					.amount,
+				1
+			);
+			assert_eq!(
+				TeamCouponStore::<Test>::get(to_account, CmlType::B)
+					.unwrap()
+					.amount,
+				2
+			);
+			assert_eq!(
+				TeamCouponStore::<Test>::get(to_account, CmlType::C)
+					.unwrap()
+					.amount,
+				3
+			);
+
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Team).len() as u64,
+				1
+			);
+			let cml = CmlStore::<Test>::get(0);
+			assert_eq!(cml.id(), 0);
+			assert_eq!(cml.cml_type(), CmlType::A);
+
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Team).len() as u64,
+				2
+			);
+			let cml = CmlStore::<Test>::get(1);
+			assert_eq!(cml.id(), 1);
+			assert_eq!(cml.cml_type(), CmlType::B);
+
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Team).len() as u64,
+				3
+			);
+			let cml = CmlStore::<Test>::get(3);
+			assert_eq!(cml.id(), 3);
+			assert_eq!(cml.cml_type(), CmlType::C);
+
+			assert_eq!(CmlStore::<Test>::iter().count(), 1 + 2 + 3);
+			assert_eq!(LastCmlId::<Test>::get(), 1 + 2 + 3);
+
+			assert_ok!(Cml::generate_coupon(
+				Origin::root(),
+				to_account,
+				2,
+				1,
+				0,
+				DefrostScheduleType::Investor
+			));
+			assert_eq!(
+				InvestorCouponStore::<Test>::get(to_account, CmlType::A)
+					.unwrap()
+					.amount,
+				2
+			);
+			assert_eq!(
+				InvestorCouponStore::<Test>::get(to_account, CmlType::B)
+					.unwrap()
+					.amount,
+				1
+			);
+			assert_eq!(
+				InvestorCouponStore::<Test>::get(to_account, CmlType::C)
+					.unwrap()
+					.amount,
+				0
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Investor).len() as u64,
+				2
+			);
+			let cml = CmlStore::<Test>::get(6);
+			assert_eq!(cml.id(), 6);
+			assert_eq!(cml.cml_type(), CmlType::A);
+
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Investor).len() as u64,
+				1
+			);
+			let cml = CmlStore::<Test>::get(8);
+			assert_eq!(cml.id(), 8);
+			assert_eq!(cml.cml_type(), CmlType::B);
+
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Investor).len() as u64,
+				0
+			);
+
+			assert_eq!(
+				InvestorCouponStore::<Test>::iter_prefix(to_account).count(),
+				2 + 1 + 0
+			);
+			assert_eq!(LastCmlId::<Test>::get(), 3 + 3 + 3);
+			assert_eq!(CmlStore::<Test>::iter().count(), 3 + 3 + 3);
+		})
+	}
+
+	#[test]
+	fn generate_coupon_works_after_init_genesis_seeds() {
+		new_test_ext().execute_with(|| {
+			frame_system::Pallet::<Test>::set_block_number(10);
+
+			let genesis_seeds = init_genesis([1; 32]);
+			init_from_genesis_seeds::<Test>(&genesis_seeds);
+			assert_eq!(
+				LastCmlId::<Test>::get(),
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
+			);
+			assert_eq!(
+				CmlStore::<Test>::iter().count() as u64,
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
+			);
+
+			let to_account = 1;
+			assert_ok!(Cml::generate_coupon(
+				Origin::root(),
+				to_account,
+				1,
+				2,
+				3,
+				DefrostScheduleType::Team
+			));
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::A, DefrostScheduleType::Team).len() as u64,
+				GENESIS_SEED_A_COUNT * TEAM_PERCENTAGE / 100 + 1
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::B, DefrostScheduleType::Team).len() as u64,
+				GENESIS_SEED_B_COUNT * TEAM_PERCENTAGE / 100 + 2
+			);
+			assert_eq!(
+				LuckyDrawBox::<Test>::get(CmlType::C, DefrostScheduleType::Team).len() as u64,
+				GENESIS_SEED_C_COUNT * TEAM_PERCENTAGE / 100 + 3
+			);
+
+			let cml = CmlStore::<Test>::get(
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT,
+			);
+			assert_eq!(
+				cml.id(),
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
+			);
+			assert_eq!(cml.cml_type(), CmlType::A);
+
+			let cml = CmlStore::<Test>::get(
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT + 1,
+			);
+			assert_eq!(
+				cml.id(),
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT + 1
+			);
+			assert_eq!(cml.cml_type(), CmlType::B);
+
+			let cml = CmlStore::<Test>::get(
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT + 3,
+			);
+			assert_eq!(
+				cml.id(),
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT + 3
+			);
+			assert_eq!(cml.cml_type(), CmlType::C);
+
+			assert_eq!(
+				LastCmlId::<Test>::get(),
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT + 1 + 2 + 3
+			);
+			assert_eq!(
+				CmlStore::<Test>::iter().count() as u64,
+				GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT + 1 + 2 + 3
 			);
 		})
 	}
@@ -1010,9 +1246,9 @@ mod tests {
 
 			let mut rng = thread_rng();
 			for i in 0..SEEDS_COUNT {
-				let user_id = rng.gen_range(START_USER_ID..STOP_USER_ID);
-				let plant_time = rng.gen_range(START_HEIGHT..STOP_HEIGHT);
-				let lifespan = rng.gen_range(START_HEIGHT..STOP_HEIGHT) as u32;
+				let user_id = rng.gen_range(START_USER_ID, STOP_USER_ID);
+				let plant_time = rng.gen_range(START_HEIGHT, STOP_HEIGHT);
+				let lifespan = rng.gen_range(START_HEIGHT, STOP_HEIGHT) as u32;
 
 				let mut cml = CML::from_genesis_seed(seed_from_lifespan(
 					i as u64,

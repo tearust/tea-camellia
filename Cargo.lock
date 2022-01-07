@@ -4439,7 +4439,7 @@ dependencies = [
  "pallet-randomness-collective-flip",
  "pallet-utils",
  "parity-scale-codec",
- "rand 0.8.4",
+ "rand 0.7.3",
  "scale-info",
  "serde",
  "sp-core",

@@ -29,7 +29,7 @@ use pallet_cml::{CmlId, CmlOperation, CmlType, MinerStatus, SeedProperties, Task
 use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
 use sp_core::{ed25519, H256};
 use sp_io::hashing::blake2_256;
-use sp_runtime::traits::{One, Saturating, Zero};
+use sp_runtime::traits::{One, Saturating};
 use sp_std::{
 	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
 	prelude::*,
@@ -91,9 +91,6 @@ pub mod tea {
 		#[pallet::constant]
 		type ReportRawardDuration: Get<Self::BlockNumber>;
 
-		#[pallet::constant]
-		type UpdateNodeProfileDuration: Get<Self::BlockNumber>;
-
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
 		/// Common utils trait
@@ -154,6 +151,11 @@ pub mod tea {
 	pub(super) type BuiltinMiners<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, (), ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn tapp_store_startup_nodes)]
+	pub(crate) type TappStoreStartupNodes<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
+
 	/// Runtime activities of registered TEA nodes.
 	#[pallet::storage]
 	#[pallet::getter(fn runtime_activities)]
@@ -211,6 +213,10 @@ pub mod tea {
 	#[pallet::getter(fn version_expired_nodes)]
 	pub(super) type VersionExpiredNodes<T: Config> =
 		StorageMap<_, Twox64Concat, TeaPubKey, T::BlockNumber, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn desired_tapp_store_node_count)]
+	pub(super) type DesiredTappStoreNodeCount<T: Config> = StorageValue<_, u32, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -323,8 +329,6 @@ pub mod tea {
 		NodeEphemeralIdNotMatch,
 		/// The size of version keys and values not match
 		VersionKvpSizeNotMatch,
-		/// Can not commit offline evidence multi time in short time
-		CanNotUpdateNodeProfileMultiTimes,
 		/// Version expired height should larger than current height
 		InvalidVersionExpireHeight,
 	}
@@ -350,6 +354,7 @@ pub mod tea {
 		pub builtin_miners: Vec<T::AccountId>,
 		pub report_reward_amount: BalanceOf<T>,
 		pub tips_reward_amount: BalanceOf<T>,
+		pub desired_tapp_store_node_count: u32,
 	}
 
 	#[cfg(feature = "std")]
@@ -360,6 +365,7 @@ pub mod tea {
 				builtin_miners: Default::default(),
 				report_reward_amount: Default::default(),
 				tips_reward_amount: Default::default(),
+				desired_tapp_store_node_count: Default::default(),
 			}
 		}
 	}
@@ -369,6 +375,7 @@ pub mod tea {
 		fn build(&self) {
 			ReportRawardAmount::<T>::set(self.report_reward_amount);
 			TipsRawardAmount::<T>::set(self.tips_reward_amount);
+			DesiredTappStoreNodeCount::<T>::set(self.desired_tapp_store_node_count);
 
 			// we must ensure sufficient RA builtin nodes to start up.
 			if self.builtin_nodes.len() < T::MinGroupMemberCount::get() as usize {
@@ -380,6 +387,7 @@ pub mod tea {
 				node.tea_id = tea_id.clone();
 				Nodes::<T>::insert(tea_id, node);
 				BuiltinNodes::<T>::insert(tea_id, ());
+				TappStoreStartupNodes::<T>::insert(tea_id, ());
 			}
 
 			self.builtin_miners
@@ -407,6 +415,41 @@ pub mod tea {
 				|_| {
 					ReportRawardAmount::<T>::set(report_reward);
 					TipsRawardAmount::<T>::set(tips_reward);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn set_desired_tapp_store_count(
+			sender: OriginFor<T>,
+			new_value: u32,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					DesiredTappStoreNodeCount::<T>::set(new_value);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn reset_tapp_store_startup_nodes(
+			sender: OriginFor<T>,
+			nodes: Vec<TeaPubKey>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					TappStoreStartupNodes::<T>::remove_all(None);
+					nodes
+						.into_iter()
+						.for_each(|pk| TappStoreStartupNodes::<T>::insert(pk, ()));
 				},
 			)
 		}
@@ -615,7 +658,6 @@ pub mod tea {
 				&sender,
 				|sender| {
 					ensure!(Nodes::<T>::contains_key(&tea_id), Error::<T>::NodeNotExist);
-					let node = Nodes::<T>::get(&tea_id);
 					ensure!(!peer_id.is_empty(), Error::<T>::InvalidPeerId);
 					Self::check_tea_id_belongs(sender, &tea_id)?;
 					// if !Self::is_builtin_node(&tea_id) {
@@ -624,13 +666,6 @@ pub mod tea {
 					// 		Error::<T>::InvalidPcrHash
 					// 	);
 					// }
-					if !node.update_time.is_zero() {
-						ensure!(
-							current_block_number
-								>= node.update_time + T::UpdateNodeProfileDuration::get(),
-							Error::<T>::CanNotUpdateNodeProfileMultiTimes
-						);
-					}
 					Ok(())
 				},
 				|sender| {
@@ -653,7 +688,6 @@ pub mod tea {
 					EphemeralIds::<T>::insert(ephemeral_id, &tea_id);
 					PeerIds::<T>::insert(&peer_id, &tea_id);
 
-					T::CurrencyOperations::deposit_creating(sender, 195000000u32.into());
 					Self::deposit_event(Event::UpdateNodeProfile(sender.clone(), node));
 				},
 			)

@@ -1,16 +1,16 @@
+use super::WideSeed;
 use crate::generator::{cml_type_sub_type_value, generate_individual_seed};
 use crate::param::{
 	Performance, BASE_PERFORMANCE_A, BASE_PERFORMANCE_B, BASE_PERFORMANCE_C, PERFORMANCE_DEVIATION,
 };
 use crate::CmlType;
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 
 const PERFORMANCE_CLASS_VALUE: u8 = 2;
 
-pub fn make_generate_performance_fn(seed: [u8; 32]) -> impl Fn(CmlType, u64) -> Performance {
+pub fn make_generate_performance_fn(seed: WideSeed) -> impl Fn(CmlType, u64) -> Performance {
 	move |cml_type: CmlType, seq_id: u64| {
-		let mut rng: StdRng = SeedableRng::from_seed(generate_individual_seed(
+		let mut rng: SmallRng = SmallRng::from_seed(generate_individual_seed(
 			seed,
 			PERFORMANCE_CLASS_VALUE,
 			cml_type_sub_type_value(cml_type),

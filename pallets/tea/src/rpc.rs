@@ -13,6 +13,12 @@ impl<T: tea::Config> tea::Pallet<T> {
 		BuiltinNodes::<T>::iter().map(|(id, _)| id).collect()
 	}
 
+	pub fn list_tapp_store_startup_nodes() -> Vec<[u8; 32]> {
+		TappStoreStartupNodes::<T>::iter()
+			.map(|(id, _)| id)
+			.collect()
+	}
+
 	pub fn list_allowed_pcrs() -> Vec<(H256, Vec<PcrValue>)> {
 		AllowedPcrValues::<T>::iter()
 			.map(|(hash, v)| (hash, v.slots))

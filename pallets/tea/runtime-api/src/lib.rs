@@ -20,6 +20,8 @@ sp_api::decl_runtime_apis! {
 
 		fn boot_nodes() -> Vec<[u8; 32]>;
 
+		fn tapp_store_startup_nodes() -> Vec<[u8; 32]>;
+
 		fn allowed_pcrs() -> Vec<(H256, Vec<Vec<u8>>)>;
 
 		fn allowed_versions() -> Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>, Option<BlockNumber>)>;

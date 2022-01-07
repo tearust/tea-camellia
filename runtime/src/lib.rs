@@ -823,7 +823,6 @@ parameter_types! {
 	pub const OfflineValidDuration: u32 = 100;
 	pub const OfflineEffectThreshold: u32 = 2;
 	pub const ReportRawardDuration: u32 = 100;
-	pub const UpdateNodeProfileDuration: u32 = 100;
 }
 
 impl pallet_tea::Config for Runtime {
@@ -845,7 +844,6 @@ impl pallet_tea::Config for Runtime {
 	type TaskService = Cml;
 	type CmlOperation = Cml;
 	type PerRaTaskPoint = PerRaTaskPoint;
-	type UpdateNodeProfileDuration = UpdateNodeProfileDuration;
 }
 
 #[cfg(not(feature = "fast"))]
@@ -1354,6 +1352,10 @@ impl_runtime_apis! {
 
 		fn boot_nodes() -> Vec<[u8; 32]> {
 			Tea::list_boot_nodes()
+		}
+
+		fn tapp_store_startup_nodes() -> Vec<[u8; 32]> {
+			Tea::list_tapp_store_startup_nodes()
 		}
 
 		fn allowed_pcrs() -> Vec<(H256, Vec<Vec<u8>>)> {
