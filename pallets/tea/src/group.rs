@@ -18,7 +18,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub(crate) fn update_validators() {
-		let mut active_machines: BTreeSet<TeaPubKey> = T::CmlOperation::current_mining_cmls()
+		let mut active_machines: BTreeSet<TeaPubKey> = T::CmlOperation::current_mining_cmls(None)
 			.iter()
 			.filter(|(_, tea_id)| Nodes::<T>::get(tea_id).is_active())
 			.map(|(_, tea_id)| tea_id.clone())

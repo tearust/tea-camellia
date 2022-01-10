@@ -274,7 +274,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let mut asset_usd_map = BTreeMap::new();
 		// calculate reward statement of current block, we assume each mining cml will get the
 		// mining change equally, and each mining task point are same.
-		let mining_cmls_count = T::CmlOperation::current_mining_cmls().iter().count() as u32;
+		let mining_cmls_count = T::CmlOperation::current_mining_cmls(None).iter().count() as u32;
 		let task_point_base = T::CmlOperation::task_point_base();
 		let cml_reward_statements = T::CmlOperation::estimate_reward_statements(
 			|| mining_cmls_count,

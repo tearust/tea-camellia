@@ -21,6 +21,25 @@ impl<T: tea::Config> tea::Pallet<T> {
 		*n % T::ReportRawardDuration::get() == T::ReportRawardDuration::get() - 3u32.into()
 	}
 
+	pub(crate) fn should_check_activities(n: &T::BlockNumber) -> bool {
+		// offset with `MiningNodesActivityCheckDuration` - 4 to void overlapping with staking period
+		*n % T::MiningNodesActivityCheckDuration::get()
+			== T::MiningNodesActivityCheckDuration::get() - 4u32.into()
+	}
+
+	pub(crate) fn check_mining_nodes_activites() {
+		let current_block = frame_system::Pallet::<T>::block_number();
+		T::CmlOperation::current_mining_cmls(Some(MinerStatus::Active))
+			.iter()
+			.for_each(|(_, tea_id)| {
+				let node = Nodes::<T>::get(tea_id);
+				let last_update_height = max(node.update_time, node.create_time);
+				if current_block > last_update_height + T::MiningNodesActivityCheckDuration::get() {
+					T::CmlOperation::suspend_mining(tea_id.clone());
+				}
+			});
+	}
+
 	pub(crate) fn check_tea_id_belongs(
 		sender: &T::AccountId,
 		tea_id: &TeaPubKey,

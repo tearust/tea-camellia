@@ -245,8 +245,12 @@ impl<T: cml::Config> CmlOperation for cml::Pallet<T> {
 		reward_statements
 	}
 
-	fn current_mining_cmls() -> Vec<(CmlId, MachineId)> {
+	fn current_mining_cmls(filter: Option<MinerStatus>) -> Vec<(CmlId, MachineId)> {
 		MinerItemStore::<T>::iter()
+			.filter(|(_, item)| match filter.as_ref() {
+				Some(status) => item.status.eq(status),
+				None => true,
+			})
 			.map(|(_, miner_item)| (miner_item.cml_id, miner_item.id))
 			.collect()
 	}

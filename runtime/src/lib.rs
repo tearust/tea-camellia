@@ -148,7 +148,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 110,
+	spec_version: 111,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -823,6 +823,8 @@ parameter_types! {
 	pub const OfflineValidDuration: u32 = 100;
 	pub const OfflineEffectThreshold: u32 = 2;
 	pub const ReportRawardDuration: u32 = 100;
+	/// (1 * 60 * 10) blocks equals (1 * 60 * 10 * 6secs) = 1hours
+	pub const MiningNodesActivityCheckDuration: u32 = 1 * 60 * 10;
 }
 
 impl pallet_tea::Config for Runtime {
@@ -838,6 +840,7 @@ impl pallet_tea::Config for Runtime {
 	type OfflineValidDuration = OfflineValidDuration;
 	type OfflineEffectThreshold = OfflineEffectThreshold;
 	type ReportRawardDuration = ReportRawardDuration;
+	type MiningNodesActivityCheckDuration = MiningNodesActivityCheckDuration;
 	type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
 	type CurrencyOperations = Utils;
 	type CommonUtils = Utils;

@@ -31,6 +31,7 @@ use sp_core::{ed25519, H256};
 use sp_io::hashing::blake2_256;
 use sp_runtime::traits::{One, Saturating};
 use sp_std::{
+	cmp::max,
 	collections::{btree_map::BTreeMap, btree_set::BTreeSet},
 	prelude::*,
 };
@@ -90,6 +91,9 @@ pub mod tea {
 
 		#[pallet::constant]
 		type ReportRawardDuration: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type MiningNodesActivityCheckDuration: Get<Self::BlockNumber>;
 
 		/// Weight information for extrinsics in this pallet.
 		type WeightInfo: WeightInfo;
@@ -344,6 +348,10 @@ pub mod tea {
 
 			if Self::should_pay_report_reward(&n) {
 				Self::pay_report_reward();
+			}
+
+			if Self::should_check_activities(&n) {
+				Self::check_mining_nodes_activites();
 			}
 		}
 	}

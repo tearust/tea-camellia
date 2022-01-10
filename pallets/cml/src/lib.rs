@@ -1264,7 +1264,7 @@ pub trait CmlOperation {
 	) -> Vec<(Self::AccountId, CmlId, Self::Balance)>;
 
 	/// Get current mining cml list;
-	fn current_mining_cmls() -> Vec<(CmlId, MachineId)>;
+	fn current_mining_cmls(filter: Option<MinerStatus>) -> Vec<(CmlId, MachineId)>;
 
 	/// return a pair of values, first is current performance calculated by given block height,
 	/// the second is the peak performance.

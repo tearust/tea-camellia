@@ -804,7 +804,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		let current_block = frame_system::Pallet::<T>::block_number();
 		Self::try_clean_died_host_machines(&current_block);
 
-		let mining_cmls = T::CmlOperation::current_mining_cmls();
+		let mining_cmls = T::CmlOperation::current_mining_cmls(None);
 
 		let mut unhosted_list = Vec::new();
 		mining_cmls.iter().for_each(|(cml_id, _)| {

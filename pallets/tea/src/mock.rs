@@ -25,6 +25,7 @@ pub const TIPS_ALLOWED_DURATION: u32 = 100;
 pub const OFFLINE_VALID_DURATION: u32 = 150;
 pub const OFFLINE_EFFECT_THRESHOLD: u32 = 2;
 pub const REPORT_RAWARD_DURATION: u32 = 200;
+pub const MINING_NODES_ACTIVITY_CHECK_DURATION: u32 = 500;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -223,6 +224,7 @@ parameter_types! {
 	pub const OfflineValidDuration: u32 = OFFLINE_VALID_DURATION;
 	pub const OfflineEffectThreshold: u32 = OFFLINE_EFFECT_THRESHOLD;
 	pub const ReportRawardDuration: u32 = REPORT_RAWARD_DURATION;
+	pub const MiningNodesActivityCheckDuration: u32 = MINING_NODES_ACTIVITY_CHECK_DURATION;
 }
 
 impl pallet_utils::Config for Test {
@@ -270,6 +272,7 @@ impl pallet_tea::Config for Test {
 	type TaskService = Cml;
 	type CmlOperation = Cml;
 	type PerRaTaskPoint = PerRaTaskPoint;
+	type MiningNodesActivityCheckDuration = MiningNodesActivityCheckDuration;
 }
 
 pub const STAKING_PRICE: Balance = 1000;
