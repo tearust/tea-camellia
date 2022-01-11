@@ -2781,6 +2781,156 @@ fn topup_should_fail_if_user_balance_is_not_enough() {
 }
 
 #[test]
+fn withdraw_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let operation_account = 1;
+		let user = 2;
+		let tapp_owner = 3;
+		let initial_amount = 100000000;
+		<Test as Config>::Currency::make_free_balance_be(&operation_account, 0);
+		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, initial_amount);
+
+		assert_ok!(create_default_tapp(tapp_owner));
+		let tapp_id = 1;
+
+		let transfer_amount = 10000;
+		assert_ok!(BondingCurve::topup(
+			Origin::signed(user),
+			tapp_id,
+			operation_account,
+			transfer_amount
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&operation_account),
+			transfer_amount
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			initial_amount - transfer_amount
+		);
+
+		assert_ok!(BondingCurve::withdraw(
+			Origin::signed(operation_account),
+			user,
+			transfer_amount,
+			tapp_id,
+			b"test tsid".to_vec()
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&operation_account),
+			0
+		);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&user),
+			initial_amount
+		);
+	})
+}
+
+#[test]
+fn withdraw_should_fail_if_tsid_used_same_times() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let operation_account = 1;
+		let user = 2;
+		let tapp_owner = 3;
+		let initial_amount = 100000000;
+		<Test as Config>::Currency::make_free_balance_be(&operation_account, 0);
+		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, initial_amount);
+
+		assert_ok!(create_default_tapp(tapp_owner));
+		let tapp_id = 1;
+
+		let transfer_amount = 10000;
+		assert_ok!(BondingCurve::topup(
+			Origin::signed(user),
+			tapp_id,
+			operation_account,
+			transfer_amount
+		));
+
+		let tsid = b"test tsid".to_vec();
+		assert_ok!(BondingCurve::withdraw(
+			Origin::signed(operation_account),
+			user,
+			1,
+			tapp_id,
+			tsid.clone(),
+		));
+
+		assert_noop!(
+			BondingCurve::withdraw(Origin::signed(operation_account), user, 1, tapp_id, tsid),
+			Error::<Test>::WithdrawTsidAlreadyExist
+		);
+	})
+}
+
+#[test]
+fn withdraw_should_fail_if_tapp_not_exist() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let operation_account = 1;
+		let user = 2;
+		let initial_amount = 100000000;
+		<Test as Config>::Currency::make_free_balance_be(&operation_account, 0);
+		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
+
+		let tapp_id = 1;
+
+		let tsid = b"test tsid".to_vec();
+		assert_noop!(
+			BondingCurve::withdraw(
+				Origin::signed(operation_account),
+				user,
+				1,
+				tapp_id,
+				tsid.clone(),
+			),
+			Error::<Test>::TAppIdNotExist
+		);
+	})
+}
+
+#[test]
+fn withdraw_should_fail_if_insufficient_free_balance() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let operation_account = 1;
+		let user = 2;
+		let tapp_owner = 3;
+		let initial_amount = 100000000;
+		<Test as Config>::Currency::make_free_balance_be(&operation_account, 0);
+		<Test as Config>::Currency::make_free_balance_be(&user, initial_amount);
+		<Test as Config>::Currency::make_free_balance_be(&tapp_owner, initial_amount);
+
+		assert_ok!(create_default_tapp(tapp_owner));
+		let tapp_id = 1;
+
+		let transfer_amount = 10000;
+		assert_ok!(BondingCurve::topup(
+			Origin::signed(user),
+			tapp_id,
+			operation_account,
+			transfer_amount
+		));
+
+		assert_noop!(
+			BondingCurve::withdraw(
+				Origin::signed(operation_account),
+				user,
+				transfer_amount + 1,
+				tapp_id,
+				b"test tsid".to_vec()
+			),
+			Error::<Test>::InsufficientFreeBalance
+		);
+	})
+}
+
+#[test]
 fn push_notifications_works() {
 	new_test_ext().execute_with(|| {
 		let user1 = 1;

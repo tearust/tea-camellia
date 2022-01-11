@@ -31,6 +31,8 @@ use pallet_cml::{
 };
 use pallet_utils::{extrinsic_procedure, CurrencyOperations};
 use scale_info::TypeInfo;
+use sp_core::H256;
+use sp_io::hashing::blake2_256;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating, Zero},
 	RuntimeDebug,
@@ -223,15 +225,22 @@ pub mod bonding_curve {
 	///
 	/// New networks start with latest version, as determined by the genesis build.
 	#[pallet::storage]
+	#[pallet::getter(fn storage_version)]
 	pub(crate) type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn notification_account)]
 	pub(crate) type NotificationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn user_notifications)]
 	pub(crate) type UserNotifications<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, Vec<T::BlockNumber>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn withdraw_storage)]
+	pub(crate) type WithdrawStorage<T: Config> =
+		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
@@ -385,12 +394,29 @@ pub mod bonding_curve {
 		/// 2. From account
 		/// 3. To account
 		/// 4. Topup amount
+		/// 5. Curent block number
 		TAppTopup(
 			TAppId,
 			T::AccountId,
 			T::AccountId,
 			BalanceOf<T>,
 			T::BlockNumber,
+		),
+
+		/// Fired after topuped successfully, event parameters:
+		/// 1. TApp Id
+		/// 2. From account
+		/// 3. To account
+		/// 4. Topup amount
+		/// 5. Curent block number
+		/// 6. Tsid
+		TAppWithdraw(
+			TAppId,
+			T::AccountId,
+			T::AccountId,
+			BalanceOf<T>,
+			T::BlockNumber,
+			Vec<u8>,
 		),
 
 		/// Fired after tapp actived, event parameters:
@@ -525,6 +551,8 @@ pub mod bonding_curve {
 		NotFoundNotificationUser,
 		/// No user notification to read
 		NoUserNotificationToRead,
+		/// Withdraw tsid already exist
+		WithdrawTsidAlreadyExist,
 	}
 
 	#[pallet::hooks]
@@ -1277,6 +1305,61 @@ pub mod bonding_curve {
 						tapp_operation_account.clone(),
 						amount,
 						current_height,
+					));
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn withdraw(
+			sender: OriginFor<T>,
+			to_account: T::AccountId,
+			amount: BalanceOf<T>,
+			tapp_id: TAppId,
+			tsid: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			let withdraw_hash = Self::tsid_hash(&tsid);
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						!WithdrawStorage::<T>::contains_key(&withdraw_hash),
+						Error::<T>::WithdrawTsidAlreadyExist
+					);
+					ensure!(
+						TAppBondingCurve::<T>::contains_key(tapp_id),
+						Error::<T>::TAppIdNotExist
+					);
+					ensure!(
+						T::CurrencyOperations::free_balance(who) >= amount,
+						Error::<T>::InsufficientFreeBalance
+					);
+					Ok(())
+				},
+				|who| {
+					if let Err(e) = T::CurrencyOperations::transfer(
+						who,
+						&to_account,
+						amount,
+						ExistenceRequirement::AllowDeath,
+					) {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!("tapp withdraw transfer free balance failed: {:?}", e);
+						return;
+					}
+
+					let current_block = frame_system::Pallet::<T>::block_number();
+					WithdrawStorage::<T>::insert(&withdraw_hash, current_block);
+
+					Self::deposit_event(Event::TAppWithdraw(
+						tapp_id,
+						who.clone(),
+						to_account,
+						amount,
+						current_block,
+						tsid,
 					));
 				},
 			)

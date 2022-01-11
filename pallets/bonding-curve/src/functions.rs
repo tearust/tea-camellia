@@ -999,6 +999,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			Self::deposit_event(Event::TAppBankrupted(tapp_id));
 		}
 	}
+
+	pub(crate) fn tsid_hash(tsid: &[u8]) -> H256 {
+		tsid.using_encoded(blake2_256).into()
+	}
 }
 
 pub fn approximately_equals<T>(a: BalanceOf<T>, b: BalanceOf<T>, precision: BalanceOf<T>) -> bool
