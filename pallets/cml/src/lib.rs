@@ -881,6 +881,10 @@ pub mod cml {
 
 						CmlStore::<T>::mutate(cml_id, |cml| cml.migrate_to(new_machine_id));
 
+						if *machine_id != new_machine_id {
+							T::TeaOperation::update_node_key(*machine_id, new_machine_id, who);
+						}
+
 						Self::deposit_event(Event::Migrated(
 							cml_id,
 							machine_id.clone(),

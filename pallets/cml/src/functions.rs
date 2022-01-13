@@ -127,6 +127,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 		});
 		let miner_item = MinerItemStore::<T>::take(machine_id);
 		MinerIpSet::<T>::remove(miner_item.ip);
+
+		T::TeaOperation::remove_node(*machine_id, who);
 	}
 
 	pub(crate) fn customer_staking_length(

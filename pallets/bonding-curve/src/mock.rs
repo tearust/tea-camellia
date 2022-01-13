@@ -42,6 +42,10 @@ impl TeaOperation for TeaOperationMock {
 	type AccountId = u64;
 
 	fn add_new_node(_machine_id: [u8; 32], _who: &Self::AccountId) {}
+
+	fn update_node_key(_old: [u8; 32], _new: [u8; 32], _sender: &Self::AccountId) {}
+
+	fn remove_node(_machine_id: [u8; 32], _sender: &Self::AccountId) {}
 }
 
 pub struct MiningOperationMock {}

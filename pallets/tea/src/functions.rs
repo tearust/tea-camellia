@@ -13,6 +13,32 @@ impl<T: tea::Config> TeaOperation for tea::Pallet<T> {
 
 		Self::deposit_event(Event::NewNodeJoined(sender.clone(), new_node));
 	}
+
+	fn update_node_key(old: [u8; 32], new: [u8; 32], sender: &Self::AccountId) {
+		if !Nodes::<T>::contains_key(old) {
+			return;
+		}
+
+		let mut node = Nodes::<T>::take(old);
+		node.tea_id = new;
+		Nodes::<T>::insert(new, node.clone());
+
+		Self::deposit_event(Event::NodeIdChanged(
+			sender.clone(),
+			node,
+			old,
+			frame_system::Pallet::<T>::block_number(),
+		));
+	}
+
+	fn remove_node(machine_id: [u8; 32], sender: &Self::AccountId) {
+		if !Nodes::<T>::contains_key(machine_id) {
+			return;
+		}
+
+		let node = Nodes::<T>::take(machine_id);
+		Self::deposit_event(Event::NodeRemoved(sender.clone(), node));
+	}
 }
 
 impl<T: tea::Config> tea::Pallet<T> {

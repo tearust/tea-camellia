@@ -228,6 +228,20 @@ pub mod tea {
 		/// Fired after register node successfully.
 		NewNodeJoined(T::AccountId, Node<T::BlockNumber>),
 
+		NodeRemoved(T::AccountId, Node<T::BlockNumber>),
+
+		/// Event fields:
+		/// - Sender
+		/// - Node object
+		/// - Old tea id
+		/// - Event block height
+		NodeIdChanged(
+			T::AccountId,
+			Node<T::BlockNumber>,
+			TeaPubKey,
+			T::BlockNumber,
+		),
+
 		/// Fired after update node profile successfully.
 		UpdateNodeProfile(T::AccountId, Node<T::BlockNumber>),
 
