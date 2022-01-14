@@ -278,6 +278,8 @@ pub mod tea {
 		/// - commit_tea_id
 		///	- offline_tea_id
 		NewOfflineEvidence(TeaPubKey, TeaPubKey),
+
+		DesignedTappStoreCountChanged(u32),
 	}
 
 	// Errors inform users that something went wrong.
@@ -453,6 +455,8 @@ pub mod tea {
 				|_| Ok(()),
 				|_| {
 					DesiredTappStoreNodeCount::<T>::set(new_value);
+
+					Self::deposit_event(Event::DesignedTappStoreCountChanged(new_value));
 				},
 			)
 		}
