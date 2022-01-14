@@ -68,6 +68,7 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 				T::CmlOperation::check_belongs(&cml_id, who)?;
 				let cml = T::CmlOperation::cml_by_id(&cml_id)?;
 				ensure!(cml.is_frozen_seed(), Error::<T>::ShouldPawnFrozenSeed);
+				#[cfg(not(feature = "fast"))]
 				ensure!(cml.is_from_genesis(), Error::<T>::ShouldPawnGenesisSeed);
 				T::CmlOperation::check_transfer_cml_to_other(
 					who,

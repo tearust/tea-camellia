@@ -231,4 +231,4 @@ try-runtime = [
 	'pallet-genesis-exchange/try-runtime',
 	'pallet-bonding-curve/try-runtime',
 ]
-fast = ['pallet-cml/fast'] # indicate the block duration and epoch will be shorter to test
+fast = ['pallet-cml/fast', 'pallet-genesis-bank/fast'] # indicate the block duration and epoch will be shorter to test
