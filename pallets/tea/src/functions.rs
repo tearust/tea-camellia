@@ -258,6 +258,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::{mock::*, types::*, Error, Nodes};
 	use frame_support::{assert_noop, assert_ok};
 
@@ -335,6 +336,36 @@ mod tests {
 			Tea::update_runtime_status(initial_height + threshold_height + 2);
 			assert_eq!(Nodes::<Test>::get(&tea_id1).status, NodeStatus::Inactive);
 			assert_eq!(Nodes::<Test>::get(&tea_id2).status, NodeStatus::Inactive);
+		});
+	}
+
+	#[test]
+	fn nodes_curd_works() {
+		new_test_ext().execute_with(|| {
+			let block_height = 100;
+			frame_system::Pallet::<Test>::set_block_number(block_height);
+
+			assert_eq!(Nodes::<Test>::iter().count(), 0);
+
+			Tea::add_new_node([1; 32], &1);
+			assert_eq!(Nodes::<Test>::iter().count(), 1);
+			assert!(Nodes::<Test>::contains_key([1; 32]));
+			let node = Nodes::<Test>::get([1; 32]);
+			assert_eq!(node.create_time, block_height);
+			assert_eq!(node.tea_id, [1; 32]);
+			assert_eq!(node.update_time, 0);
+
+			Tea::update_node_key([1; 32], [2; 32], &1);
+			assert_eq!(Nodes::<Test>::iter().count(), 1);
+			assert!(!Nodes::<Test>::contains_key([1; 32]));
+			assert!(Nodes::<Test>::contains_key([2; 32]));
+			let node = Nodes::<Test>::get([2; 32]);
+			assert_eq!(node.create_time, block_height);
+			assert_eq!(node.tea_id, [2; 32]);
+			assert_eq!(node.update_time, 0);
+
+			Tea::remove_node([2; 32], &1);
+			assert_eq!(Nodes::<Test>::iter().count(), 0);
 		});
 	}
 }
