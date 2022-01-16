@@ -469,10 +469,12 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				});
 			});
 
-		Self::deposit_event(Event::TAppConsumeRewardStatements(
-			tapp_id,
-			consume_statements,
-		));
+		if !consume_statements.is_empty() {
+			Self::deposit_event(Event::TAppConsumeRewardStatements(
+				tapp_id,
+				consume_statements,
+			));
+		}
 
 		TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
 			*amount = amount.saturating_add(distributing_amount);

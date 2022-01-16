@@ -148,7 +148,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 111,
+	spec_version: 112,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -822,7 +822,7 @@ parameter_types! {
 	pub const TipsAllowedDuration: u32 = 100;
 	pub const OfflineValidDuration: u32 = 100;
 	pub const OfflineEffectThreshold: u32 = 2;
-	pub const ReportRawardDuration: u32 = 100;
+	pub const ReportRawardDuration: u32 = 10000;
 	/// (1 * 60 * 10) blocks equals (1 * 60 * 10 * 6secs) = 1hours
 	pub const MiningNodesActivityCheckDuration: u32 = 1 * 60 * 10;
 }
@@ -924,7 +924,7 @@ parameter_types! {
 	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
 	/// The Genesis Bank calculate interest every BillingCycle. If borrower repay the loan before a billing cycle ends,
 	/// the interest is calculated to the end of this billing cycle.
-	pub const BillingCycle: BlockNumber = 1000;
+	pub const BillingCycle: BlockNumber = 10000;
 	pub const CmlALoanAmount: Balance = 2000 * DOLLARS;
 	pub const CmlBLoanBmount: Balance = 3000 * DOLLARS;
 	pub const CmlCLoanCmount: Balance = 1500 * DOLLARS;
@@ -945,7 +945,7 @@ impl pallet_genesis_bank::Config for Runtime {
 
 parameter_types! {
 	pub const PER: Balance = 7;
-	pub const InterestPeriodLength: BlockNumber = 1000;
+	pub const InterestPeriodLength: BlockNumber = 10000;
 	pub const CmlAMiningMachineCost: Balance = 0;
 	pub const CmlBMiningMachineCost: Balance = 0;
 	pub const CmlCMiningMachineCost: Balance = 0;
@@ -980,8 +980,8 @@ parameter_types! {
 	pub const TAppTickerMinLength: u32 = 3;
 	pub const TAppTickerMaxLength: u32 = 6;
 	pub const PoolBalanceReversePrecision: Balance = 10;
-	pub const HostArrangeDuration: BlockNumber = 1000;
-	pub const HostCostCollectionDuration: BlockNumber = 100;
+	pub const HostArrangeDuration: BlockNumber = 10000;
+	pub const HostCostCollectionDuration: BlockNumber = 1000;
 	pub const ConsumeNoteMaxLength: u32 = 140;
 	pub const CidMaxLength: u32 = 100;
 	pub const TotalSupplyMaxValue: Balance = 1000000000000000000000000;
@@ -1022,9 +1022,9 @@ impl pallet_bonding_curve::Config for Runtime {
 }
 
 #[cfg(feature = "fast")]
-const AUCTION_WINDOW_BLOCK: BlockNumber = 100;
-#[cfg(not(feature = "fast"))]
 const AUCTION_WINDOW_BLOCK: BlockNumber = 1000;
+#[cfg(not(feature = "fast"))]
+const AUCTION_WINDOW_BLOCK: BlockNumber = 10000;
 
 parameter_types! {
 	/// Every AuctionDealWindowBLock blocks, the auction window closed. the highest bidder is winner.

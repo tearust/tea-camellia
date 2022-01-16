@@ -191,7 +191,9 @@ impl<T: tea::Config> tea::Pallet<T> {
 		ReportEvidences::<T>::remove_all(None);
 		TipsEvidences::<T>::remove_all(None);
 
-		Self::deposit_event(Event::ReportEvidencesStatements(statements));
+		if !statements.is_empty() {
+			Self::deposit_event(Event::ReportEvidencesStatements(statements));
+		}
 	}
 
 	fn cml_reward_by_performance(

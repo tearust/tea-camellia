@@ -47,7 +47,10 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 			.filter(|id| id.is_some())
 			.map(|id| id.unwrap())
 			.collect();
-		Self::deposit_event(Event::BurnedCmlList(expired_cmls));
+
+		if !expired_ids.is_empty() {
+			Self::deposit_event(Event::BurnedCmlList(expired_cmls));
+		}
 
 		expired_ids
 	}

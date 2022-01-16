@@ -64,7 +64,9 @@ impl<T: cml::Config> cml::Pallet<T> {
 			}
 		}
 
-		Self::deposit_event(Event::RewardStatements(reward_statements));
+		if !reward_statements.is_empty() {
+			Self::deposit_event(Event::RewardStatements(reward_statements));
+		}
 	}
 
 	pub(crate) fn service_task_point_total() -> ServiceTaskPoint {
