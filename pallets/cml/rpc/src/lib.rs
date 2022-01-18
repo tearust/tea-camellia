@@ -33,6 +33,13 @@ pub trait CmlApi<BlockHash, AccountId> {
 
 	#[rpc(name = "cml_estimateStopMiningPenalty")]
 	fn estimate_stop_mining_penalty(&self, cml_id: u64, at: Option<BlockHash>) -> Result<Price>;
+
+	#[rpc(name = "cml_listCmlInfo")]
+	fn list_cmls_info(
+		&self,
+		exclude_account: Option<AccountId>,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(AccountId, Vec<(u64, String, String)>)>>;
 }
 
 pub struct CmlApiImpl<C, M> {
@@ -141,5 +148,35 @@ where
 			.estimate_stop_mining_penalty(&at, cml_id)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(Price(result))
+	}
+
+	fn list_cmls_info(
+		&self,
+		exclude_account: Option<AccountId>,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<(AccountId, Vec<(u64, String, String)>)>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result: Vec<(AccountId, Vec<(u64, Vec<u8>, Vec<u8>)>)> = api
+			.list_cmls_info(&at, exclude_account)
+			.map_err(runtime_error_into_rpc_err)?;
+
+		let mut rtn = Vec::new();
+		for (acc, values) in result {
+			let mut array = Vec::new();
+
+			for (id, cml_type, status) in values {
+				array.push((
+					id,
+					String::from_utf8(cml_type).map_err(runtime_error_into_rpc_err)?,
+					String::from_utf8(status).map_err(runtime_error_into_rpc_err)?,
+				));
+			}
+			rtn.push((acc, array));
+		}
+		Ok(rtn)
 	}
 }

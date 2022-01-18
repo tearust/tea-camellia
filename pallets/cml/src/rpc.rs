@@ -87,6 +87,50 @@ impl<T: cml::Config> cml::Pallet<T> {
 		}
 		result
 	}
+
+	/// Returned item fields:
+	/// - CML Id
+	/// - Cml Type
+	/// - Mining Status
+	pub fn list_cmls_info(
+		exclude_account: Option<T::AccountId>,
+	) -> Vec<(T::AccountId, Vec<(u64, Vec<u8>, Vec<u8>)>)> {
+		let mut account_maps: BTreeMap<T::AccountId, Vec<(u64, Vec<u8>, Vec<u8>)>> =
+			BTreeMap::new();
+		for (_, cml) in CmlStore::<T>::iter() {
+			if let Some(owner) = cml.owner() {
+				if let Some(exclude_account) = exclude_account.as_ref() {
+					if owner.eq(exclude_account) {
+						continue;
+					}
+				}
+
+				let values = {
+					let cml_type = match cml.cml_type() {
+						CmlType::A => "A",
+						CmlType::B => "B",
+						CmlType::C => "C",
+					};
+					let status = match cml.status() {
+						CmlStatus::Tree | CmlStatus::Staking(_, _) => "Tree",
+						CmlStatus::FreshSeed(_) | CmlStatus::FrozenSeed => "Seed",
+					};
+					(
+						cml.id(),
+						cml_type.as_bytes().to_vec(),
+						status.as_bytes().to_vec(),
+					)
+				};
+				if let Some(array) = account_maps.get_mut(owner) {
+					array.push(values);
+				} else {
+					account_maps.insert(owner.clone(), vec![values]);
+				}
+			}
+		}
+
+		account_maps.into_iter().map(|(k, v)| (k, v)).collect()
+	}
 }
 
 #[cfg(test)]

@@ -149,7 +149,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 112,
+	spec_version: 113,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -1320,6 +1320,10 @@ impl_runtime_apis! {
 
 		fn estimate_stop_mining_penalty(cml_id: u64) -> Balance {
 			Cml::estimate_stop_mining_penalty(cml_id)
+		}
+
+		fn list_cmls_info(exclude_account: Option<AccountId>) -> Vec<(AccountId, Vec<(u64, Vec<u8>, Vec<u8>)>)> {
+			Cml::list_cmls_info(exclude_account)
 		}
 	}
 

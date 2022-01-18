@@ -22,5 +22,7 @@ sp_api::decl_runtime_apis! {
 		fn staking_price_table() -> Vec<Balance>;
 
 		fn estimate_stop_mining_penalty(cml_id: u64) -> Balance;
+
+		fn list_cmls_info(exclude_account: Option<AccountId>) -> Vec<(AccountId, Vec<(u64, Vec<u8>, Vec<u8>)>)>;
 	}
 }
