@@ -63,6 +63,7 @@ pub mod constants;
 mod weights;
 use constants::{currency::*, time::*};
 
+pub use frame_system;
 pub use pallet_auction;
 pub use pallet_balances;
 pub use pallet_bonding_curve;
