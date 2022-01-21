@@ -553,6 +553,12 @@ pub mod bonding_curve {
 		NoUserNotificationToRead,
 		/// Withdraw tsid already exist
 		WithdrawTsidAlreadyExist,
+		/// Only NPC account can use batch transfer
+		OnlyNpcCanBatchTransfer,
+		/// NPC has not enough free balance to do batch transfer
+		BatchTransferInsufficientBalance,
+		/// Only NPC allowed to mint
+		OnlyNpcCanMint,
 	}
 
 	#[pallet::hooks]
@@ -1436,6 +1442,59 @@ pub mod bonding_curve {
 						}
 					});
 					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn npc_mint(sender: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(who.eq(&NPCAccount::<T>::get()), Error::<T>::OnlyNpcCanMint);
+					Ok(())
+				},
+				|who| {
+					T::CurrencyOperations::deposit_creating(who, amount);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn batch_transfer(
+			sender: OriginFor<T>,
+			accounts: Vec<T::AccountId>,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						who.eq(&NPCAccount::<T>::get()),
+						Error::<T>::OnlyNpcCanBatchTransfer
+					);
+					ensure!(
+						T::CurrencyOperations::free_balance(who)
+							> amount.saturating_mul((accounts.len() as u32).into()),
+						Error::<T>::BatchTransferInsufficientBalance
+					);
+					Ok(())
+				},
+				|who| {
+					accounts.iter().for_each(|acc| {
+						if let Err(e) = T::CurrencyOperations::transfer(
+							who,
+							acc,
+							amount,
+							ExistenceRequirement::AllowDeath,
+						) {
+							log::warn!("transfer to {:?} failed: {:?}", acc, e);
+						}
+					});
 				},
 			)
 		}

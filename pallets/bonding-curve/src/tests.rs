@@ -3136,6 +3136,124 @@ fn read_notification_should_failed_if_no_read_matched() {
 	})
 }
 
+#[test]
+fn npc_mint_works() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&NPCAccount::<Test>::get()),
+			0
+		);
+
+		let amount = 1000;
+		assert_ok!(BondingCurve::npc_mint(
+			Origin::signed(NPCAccount::<Test>::get()),
+			amount
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&NPCAccount::<Test>::get()),
+			amount
+		);
+
+		let amount2 = 2000;
+		assert_ok!(BondingCurve::npc_mint(
+			Origin::signed(NPCAccount::<Test>::get()),
+			amount2
+		));
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&NPCAccount::<Test>::get()),
+			amount + amount2
+		);
+	})
+}
+
+#[test]
+fn npc_mint_should_fail_if_not_npc() {
+	new_test_ext().execute_with(|| {
+		let amount = 1000;
+		assert_ok!(BondingCurve::npc_mint(
+			Origin::signed(NPCAccount::<Test>::get()),
+			amount
+		));
+	})
+}
+
+#[test]
+fn batch_transfer_works() {
+	new_test_ext().execute_with(|| {
+		let total_amount = 1000;
+		assert_ok!(BondingCurve::npc_mint(
+			Origin::signed(NPCAccount::<Test>::get()),
+			total_amount
+		));
+
+		let user1 = 1;
+		let user2 = 2;
+		let user3 = 3;
+		assert_ok!(BondingCurve::batch_transfer(
+			Origin::signed(NPCAccount::<Test>::get()),
+			vec![user1, user2, user3],
+			10,
+		));
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&NPCAccount::<Test>::get()),
+			total_amount - 10 * 3
+		);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user1), 10);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user2), 10);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user3), 10);
+
+		assert_ok!(BondingCurve::batch_transfer(
+			Origin::signed(NPCAccount::<Test>::get()),
+			vec![user1, user2],
+			100,
+		));
+
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&NPCAccount::<Test>::get()),
+			total_amount - 10 * 3 - 100 * 2
+		);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user1), 10 + 100);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user2), 10 + 100);
+		assert_eq!(<Test as Config>::Currency::free_balance(&user3), 10);
+	})
+}
+
+#[test]
+fn batch_transfer_should_fail_if_not_npc_account() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(BondingCurve::npc_mint(
+			Origin::signed(NPCAccount::<Test>::get()),
+			10
+		));
+
+		let user1 = 1;
+		let user2 = 2;
+		let user3 = 3;
+		assert_noop!(
+			BondingCurve::batch_transfer(
+				Origin::signed(NPCAccount::<Test>::get()),
+				vec![user1, user2, user3],
+				10,
+			),
+			Error::<Test>::BatchTransferInsufficientBalance
+		);
+	})
+}
+
+#[test]
+fn batch_transfer_should_not_enough_free_balance() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+		let user3 = 3;
+		assert_noop!(
+			BondingCurve::batch_transfer(Origin::signed(111), vec![user1, user2, user3], 10,),
+			Error::<Test>::OnlyNpcCanBatchTransfer
+		);
+	})
+}
+
 pub fn create_default_tapp(tapp_owner: u64) -> DispatchResult {
 	let npc = NPCAccount::<Test>::get();
 	let link = b"https://teaproject.org".to_vec();
