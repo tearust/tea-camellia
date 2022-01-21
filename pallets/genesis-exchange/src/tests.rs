@@ -789,12 +789,13 @@ fn repay_usd_debts_should_fail_if_usd_amount_less_than_repay_amount() {
 fn register_for_competition_works() {
 	new_test_ext().execute_with(|| {
 		let user2 = 2;
+		<Test as Config>::Currency::make_free_balance_be(&user2, 1000);
 
 		let erc20 = b"test erc20".to_vec();
 		let email = b"test email".to_vec();
 		assert_ok!(GenesisExchange::register_for_competition(
 			Origin::signed(user2),
-			3,
+			user2,
 			erc20.clone(),
 			email.clone(),
 		));
@@ -804,43 +805,23 @@ fn register_for_competition_works() {
 	})
 }
 
-// #[test]
-// fn register_for_competition_should_fail_if_user_is_not_npc_accout() {
-// 	new_test_ext().execute_with(|| {
-// 		let user = 1;
-// 		let user2 = 2;
-
-// 		let erc20 = b"test erc20".to_vec();
-// 		let email = b"test email".to_vec();
-// 		assert_noop!(
-// 			GenesisExchange::register_for_competition(
-// 				Origin::signed(user),
-// 				user2,
-// 				erc20.clone(),
-// 				email.clone(),
-// 			),
-// 			Error::<Test>::OnlyAllowedNpcAccountToRegister
-// 		);
-// 		assert!(!CompetitionUsers::<Test>::contains_key(user2));
-// 	})
-// }
-
 #[test]
 fn register_for_competition_should_fail_if_already_registered() {
 	new_test_ext().execute_with(|| {
-		let user2 = 2;
+		let user = 2;
+		<Test as Config>::Currency::make_free_balance_be(&user, 1000);
 
 		assert_ok!(GenesisExchange::register_for_competition(
-			Origin::signed(NPC_ACCOUNT),
-			user2,
+			Origin::signed(user),
+			user,
 			b"test erc20".to_vec(),
 			b"test email".to_vec(),
 		));
 
 		assert_noop!(
 			GenesisExchange::register_for_competition(
-				Origin::signed(NPC_ACCOUNT),
-				user2,
+				Origin::signed(user),
+				user,
 				b"test erc20".to_vec(),
 				b"test email".to_vec(),
 			),
@@ -850,15 +831,46 @@ fn register_for_competition_should_fail_if_already_registered() {
 }
 
 #[test]
+fn register_for_competition_should_fail_if_user_free_balance_is_not_enough() {
+	new_test_ext().execute_with(|| {
+		let user = 2;
+		assert_noop!(
+			GenesisExchange::register_for_competition(
+				Origin::signed(user),
+				user,
+				b"test erc20".to_vec(),
+				b"test email".to_vec(),
+			),
+			Error::<Test>::CompetitionUserInsufficientFreeBalance
+		);
+
+		<Test as Config>::Currency::make_free_balance_be(
+			&user,
+			REGISTER_FOR_COMPETITION_ALLOWANCE - 1,
+		);
+		assert_noop!(
+			GenesisExchange::register_for_competition(
+				Origin::signed(user),
+				user,
+				b"test erc20".to_vec(),
+				b"test email".to_vec(),
+			),
+			Error::<Test>::CompetitionUserInsufficientFreeBalance
+		);
+	})
+}
+
+#[test]
 fn remove_competition_user_works() {
 	new_test_ext().execute_with(|| {
 		let user2 = 2;
+		<Test as Config>::Currency::make_free_balance_be(&user2, 1000);
 
 		let erc20 = b"test erc20".to_vec();
 		let email = b"test email".to_vec();
 		assert_ok!(GenesisExchange::register_for_competition(
 			Origin::signed(user2),
-			3,
+			user2,
 			erc20.clone(),
 			email.clone(),
 		));
@@ -866,7 +878,10 @@ fn remove_competition_user_works() {
 		assert!(CompetitionUsers::<Test>::contains_key(user2));
 		assert_eq!(CompetitionUsers::<Test>::get(user2), (erc20, email));
 
-		assert_ok!(GenesisExchange::remove_competition_user(Origin::root(), user2));
+		assert_ok!(GenesisExchange::remove_competition_user(
+			Origin::root(),
+			user2
+		));
 		assert!(!CompetitionUsers::<Test>::contains_key(user2));
 	})
 }
@@ -874,13 +889,19 @@ fn remove_competition_user_works() {
 #[test]
 fn remove_competition_user_should_fail_if_not_root_user() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(GenesisExchange::remove_competition_user(Origin::signed(2), 1), DispatchError::BadOrigin);
+		assert_noop!(
+			GenesisExchange::remove_competition_user(Origin::signed(2), 1),
+			DispatchError::BadOrigin
+		);
 	})
 }
 
 #[test]
 fn remove_competition_user_should_fail_if_user_not_exist() {
 	new_test_ext().execute_with(|| {
-		assert_noop!(GenesisExchange::remove_competition_user(Origin::root(), 1), Error::<Test>::CompetitionUserNotExist);
+		assert_noop!(
+			GenesisExchange::remove_competition_user(Origin::root(), 1),
+			Error::<Test>::CompetitionUserNotExist
+		);
 	})
 }

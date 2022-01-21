@@ -273,6 +273,7 @@ pub const CML_B_REDEEM_COUPON_COST: Balance = 1000;
 pub const CML_C_REDEEM_COUPON_COST: Balance = 500;
 pub const BORROW_ALLOWANCE: Balance = 20000;
 pub const BORROW_DEBT_RATIO_CAP: Balance = 20000;
+pub const REGISTER_FOR_COMPETITION_ALLOWANCE: Balance = 10;
 
 parameter_types! {
 	pub const PER: Balance = PER_RATE;
@@ -284,6 +285,7 @@ parameter_types! {
 	pub const CmlBRedeemCouponCost: Balance = CML_B_REDEEM_COUPON_COST;
 	pub const CmlCRedeemCouponCost: Balance = CML_C_REDEEM_COUPON_COST;
 	pub const BorrowAllowance: Balance = BORROW_ALLOWANCE;
+	pub const RegisterForCompetitionAllowance: Balance = REGISTER_FOR_COMPETITION_ALLOWANCE;
 }
 
 impl pallet_genesis_exchange::Config for Test {
@@ -302,6 +304,7 @@ impl pallet_genesis_exchange::Config for Test {
 	type CmlBRedeemCouponCost = CmlBRedeemCouponCost;
 	type CmlCRedeemCouponCost = CmlCRedeemCouponCost;
 	type BorrowAllowance = BorrowAllowance;
+	type RegisterForCompetitionAllowance = RegisterForCompetitionAllowance;
 }
 
 parameter_types! {

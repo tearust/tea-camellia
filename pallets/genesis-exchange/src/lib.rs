@@ -95,6 +95,9 @@ pub mod genesis_exchange {
 
 		#[pallet::constant]
 		type BorrowAllowance: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type RegisterForCompetitionAllowance: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -145,7 +148,7 @@ pub mod genesis_exchange {
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_mainnet_coupons)]
-	pub type UserMainnetCoupons<T: Config> = 
+	pub type UserMainnetCoupons<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::genesis_config]
@@ -276,6 +279,8 @@ pub mod genesis_exchange {
 		ForbitBorrowUSD,
 		/// The competition user not exist
 		CompetitionUserNotExist,
+		/// To register for competition user free balance should larger than given amount (current is 10Tea).
+		CompetitionUserInsufficientFreeBalance,
 	}
 
 	#[pallet::hooks]
@@ -335,7 +340,10 @@ pub mod genesis_exchange {
 			extrinsic_procedure(
 				&root,
 				|_| {
-					ensure!(CompetitionUsers::<T>::contains_key(&user), Error::<T>::CompetitionUserNotExist);
+					ensure!(
+						CompetitionUsers::<T>::contains_key(&user),
+						Error::<T>::CompetitionUserNotExist
+					);
 					Ok(())
 				},
 				|_| {
@@ -345,14 +353,16 @@ pub mod genesis_exchange {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn set_mainnet_coupon(sender: OriginFor<T>, user: T::AccountId, coupon: BalanceOf<T>) -> DispatchResult {
+		pub fn set_mainnet_coupon(
+			sender: OriginFor<T>,
+			user: T::AccountId,
+			coupon: BalanceOf<T>,
+		) -> DispatchResult {
 			let root = ensure_root(sender)?;
 
 			extrinsic_procedure(
 				&root,
-				|_| {
-					Ok(())
-				},
+				|_| Ok(()),
 				|_| {
 					UserMainnetCoupons::<T>::mutate(user, |amount| *amount = coupon);
 				},
@@ -583,10 +593,11 @@ pub mod genesis_exchange {
 						!CompetitionUsers::<T>::contains_key(who),
 						Error::<T>::CompetitionUserAlreadyRegistered
 					);
-					// ensure!(
-					// 	who.eq(&NPCAccount::<T>::get()),
-					// 	Error::<T>::OnlyAllowedNpcAccountToRegister
-					// );
+					ensure!(
+						T::CurrencyOperations::free_balance(who)
+							>= T::RegisterForCompetitionAllowance::get(),
+						Error::<T>::CompetitionUserInsufficientFreeBalance
+					);
 					Ok(())
 				},
 				|who| {
