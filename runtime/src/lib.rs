@@ -1516,6 +1516,13 @@ impl_runtime_apis! {
 			BondingCurve::tapp_hosted_cmls(tapp_id)
 		}
 
+		fn tapp_staking_details(
+			tapp_id: u64,
+			only_investing: bool,
+		) -> Vec<(AccountId, Balance)> {
+			BondingCurve::tapp_staking_details(tapp_id, only_investing)
+		}
+
 		fn list_cml_hosting_tapps(cml_id: u64) -> Vec<(
 			u64,
 			Option<u32>,

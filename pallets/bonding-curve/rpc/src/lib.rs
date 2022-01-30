@@ -183,6 +183,14 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 		)>,
 	>;
 
+	#[rpc(name = "bonding_tappHostedCmls")]
+	fn tapp_staking_details(
+		&self,
+		tapp_id: u64,
+		only_investing: bool,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(AccountId, Price)>>;
+
 	/// Returned item fields:
 	/// - CML Id
 	/// - CML remaining performance
@@ -601,6 +609,26 @@ where
 			.tapp_hosted_cmls(&at, tapp_id)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
+	}
+
+	fn tapp_staking_details(
+		&self,
+		tapp_id: u64,
+		only_investing: bool,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<(AccountId, Price)>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.tapp_staking_details(&at, tapp_id, only_investing)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result
+			.into_iter()
+			.map(|(acc, amount)| (acc, Price(amount)))
+			.collect())
 	}
 
 	fn list_cml_hosting_tapps(

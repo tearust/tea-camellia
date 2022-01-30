@@ -281,6 +281,47 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			.collect()
 	}
 
+	/// `only_investing` if true will return only investing list, otherwise it will return
+	/// 	investing and hosting reserved amount list
+	/// Returned item fields:
+	/// - Account
+	/// - Staking amount
+	pub fn tapp_staking_details(
+		tapp_id: TAppId,
+		only_investing: bool,
+	) -> Vec<(T::AccountId, BalanceOf<T>)> {
+		let mut details_list = BTreeMap::new();
+		for (acc, id, amount) in AccountTable::<T>::iter() {
+			if tapp_id != id {
+				continue;
+			}
+
+			details_list.insert(acc, amount);
+		}
+
+		if !only_investing {
+			TAppReservedBalance::<T>::iter_prefix(tapp_id).for_each(|(acc, list)| {
+				let mut amount_sum: BalanceOf<T> = Zero::zero();
+				list.into_iter()
+					.for_each(|(amount, _)| amount_sum = amount_sum.saturating_add(amount));
+
+				if amount_sum.is_zero() {
+					return;
+				}
+				match details_list.get_mut(&acc) {
+					Some(amount) => {
+						*amount = amount.saturating_add(amount_sum);
+					}
+					None => {
+						details_list.insert(acc, amount_sum);
+					}
+				}
+			});
+		}
+
+		details_list.into_iter().collect()
+	}
+
 	/// Returned item fields:
 	/// - CML Id
 	/// - Owner account

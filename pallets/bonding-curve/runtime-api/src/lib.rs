@@ -110,6 +110,11 @@ sp_api::decl_runtime_apis! {
 			Option<u32>,
 			u32)>;
 
+		fn tapp_staking_details(
+			tapp_id: u64,
+			only_investing: bool,
+		) -> Vec<(AccountId, Balance)>;
+
 		fn list_cml_hosting_tapps(cml_id: u64) -> Vec<(
 			u64,
 			Option<u32>,
