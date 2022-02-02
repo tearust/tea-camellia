@@ -183,7 +183,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 		)>,
 	>;
 
-	#[rpc(name = "bonding_tappHostedCmls")]
+	#[rpc(name = "bonding_tappStakingDetails")]
 	fn tapp_staking_details(
 		&self,
 		tapp_id: u64,
