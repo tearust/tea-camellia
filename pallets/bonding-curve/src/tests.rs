@@ -2933,23 +2933,80 @@ fn withdraw_should_fail_if_insufficient_free_balance() {
 #[test]
 fn push_notifications_works() {
 	new_test_ext().execute_with(|| {
+		let current_height = 10;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
 		NotificationAccount::<Test>::set(notification_account);
 
+		let tapp_id = 1;
 		let expired_height1 = 50;
 		let expired_height2 = 80;
 		assert_ok!(BondingCurve::push_notifications(
 			Origin::signed(notification_account),
 			vec![user1, user2],
-			vec![expired_height1, expired_height2]
+			vec![expired_height1, expired_height2],
+			tapp_id,
+			b"test tsid".to_vec(),
 		));
 
 		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
+		assert_eq!(
+			UserNotifications::<Test>::get(user1)[0].expired_height,
+			expired_height1
+		);
+		assert_eq!(
+			UserNotifications::<Test>::get(user1)[0].start_height,
+			current_height
+		);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0].tapp_id, tapp_id);
+		assert_eq!(UserNotifications::<Test>::get(user1)[0].has_paid, false);
+
 		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
+		assert_eq!(
+			UserNotifications::<Test>::get(user2)[0].expired_height,
+			expired_height2
+		);
+		assert_eq!(
+			UserNotifications::<Test>::get(user2)[0].start_height,
+			current_height
+		);
+		assert_eq!(UserNotifications::<Test>::get(user2)[0].tapp_id, tapp_id);
+		assert_eq!(UserNotifications::<Test>::get(user2)[0].has_paid, false);
+	})
+}
+
+#[test]
+fn push_notifications_should_fail_if_tsid_exists() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		let tapp_id = 1;
+		let expired_height1 = 50;
+		let expired_height2 = 80;
+		assert_ok!(BondingCurve::push_notifications(
+			Origin::signed(notification_account),
+			vec![user1, user2],
+			vec![expired_height1, expired_height2],
+			tapp_id,
+			b"test tsid".to_vec(),
+		));
+
+		assert_noop!(
+			BondingCurve::push_notifications(
+				Origin::signed(notification_account),
+				vec![user1, user2],
+				vec![expired_height1, expired_height2],
+				tapp_id,
+				b"test tsid".to_vec(),
+			),
+			Error::<Test>::NotificationTsidAlreadyExist
+		);
 	})
 }
 
@@ -2961,7 +3018,7 @@ fn push_notifications_should_fail_if_committer_not_notification_account() {
 		NotificationAccount::<Test>::set(notification_account);
 
 		assert_noop!(
-			BondingCurve::push_notifications(Origin::signed(user1), vec![], vec![]),
+			BondingCurve::push_notifications(Origin::signed(user1), vec![], vec![], 1, vec![]),
 			Error::<Test>::NotAllowedPushNotification
 		);
 	})
@@ -2979,7 +3036,9 @@ fn push_notifications_should_fail_if_notification_and_account_list_not_matched()
 			BondingCurve::push_notifications(
 				Origin::signed(notification_account),
 				vec![user1, user2],
-				vec![11]
+				vec![11],
+				1,
+				vec![]
 			),
 			Error::<Test>::NotificationAndAccountListNotMatched
 		);
@@ -2993,146 +3052,144 @@ fn push_notifications_should_fail_if_account_list_is_empty() {
 		NotificationAccount::<Test>::set(notification_account);
 
 		assert_noop!(
-			BondingCurve::push_notifications(Origin::signed(notification_account), vec![], vec![]),
+			BondingCurve::push_notifications(
+				Origin::signed(notification_account),
+				vec![],
+				vec![],
+				1,
+				vec![]
+			),
 			Error::<Test>::NotificationListIsEmpty
 		);
 	})
 }
 
 #[test]
-fn read_notification_works() {
+fn clear_notifications_works() {
 	new_test_ext().execute_with(|| {
+		let current_height = 10;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
 		NotificationAccount::<Test>::set(notification_account);
 
+		let tapp_id = 1;
 		let expired_height1 = 50;
 		let expired_height2 = 80;
 		assert_ok!(BondingCurve::push_notifications(
 			Origin::signed(notification_account),
 			vec![user1, user2],
-			vec![expired_height1, expired_height2]
+			vec![expired_height1, expired_height2],
+			tapp_id,
+			b"test tsid".to_vec(),
 		));
-
-		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
-		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
-
-		assert_ok!(BondingCurve::read_notification(
-			Origin::signed(notification_account),
-			user1,
-			expired_height1,
-		));
-
-		assert_eq!(UserNotifications::<Test>::get(user1).len(), 0);
-		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
-	})
-}
-
-#[test]
-fn read_notification_works_if_has_multi_notifications_with_same_height() {
-	new_test_ext().execute_with(|| {
-		let user1 = 1;
-		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
-
-		let expired_height1 = 50;
-		let expired_height2 = 80;
 		assert_ok!(BondingCurve::push_notifications(
 			Origin::signed(notification_account),
-			vec![user1, user1, user1],
-			vec![expired_height1, expired_height1, expired_height2]
-		));
-
-		assert_eq!(UserNotifications::<Test>::get(user1).len(), 3);
-		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
-		assert_eq!(UserNotifications::<Test>::get(user1)[1], expired_height1);
-		assert_eq!(UserNotifications::<Test>::get(user1)[2], expired_height2);
-
-		assert_ok!(BondingCurve::read_notification(
-			Origin::signed(notification_account),
-			user1,
-			expired_height1,
+			vec![user1, user2],
+			vec![expired_height1, expired_height2],
+			2,
+			b"test tsid2".to_vec(),
 		));
 		assert_eq!(UserNotifications::<Test>::get(user1).len(), 2);
-		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
-		assert_eq!(UserNotifications::<Test>::get(user1)[1], expired_height2);
+		assert_eq!(UserNotifications::<Test>::get(user2).len(), 2);
 
-		assert_ok!(BondingCurve::read_notification(
-			Origin::signed(notification_account),
-			user1,
-			expired_height2,
+		let tapp1_pay_account = 5;
+		let initial_balance = 100000000;
+		<Test as Config>::Currency::make_free_balance_be(&tapp1_pay_account, initial_balance);
+
+		let current_height2 = 60;
+		frame_system::Pallet::<Test>::set_block_number(current_height2);
+
+		assert_ok!(BondingCurve::clear_notifications(
+			Origin::signed(tapp1_pay_account),
+			tapp_id,
+			b"test tsid3".to_vec(),
 		));
-		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
-	})
-}
-
-#[test]
-fn read_notification_should_fail_if_committer_not_notification_account() {
-	new_test_ext().execute_with(|| {
-		let user1 = 1;
-		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
-
-		assert_noop!(
-			BondingCurve::read_notification(Origin::signed(user1), user1, 11,),
-			Error::<Test>::NotAllowedPushNotification
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&tapp1_pay_account),
+			initial_balance - NOTIFICATION_FEE_PER_ITEM * 2
 		);
+		assert_eq!(UserNotifications::<Test>::get(user1).len(), 0);
+		assert_eq!(UserNotifications::<Test>::get(user2).len(), 2);
+		assert!(UserNotifications::<Test>::get(user2)[0].has_paid);
+		assert!(!UserNotifications::<Test>::get(user2)[1].has_paid);
 	})
 }
 
 #[test]
-fn read_notification_should_fail_if_not_found_notification() {
+fn clear_notifications_should_fail_if_free_balance_not_enough() {
 	new_test_ext().execute_with(|| {
-		let user1 = 1;
-		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		let current_height = 10;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
 
-		assert_noop!(
-			BondingCurve::read_notification(Origin::signed(notification_account), user1, 11,),
-			Error::<Test>::NotFoundNotificationUser
-		);
-	})
-}
-
-#[test]
-fn read_notification_should_failed_if_no_read_matched() {
-	new_test_ext().execute_with(|| {
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
 		NotificationAccount::<Test>::set(notification_account);
 
+		let tapp_id = 1;
 		let expired_height1 = 50;
 		let expired_height2 = 80;
 		assert_ok!(BondingCurve::push_notifications(
 			Origin::signed(notification_account),
 			vec![user1, user2],
-			vec![expired_height1, expired_height2]
+			vec![expired_height1, expired_height2],
+			tapp_id,
+			b"test tsid".to_vec(),
 		));
 
-		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
-		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
-
+		let tapp1_pay_account = 5;
 		assert_noop!(
-			BondingCurve::read_notification(
-				Origin::signed(notification_account),
-				user1,
-				expired_height2,
+			BondingCurve::clear_notifications(
+				Origin::signed(tapp1_pay_account),
+				tapp_id,
+				b"test tsid".to_vec(),
 			),
-			Error::<Test>::NoUserNotificationToRead
+			Error::<Test>::InsufficientFreeBalance
 		);
+	})
+}
 
-		assert_eq!(UserNotifications::<Test>::get(user1).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user1)[0], expired_height1);
-		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
-		assert_eq!(UserNotifications::<Test>::get(user2)[0], expired_height2);
+#[test]
+fn clear_notifications_should_fail_if_tsid_exists() {
+	new_test_ext().execute_with(|| {
+		let current_height = 10;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		let user1 = 1;
+		let user2 = 2;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		let tapp_id = 1;
+		let expired_height1 = 50;
+		let expired_height2 = 80;
+		assert_ok!(BondingCurve::push_notifications(
+			Origin::signed(notification_account),
+			vec![user1, user2],
+			vec![expired_height1, expired_height2],
+			tapp_id,
+			b"test tsid".to_vec(),
+		));
+
+		let tapp1_pay_account = 5;
+		<Test as Config>::Currency::make_free_balance_be(&tapp1_pay_account, 100000);
+
+		assert_ok!(BondingCurve::clear_notifications(
+			Origin::signed(tapp1_pay_account),
+			tapp_id,
+			b"test tsid".to_vec(),
+		));
+		assert_noop!(
+			BondingCurve::clear_notifications(
+				Origin::signed(tapp1_pay_account),
+				tapp_id,
+				b"test tsid".to_vec(),
+			),
+			Error::<Test>::NotificationTsidAlreadyExist
+		);
 	})
 }
 

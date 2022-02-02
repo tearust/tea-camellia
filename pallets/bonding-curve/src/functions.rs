@@ -198,21 +198,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			== T::HostCostCollectionDuration::get() - 4u32.into()
 	}
 
-	pub(crate) fn need_arrange_notifications(height: T::BlockNumber) -> bool {
-		// offset with `InterestPeriodLength` - 5 to void overlapping with staking period
-		height % T::NotificationsArrangeDuration::get()
-			== T::NotificationsArrangeDuration::get() - 5u32.into()
-	}
-
-	pub(crate) fn arrange_notificatioins() {
-		let current_height = frame_system::Pallet::<T>::block_number();
-		UserNotifications::<T>::iter_keys().for_each(|user_id| {
-			UserNotifications::<T>::mutate(&user_id, |notifications| {
-				notifications.retain(|height| *height > current_height);
-			});
-		});
-	}
-
 	pub fn next_id() -> TAppId {
 		LastTAppId::<T>::mutate(|id| {
 			if *id < u64::MAX {
@@ -1865,28 +1850,6 @@ mod tests {
 			assert_eq!(TAppHostPledge::<Test>::get(3, cml_id), HOST_PLEDGE_AMOUNT);
 
 			assert!(!BondingCurve::can_append_pledge(cml_id));
-		})
-	}
-
-	#[test]
-	fn arrange_notificatioins_works() {
-		new_test_ext().execute_with(|| {
-			for user in 1..=10 {
-				let mut notifications = Vec::new();
-				for height in 50..60 {
-					notifications.push(height);
-				}
-				UserNotifications::<Test>::insert(user, notifications);
-
-				assert_eq!(UserNotifications::<Test>::get(user).len(), 10);
-			}
-
-			frame_system::Pallet::<Test>::set_block_number(55);
-			BondingCurve::arrange_notificatioins();
-
-			for user in 1..=10 {
-				assert_eq!(UserNotifications::<Test>::get(user).len(), 4);
-			}
 		})
 	}
 

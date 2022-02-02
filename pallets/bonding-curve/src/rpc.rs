@@ -465,12 +465,28 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			.collect()
 	}
 
-	pub fn user_notification_count(account: T::AccountId) -> u32 {
+	pub fn user_notification_count(
+		account: T::AccountId,
+		desired_start_height: T::BlockNumber,
+	) -> u32 {
 		let current_height = frame_system::Pallet::<T>::block_number();
 		UserNotifications::<T>::get(account)
 			.iter()
-			.filter(|expired_height| **expired_height >= current_height)
+			.filter(|item| {
+				current_height <= item.expired_height && desired_start_height >= item.start_height
+			})
 			.count() as u32
+	}
+
+	pub fn tapp_notifications_fee(tapp_id: TAppId) -> BalanceOf<T> {
+		let mut count = 0u32;
+		UserNotifications::<T>::iter().for_each(|(_, item_list)| {
+			count += item_list
+				.iter()
+				.filter(|item| !item.has_paid && item.tapp_id == tapp_id)
+				.count() as u32;
+		});
+		T::NotificationFeePerItem::get().saturating_mul(count.into())
 	}
 }
 

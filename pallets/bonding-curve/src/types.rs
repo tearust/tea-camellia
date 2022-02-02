@@ -116,3 +116,25 @@ where
 		}
 	}
 }
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
+pub struct NotificationItem<BlockNumber> {
+	pub tapp_id: TAppId,
+	pub start_height: BlockNumber,
+	pub expired_height: BlockNumber,
+	pub has_paid: bool,
+}
+
+impl<BlockNumber> Default for NotificationItem<BlockNumber>
+where
+	BlockNumber: Default,
+{
+	fn default() -> Self {
+		Self {
+			tapp_id: Default::default(),
+			start_height: Default::default(),
+			expired_height: Default::default(),
+			has_paid: Default::default(),
+		}
+	}
+}

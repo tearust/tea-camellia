@@ -125,10 +125,10 @@ pub mod bonding_curve {
 		type ReservedLinkRentAmount: Get<BalanceOf<Self>>;
 
 		#[pallet::constant]
-		type NotificationsArrangeDuration: Get<Self::BlockNumber>;
+		type ReservedTAppIdCount: Get<u64>;
 
 		#[pallet::constant]
-		type ReservedTAppIdCount: Get<u64>;
+		type NotificationFeePerItem: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -240,13 +240,27 @@ pub mod bonding_curve {
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_notifications)]
-	pub(crate) type UserNotifications<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, Vec<T::BlockNumber>, ValueQuery>;
+	pub(crate) type UserNotifications<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		Vec<NotificationItem<T::BlockNumber>>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	pub(crate) type NotificationKey<T: Config> =
+		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
+
+	#[pallet::storage]
+	pub(crate) type ClearNotificationKey<T: Config> =
+		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn withdraw_storage)]
 	pub(crate) type WithdrawStorage<T: Config> =
 		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
@@ -566,6 +580,8 @@ pub mod bonding_curve {
 		BatchTransferInsufficientBalance,
 		/// Only NPC allowed to mint
 		OnlyNpcCanMint,
+		/// Notification tsid already exist
+		NotificationTsidAlreadyExist,
 	}
 
 	#[pallet::hooks]
@@ -576,9 +592,6 @@ pub mod bonding_curve {
 			}
 			if Self::need_collect_host_cost(n) {
 				Self::collect_host_cost();
-			}
-			if Self::need_arrange_notifications(n) {
-				Self::arrange_notificatioins();
 			}
 		}
 
@@ -1383,12 +1396,19 @@ pub mod bonding_curve {
 			sender: OriginFor<T>,
 			accounts: Vec<T::AccountId>,
 			expired_heights: Vec<T::BlockNumber>,
+			tapp_id: TAppId,
+			tsid: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
+			let notification_hash = Self::tsid_hash(&tsid);
 			extrinsic_procedure(
 				&who,
 				|who| {
+					ensure!(
+						!NotificationKey::<T>::contains_key(notification_hash),
+						Error::<T>::NotificationTsidAlreadyExist
+					);
 					ensure!(
 						NotificationAccount::<T>::get().eq(who),
 						Error::<T>::NotAllowedPushNotification
@@ -1401,54 +1421,78 @@ pub mod bonding_curve {
 					Ok(())
 				},
 				|who| {
+					let current_height = frame_system::Pallet::<T>::block_number();
 					for i in 0..accounts.len() {
 						UserNotifications::<T>::mutate(&accounts[i], |notification_list| {
-							notification_list.push(expired_heights[i])
+							notification_list.push(NotificationItem {
+								tapp_id,
+								start_height: current_height.clone(),
+								expired_height: expired_heights[i],
+								has_paid: false,
+							})
 						});
 					}
+					NotificationKey::<T>::insert(notification_hash, current_height);
 					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
 				},
 			)
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn read_notification(
+		pub fn clear_notifications(
 			sender: OriginFor<T>,
-			account: T::AccountId,
-			expired_height: T::BlockNumber,
+			tapp_id: TAppId,
+			tsid: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
+			let notification_hash = Self::tsid_hash(&tsid);
+			let notifications_fee = Self::tapp_notifications_fee(tapp_id);
 			extrinsic_procedure(
 				&who,
 				|who| {
 					ensure!(
-						NotificationAccount::<T>::get().eq(who),
-						Error::<T>::NotAllowedPushNotification
+						!ClearNotificationKey::<T>::contains_key(notification_hash),
+						Error::<T>::NotificationTsidAlreadyExist
 					);
 					ensure!(
-						UserNotifications::<T>::contains_key(&account),
-						Error::<T>::NotFoundNotificationUser
+						T::CurrencyOperations::free_balance(who) >= notifications_fee,
+						Error::<T>::InsufficientFreeBalance
 					);
-					ensure!(
-						UserNotifications::<T>::get(&account)
-							.iter()
-							.position(|x| x.eq(&expired_height))
-							.is_some(),
-						Error::<T>::NoUserNotificationToRead
-					);
+
 					Ok(())
 				},
 				|who| {
-					UserNotifications::<T>::mutate(&account, |notification_list| {
-						// try remove the first matched element
-						if let Some(index) =
-							notification_list.iter().position(|x| x.eq(&expired_height))
-						{
-							notification_list.remove(index);
-						}
+					if notifications_fee.is_zero() {
+						return;
+					}
+
+					if let Err(e) = T::CurrencyOperations::transfer(
+						who,
+						&NotificationAccount::<T>::get(),
+						notifications_fee,
+						ExistenceRequirement::AllowDeath,
+					) {
+						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+						log::error!(
+							"clear notifications fee transfer free balance failed: {:?}",
+							e
+						);
+						return;
+					}
+
+					let current_height = frame_system::Pallet::<T>::block_number();
+					UserNotifications::<T>::iter_keys().for_each(|user_id| {
+						UserNotifications::<T>::mutate(&user_id, |notifications| {
+							notifications.retain(|item| item.expired_height > current_height);
+							for item in notifications {
+								if item.tapp_id == tapp_id {
+									item.has_paid = true;
+								}
+							}
+						});
 					});
-					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
+					ClearNotificationKey::<T>::insert(notification_hash, current_height);
 				},
 			)
 		}

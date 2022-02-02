@@ -995,8 +995,8 @@ parameter_types! {
 	pub const DefaultSellCurveTheta: u32 = 7;
 	pub const HostPledgeAmount: Balance = 0 * DOLLARS;
 	pub const ReservedLinkRentAmount: Balance = 100 * DOLLARS;
-	pub const NotificationsArrangeDuration: BlockNumber = 1000;
 	pub const ReservedTAppIdCount: u64 = 100;
+	pub const NotificationFeePerItem: Balance = 1 * CENTS;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -1022,8 +1022,8 @@ impl pallet_bonding_curve::Config for Runtime {
 	type DefaultSellCurveTheta = DefaultSellCurveTheta;
 	type HostPledgeAmount = HostPledgeAmount;
 	type ReservedLinkRentAmount = ReservedLinkRentAmount;
-	type NotificationsArrangeDuration = NotificationsArrangeDuration;
 	type ReservedTAppIdCount = ReservedTAppIdCount;
+	type NotificationFeePerItem = NotificationFeePerItem;
 }
 
 #[cfg(feature = "fast")]
@@ -1546,8 +1546,12 @@ impl_runtime_apis! {
 			BondingCurve::approved_links(allowed)
 		}
 
-		fn user_notification_count(account: AccountId) -> u32 {
-			BondingCurve::user_notification_count(account)
+		fn user_notification_count(account: AccountId, desired_start_height: BlockNumber) -> u32 {
+			BondingCurve::user_notification_count(account, desired_start_height)
+		}
+
+		fn tapp_notifications_fee(tapp_id: u64) -> Balance {
+			BondingCurve::tapp_notifications_fee(tapp_id)
 		}
 	}
 

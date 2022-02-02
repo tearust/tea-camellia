@@ -130,6 +130,8 @@ sp_api::decl_runtime_apis! {
 
 		fn approved_links(allowed: bool) -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)>;
 
-		fn user_notification_count(account: AccountId) -> u32;
+		fn user_notification_count(account: AccountId, desired_start_height: BlockNumber) -> u32;
+
+		fn tapp_notifications_fee(tapp_id: u64) -> Balance;
 	}
 }
