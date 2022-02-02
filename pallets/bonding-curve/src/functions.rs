@@ -218,7 +218,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			if *id < u64::MAX {
 				*id += 1;
 			} else {
-				*id = 1;
+				*id = T::ReservedTAppIdCount::get();
 			}
 
 			*id
@@ -1887,6 +1887,22 @@ mod tests {
 			for user in 1..=10 {
 				assert_eq!(UserNotifications::<Test>::get(user).len(), 4);
 			}
+		})
+	}
+
+	#[test]
+	fn next_id_works() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(LastTAppId::<Test>::get(), 0);
+			LastTAppId::<Test>::set(RESERVED_TAPP_ID_COUNT);
+
+			assert_eq!(BondingCurve::next_id(), RESERVED_TAPP_ID_COUNT + 1);
+			assert_eq!(BondingCurve::next_id(), RESERVED_TAPP_ID_COUNT + 2);
+
+			LastTAppId::<Test>::set(u64::MAX - 2);
+			assert_eq!(BondingCurve::next_id(), u64::MAX - 1);
+			assert_eq!(BondingCurve::next_id(), u64::MAX);
+			assert_eq!(BondingCurve::next_id(), RESERVED_TAPP_ID_COUNT);
 		})
 	}
 

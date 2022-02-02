@@ -996,6 +996,7 @@ parameter_types! {
 	pub const HostPledgeAmount: Balance = 0 * DOLLARS;
 	pub const ReservedLinkRentAmount: Balance = 100 * DOLLARS;
 	pub const NotificationsArrangeDuration: BlockNumber = 1000;
+	pub const ReservedTAppIdCount: u64 = 100;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -1022,6 +1023,7 @@ impl pallet_bonding_curve::Config for Runtime {
 	type HostPledgeAmount = HostPledgeAmount;
 	type ReservedLinkRentAmount = ReservedLinkRentAmount;
 	type NotificationsArrangeDuration = NotificationsArrangeDuration;
+	type ReservedTAppIdCount = ReservedTAppIdCount;
 }
 
 #[cfg(feature = "fast")]

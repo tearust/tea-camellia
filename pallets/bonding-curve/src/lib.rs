@@ -126,6 +126,9 @@ pub mod bonding_curve {
 
 		#[pallet::constant]
 		type NotificationsArrangeDuration: Get<Self::BlockNumber>;
+
+		#[pallet::constant]
+		type ReservedTAppIdCount: Get<u64>;
 	}
 
 	#[pallet::pallet]
@@ -273,6 +276,7 @@ pub mod bonding_curve {
 			NotificationAccount::<T>::set(self.notification_account.clone());
 
 			EnableUserCreateTApp::<T>::set(self.user_create_tapp);
+			LastTAppId::<T>::set(T::ReservedTAppIdCount::get());
 		}
 	}
 
