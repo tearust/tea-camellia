@@ -249,7 +249,7 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 		at: Option<BlockHash>,
 	) -> Result<u32>;
 
-	#[rpc(name = "cml_tappNotificationFee")]
+	#[rpc(name = "cml_tappNotificationCount")]
 	fn tapp_notifications_count(
 		&self,
 		stop_height: BlockNumber,
