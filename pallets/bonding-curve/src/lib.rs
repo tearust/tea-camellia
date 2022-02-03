@@ -126,9 +126,6 @@ pub mod bonding_curve {
 
 		#[pallet::constant]
 		type ReservedTAppIdCount: Get<u64>;
-
-		#[pallet::constant]
-		type NotificationFeePerItem: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -247,6 +244,11 @@ pub mod bonding_curve {
 		Vec<NotificationItem<T::BlockNumber>>,
 		ValueQuery,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn notifications_last_pay_height)]
+	pub(crate) type NotificationsLastPayHeight<T: Config> =
+		StorageValue<_, T::BlockNumber, ValueQuery>;
 
 	#[pallet::storage]
 	pub(crate) type NotificationKey<T: Config> =
@@ -564,6 +566,8 @@ pub mod bonding_curve {
 		NotAllowedTypeCHostingTApp,
 		/// Only notification account allowed to push notification
 		NotAllowedPushNotification,
+		/// Only notification account allowed to clear notification
+		NotAllowedClearNotification,
 		/// Notification list should at least have one message
 		NotificationListIsEmpty,
 		/// Notification list and account list should be matched
@@ -582,6 +586,8 @@ pub mod bonding_curve {
 		OnlyNpcCanMint,
 		/// Notification tsid already exist
 		NotificationTsidAlreadyExist,
+		/// Clear notification should larger than last clear notification height
+		InvalidClearNotificationHeight,
 	}
 
 	#[pallet::hooks]
@@ -1420,7 +1426,7 @@ pub mod bonding_curve {
 					ensure!(!accounts.is_empty(), Error::<T>::NotificationListIsEmpty);
 					Ok(())
 				},
-				|who| {
+				|_who| {
 					let current_height = frame_system::Pallet::<T>::block_number();
 					for i in 0..accounts.len() {
 						UserNotifications::<T>::mutate(&accounts[i], |notification_list| {
@@ -1428,12 +1434,10 @@ pub mod bonding_curve {
 								tapp_id,
 								start_height: current_height.clone(),
 								expired_height: expired_heights[i],
-								has_paid: false,
 							})
 						});
 					}
 					NotificationKey::<T>::insert(notification_hash, current_height);
-					T::CurrencyOperations::deposit_creating(who, 195000000u32.into());
 				},
 			)
 		}
@@ -1441,13 +1445,12 @@ pub mod bonding_curve {
 		#[pallet::weight(195_000_000)]
 		pub fn clear_notifications(
 			sender: OriginFor<T>,
-			tapp_id: TAppId,
+			stop_height: T::BlockNumber,
 			tsid: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
 			let notification_hash = Self::tsid_hash(&tsid);
-			let notifications_fee = Self::tapp_notifications_fee(tapp_id);
 			extrinsic_procedure(
 				&who,
 				|who| {
@@ -1456,42 +1459,27 @@ pub mod bonding_curve {
 						Error::<T>::NotificationTsidAlreadyExist
 					);
 					ensure!(
-						T::CurrencyOperations::free_balance(who) >= notifications_fee,
-						Error::<T>::InsufficientFreeBalance
+						NotificationAccount::<T>::get().eq(who),
+						Error::<T>::NotAllowedClearNotification
+					);
+					ensure!(
+						stop_height > NotificationsLastPayHeight::<T>::get(),
+						Error::<T>::InvalidClearNotificationHeight
 					);
 
 					Ok(())
 				},
-				|who| {
-					if notifications_fee.is_zero() {
-						return;
-					}
-
-					if let Err(e) = T::CurrencyOperations::transfer(
-						who,
-						&NotificationAccount::<T>::get(),
-						notifications_fee,
-						ExistenceRequirement::AllowDeath,
-					) {
-						// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-						log::error!(
-							"clear notifications fee transfer free balance failed: {:?}",
-							e
-						);
-						return;
-					}
-
+				|_who| {
 					let current_height = frame_system::Pallet::<T>::block_number();
 					UserNotifications::<T>::iter_keys().for_each(|user_id| {
 						UserNotifications::<T>::mutate(&user_id, |notifications| {
-							notifications.retain(|item| item.expired_height > current_height);
-							for item in notifications {
-								if item.tapp_id == tapp_id {
-									item.has_paid = true;
-								}
-							}
+							notifications.retain(|item| {
+								item.expired_height > current_height
+									|| item.start_height > stop_height
+							});
 						});
 					});
+					NotificationsLastPayHeight::<T>::set(stop_height);
 					ClearNotificationKey::<T>::insert(notification_hash, current_height);
 				},
 			)

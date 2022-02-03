@@ -122,7 +122,6 @@ pub struct NotificationItem<BlockNumber> {
 	pub tapp_id: TAppId,
 	pub start_height: BlockNumber,
 	pub expired_height: BlockNumber,
-	pub has_paid: bool,
 }
 
 impl<BlockNumber> Default for NotificationItem<BlockNumber>
@@ -134,7 +133,6 @@ where
 			tapp_id: Default::default(),
 			start_height: Default::default(),
 			expired_height: Default::default(),
-			has_paid: Default::default(),
 		}
 	}
 }

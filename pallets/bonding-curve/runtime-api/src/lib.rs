@@ -132,6 +132,6 @@ sp_api::decl_runtime_apis! {
 
 		fn user_notification_count(account: AccountId, desired_start_height: BlockNumber) -> u32;
 
-		fn tapp_notifications_fee(tapp_id: u64) -> Balance;
+		fn tapp_notifications_count(stop_height: BlockNumber) -> Vec<(u64, u32)>;
 	}
 }

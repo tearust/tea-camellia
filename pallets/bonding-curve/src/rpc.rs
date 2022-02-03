@@ -473,20 +473,31 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		UserNotifications::<T>::get(account)
 			.iter()
 			.filter(|item| {
-				current_height <= item.expired_height && desired_start_height >= item.start_height
+				current_height <= item.expired_height && desired_start_height <= item.start_height
 			})
 			.count() as u32
 	}
 
-	pub fn tapp_notifications_fee(tapp_id: TAppId) -> BalanceOf<T> {
-		let mut count = 0u32;
+	pub fn tapp_notifications_count(stop_height: T::BlockNumber) -> Vec<(TAppId, u32)> {
+		let last_pay_height = NotificationsLastPayHeight::<T>::get();
+
+		let mut notifications_count = BTreeMap::new();
 		UserNotifications::<T>::iter().for_each(|(_, item_list)| {
-			count += item_list
-				.iter()
-				.filter(|item| !item.has_paid && item.tapp_id == tapp_id)
-				.count() as u32;
+			for item in item_list.iter() {
+				if item.start_height > stop_height || item.start_height < last_pay_height {
+					continue;
+				}
+
+				match notifications_count.get_mut(&item.tapp_id) {
+					Some(count) => *count += 1,
+					None => {
+						notifications_count.insert(item.tapp_id, 1);
+					}
+				}
+			}
 		});
-		T::NotificationFeePerItem::get().saturating_mul(count.into())
+
+		notifications_count.into_iter().collect()
 	}
 }
 
@@ -498,6 +509,116 @@ mod tests {
 
 	const CENTS: node_primitives::Balance = 10_000_000_000;
 	const DOLLARS: node_primitives::Balance = 100 * CENTS;
+
+	#[test]
+	fn tapp_notifications_fee_works() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let user2 = 2;
+			let notification_account = 3;
+			NotificationAccount::<Test>::set(notification_account);
+
+			let tapp_id = 1;
+			let tapp_id2 = 2;
+			let expired_height1 = 50;
+			let expired_height2 = 80;
+
+			let current_height1 = 10;
+			frame_system::Pallet::<Test>::set_block_number(current_height1);
+			assert_ok!(BondingCurve::push_notifications(
+				Origin::signed(notification_account),
+				vec![user1, user2],
+				vec![expired_height1, expired_height2],
+				tapp_id,
+				b"test tsid".to_vec(),
+			));
+
+			let current_height2 = 30;
+			frame_system::Pallet::<Test>::set_block_number(current_height2);
+			assert_ok!(BondingCurve::push_notifications(
+				Origin::signed(notification_account),
+				vec![user1, user2],
+				vec![expired_height1, expired_height2],
+				tapp_id2,
+				b"test tsid2".to_vec(),
+			));
+
+			assert_eq!(NotificationsLastPayHeight::<Test>::get(), 0);
+			assert_eq!(
+				BondingCurve::tapp_notifications_count(current_height1 - 1).len(),
+				0
+			);
+
+			let result = BondingCurve::tapp_notifications_count(current_height1);
+			assert_eq!(result.len(), 1);
+			assert_eq!(result[0], (tapp_id, 2));
+
+			let result = BondingCurve::tapp_notifications_count(current_height2);
+			assert_eq!(result.len(), 2);
+			assert_eq!(result[0], (tapp_id, 2));
+			assert_eq!(result[1], (tapp_id2, 2));
+
+			NotificationsLastPayHeight::<Test>::set(20);
+			let result = BondingCurve::tapp_notifications_count(current_height2);
+			assert_eq!(result.len(), 1);
+			assert_eq!(result[0], (tapp_id2, 2));
+
+			// expired notifications need to take into count either
+			frame_system::Pallet::<Test>::set_block_number(60);
+			let result = BondingCurve::tapp_notifications_count(80);
+			assert_eq!(result.len(), 1);
+			assert_eq!(result[0], (tapp_id2, 2));
+		})
+	}
+
+	#[test]
+	fn user_notification_count_works() {
+		new_test_ext().execute_with(|| {
+			let user1 = 1;
+			let user2 = 2;
+			let notification_account = 3;
+			NotificationAccount::<Test>::set(notification_account);
+
+			let tapp_id = 1;
+			let tapp_id2 = 2;
+			let expired_height1 = 50;
+			let expired_height2 = 80;
+
+			let current_height1 = 10;
+			frame_system::Pallet::<Test>::set_block_number(current_height1);
+			assert_ok!(BondingCurve::push_notifications(
+				Origin::signed(notification_account),
+				vec![user1, user2],
+				vec![expired_height1, expired_height2],
+				tapp_id,
+				b"test tsid".to_vec(),
+			));
+
+			let current_height2 = 30;
+			frame_system::Pallet::<Test>::set_block_number(current_height2);
+			assert_ok!(BondingCurve::push_notifications(
+				Origin::signed(notification_account),
+				vec![user1, user2],
+				vec![expired_height1, expired_height2],
+				tapp_id2,
+				b"test tsid2".to_vec(),
+			));
+
+			assert_eq!(BondingCurve::user_notification_count(user1, 0), 2);
+			assert_eq!(BondingCurve::user_notification_count(user1, 20), 1);
+			assert_eq!(BondingCurve::user_notification_count(user2, 0), 2);
+			assert_eq!(BondingCurve::user_notification_count(user2, 20), 1);
+
+			let current_height2 = 60;
+			frame_system::Pallet::<Test>::set_block_number(current_height2);
+
+			assert_eq!(BondingCurve::user_notification_count(user1, 0), 0);
+			assert_eq!(BondingCurve::user_notification_count(user1, 20), 0);
+			assert_eq!(BondingCurve::user_notification_count(user2, 0), 2);
+			assert_eq!(BondingCurve::user_notification_count(user2, 20), 1);
+			assert_eq!(BondingCurve::user_notification_count(user2, 40), 0);
+		})
+	}
 
 	#[test]
 	fn query_price_works() {

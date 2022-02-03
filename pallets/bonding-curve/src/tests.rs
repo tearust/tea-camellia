@@ -2962,7 +2962,7 @@ fn push_notifications_works() {
 			current_height
 		);
 		assert_eq!(UserNotifications::<Test>::get(user1)[0].tapp_id, tapp_id);
-		assert_eq!(UserNotifications::<Test>::get(user1)[0].has_paid, false);
+		assert!(!has_paid::<Test>(&UserNotifications::<Test>::get(user1)[0]));
 
 		assert_eq!(UserNotifications::<Test>::get(user2).len(), 1);
 		assert_eq!(
@@ -2974,7 +2974,7 @@ fn push_notifications_works() {
 			current_height
 		);
 		assert_eq!(UserNotifications::<Test>::get(user2)[0].tapp_id, tapp_id);
-		assert_eq!(UserNotifications::<Test>::get(user2)[0].has_paid, false);
+		assert!(!has_paid::<Test>(&UserNotifications::<Test>::get(user2)[0]));
 	})
 }
 
@@ -3095,31 +3095,24 @@ fn clear_notifications_works() {
 		assert_eq!(UserNotifications::<Test>::get(user1).len(), 2);
 		assert_eq!(UserNotifications::<Test>::get(user2).len(), 2);
 
-		let tapp1_pay_account = 5;
-		let initial_balance = 100000000;
-		<Test as Config>::Currency::make_free_balance_be(&tapp1_pay_account, initial_balance);
-
 		let current_height2 = 60;
 		frame_system::Pallet::<Test>::set_block_number(current_height2);
 
 		assert_ok!(BondingCurve::clear_notifications(
-			Origin::signed(tapp1_pay_account),
-			tapp_id,
+			Origin::signed(notification_account),
+			current_height2,
 			b"test tsid3".to_vec(),
 		));
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(&tapp1_pay_account),
-			initial_balance - NOTIFICATION_FEE_PER_ITEM * 2
-		);
+
 		assert_eq!(UserNotifications::<Test>::get(user1).len(), 0);
 		assert_eq!(UserNotifications::<Test>::get(user2).len(), 2);
-		assert!(UserNotifications::<Test>::get(user2)[0].has_paid);
-		assert!(!UserNotifications::<Test>::get(user2)[1].has_paid);
+		assert!(has_paid::<Test>(&UserNotifications::<Test>::get(user2)[0]));
+		assert!(has_paid::<Test>(&UserNotifications::<Test>::get(user2)[1]));
 	})
 }
 
 #[test]
-fn clear_notifications_should_fail_if_free_balance_not_enough() {
+fn clear_notifications_should_fail_if_not_notification_account() {
 	new_test_ext().execute_with(|| {
 		let current_height = 10;
 		frame_system::Pallet::<Test>::set_block_number(current_height);
@@ -3147,7 +3140,7 @@ fn clear_notifications_should_fail_if_free_balance_not_enough() {
 				tapp_id,
 				b"test tsid".to_vec(),
 			),
-			Error::<Test>::InsufficientFreeBalance
+			Error::<Test>::NotAllowedClearNotification
 		);
 	})
 }
@@ -3174,21 +3167,52 @@ fn clear_notifications_should_fail_if_tsid_exists() {
 			b"test tsid".to_vec(),
 		));
 
-		let tapp1_pay_account = 5;
-		<Test as Config>::Currency::make_free_balance_be(&tapp1_pay_account, 100000);
-
 		assert_ok!(BondingCurve::clear_notifications(
-			Origin::signed(tapp1_pay_account),
-			tapp_id,
+			Origin::signed(notification_account),
+			30,
 			b"test tsid".to_vec(),
 		));
 		assert_noop!(
 			BondingCurve::clear_notifications(
-				Origin::signed(tapp1_pay_account),
-				tapp_id,
+				Origin::signed(notification_account),
+				30,
 				b"test tsid".to_vec(),
 			),
 			Error::<Test>::NotificationTsidAlreadyExist
+		);
+	})
+}
+
+#[test]
+fn clear_notifications_should_fail_if_stop_height_is_invalid() {
+	new_test_ext().execute_with(|| {
+		let current_height = 10;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		let user1 = 1;
+		let user2 = 2;
+		let notification_account = 3;
+		NotificationAccount::<Test>::set(notification_account);
+
+		let tapp_id = 1;
+		let expired_height1 = 50;
+		let expired_height2 = 80;
+		assert_ok!(BondingCurve::push_notifications(
+			Origin::signed(notification_account),
+			vec![user1, user2],
+			vec![expired_height1, expired_height2],
+			tapp_id,
+			b"test tsid".to_vec(),
+		));
+
+		NotificationsLastPayHeight::<Test>::set(40);
+		assert_noop!(
+			BondingCurve::clear_notifications(
+				Origin::signed(notification_account),
+				30,
+				b"test tsid".to_vec(),
+			),
+			Error::<Test>::InvalidClearNotificationHeight
 		);
 	})
 }
@@ -3309,6 +3333,13 @@ fn batch_transfer_should_not_enough_free_balance() {
 			Error::<Test>::OnlyNpcCanBatchTransfer
 		);
 	})
+}
+
+pub fn has_paid<T>(item: &NotificationItem<T::BlockNumber>) -> bool
+where
+	T: Config,
+{
+	item.start_height < NotificationsLastPayHeight::<T>::get()
 }
 
 pub fn create_default_tapp(tapp_owner: u64) -> DispatchResult {

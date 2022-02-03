@@ -250,7 +250,11 @@ pub trait BondingCurveApi<BlockHash, AccountId> {
 	) -> Result<u32>;
 
 	#[rpc(name = "cml_tappNotificationFee")]
-	fn tapp_notifications_fee(&self, tapp_id: u64, at: Option<BlockHash>) -> Result<Price>;
+	fn tapp_notifications_count(
+		&self,
+		stop_height: BlockNumber,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(u64, u32)>>;
 }
 
 pub struct BondingCurveApiImpl<C, M> {
@@ -743,19 +747,19 @@ where
 		Ok(result)
 	}
 
-	fn tapp_notifications_fee(
+	fn tapp_notifications_count(
 		&self,
-		tapp_id: u64,
+		stop_height: BlockNumber,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Price> {
+	) -> Result<Vec<(u64, u32)>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
 			self.client.info().best_hash));
 
 		let result = api
-			.tapp_notifications_fee(&at, tapp_id)
+			.tapp_notifications_count(&at, stop_height)
 			.map_err(runtime_error_into_rpc_err)?;
-		Ok(Price(result))
+		Ok(result)
 	}
 }

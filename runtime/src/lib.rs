@@ -996,7 +996,6 @@ parameter_types! {
 	pub const HostPledgeAmount: Balance = 0 * DOLLARS;
 	pub const ReservedLinkRentAmount: Balance = 100 * DOLLARS;
 	pub const ReservedTAppIdCount: u64 = 100;
-	pub const NotificationFeePerItem: Balance = 1 * CENTS;
 }
 
 impl pallet_bonding_curve::Config for Runtime {
@@ -1023,7 +1022,6 @@ impl pallet_bonding_curve::Config for Runtime {
 	type HostPledgeAmount = HostPledgeAmount;
 	type ReservedLinkRentAmount = ReservedLinkRentAmount;
 	type ReservedTAppIdCount = ReservedTAppIdCount;
-	type NotificationFeePerItem = NotificationFeePerItem;
 }
 
 #[cfg(feature = "fast")]
@@ -1550,8 +1548,8 @@ impl_runtime_apis! {
 			BondingCurve::user_notification_count(account, desired_start_height)
 		}
 
-		fn tapp_notifications_fee(tapp_id: u64) -> Balance {
-			BondingCurve::tapp_notifications_fee(tapp_id)
+		fn tapp_notifications_count(stop_height: BlockNumber) -> Vec<(u64, u32)> {
+			BondingCurve::tapp_notifications_count(stop_height)
 		}
 	}
 
