@@ -233,7 +233,7 @@ pub mod bonding_curve {
 
 	#[pallet::storage]
 	#[pallet::getter(fn notification_account)]
-	pub(crate) type NotificationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+	pub(crate) type NotificationAccount<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn user_notifications)]
@@ -267,7 +267,6 @@ pub mod bonding_curve {
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
 		pub npc_account: T::AccountId,
-		pub notification_account: T::AccountId,
 		pub user_create_tapp: bool,
 	}
 	#[cfg(feature = "std")]
@@ -276,7 +275,6 @@ pub mod bonding_curve {
 			GenesisConfig {
 				reserved_balance_account: Default::default(),
 				npc_account: Default::default(),
-				notification_account: Default::default(),
 				user_create_tapp: false,
 			}
 		}
@@ -289,7 +287,6 @@ pub mod bonding_curve {
 
 			ReservedBalanceAccount::<T>::set(self.reserved_balance_account.clone());
 			NPCAccount::<T>::set(self.npc_account.clone());
-			NotificationAccount::<T>::set(self.notification_account.clone());
 
 			EnableUserCreateTApp::<T>::set(self.user_create_tapp);
 			LastTAppId::<T>::set(T::ReservedTAppIdCount::get());
@@ -588,6 +585,8 @@ pub mod bonding_curve {
 		NotificationTsidAlreadyExist,
 		/// Clear notification should larger than last clear notification height
 		InvalidClearNotificationHeight,
+		/// Notification account has not been initialized yet
+		NotificationAccountNotInit,
 	}
 
 	#[pallet::hooks]
@@ -642,6 +641,22 @@ pub mod bonding_curve {
 					if let Some(ref npc_account) = npc_account {
 						NPCAccount::<T>::set(npc_account.clone());
 					}
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn set_notification_account(
+			sender: OriginFor<T>,
+			account: T::AccountId,
+		) -> DispatchResult {
+			let who = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|_who| Ok(()),
+				|_who| {
+					NotificationAccount::<T>::set(Some(account));
 				},
 			)
 		}
@@ -1416,7 +1431,11 @@ pub mod bonding_curve {
 						Error::<T>::NotificationTsidAlreadyExist
 					);
 					ensure!(
-						NotificationAccount::<T>::get().eq(who),
+						NotificationAccount::<T>::get().is_some(),
+						Error::<T>::NotificationAccountNotInit
+					);
+					ensure!(
+						NotificationAccount::<T>::get().unwrap().eq(who),
 						Error::<T>::NotAllowedPushNotification
 					);
 					ensure!(
@@ -1459,7 +1478,11 @@ pub mod bonding_curve {
 						Error::<T>::NotificationTsidAlreadyExist
 					);
 					ensure!(
-						NotificationAccount::<T>::get().eq(who),
+						NotificationAccount::<T>::get().is_some(),
+						Error::<T>::NotificationAccountNotInit
+					);
+					ensure!(
+						NotificationAccount::<T>::get().unwrap().eq(who),
 						Error::<T>::NotAllowedClearNotification
 					);
 					ensure!(

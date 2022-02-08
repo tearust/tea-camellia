@@ -2939,7 +2939,7 @@ fn push_notifications_works() {
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		let tapp_id = 1;
 		let expired_height1 = 50;
@@ -2984,7 +2984,7 @@ fn push_notifications_should_fail_if_tsid_exists() {
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		let tapp_id = 1;
 		let expired_height1 = 50;
@@ -3011,11 +3011,23 @@ fn push_notifications_should_fail_if_tsid_exists() {
 }
 
 #[test]
+fn push_notifications_should_fail_if_notification_account_is_empty() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+
+		assert_noop!(
+			BondingCurve::push_notifications(Origin::signed(user1), vec![], vec![], 1, vec![]),
+			Error::<Test>::NotificationAccountNotInit
+		);
+	})
+}
+
+#[test]
 fn push_notifications_should_fail_if_committer_not_notification_account() {
 	new_test_ext().execute_with(|| {
 		let user1 = 1;
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		assert_noop!(
 			BondingCurve::push_notifications(Origin::signed(user1), vec![], vec![], 1, vec![]),
@@ -3030,7 +3042,7 @@ fn push_notifications_should_fail_if_notification_and_account_list_not_matched()
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		assert_noop!(
 			BondingCurve::push_notifications(
@@ -3049,7 +3061,7 @@ fn push_notifications_should_fail_if_notification_and_account_list_not_matched()
 fn push_notifications_should_fail_if_account_list_is_empty() {
 	new_test_ext().execute_with(|| {
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		assert_noop!(
 			BondingCurve::push_notifications(
@@ -3073,7 +3085,7 @@ fn clear_notifications_works() {
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		let tapp_id = 1;
 		let expired_height1 = 50;
@@ -3112,6 +3124,19 @@ fn clear_notifications_works() {
 }
 
 #[test]
+fn clear_notifications_should_fail_if_notification_account_is_empty() {
+	new_test_ext().execute_with(|| {
+		let current_height = 10;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		assert_noop!(
+			BondingCurve::clear_notifications(Origin::signed(1), 1, b"test tsid".to_vec(),),
+			Error::<Test>::NotificationAccountNotInit
+		);
+	})
+}
+
+#[test]
 fn clear_notifications_should_fail_if_not_notification_account() {
 	new_test_ext().execute_with(|| {
 		let current_height = 10;
@@ -3120,7 +3145,7 @@ fn clear_notifications_should_fail_if_not_notification_account() {
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		let tapp_id = 1;
 		let expired_height1 = 50;
@@ -3154,7 +3179,7 @@ fn clear_notifications_should_fail_if_tsid_exists() {
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		let tapp_id = 1;
 		let expired_height1 = 50;
@@ -3192,7 +3217,7 @@ fn clear_notifications_should_fail_if_stop_height_is_invalid() {
 		let user1 = 1;
 		let user2 = 2;
 		let notification_account = 3;
-		NotificationAccount::<Test>::set(notification_account);
+		NotificationAccount::<Test>::set(Some(notification_account));
 
 		let tapp_id = 1;
 		let expired_height1 = 50;

@@ -46,7 +46,6 @@ const BONDING_CURVE_RESERVED_BALANCE_ADDRESS: &str =
 	"5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt";
 // NPC is predefined "sudo" user in competition csv file, the following is address and initial amounts settings
 const BONDING_CURVE_NPC_ADDRESS: &str = "5D2od84fg3GScGR139Li56raDWNQQhzgYbV7QsEJKS4KfTGv";
-const NOTIFICATION_ACCOUNT_ADDRESS: &str = "5HQegduhwQAv26JrMMjVife9Bvkr5ojMm42Dy9g8w3DsgmjT";
 const BONDING_CURVE_NPC_INITIAL_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
 const BONDING_CURVE_NPC_INITIAL_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
 
@@ -409,7 +408,6 @@ fn testnet_genesis(
 	let bonding_curve_reserved_balance_account =
 		AccountId32::from_str(BONDING_CURVE_RESERVED_BALANCE_ADDRESS).unwrap();
 	let bonding_curve_npc_account = AccountId32::from_str(BONDING_CURVE_NPC_ADDRESS).unwrap();
-	let notification_account = AccountId32::from_str(NOTIFICATION_ACCOUNT_ADDRESS).unwrap();
 
 	initial_balances.push((
 		genesis_exchange_operation_account.clone(),
@@ -555,7 +553,6 @@ fn testnet_genesis(
 			reserved_balance_account: bonding_curve_reserved_balance_account,
 			npc_account: bonding_curve_npc_account,
 			user_create_tapp: true, // default enable user create tapp
-			notification_account,
 		},
 	}
 }

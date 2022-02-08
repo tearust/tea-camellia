@@ -516,7 +516,7 @@ mod tests {
 			let user1 = 1;
 			let user2 = 2;
 			let notification_account = 3;
-			NotificationAccount::<Test>::set(notification_account);
+			NotificationAccount::<Test>::set(Some(notification_account));
 
 			let tapp_id = 1;
 			let tapp_id2 = 2;
@@ -577,7 +577,7 @@ mod tests {
 			let user1 = 1;
 			let user2 = 2;
 			let notification_account = 3;
-			NotificationAccount::<Test>::set(notification_account);
+			NotificationAccount::<Test>::set(Some(notification_account));
 
 			let tapp_id = 1;
 			let tapp_id2 = 2;
