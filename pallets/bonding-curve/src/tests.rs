@@ -1335,7 +1335,10 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
 		assert!(!TAppNames::<Test>::contains_key(name));
 		assert!(!TAppTickers::<Test>::contains_key(ticker));
-		assert_eq!(<Test as Config>::Currency::free_balance(&owner), DOLLARS);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&owner),
+			999999999534
+		);
 	})
 }
 
@@ -1603,7 +1606,7 @@ fn consume_works() {
 		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 37746650);
 		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 75493301);
 		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 132113278)
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 132113276)
 	})
 }
 
@@ -1719,7 +1722,7 @@ fn consume_works_with_miner() {
 		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), MOCKED_DOLLARS);
 		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), MOCKED_DOLLARS);
 		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 132113278)
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 104510326)
 	})
 }
 

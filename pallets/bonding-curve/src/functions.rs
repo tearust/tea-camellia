@@ -289,6 +289,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			log::error!("{}", e);
 			return Zero::zero();
 		}
+		TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
+			*amount = amount.saturating_sub(tapp_amount);
+		});
 
 		match Self::calculate_sell_amount(tapp_id, tapp_amount) {
 			Ok(deposit_tea_amount) => {
@@ -302,10 +305,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					log::error!("transfer free balance failed: {:?}", e);
 					return Zero::zero();
 				}
-
-				TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
-					*amount = amount.saturating_sub(tapp_amount);
-				});
 
 				if AccountTable::<T>::get(&who, tapp_id).is_zero() {
 					AccountTable::<T>::remove(&who, tapp_id);
@@ -461,9 +460,15 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			));
 		}
 
-		TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
-			*amount = amount.saturating_add(distributing_amount);
-		});
+		Self::update_total_supply(tapp_id)
+	}
+
+	fn update_total_supply(tapp_id: TAppId) {
+		let mut sum: BalanceOf<T> = Zero::zero();
+		AccountTable::<T>::iter()
+			.filter(|(_, id, _)| tapp_id == *id)
+			.for_each(|(_, _, amount)| sum = sum.saturating_add(amount));
+		TotalSupplyTable::<T>::insert(tapp_id, sum);
 	}
 
 	pub(crate) fn collect_with_investors(tapp_id: TAppId, collecting_amount: BalanceOf<T>) {
@@ -489,9 +494,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			});
 		});
 
-		TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
-			*amount = amount.saturating_sub(collecting_amount);
-		});
+		Self::update_total_supply(tapp_id)
 	}
 
 	pub(crate) fn tapp_investors(tapp_id: TAppId) -> (BTreeSet<T::AccountId>, BalanceOf<T>) {
