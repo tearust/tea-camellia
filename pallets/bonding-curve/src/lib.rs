@@ -168,8 +168,12 @@ pub mod bonding_curve {
 	pub type TAppTickers<T: Config> = StorageMap<_, Twox64Concat, Vec<u8>, TAppId, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn last_cml_id)]
+	#[pallet::getter(fn last_tapp_id)]
 	pub type LastTAppId<T: Config> = StorageValue<_, TAppId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn last_reserved_tapp_id)]
+	pub type LastReservedTAppId<T: Config> = StorageValue<_, TAppId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn operation_account)]
@@ -290,6 +294,7 @@ pub mod bonding_curve {
 
 			EnableUserCreateTApp::<T>::set(self.user_create_tapp);
 			LastTAppId::<T>::set(T::ReservedTAppIdCount::get());
+			LastReservedTAppId::<T>::set(0);
 		}
 	}
 
@@ -491,8 +496,6 @@ pub mod bonding_curve {
 		AddOverflow,
 		/// It is forbidden for normal user to create tapp
 		NotAllowedNormalUserCreateTApp,
-		/// It is forbidden for NPC to create tapp
-		NotAllowedNPCCreateTApp,
 		/// Only the tapp owner is allowed to submit the `expense` extrinsic
 		OnlyTAppOwnerAllowedToExpense,
 		/// Performance value should greater than 0
@@ -801,11 +804,6 @@ pub mod bonding_curve {
 							who.eq(&NPCAccount::<T>::get()),
 							Error::<T>::NotAllowedNormalUserCreateTApp
 						);
-					} else {
-						ensure!(
-							!who.eq(&NPCAccount::<T>::get()),
-							Error::<T>::NotAllowedNPCCreateTApp
-						);
 					}
 
 					Self::check_tapp_fields_length(&tapp_name, &ticker, &detail, &link)?;
@@ -878,7 +876,11 @@ pub mod bonding_curve {
 				},
 				|who| {
 					let link_related = tapp_type != TAppType::Bbs;
-					let id = Self::next_id();
+					let id = if who.eq(&NPCAccount::<T>::get()) {
+						Self::next_reserved_id()
+					} else {
+						Self::next_id()
+					};
 					if link_related {
 						TAppNames::<T>::insert(&tapp_name, id);
 						if TAppApprovedLinks::<T>::contains_key(&link) {

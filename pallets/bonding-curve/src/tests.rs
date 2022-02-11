@@ -412,29 +412,69 @@ fn create_new_tapp_with_custom_theta_works() {
 }
 
 #[test]
-fn npc_create_new_tapp_should_fail_if_enable_user_create_tapp_is_true() {
+fn create_new_reserved_tapp_using_npc_account_works() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
-		let npc: u64 = NPCAccount::<Test>::get();
+		LastTAppId::<Test>::set(RESERVED_TAPP_ID_COUNT);
+		LastReservedTAppId::<Test>::set(0);
+		ReservedBalanceAccount::<Test>::set(100);
+
+		let npc = NPCAccount::<Test>::get();
+		let tapp_name = "test name";
+		let ticker = "tea";
+		let detail = "test detail";
+		let link = "https://teaproject.org";
+		let init_fund = 1000000;
 		<Test as Config>::Currency::make_free_balance_be(&npc, 100000000);
 
-		assert_noop!(
-			BondingCurve::create_new_tapp(
-				Origin::signed(npc),
-				b"test name".to_vec(),
-				b"tea".to_vec(),
-				1_000_000,
-				b"test detail".to_vec(),
-				b"https://teaproject.org".to_vec(),
-				10,
-				TAppType::Twitter,
-				true,
-				None,
-				Some(1000),
-				None,
-				None,
-			),
-			Error::<Test>::NotAllowedNPCCreateTApp
+		let buy_curve_theta = 100;
+		let sell_curve_theta = 99;
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			"https://teaproject.org".into(),
+			"test description".into(),
+			None,
+		));
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(npc),
+			tapp_name.as_bytes().to_vec(),
+			ticker.as_bytes().to_vec(),
+			init_fund,
+			detail.as_bytes().to_vec(),
+			link.as_bytes().to_vec(),
+			10,
+			TAppType::Reddit,
+			true,
+			None,
+			Some(1000),
+			Some(buy_curve_theta),
+			Some(sell_curve_theta),
+		));
+		assert_eq!(BondingCurve::next_id(), RESERVED_TAPP_ID_COUNT + 1);
+
+		// this is the first tapp so tapp id is 1
+		let tapp_id = 1;
+		assert_eq!(LastReservedTAppId::<Test>::get(), tapp_id);
+		assert_eq!(AccountTable::<Test>::get(npc, tapp_id), init_fund);
+		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
+		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
+		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
+		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
+		assert_eq!(tapp_item.id, tapp_id);
+		assert_eq!(tapp_item.buy_curve_k, buy_curve_theta);
+		assert_eq!(tapp_item.sell_curve_k, sell_curve_theta);
+		assert_eq!(tapp_item.owner, npc);
+		assert_eq!(&String::from_utf8(tapp_item.name).unwrap(), tapp_name);
+		assert_eq!(&String::from_utf8(tapp_item.ticker).unwrap(), ticker);
+		assert_eq!(&String::from_utf8(tapp_item.detail).unwrap(), detail);
+		assert_eq!(&String::from_utf8(tapp_item.link).unwrap(), link);
+		assert_eq!(tapp_item.max_allowed_hosts, 10);
+		assert_eq!(tapp_item.billing_mode, BillingMode::FixedHostingToken(1000));
+		assert_eq!(tapp_item.tapp_type, TAppType::Reddit);
+		assert_eq!(tapp_item.status, TAppStatus::Pending);
+		assert_eq!(
+			<Test as Config>::Currency::free_balance(&npc),
+			99993400 - RESERVED_LINK_RENT_AMOUNT
 		);
 	})
 }

@@ -210,6 +210,18 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		})
 	}
 
+	pub fn next_reserved_id() -> TAppId {
+		LastReservedTAppId::<T>::mutate(|id| {
+			if *id < T::ReservedTAppIdCount::get() {
+				*id += 1;
+			} else {
+				*id = 1;
+			}
+
+			*id
+		})
+	}
+
 	pub fn count_active_host_number(tapp_id: TAppId) -> usize {
 		TAppCurrentHosts::<T>::iter_prefix(tapp_id)
 			.filter(|(cml_id, _)| {
@@ -1869,6 +1881,21 @@ mod tests {
 			assert_eq!(BondingCurve::next_id(), u64::MAX - 1);
 			assert_eq!(BondingCurve::next_id(), u64::MAX);
 			assert_eq!(BondingCurve::next_id(), RESERVED_TAPP_ID_COUNT);
+		})
+	}
+
+	#[test]
+	fn next_reserved_id_works() {
+		new_test_ext().execute_with(|| {
+			assert_eq!(LastReservedTAppId::<Test>::get(), 0);
+
+			assert_eq!(BondingCurve::next_reserved_id(), 1);
+			assert_eq!(BondingCurve::next_reserved_id(), 2);
+
+			LastReservedTAppId::<Test>::set(RESERVED_TAPP_ID_COUNT - 2);
+			assert_eq!(BondingCurve::next_reserved_id(), RESERVED_TAPP_ID_COUNT - 1);
+			assert_eq!(BondingCurve::next_reserved_id(), RESERVED_TAPP_ID_COUNT);
+			assert_eq!(BondingCurve::next_reserved_id(), 1);
 		})
 	}
 
