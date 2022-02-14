@@ -157,8 +157,7 @@ pub mod tea {
 
 	#[pallet::storage]
 	#[pallet::getter(fn tapp_store_startup_nodes)]
-	pub(crate) type TappStoreStartupNodes<T: Config> =
-		StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
+	pub(crate) type TappStoreStartupNodes<T: Config> = StorageValue<_, Vec<TeaPubKey>, ValueQuery>;
 
 	/// Runtime activities of registered TEA nodes.
 	#[pallet::storage]
@@ -221,6 +220,10 @@ pub mod tea {
 	#[pallet::storage]
 	#[pallet::getter(fn desired_tapp_store_node_count)]
 	pub(super) type DesiredTappStoreNodeCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn min_tapp_store_node_count)]
+	pub(super) type MinTappStoreNodeCount<T: Config> = StorageValue<_, u32, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -379,6 +382,7 @@ pub mod tea {
 		pub report_reward_amount: BalanceOf<T>,
 		pub tips_reward_amount: BalanceOf<T>,
 		pub desired_tapp_store_node_count: u32,
+		pub min_tapp_store_node_count: u32,
 	}
 
 	#[cfg(feature = "std")]
@@ -390,6 +394,7 @@ pub mod tea {
 				report_reward_amount: Default::default(),
 				tips_reward_amount: Default::default(),
 				desired_tapp_store_node_count: Default::default(),
+				min_tapp_store_node_count: Default::default(),
 			}
 		}
 	}
@@ -400,6 +405,7 @@ pub mod tea {
 			ReportRawardAmount::<T>::set(self.report_reward_amount);
 			TipsRawardAmount::<T>::set(self.tips_reward_amount);
 			DesiredTappStoreNodeCount::<T>::set(self.desired_tapp_store_node_count);
+			MinTappStoreNodeCount::<T>::set(self.min_tapp_store_node_count);
 
 			// we must ensure sufficient RA builtin nodes to start up.
 			if self.builtin_nodes.len() < T::MinGroupMemberCount::get() as usize {
@@ -411,8 +417,8 @@ pub mod tea {
 				node.tea_id = tea_id.clone();
 				Nodes::<T>::insert(tea_id, node);
 				BuiltinNodes::<T>::insert(tea_id, ());
-				TappStoreStartupNodes::<T>::insert(tea_id, ());
 			}
+			TappStoreStartupNodes::<T>::set(self.builtin_nodes.clone());
 
 			self.builtin_miners
 				.iter()
@@ -462,6 +468,19 @@ pub mod tea {
 		}
 
 		#[pallet::weight(195_000_000)]
+		pub fn set_min_tapp_store_count(sender: OriginFor<T>, new_value: u32) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| Ok(()),
+				|_| {
+					MinTappStoreNodeCount::<T>::set(new_value);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
 		pub fn reset_tapp_store_startup_nodes(
 			sender: OriginFor<T>,
 			nodes: Vec<TeaPubKey>,
@@ -472,10 +491,7 @@ pub mod tea {
 				&root,
 				|_| Ok(()),
 				|_| {
-					TappStoreStartupNodes::<T>::remove_all(None);
-					nodes
-						.into_iter()
-						.for_each(|pk| TappStoreStartupNodes::<T>::insert(pk, ()));
+					TappStoreStartupNodes::<T>::set(nodes);
 				},
 			)
 		}

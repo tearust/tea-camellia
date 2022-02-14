@@ -525,6 +525,7 @@ fn testnet_genesis(
 			report_reward_amount: 10 * DOLLARS,
 			tips_reward_amount: 10 * CENTS,
 			desired_tapp_store_node_count: 10,
+			min_tapp_store_node_count: 2,
 		},
 		cml: CmlConfig {
 			genesis_coupons,

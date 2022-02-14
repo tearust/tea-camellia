@@ -14,9 +14,7 @@ impl<T: tea::Config> tea::Pallet<T> {
 	}
 
 	pub fn list_tapp_store_startup_nodes() -> Vec<[u8; 32]> {
-		TappStoreStartupNodes::<T>::iter()
-			.map(|(id, _)| id)
-			.collect()
+		TappStoreStartupNodes::<T>::get()
 	}
 
 	pub fn list_allowed_pcrs() -> Vec<(H256, Vec<PcrValue>)> {
