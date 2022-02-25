@@ -1855,6 +1855,110 @@ fn miner_cannot_sell_reserved_token_however_allowed_to_sell_consume_rewards() {
 }
 
 #[test]
+fn consume_auto_works() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user1 = 1;
+		let user2 = 2;
+		let user3 = 3;
+		let user4 = 4;
+		let tapp_amount1 = 1_000_000;
+		let tapp_amount2 = 2_000_000;
+		let tapp_amount3 = 4_000_000;
+		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user4, 100 * DOLLARS);
+		assert_ok!(create_default_tapp(user1));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::buy_token(
+			Origin::signed(user2),
+			tapp_id,
+			tapp_amount2
+		));
+		assert_ok!(BondingCurve::buy_token(
+			Origin::signed(user3),
+			tapp_id,
+			tapp_amount3
+		));
+		assert_eq!(
+			TotalSupplyTable::<Test>::get(tapp_id),
+			tapp_amount1 + tapp_amount2 + tapp_amount3
+		);
+		let spend_tea = 10 * DOLLARS;
+		assert_ok!(BondingCurve::consume_auto(
+			Origin::signed(user4),
+			tapp_id,
+			spend_tea,
+			None,
+			b"test tsid".to_vec()
+		));
+		let left_balance = <Test as Config>::Currency::free_balance(&user4);
+		// println!("2 {:?}", &left_balance);
+		assert!(approximately_equals::<Test>(
+			left_balance,
+			100 * DOLLARS - spend_tea,
+			10,
+		));
+	})
+}
+
+#[test]
+fn consume_auto_should_fail_if_tsid_is_same() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let user1 = 1;
+		let user2 = 2;
+		let user3 = 3;
+		let user4 = 4;
+		let tapp_amount1 = 1_000_000;
+		let tapp_amount2 = 2_000_000;
+		let tapp_amount3 = 4_000_000;
+		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user2, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user3, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user4, 100 * DOLLARS);
+		assert_ok!(create_default_tapp(user1));
+
+		let tapp_id = 1;
+		assert_ok!(BondingCurve::buy_token(
+			Origin::signed(user2),
+			tapp_id,
+			tapp_amount2
+		));
+		assert_ok!(BondingCurve::buy_token(
+			Origin::signed(user3),
+			tapp_id,
+			tapp_amount3
+		));
+		assert_eq!(
+			TotalSupplyTable::<Test>::get(tapp_id),
+			tapp_amount1 + tapp_amount2 + tapp_amount3
+		);
+		let spend_tea = 10 * DOLLARS;
+		assert_ok!(BondingCurve::consume_auto(
+			Origin::signed(user4),
+			tapp_id,
+			spend_tea,
+			None,
+			b"test tsid".to_vec()
+		));
+
+		assert_noop!(
+			BondingCurve::consume_auto(
+				Origin::signed(user4),
+				tapp_id,
+				spend_tea,
+				None,
+				b"test tsid".to_vec()
+			),
+			Error::<Test>::ConsumeTsidAlreadyExist
+		);
+	})
+}
+
+#[test]
 fn expense_should_fail_if_tapp_not_exist() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);

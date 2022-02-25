@@ -267,6 +267,11 @@ pub mod bonding_curve {
 	pub(crate) type WithdrawStorage<T: Config> =
 		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn consume_storage)]
+	pub(crate) type ConsumeStorage<T: Config> =
+		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub reserved_balance_account: T::AccountId,
@@ -590,6 +595,8 @@ pub mod bonding_curve {
 		InvalidClearNotificationHeight,
 		/// Notification account has not been initialized yet
 		NotificationAccountNotInit,
+		/// Consume tsid already exist
+		ConsumeTsidAlreadyExist,
 	}
 
 	#[pallet::hooks]
@@ -1047,63 +1054,36 @@ pub mod bonding_curve {
 
 			extrinsic_procedure(
 				&who,
+				|who| Self::check_consume(who, tapp_id, tea_amount, note.as_ref()),
+				|who| Self::consume_inner(who, tapp_id, tea_amount, note.as_ref()),
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn consume_auto(
+			sender: OriginFor<T>,
+			tapp_id: TAppId,
+			tea_amount: BalanceOf<T>,
+			note: Option<Vec<u8>>,
+			tsid: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			let hash = Self::tsid_hash(&tsid);
+			extrinsic_procedure(
+				&who,
 				|who| {
 					ensure!(
-						TAppBondingCurve::<T>::contains_key(tapp_id),
-						Error::<T>::TAppIdNotExist
+						!ConsumeStorage::<T>::contains_key(hash),
+						Error::<T>::ConsumeTsidAlreadyExist
 					);
-					ensure!(
-						!tea_amount.is_zero(),
-						Error::<T>::OperationAmountCanNotBeZero
-					);
-					ensure!(
-						T::CurrencyOperations::free_balance(who) >= tea_amount,
-						Error::<T>::InsufficientFreeBalance,
-					);
-					if let Some(ref note) = note {
-						ensure!(
-							note.len() <= T::ConsumeNoteMaxLength::get() as usize,
-							Error::<T>::ConsumeNoteIsTooLong
-						);
-					}
-					Ok(())
+					Self::check_consume(who, tapp_id, tea_amount, note.as_ref())
 				},
 				|who| {
-					match Self::calculate_given_increase_tea_how_much_token_mint(
-						tapp_id,
-						tea_amount.clone(),
-					) {
-						Ok(deposit_tapp_amount) => {
-							if let Err(e) =
-								Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount)
-							{
-								// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-								log::error!("allocate buy tea amount failed: {:?}", e);
-								return;
-							}
-							Self::distribute_to_investors(tapp_id, deposit_tapp_amount);
+					let current_block = frame_system::Pallet::<T>::block_number();
+					ConsumeStorage::<T>::insert(hash, current_block);
 
-							let (buy_price, sell_price) = Self::query_price(tapp_id);
-							Self::deposit_event(Event::TAppConsume(
-								tapp_id,
-								who.clone(),
-								tea_amount,
-								deposit_tapp_amount,
-								note.clone(),
-								buy_price,
-								sell_price,
-								TotalSupplyTable::<T>::get(tapp_id),
-							));
-						}
-						Err(e) => {
-							// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
-							log::error!(
-								"calculate given increase tea how much token mint failed: {:?}",
-								e
-							);
-							return;
-						}
-					}
+					Self::consume_inner(who, tapp_id, tea_amount, note.as_ref());
 				},
 			)
 		}

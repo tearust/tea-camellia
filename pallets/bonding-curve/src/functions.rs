@@ -1005,6 +1005,71 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn tsid_hash(tsid: &[u8]) -> H256 {
 		tsid.using_encoded(blake2_256).into()
 	}
+
+	pub(crate) fn check_consume(
+		who: &T::AccountId,
+		tapp_id: TAppId,
+		tea_amount: BalanceOf<T>,
+		note: Option<&Vec<u8>>,
+	) -> DispatchResult {
+		ensure!(
+			TAppBondingCurve::<T>::contains_key(tapp_id),
+			Error::<T>::TAppIdNotExist
+		);
+		ensure!(
+			!tea_amount.is_zero(),
+			Error::<T>::OperationAmountCanNotBeZero
+		);
+		ensure!(
+			T::CurrencyOperations::free_balance(who) >= tea_amount,
+			Error::<T>::InsufficientFreeBalance,
+		);
+		if let Some(ref note) = note {
+			ensure!(
+				note.len() <= T::ConsumeNoteMaxLength::get() as usize,
+				Error::<T>::ConsumeNoteIsTooLong
+			);
+		}
+		Ok(())
+	}
+
+	pub(crate) fn consume_inner(
+		who: &T::AccountId,
+		tapp_id: TAppId,
+		tea_amount: BalanceOf<T>,
+		note: Option<&Vec<u8>>,
+	) {
+		match Self::calculate_given_increase_tea_how_much_token_mint(tapp_id, tea_amount.clone()) {
+			Ok(deposit_tapp_amount) => {
+				if let Err(e) = Self::allocate_buy_tea_amount(who, tapp_id, deposit_tapp_amount) {
+					// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+					log::error!("allocate buy tea amount failed: {:?}", e);
+					return;
+				}
+				Self::distribute_to_investors(tapp_id, deposit_tapp_amount);
+
+				let (buy_price, sell_price) = Self::query_price(tapp_id);
+				Self::deposit_event(Event::TAppConsume(
+					tapp_id,
+					who.clone(),
+					tea_amount,
+					deposit_tapp_amount,
+					note.cloned(),
+					buy_price,
+					sell_price,
+					TotalSupplyTable::<T>::get(tapp_id),
+				));
+			}
+			Err(e) => {
+				// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
+				log::error!(
+					"calculate given increase tea how much token mint failed: {:?}",
+					e
+				);
+				return;
+			}
+		}
+	}
 }
 
 pub fn approximately_equals<T>(a: BalanceOf<T>, b: BalanceOf<T>, precision: BalanceOf<T>) -> bool
