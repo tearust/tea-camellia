@@ -486,6 +486,36 @@ pub mod genesis_exchange {
 		}
 
 		#[pallet::weight(195_000_000)]
+		pub fn transfer_usd(
+			sender: OriginFor<T>,
+			dest: T::AccountId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						USDStore::<T>::get(who).checked_sub(&amount).is_some(),
+						Error::<T>::InvalidTransferUSDAmount,
+					);
+					ensure!(
+						USDStore::<T>::get(&dest).checked_add(&amount).is_some(),
+						Error::<T>::InvalidTransferUSDAmount
+					);
+
+					Ok(())
+				},
+				|who| {
+					if let Err(e) = Self::transfer_usd_inner(who, &dest, amount) {
+						error!("transfer usd failed: {:?}", e);
+					}
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
 		pub fn borrow_usd(sender: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 

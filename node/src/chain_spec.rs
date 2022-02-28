@@ -30,7 +30,7 @@ const INITIAL_ACCOUNT_BALANCE: Balance = 2_000_000 * DOLLARS;
 const INITIAL_VALIDATOR_BALANCE: Balance = 100 * DOLLARS;
 const COUPON_ACCOUNT_BALANCE: Balance = 1 * DOLLARS;
 
-const INITIAL_EXCHANGE_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
+const INITIAL_EXCHANGE_TEA_BALANCE: Balance = 10_000 * DOLLARS;
 const INITIAL_EXCHANGE_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
 
 const INITIAL_GENESIS_BANK_ACCOUNT_BALANCE: Balance = 100_000 * DOLLARS;
@@ -547,7 +547,7 @@ fn testnet_genesis(
 				bonding_curve_npc_account.clone(),
 				BONDING_CURVE_NPC_INITIAL_USD_BALANCE,
 			),
-			initial_usd_interest_rate: 4, // let initial usd interest rate be 0.02%
+			initial_usd_interest_rate: 0, // let initial usd interest rate be 0.02%
 			borrow_debt_ratio_cap: 0,     // initial borrow debt ratio cap is 0.
 		},
 		bonding_curve: BondingCurveConfig {

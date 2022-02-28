@@ -74,7 +74,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return;
 		}
 
-		if let Err(e) = Self::transfer_usd(&exchange_account, who, *buy_usd_amount) {
+		if let Err(e) = Self::transfer_usd_inner(&exchange_account, who, *buy_usd_amount) {
 			error!("transfer usd failed: {:?}", e);
 			return;
 		}
@@ -146,7 +146,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			return;
 		}
 
-		if let Err(e) = Self::transfer_usd(&exchange_account, who, withdraw_usd_amount) {
+		if let Err(e) = Self::transfer_usd_inner(&exchange_account, who, withdraw_usd_amount) {
 			error!("transfer usd failed: {:?}", e);
 			return;
 		}
@@ -200,7 +200,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let deposit_usd_amount =
 			Self::delta_deposit_amount(buy_tea_amount, exchange_remains_tea, exchange_remains_usd);
 
-		if let Err(e) = Self::transfer_usd(who, &exchange_account, deposit_usd_amount) {
+		if let Err(e) = Self::transfer_usd_inner(who, &exchange_account, deposit_usd_amount) {
 			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 			error!("transfer usd failed: {:?}", e);
 			return;
@@ -273,7 +273,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 			exchange_remains_tea,
 		);
 
-		if let Err(e) = Self::transfer_usd(who, &exchange_account, *sell_usd_amount) {
+		if let Err(e) = Self::transfer_usd_inner(who, &exchange_account, *sell_usd_amount) {
 			// SetFn error handling see https://github.com/tearust/tea-camellia/issues/13
 			error!("transfer usd failed: {:?}", e);
 			return;
@@ -319,7 +319,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		*withdraw_total - AMMCurveKCoefficient::<T>::get() / (*deposit_total + *deposit_delta)
 	}
 
-	pub(crate) fn transfer_usd(
+	pub(crate) fn transfer_usd_inner(
 		source: &T::AccountId,
 		dest: &T::AccountId,
 		value: BalanceOf<T>,
@@ -499,7 +499,7 @@ mod tests {
 			USDStore::<Test>::insert(user2, user2_amount);
 
 			let amount = 1000;
-			assert_ok!(GenesisExchange::transfer_usd(&user1, &user2, amount));
+			assert_ok!(GenesisExchange::transfer_usd_inner(&user1, &user2, amount));
 
 			assert_eq!(USDStore::<Test>::get(user1), user1_amount - amount);
 			assert_eq!(USDStore::<Test>::get(user2), user2_amount + amount);
@@ -517,7 +517,7 @@ mod tests {
 			assert!(!USDStore::<Test>::contains_key(user2));
 
 			let amount = 1000;
-			assert_ok!(GenesisExchange::transfer_usd(&user1, &user2, amount));
+			assert_ok!(GenesisExchange::transfer_usd_inner(&user1, &user2, amount));
 
 			assert_eq!(USDStore::<Test>::get(user1), user1_amount - amount);
 			assert_eq!(USDStore::<Test>::get(user2), amount);
@@ -535,7 +535,7 @@ mod tests {
 
 			let amount = user1_amount + 1;
 			assert_noop!(
-				GenesisExchange::transfer_usd(&user1, &user2, amount),
+				GenesisExchange::transfer_usd_inner(&user1, &user2, amount),
 				Error::<Test>::InvalidTransferUSDAmount
 			);
 

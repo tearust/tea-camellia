@@ -3,6 +3,74 @@ use crate::*;
 use frame_support::{assert_noop, assert_ok};
 
 #[test]
+fn transfer_usd_works() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+
+		let user1_balance = 10000;
+		USDStore::<Test>::insert(user1, user1_balance);
+		assert_eq!(USDStore::<Test>::get(user2), 0);
+
+		let amount1 = 100;
+		assert_ok!(GenesisExchange::transfer_usd(
+			Origin::signed(user1),
+			user2,
+			amount1,
+		));
+
+		assert_eq!(USDStore::<Test>::get(user1), user1_balance - amount1);
+		assert_eq!(USDStore::<Test>::get(user2), amount1);
+
+		let amount2 = 200;
+		assert_ok!(GenesisExchange::transfer_usd(
+			Origin::signed(user1),
+			user2,
+			amount2,
+		));
+
+		assert_eq!(
+			USDStore::<Test>::get(user1),
+			user1_balance - amount1 - amount2
+		);
+		assert_eq!(USDStore::<Test>::get(user2), amount1 + amount2);
+	})
+}
+
+#[test]
+fn transfer_usd_should_fail_if_user_usd_amount_is_not_enough() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+
+		let user1_balance = 10000;
+		USDStore::<Test>::insert(user1, user1_balance);
+
+		assert_noop!(
+			GenesisExchange::transfer_usd(Origin::signed(user1), user2, user1_balance + 1,),
+			Error::<Test>::InvalidTransferUSDAmount
+		);
+	})
+}
+
+#[test]
+fn transfer_usd_should_fail_if_receiver_usd_amount_is_overflow() {
+	new_test_ext().execute_with(|| {
+		let user1 = 1;
+		let user2 = 2;
+
+		let user1_balance = 10000;
+		USDStore::<Test>::insert(user1, user1_balance);
+		USDStore::<Test>::insert(user2, u128::MAX - 1);
+
+		assert_noop!(
+			GenesisExchange::transfer_usd(Origin::signed(user1), user2, user1_balance,),
+			Error::<Test>::InvalidTransferUSDAmount
+		);
+	})
+}
+
+#[test]
 fn buy_tea_to_usd_works() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
