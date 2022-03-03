@@ -161,12 +161,22 @@ impl<T: tea::Config> tea::Pallet<T> {
 		let current_height = frame_system::Pallet::<T>::block_number();
 		let mut statements = Vec::new();
 
+		let reward_count: u32 = T::ReportRawardDuration::get().try_into().unwrap_or(10000);
+		let total_report_reward =
+			ReportRawardAmount::<T>::get().saturating_mul(reward_count.into());
+		let per_report_reward =
+			total_report_reward / (ReportEvidences::<T>::iter().count() as u32).into();
+
+		let total_tips_reward = TipsRawardAmount::<T>::get().saturating_mul(reward_count.into());
+		let per_tips_reward =
+			total_tips_reward / (TipsEvidences::<T>::iter().count() as u32).into();
+
 		ReportEvidences::<T>::iter().for_each(|(phisher, ev)| {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.reporter) {
 				if let Some(owner) = cml.owner() {
 					let reward = Self::cml_reward_by_performance(
 						cml.id(),
-						ReportRawardAmount::<T>::get(),
+						per_report_reward,
 						&current_height,
 					);
 					T::CmlOperation::append_reward(owner, reward.clone());
@@ -177,11 +187,8 @@ impl<T: tea::Config> tea::Pallet<T> {
 		TipsEvidences::<T>::iter().for_each(|(reporter, ev)| {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&reporter) {
 				if let Some(owner) = cml.owner() {
-					let reward = Self::cml_reward_by_performance(
-						cml.id(),
-						TipsRawardAmount::<T>::get(),
-						&current_height,
-					);
+					let reward =
+						Self::cml_reward_by_performance(cml.id(), per_tips_reward, &current_height);
 					T::CmlOperation::append_reward(owner, reward.clone());
 					statements.push((owner.clone(), cml.id(), reporter, ev.target, reward));
 				}
