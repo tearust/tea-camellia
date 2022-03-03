@@ -230,6 +230,30 @@ fn apply_loan_should_fail_if_cml_is_not_genesis_seed() {
 }
 
 #[test]
+fn apply_loan_should_fail_if_cml_is_c_type() {
+	new_test_ext().execute_with(|| {
+		let user = 1;
+		let cml_id: CmlId = 4;
+		let mut seed = seed_from_lifespan(cml_id, 100);
+		seed.cml_type = CmlType::C;
+		let cml = CML::from_genesis_seed(seed);
+		Cml::add_cml(&user, cml);
+
+		let current_height = 100;
+		frame_system::Pallet::<Test>::set_block_number(current_height);
+
+		assert_noop!(
+			GenesisBank::apply_loan_genesis_bank(
+				Origin::signed(user),
+				from_cml_id(cml_id),
+				AssetType::CML
+			),
+			Error::<Test>::CTypeCmlCanNotApplyLoan
+		);
+	})
+}
+
+#[test]
 fn payoff_loan_works() {
 	new_test_ext().execute_with(|| {
 		let user = 1;

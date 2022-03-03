@@ -194,6 +194,7 @@ pub mod genesis_bank {
 		GenesisBankInsufficientFreeBalance,
 		NoNeedToRepayInterest,
 		RepayAmountCanNotBeZero,
+		CTypeCmlCanNotApplyLoan,
 	}
 
 	#[pallet::hooks]

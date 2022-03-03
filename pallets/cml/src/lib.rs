@@ -401,6 +401,8 @@ pub mod cml {
 		InsufficientFreeBalanceToPayForPunishment,
 		/// Can not stop mining when hosting tapp
 		CannotStopMiningWhenHostingTApp,
+		/// C type cmls are not allowed to stake
+		CTypeCmlCanNotStake,
 	}
 
 	#[pallet::hooks]
@@ -1002,6 +1004,10 @@ pub mod cml {
 								Error::<T>::CannotStakeWhenCmlIsInAuction
 							);
 							let cml = CmlStore::<T>::get(cml_id);
+							ensure!(
+								cml.cml_type() != CmlType::C,
+								Error::<T>::CTypeCmlCanNotStake
+							);
 							cml.check_can_stake_to(&current_block_number)
 								.map_err(|e| Error::<T>::from(e))?;
 							Ok(None)

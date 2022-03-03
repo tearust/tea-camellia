@@ -65,6 +65,42 @@ fn start_staking_with_cml_works() {
 }
 
 #[test]
+fn start_staking_with_cml_should_fail_if_the_cml_is_c_type() {
+	new_test_ext().execute_with(|| {
+		let amount = 100 * 1000; // Unit * StakingPrice
+		<Test as Config>::Currency::make_free_balance_be(&1, amount);
+
+		let cml1_id: CmlId = 4;
+		UserCmlStore::<Test>::insert(1, cml1_id, ());
+		let mut cml = CML::from_genesis_seed(seed_from_lifespan(cml1_id, 100));
+		cml.defrost(&0);
+		cml.convert_to_tree(&0);
+		CmlStore::<Test>::insert(cml1_id, cml);
+
+		let cml2_id: CmlId = 5;
+		UserCmlStore::<Test>::insert(2, cml2_id, ());
+		let mut seed = new_genesis_seed(cml2_id);
+		seed.cml_type = CmlType::C;
+		let cml = CML::from_genesis_seed(seed);
+		CmlStore::<Test>::insert(cml2_id, cml);
+
+		assert_ok!(Cml::start_mining(
+			Origin::signed(1),
+			cml1_id,
+			[1u8; 32],
+			1,
+			b"miner_ip".to_vec(),
+			None,
+		));
+
+		assert_noop!(
+			Cml::start_staking(Origin::signed(2), cml1_id, Some(cml2_id), None),
+			Error::<Test>::CTypeCmlCanNotStake
+		);
+	})
+}
+
+#[test]
 fn start_staking_with_balance_should_fail_if_free_balance_is_not_enough() {
 	new_test_ext().execute_with(|| {
 		let cml_id: CmlId = 4;

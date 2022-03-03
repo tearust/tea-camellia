@@ -73,6 +73,10 @@ impl<T: genesis_bank::Config> genesis_bank::Pallet<T> {
 				ensure!(cml.is_frozen_seed(), Error::<T>::ShouldPawnFrozenSeed);
 				#[cfg(not(feature = "fast"))]
 				ensure!(cml.is_from_genesis(), Error::<T>::ShouldPawnGenesisSeed);
+				ensure!(
+					cml.cml_type() != CmlType::C,
+					Error::<T>::CTypeCmlCanNotApplyLoan
+				);
 				T::CmlOperation::check_transfer_cml_to_other(
 					who,
 					&cml_id,
