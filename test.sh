@@ -11,3 +11,5 @@ cargo test -p pallet-bonding-curve --lib
 cargo test -p pallet-utils --lib
 cargo test -p bonding-curve-impl --lib
 cargo test -p pallet-staking --lib
+cargo test -p staking-economics --lib
+
