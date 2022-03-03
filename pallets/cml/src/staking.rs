@@ -49,6 +49,33 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn calculate_staking() {
+		// total task point is 2 * TASK_POINT_BASE * Block count * DOLLARS
+		let total_task_point: ServiceTaskPoint =
+			T::StakingPeriodLength::get().try_into().unwrap_or(1) * 2 * 10000;
+		let current_block = frame_system::Pallet::<T>::block_number();
+
+		let mut performance_map = BTreeMap::new();
+		CmlStore::<T>::iter()
+			.filter(|(_, cml)| {
+				cml.cml_type() == CmlType::B
+					&& match cml.machine_id() {
+						Some(machine_id) => {
+							MinerItemStore::<T>::get(machine_id).status == MinerStatus::Active
+						}
+						None => false,
+					}
+			})
+			.for_each(|(id, cml)| {
+				if let Some(performance) = Self::calculate_miner_performance(&cml, &current_block) {
+					performance_map.insert(id, performance);
+				}
+			});
+		let total_performance: Performance = performance_map.iter().map(|(_, v)| *v).sum();
+		performance_map.into_iter().for_each(|(id, performance)| {
+			// todo potential overflow
+			MiningCmlTaskPoints::<T>::insert(id, total_task_point * performance / total_performance)
+		});
+
 		let reward_statements = Self::estimate_reward_statements(
 			Self::service_task_point_total,
 			Self::miner_task_point,

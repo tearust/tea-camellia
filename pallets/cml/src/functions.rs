@@ -131,6 +131,24 @@ impl<T: cml::Config> cml::Pallet<T> {
 		T::TeaOperation::remove_node(*machine_id, who);
 	}
 
+	pub(crate) fn calculate_miner_performance(
+		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,
+		block_height: &T::BlockNumber,
+	) -> Option<Performance> {
+		if cml.lifespan().is_zero() {
+			return None;
+		} else {
+			if let Some(plant_at_block) = cml.get_plant_at() {
+				let age_percentage =
+					(*block_height - *plant_at_block) * 100u32.into() / cml.lifespan();
+				if let Ok(age_percentage) = age_percentage.try_into() {
+					return Some(cml.calculate_performance(age_percentage));
+				}
+			}
+		};
+		None
+	}
+
 	pub(crate) fn customer_staking_length(
 		owner: &T::AccountId,
 		cml: &CML<T::AccountId, T::BlockNumber, BalanceOf<T>, T::SeedFreshDuration>,

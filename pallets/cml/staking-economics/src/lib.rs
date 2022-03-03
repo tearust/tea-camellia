@@ -34,11 +34,9 @@ impl StakingEconomics<Balance, AccountId> for TeaStakingEconomics {
 	fn total_staking_rewards_of_miner(
 		miner_point: ServiceTaskPoint,
 		_total_point: ServiceTaskPoint,
-		performance: Performance,
+		_performance: Performance,
 	) -> Balance {
-		(miner_point as Balance) * DOLLARS * (performance as Balance)
-			/ TASK_POINT_BASE
-			/ PERFORMANCE_BASE
+		(miner_point as Balance) * DOLLARS / TASK_POINT_BASE
 	}
 
 	/// Calculate all staking weight about the given miner.
