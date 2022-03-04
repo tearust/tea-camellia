@@ -167,9 +167,9 @@ impl<T: tea::Config> tea::Pallet<T> {
 		let per_report_reward =
 			total_report_reward / (ReportEvidences::<T>::iter().count() as u32).into();
 
-		let total_tips_reward = TipsRawardAmount::<T>::get().saturating_mul(reward_count.into());
-		let per_tips_reward =
-			total_tips_reward / (TipsEvidences::<T>::iter().count() as u32).into();
+		// let total_tips_reward = TipsRawardAmount::<T>::get().saturating_mul(reward_count.into());
+		// let per_tips_reward =
+		// 	total_tips_reward / (TipsEvidences::<T>::iter().count() as u32).into();
 
 		ReportEvidences::<T>::iter().for_each(|(phisher, ev)| {
 			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&ev.reporter) {
@@ -184,16 +184,16 @@ impl<T: tea::Config> tea::Pallet<T> {
 				}
 			}
 		});
-		TipsEvidences::<T>::iter().for_each(|(reporter, ev)| {
-			if let Some(cml) = T::CmlOperation::cml_by_machine_id(&reporter) {
-				if let Some(owner) = cml.owner() {
-					let reward =
-						Self::cml_reward_by_performance(cml.id(), per_tips_reward, &current_height);
-					T::CmlOperation::append_reward(owner, reward.clone());
-					statements.push((owner.clone(), cml.id(), reporter, ev.target, reward));
-				}
-			}
-		});
+		// TipsEvidences::<T>::iter().for_each(|(reporter, ev)| {
+		// 	if let Some(cml) = T::CmlOperation::cml_by_machine_id(&reporter) {
+		// 		if let Some(owner) = cml.owner() {
+		// 			let reward =
+		// 				Self::cml_reward_by_performance(cml.id(), per_tips_reward, &current_height);
+		// 			T::CmlOperation::append_reward(owner, reward.clone());
+		// 			statements.push((owner.clone(), cml.id(), reporter, ev.target, reward));
+		// 		}
+		// 	}
+		// });
 
 		ReportEvidences::<T>::remove_all(None);
 		TipsEvidences::<T>::remove_all(None);
