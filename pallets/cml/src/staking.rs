@@ -49,9 +49,10 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 
 	pub(crate) fn calculate_staking() {
-		// total task point is 2 * TASK_POINT_BASE * Block count * DOLLARS
+		// total task point is 2 * Block count * DOLLARS * TASK_POINT_BASE
 		let total_task_point: ServiceTaskPoint =
-			T::StakingPeriodLength::get().try_into().unwrap_or(1) * 2 * 10000;
+			T::StakingPeriodLength::get().try_into().unwrap_or(1) * 2 * 10000
+				/ Self::task_point_base();
 		let current_block = frame_system::Pallet::<T>::block_number();
 
 		let mut performance_map = BTreeMap::new();
