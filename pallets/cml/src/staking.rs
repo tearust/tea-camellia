@@ -48,7 +48,11 @@ impl<T: cml::Config> cml::Pallet<T> {
 		MiningCmlTaskPoints::<T>::remove_all(None);
 	}
 
-	pub(crate) fn calculate_staking() {
+	fn allocating_task_point() {
+		if Self::task_point_base().is_zero() {
+			return;
+		}
+
 		// total task point is 2 * Block count * DOLLARS * TASK_POINT_BASE
 		let total_task_point: ServiceTaskPoint =
 			T::StakingPeriodLength::get().try_into().unwrap_or(1) * 2 * 10000
@@ -72,10 +76,19 @@ impl<T: cml::Config> cml::Pallet<T> {
 				}
 			});
 		let total_performance: Performance = performance_map.iter().map(|(_, v)| *v).sum();
-		performance_map.into_iter().for_each(|(id, performance)| {
-			// todo potential overflow
-			MiningCmlTaskPoints::<T>::insert(id, total_task_point * performance / total_performance)
-		});
+		if !total_performance.is_zero() {
+			performance_map.into_iter().for_each(|(id, performance)| {
+				// todo potential overflow
+				MiningCmlTaskPoints::<T>::insert(
+					id,
+					total_task_point * performance / total_performance,
+				)
+			});
+		}
+	}
+
+	pub(crate) fn calculate_staking() {
+		Self::allocating_task_point();
 
 		let reward_statements = Self::estimate_reward_statements(
 			Self::service_task_point_total,
