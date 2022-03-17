@@ -42,4 +42,11 @@ impl<T: tea::Config> tea::Pallet<T> {
 			.map(|(id, _)| id)
 			.collect()
 	}
+
+	pub fn find_peer_ids_by_conn_ids(conn_ids: Vec<Vec<u8>>) -> Vec<(Vec<u8>, [u8; 32])> {
+		Nodes::<T>::iter()
+			.filter(|(_, node)| conn_ids.contains(&node.conn_id))
+			.map(|(id, node)| (node.conn_id.clone(), id))
+			.collect()
+	}
 }

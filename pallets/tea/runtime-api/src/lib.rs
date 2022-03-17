@@ -29,5 +29,7 @@ sp_api::decl_runtime_apis! {
 		fn find_tea_id_by_peer_id(peer_id: Vec<u8>) -> Vec<[u8; 32]>;
 
 		fn version_expired_nodes() -> Vec<[u8; 32]>;
+
+		fn find_peer_ids_by_conn_ids(conn_ids: Vec<Vec<u8>>) -> Vec<(Vec<u8>, [u8; 32])>;
 	}
 }

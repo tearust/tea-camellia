@@ -46,6 +46,13 @@ pub trait TeaApi<BlockHash, AccountId> {
 
 	#[rpc(name = "tea_versionExpiredNodes")]
 	fn version_expired_nodes(&self, at: Option<BlockHash>) -> Result<Vec<[u8; 32]>>;
+
+	#[rpc(name = "tea_findPeerIdsByConnIds")]
+	fn find_peer_ids_by_conn_ids(
+		&self,
+		conn_ids: Vec<Vec<u8>>,
+		at: Option<BlockHash>,
+	) -> Result<Vec<(Vec<u8>, [u8; 32])>>;
 }
 
 pub struct TeaApiImpl<C, M> {
@@ -176,6 +183,22 @@ where
 
 		let result = api
 			.version_expired_nodes(&at)
+			.map_err(runtime_error_into_rpc_err)?;
+		Ok(result)
+	}
+
+	fn find_peer_ids_by_conn_ids(
+		&self,
+		conn_ids: Vec<Vec<u8>>,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Vec<(Vec<u8>, [u8; 32])>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let result = api
+			.find_peer_ids_by_conn_ids(&at, conn_ids)
 			.map_err(runtime_error_into_rpc_err)?;
 		Ok(result)
 	}

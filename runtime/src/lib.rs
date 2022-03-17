@@ -1383,6 +1383,10 @@ impl_runtime_apis! {
 		fn version_expired_nodes() -> Vec<[u8; 32]> {
 			Tea::list_version_expired_nodes()
 		}
+
+		fn find_peer_ids_by_conn_ids(conn_ids: Vec<Vec<u8>>) -> Vec<(Vec<u8>, [u8; 32])> {
+			Tea::find_peer_ids_by_conn_ids(conn_ids)
+		}
 	}
 
 	impl genesis_bank_runtime_api::GenesisBankApi<Block, AccountId> for Runtime {
