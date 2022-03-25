@@ -145,11 +145,6 @@ pub mod bonding_curve {
 	>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn total_supply_table)]
-	pub type TotalSupplyTable<T: Config> =
-		StorageMap<_, Twox64Concat, TAppId, BalanceOf<T>, ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn tapp_bonding_curve)]
 	pub type TAppBondingCurve<T: Config> = StorageMap<
 		_,
@@ -972,7 +967,7 @@ pub mod bonding_curve {
 						Error::<T>::InsufficientFreeBalance,
 					);
 					ensure!(
-						TotalSupplyTable::<T>::get(tapp_id)
+						Self::total_supply(tapp_id)
 							.checked_add(&tapp_amount)
 							.ok_or(Error::<T>::AddOverflow)?
 							< T::TotalSupplyMaxValue::get(),
@@ -991,7 +986,7 @@ pub mod bonding_curve {
 						tapp_amount,
 						buy_price,
 						sell_price,
-						TotalSupplyTable::<T>::get(tapp_id),
+						Self::total_supply(tapp_id),
 					));
 				},
 			)
@@ -1035,7 +1030,7 @@ pub mod bonding_curve {
 						tapp_amount,
 						buy_price,
 						sell_price,
-						TotalSupplyTable::<T>::get(tapp_id),
+						Self::total_supply(tapp_id),
 					));
 
 					Self::try_bankrupt_tapp(tapp_id);
@@ -1116,7 +1111,7 @@ pub mod bonding_curve {
 							tapp.current_cost,
 						)?;
 					ensure!(
-						TotalSupplyTable::<T>::get(tapp_id) >= withdraw_tapp_amount,
+						Self::total_supply(tapp_id) >= withdraw_tapp_amount,
 						Error::<T>::InsufficientTotalSupply
 					);
 					Ok(())

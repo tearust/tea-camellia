@@ -222,6 +222,16 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		})
 	}
 
+	pub fn total_supply(tapp_id: TAppId) -> BalanceOf<T> {
+		let mut total_supply: BalanceOf<T> = Zero::zero();
+		AccountTable::<T>::iter()
+			.filter(|(_, id, _)| tapp_id == *id)
+			.for_each(|(_, _, amount)| {
+				total_supply = total_supply.saturating_add(amount);
+			});
+		total_supply
+	}
+
 	pub fn count_active_host_number(tapp_id: TAppId) -> usize {
 		TAppCurrentHosts::<T>::iter_prefix(tapp_id)
 			.filter(|(cml_id, _)| {
@@ -269,9 +279,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				AccountTable::<T>::mutate(who, tapp_id, |amount| {
 					*amount = amount.saturating_add(tapp_amount);
 				});
-				TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
-					*amount = amount.saturating_add(tapp_amount);
-				});
 
 				deposit_tea_amount
 			}
@@ -301,9 +308,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			log::error!("{}", e);
 			return Zero::zero();
 		}
-		TotalSupplyTable::<T>::mutate(tapp_id, |amount| {
-			*amount = amount.saturating_sub(tapp_amount);
-		});
 
 		match Self::calculate_sell_amount(tapp_id, tapp_amount) {
 			Ok(deposit_tea_amount) => {
@@ -332,11 +336,10 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	}
 
 	pub fn try_clean_tapp_related(tapp_id: TAppId) -> bool {
-		if !TotalSupplyTable::<T>::get(tapp_id).is_zero() {
+		if !Self::total_supply(tapp_id).is_zero() {
 			return false;
 		}
 
-		TotalSupplyTable::<T>::remove(tapp_id);
 		let need_remove_keypair: Vec<(T::AccountId, TAppId)> = AccountTable::<T>::iter()
 			.filter(|(_, id, _)| *id == tapp_id)
 			.map(|(acc, id, _)| (acc, id))
@@ -480,22 +483,18 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		AccountTable::<T>::iter()
 			.filter(|(_, id, _)| tapp_id == *id)
 			.for_each(|(_, _, amount)| sum = sum.saturating_add(amount));
-		TotalSupplyTable::<T>::insert(tapp_id, sum);
 	}
 
 	pub(crate) fn collect_with_investors(tapp_id: TAppId, collecting_amount: BalanceOf<T>) {
 		// todo replace total amount with total supply later if calculation result is correct
 		let (investors, total_amount) = Self::tapp_investors(tapp_id);
-		if !approximately_equals::<T>(
-			total_amount,
-			TotalSupplyTable::<T>::get(tapp_id),
-			CALCULATION_PRECISION.into(),
-		) {
+		let total_supply = Self::total_supply(tapp_id);
+		if !approximately_equals::<T>(total_amount, total_supply, CALCULATION_PRECISION.into()) {
 			log::error!(
 				"collecting calculate total amount error: calculated result is: {:?}, \
 				total supply is {:?}",
 				total_amount,
-				TotalSupplyTable::<T>::get(tapp_id)
+				total_supply
 			);
 		}
 
@@ -531,7 +530,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		match tapp_id {
 			Some(tapp_id) => {
 				let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
-				let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+				let total_supply = Self::total_supply(tapp_id);
 				Self::calculate_increase_amount_from_raise_curve_total_supply(
 					tapp_item.buy_curve_k,
 					total_supply,
@@ -554,7 +553,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
-		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		let total_supply = Self::total_supply(tapp_id);
 		Self::calculate_increase_amount_from_raise_curve_total_supply(
 			tapp_item.sell_curve_k,
 			total_supply,
@@ -585,7 +584,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tea_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
-		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		let total_supply = Self::total_supply(tapp_id);
 		let buy_curve = UnsignedSquareRoot::new(tapp_item.buy_curve_k);
 		let current_buy_area_tea_amount = buy_curve.pool_balance(total_supply);
 		let after_increase_tea_amount = current_buy_area_tea_amount
@@ -641,7 +640,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tapp_amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
-		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		let total_supply = Self::total_supply(tapp_id);
 		ensure!(
 			tapp_amount <= total_supply,
 			Error::<T>::InsufficientTotalSupply
@@ -668,7 +667,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	) -> Result<(BalanceOf<T>, BalanceOf<T>), DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
 		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_k);
-		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		let total_supply = Self::total_supply(tapp_id);
 		let current_reserve_pool_tea = sell_curve.pool_balance(total_supply);
 
 		let pay_amount = if current_reserve_pool_tea < tea_amount {
@@ -977,7 +976,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 							tapp_statements,
 							buy_price,
 							sell_price,
-							TotalSupplyTable::<T>::get(tapp_id),
+							Self::total_supply(tapp_id),
 							is_fix_token_mode,
 						));
 					}
@@ -1057,7 +1056,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					note.cloned(),
 					buy_price,
 					sell_price,
-					TotalSupplyTable::<T>::get(tapp_id),
+					Self::total_supply(tapp_id),
 				));
 			}
 			Err(e) => {
@@ -1112,7 +1111,7 @@ mod tests {
 					..Default::default()
 				},
 			);
-			assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 0);
+			assert_eq!(BondingCurve::total_supply(tapp_id), 0);
 
 			let deposit_amount = BondingCurve::allocate_buy_tea_amount(&user1, 1, 1_000_000);
 			assert_eq!(deposit_amount, Ok(666));
@@ -1126,17 +1125,17 @@ mod tests {
 				466
 			);
 
-			TotalSupplyTable::<Test>::insert(tapp_id, 1_000_000);
+			//TotalSupplyTable::<Test>::insert(tapp_id, 1_000_000);
 			let deposit_amount = BondingCurve::allocate_buy_tea_amount(&user3, 1, 9_000_000);
-			assert_eq!(deposit_amount.unwrap(), 20414);
-			assert_eq!(<Test as Config>::Currency::free_balance(&user2), 6324);
+			assert_eq!(deposit_amount.unwrap(), 18000);
+			assert_eq!(<Test as Config>::Currency::free_balance(&user2), 5600);
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&user3),
-				999999979586
+				999999982000
 			);
 			assert_eq!(
 				<Test as Config>::Currency::free_balance(&ReservedBalanceAccount::<Test>::get()),
-				14756
+				13066
 			);
 		})
 	}
@@ -1145,7 +1144,7 @@ mod tests {
 	fn calculate_given_increase_tea_how_much_token_mint_works() {
 		new_test_ext().execute_with(|| {
 			let tapp_id = 1;
-			TotalSupplyTable::<Test>::insert(tapp_id, 0);
+			//TotalSupplyTable::<Test>::insert(tapp_id, 0);
 			TAppBondingCurve::<Test>::insert(
 				tapp_id,
 				TAppItem {
@@ -1162,7 +1161,7 @@ mod tests {
 				1_000_000_000_000,
 				1000
 			));
-			TotalSupplyTable::<Test>::insert(tapp_id, 1_000_000_000_000);
+			AccountTable::<Test>::insert(22, tapp_id, 1_000_000_000_000);
 			let amount = BondingCurve::calculate_given_increase_tea_how_much_token_mint(
 				tapp_id,
 				666666666666,
@@ -1175,7 +1174,7 @@ mod tests {
 	fn calculate_sell_amount_works() {
 		new_test_ext().execute_with(|| {
 			let tapp_id = 1;
-			TotalSupplyTable::<Test>::insert(tapp_id, 100_000_000);
+			AccountTable::<Test>::insert(22, tapp_id, 100_000_000);
 			TAppBondingCurve::<Test>::insert(
 				tapp_id,
 				TAppItem {
@@ -1408,7 +1407,7 @@ mod tests {
 
 			TAppLastActivity::<Test>::insert(tapp_id, (3, 1));
 
-			assert!(!TotalSupplyTable::<Test>::get(tapp_id).is_zero());
+			assert!(!BondingCurve::total_supply(tapp_id).is_zero());
 			assert!(AccountTable::<Test>::contains_key(owner1, tapp_id));
 			assert!(AccountTable::<Test>::contains_key(user1, tapp_id));
 			assert!(AccountTable::<Test>::contains_key(user2, tapp_id));
@@ -1424,7 +1423,10 @@ mod tests {
 			assert!(TAppLastActivity::<Test>::contains_key(tapp_id));
 			assert_eq!(TAppReservedBalance::<Test>::iter_prefix(tapp_id).count(), 2);
 
-			TotalSupplyTable::<Test>::insert(tapp_id, 0);
+			AccountTable::<Test>::iter()
+				.filter(|(_, id, _)| *id == tapp_id)
+				.for_each(|(acc, id, _)| AccountTable::<Test>::insert(acc, id, 0));
+			assert_eq!(BondingCurve::total_supply(tapp_id), 0);
 			BondingCurve::try_clean_tapp_related(tapp_id);
 
 			assert!(!AccountTable::<Test>::contains_key(owner1, tapp_id));
@@ -1530,7 +1532,7 @@ mod tests {
 			});
 			BondingCurve::expense_inner(tapp_id);
 
-			assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 0);
+			assert_eq!(BondingCurve::total_supply(tapp_id), 0);
 
 			assert!(!AccountTable::<Test>::contains_key(user1, tapp_id));
 			assert!(!AccountTable::<Test>::contains_key(user2, tapp_id));

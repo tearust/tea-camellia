@@ -4,7 +4,7 @@ use pallet_cml::{SeedProperties, TreeProperties};
 impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub fn query_price(tapp_id: TAppId) -> (BalanceOf<T>, BalanceOf<T>) {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
-		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		let total_supply = Self::total_supply(tapp_id);
 		let buy_curve = UnsignedSquareRoot::new(tapp_item.buy_curve_k);
 		let sell_curve = UnsignedSquareRoot::new(tapp_item.sell_curve_k);
 		let buy_price = buy_curve.buy_price(total_supply);
@@ -101,7 +101,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			})
 			.map(|(id, item)| {
 				let (buy_price, sell_price) = Self::query_price(id);
-				let total_supply = TotalSupplyTable::<T>::get(id);
+				let total_supply = Self::total_supply(id);
 
 				let active_height: Option<T::BlockNumber> = match item.status {
 					TAppStatus::Active(height) => Some(height),
@@ -166,7 +166,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			.map(|(id, amount)| {
 				let (_, sell_price) = Self::query_price(id);
 				let item = TAppBondingCurve::<T>::get(id);
-				let total_supply = TotalSupplyTable::<T>::get(id);
+				let total_supply = Self::total_supply(id);
 
 				let host_performance = item.host_performance();
 				(
@@ -218,7 +218,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	) {
 		let item = TAppBondingCurve::<T>::get(tapp_id);
 		let (buy_price, sell_price) = Self::query_price(tapp_id);
-		let total_supply = TotalSupplyTable::<T>::get(tapp_id);
+		let total_supply = Self::total_supply(tapp_id);
 
 		let host_performance = item.host_performance();
 		(

@@ -262,7 +262,7 @@ fn create_new_fixed_fee_tapp_works() {
 		let tapp_id = 1;
 		assert_eq!(LastTAppId::<Test>::get(), tapp_id);
 		assert_eq!(AccountTable::<Test>::get(user, tapp_id), init_fund);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
+		assert_eq!(BondingCurve::total_supply(tapp_id), init_fund);
 		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
@@ -324,7 +324,7 @@ fn create_new_fixed_token_tapp_works() {
 		let tapp_id = 1;
 		assert_eq!(LastTAppId::<Test>::get(), tapp_id);
 		assert_eq!(AccountTable::<Test>::get(user, tapp_id), init_fund);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
+		assert_eq!(BondingCurve::total_supply(tapp_id), init_fund);
 		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
@@ -388,7 +388,7 @@ fn create_new_tapp_with_custom_theta_works() {
 		let tapp_id = 1;
 		assert_eq!(LastTAppId::<Test>::get(), tapp_id);
 		assert_eq!(AccountTable::<Test>::get(user, tapp_id), init_fund);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
+		assert_eq!(BondingCurve::total_supply(tapp_id), init_fund);
 		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
@@ -456,7 +456,7 @@ fn create_new_reserved_tapp_using_npc_account_works() {
 		let tapp_id = 1;
 		assert_eq!(LastReservedTAppId::<Test>::get(), tapp_id);
 		assert_eq!(AccountTable::<Test>::get(npc, tapp_id), init_fund);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), init_fund);
+		assert_eq!(BondingCurve::total_supply(tapp_id), init_fund);
 		assert_eq!(TAppNames::<Test>::get(tapp_name.as_bytes()), tapp_id);
 		assert_eq!(TAppTickers::<Test>::get(ticker.as_bytes()), tapp_id);
 		let tapp_item = TAppBondingCurve::<Test>::get(tapp_id);
@@ -1192,7 +1192,7 @@ fn buy_token_works() {
 
 		assert_eq!(AccountTable::<Test>::get(&owner, tapp_id), tapp_amount);
 		assert_eq!(AccountTable::<Test>::get(&user, tapp_id), tapp_amount);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), tapp_amount * 2);
+		assert_eq!(BondingCurve::total_supply(tapp_id), tapp_amount * 2);
 	})
 }
 
@@ -1371,7 +1371,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		assert_eq!(TAppApprovedLinks::<Test>::get(&link).tapp_id, None);
 		assert_eq!(TAppApprovedLinks::<Test>::get(&link).creator, None);
 		assert!(!AccountTable::<Test>::contains_key(&owner, tapp_id));
-		assert!(!TotalSupplyTable::<Test>::contains_key(tapp_id));
+		//assert!(!TotalSupplyTable::<Test>::contains_key(tapp_id));
 		assert!(!TAppBondingCurve::<Test>::contains_key(tapp_id));
 		assert!(!TAppNames::<Test>::contains_key(name));
 		assert!(!TAppTickers::<Test>::contains_key(ticker));
@@ -1379,6 +1379,58 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 			<Test as Config>::Currency::free_balance(&owner),
 			999999999534
 		);
+	})
+}
+
+#[test]
+fn sell_token_works_with_large_amount() {
+	new_test_ext().execute_with(|| {
+		EnableUserCreateTApp::<Test>::set(true);
+		let owner = 1;
+		let user1 = 11;
+		let tapp_amount = 1_000_000;
+		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
+		<Test as Config>::Currency::make_free_balance_be(&user1, DOLLARS * 100_000_000);
+
+		let npc = NPCAccount::<Test>::get();
+		let link = b"https://teaproject.org".to_vec();
+		assert_ok!(BondingCurve::register_tapp_link(
+			Origin::signed(npc),
+			link.clone(),
+			"test description".into(),
+			Some(owner),
+		));
+		assert_ok!(BondingCurve::create_new_tapp(
+			Origin::signed(owner),
+			b"test name".to_vec(),
+			b"tea".to_vec(),
+			1_000_000,
+			b"test detail".to_vec(),
+			link,
+			10,
+			TAppType::Twitter,
+			true,
+			None,
+			Some(1000),
+			None,
+			None,
+		));
+		let tapp_id = 1;
+		assert_eq!(AccountTable::<Test>::get(owner, tapp_id), tapp_amount);
+
+		let buy_amount = 1000 * DOLLARS;
+		assert_ok!(BondingCurve::buy_token(
+			Origin::signed(user1),
+			tapp_id,
+			buy_amount
+		));
+
+		assert_ok!(BondingCurve::sell_token(
+			Origin::signed(user1),
+			tapp_id,
+			buy_amount
+		));
+		assert_eq!(AccountTable::<Test>::get(user1, tapp_id), 0);
 	})
 }
 
@@ -1455,26 +1507,6 @@ fn sell_token_should_fail_if_tapp_amount_is_too_low() {
 }
 
 #[test]
-fn sell_token_should_fail_if_tapp_total_supply_is_not_enough() {
-	new_test_ext().execute_with(|| {
-		EnableUserCreateTApp::<Test>::set(true);
-		let owner = 1;
-		let tapp_amount = 1_000_000;
-		<Test as Config>::Currency::make_free_balance_be(&owner, DOLLARS);
-
-		assert_ok!(create_default_tapp(owner));
-
-		let tapp_id = 1;
-		// should never happen, set here just to cover the test case.
-		TotalSupplyTable::<Test>::mutate(tapp_id, |amount| *amount = tapp_amount - 1);
-		assert_noop!(
-			BondingCurve::sell_token(Origin::signed(owner), tapp_id, tapp_amount),
-			Error::<Test>::InsufficientTotalSupply
-		);
-	})
-}
-
-#[test]
 fn consume_works_large_tea() {
 	new_test_ext().execute_with(|| {
 		EnableUserCreateTApp::<Test>::set(true);
@@ -1503,7 +1535,7 @@ fn consume_works_large_tea() {
 			tapp_amount3
 		));
 		assert_eq!(
-			TotalSupplyTable::<Test>::get(tapp_id),
+			BondingCurve::total_supply(tapp_id),
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
 		let spend_tea = 10 * DOLLARS;
@@ -1626,7 +1658,7 @@ fn consume_works() {
 			tapp_amount3
 		));
 		assert_eq!(
-			TotalSupplyTable::<Test>::get(tapp_id),
+			BondingCurve::total_supply(tapp_id),
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
 		let spend_tea = 1000000;
@@ -1646,7 +1678,7 @@ fn consume_works() {
 		assert_eq!(AccountTable::<Test>::get(user2, tapp_id), 37746650);
 		assert_eq!(AccountTable::<Test>::get(user3, tapp_id), 75493301);
 		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 132113276)
+		assert_eq!(BondingCurve::total_supply(tapp_id), 132113276)
 	})
 }
 
@@ -1733,7 +1765,7 @@ fn consume_works_with_miner() {
 		assert_ok!(BondingCurve::host(Origin::signed(miner2), cml_id2, tapp_id));
 		// total supply only including staking amount
 		assert_eq!(
-			TotalSupplyTable::<Test>::get(tapp_id),
+			BondingCurve::total_supply(tapp_id),
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
 
@@ -1762,7 +1794,7 @@ fn consume_works_with_miner() {
 		assert_eq!(AccountTable::<Test>::get(miner1, tapp_id), MOCKED_DOLLARS);
 		assert_eq!(AccountTable::<Test>::get(miner2, tapp_id), MOCKED_DOLLARS);
 		assert_eq!(AccountTable::<Test>::get(user4, tapp_id), 0);
-		assert_eq!(TotalSupplyTable::<Test>::get(tapp_id), 104510326)
+		assert_eq!(BondingCurve::total_supply(tapp_id), 104510326)
 	})
 }
 
@@ -1883,7 +1915,7 @@ fn consume_auto_works() {
 			tapp_amount3
 		));
 		assert_eq!(
-			TotalSupplyTable::<Test>::get(tapp_id),
+			BondingCurve::total_supply(tapp_id),
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
 		let spend_tea = 10 * DOLLARS;
@@ -1933,7 +1965,7 @@ fn consume_auto_should_fail_if_tsid_is_same() {
 			tapp_amount3
 		));
 		assert_eq!(
-			TotalSupplyTable::<Test>::get(tapp_id),
+			BondingCurve::total_supply(tapp_id),
 			tapp_amount1 + tapp_amount2 + tapp_amount3
 		);
 		let spend_tea = 10 * DOLLARS;
