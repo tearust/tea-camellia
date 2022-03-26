@@ -294,6 +294,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		who: &T::AccountId,
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
+		total_supply: BalanceOf<T>,
 	) -> BalanceOf<T> {
 		if let Err(e) = AccountTable::<T>::mutate(who, tapp_id, |amount| {
 			match amount.checked_sub(&tapp_amount) {
@@ -309,7 +310,7 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 			return Zero::zero();
 		}
 
-		match Self::calculate_sell_amount(tapp_id, tapp_amount) {
+		match Self::calculate_sell_amount(tapp_id, tapp_amount, total_supply) {
 			Ok(deposit_tea_amount) => {
 				if let Err(e) = T::CurrencyOperations::transfer(
 					&ReservedBalanceAccount::<T>::get(),
@@ -474,15 +475,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 				consume_statements,
 			));
 		}
-
-		Self::update_total_supply(tapp_id)
-	}
-
-	fn update_total_supply(tapp_id: TAppId) {
-		let mut sum: BalanceOf<T> = Zero::zero();
-		AccountTable::<T>::iter()
-			.filter(|(_, id, _)| tapp_id == *id)
-			.for_each(|(_, _, amount)| sum = sum.saturating_add(amount));
 	}
 
 	pub(crate) fn collect_with_investors(tapp_id: TAppId, collecting_amount: BalanceOf<T>) {
@@ -504,8 +496,6 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 					user_amount.saturating_sub(collecting_amount * (*user_amount) / total_amount);
 			});
 		});
-
-		Self::update_total_supply(tapp_id)
 	}
 
 	pub(crate) fn tapp_investors(tapp_id: TAppId) -> (BTreeSet<T::AccountId>, BalanceOf<T>) {
@@ -638,9 +628,9 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 	pub(crate) fn calculate_sell_amount(
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
+		total_supply: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let tapp_item = TAppBondingCurve::<T>::get(tapp_id);
-		let total_supply = Self::total_supply(tapp_id);
 		ensure!(
 			tapp_amount <= total_supply,
 			Error::<T>::InsufficientTotalSupply
@@ -1183,7 +1173,11 @@ mod tests {
 				},
 			);
 
-			let amount = BondingCurve::calculate_sell_amount(tapp_id, 90_000_000);
+			let amount = BondingCurve::calculate_sell_amount(
+				tapp_id,
+				90_000_000,
+				BondingCurve::total_supply(tapp_id),
+			);
 			assert_eq!(amount.unwrap(), 451910);
 		})
 	}

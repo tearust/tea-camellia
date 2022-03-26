@@ -1000,6 +1000,7 @@ pub mod bonding_curve {
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
+			let total_supply = Self::total_supply(tapp_id);
 			extrinsic_procedure(
 				&who,
 				|who| {
@@ -1015,12 +1016,14 @@ pub mod bonding_curve {
 						!tapp_amount.is_zero(),
 						Error::<T>::OperationAmountCanNotBeZero
 					);
-					let tea_amount = Self::calculate_sell_amount(tapp_id, tapp_amount)?;
+					let tea_amount =
+						Self::calculate_sell_amount(tapp_id, tapp_amount, total_supply.clone())?;
 					ensure!(!tea_amount.is_zero(), Error::<T>::SellTeaAmountCanNotBeZero);
 					Ok(())
 				},
 				|who| {
-					let sold_amount = Self::sell_token_inner(who, tapp_id, tapp_amount);
+					let sold_amount =
+						Self::sell_token_inner(who, tapp_id, tapp_amount, total_supply);
 
 					let (buy_price, sell_price) = Self::query_price(tapp_id);
 					Self::deposit_event(Event::TokenSold(

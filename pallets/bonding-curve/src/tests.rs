@@ -1377,7 +1377,7 @@ fn sell_token_works_when_total_balance_reduce_to_zero() {
 		assert!(!TAppTickers::<Test>::contains_key(ticker));
 		assert_eq!(
 			<Test as Config>::Currency::free_balance(&owner),
-			999999999534
+			1000000000000
 		);
 	})
 }

@@ -30,7 +30,8 @@ impl<T: bonding_curve::Config> bonding_curve::Pallet<T> {
 		tapp_id: TAppId,
 		tapp_amount: BalanceOf<T>,
 	) -> BalanceOf<T> {
-		match Self::calculate_sell_amount(tapp_id, tapp_amount) {
+		let total_supply = Self::total_supply(tapp_id);
+		match Self::calculate_sell_amount(tapp_id, tapp_amount, total_supply) {
 			Ok(balance) => balance,
 			Err(e) => {
 				log::error!("calculation failed: {:?}", e);
