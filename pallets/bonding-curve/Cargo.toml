@@ -30,10 +30,10 @@ sp-runtime = {default-features = false, git = 'https://github.com/paritytech/sub
 frame-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 hex = {default-features = false, optional = true, version = '0.4.3'}
 
-bonding-curve-interface = { path = "./interface", default-features = false }
+bonding-curve-interface = { path = "../../../bonding-curve/interface", default-features = false }
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
 pallet-cml = {default-features = false, path = '../cml'}
-bonding-curve-impl = {default-features = false, path = "./curve-impl" }
+bonding-curve-impl = {default-features = false, path = "../../../bonding-curve/curve-impl" }
 
 [dev-dependencies]
 serde = '1.0.119'

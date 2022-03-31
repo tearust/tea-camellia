@@ -43,7 +43,7 @@ pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '
 node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 auction-interface = { path = '../auction/interface' }
 genesis-exchange-interface = { path = "../genesis-exchange/interface" }
-bonding-curve-interface = { path = "../bonding-curve/interface" }
+bonding-curve-interface = { path = "../../../bonding-curve/interface", default-features = false }
 
 [features]
 default = ['std']
