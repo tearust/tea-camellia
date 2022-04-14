@@ -129,6 +129,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 		MinerIpSet::<T>::remove(miner_item.ip);
 
 		T::TeaOperation::remove_node(*machine_id, who);
+
+		Self::deposit_event(Event::MiningStoped(cml_id, *machine_id));
 	}
 
 	pub(crate) fn calculate_miner_performance(

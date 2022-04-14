@@ -284,6 +284,16 @@ pub mod cml {
 		///
 		/// - CmlId
 		/// - MachineId: mining TEA Id
+		MiningSuspended(CmlId, MachineId),
+		/// Event fields:
+		///
+		/// - CmlId
+		/// - MachineId: mining TEA Id
+		MiningResumed(CmlId, MachineId),
+		/// Event fields:
+		///
+		/// - CmlId
+		/// - MachineId: mining TEA Id
 		/// - Ip address
 		Migrated(CmlId, MachineId, Vec<u8>),
 	}
@@ -780,7 +790,7 @@ pub mod cml {
 								T::BondingCurveOperation::try_deactive_tapp(*tapp_id);
 							});
 
-						Self::deposit_event(Event::MiningStoped(cml_id, machine_id.clone()));
+						Self::deposit_event(Event::MiningSuspended(cml_id, machine_id.clone()));
 					}
 				},
 			)
@@ -808,13 +818,15 @@ pub mod cml {
 							item.status = MinerStatus::Active;
 							item.schedule_down_height = None;
 						});
-					}
 
-					T::BondingCurveOperation::cml_host_tapps(cml_id)
-						.iter()
-						.for_each(|tapp_id| {
-							T::BondingCurveOperation::try_active_tapp(*tapp_id);
-						});
+						T::BondingCurveOperation::cml_host_tapps(cml_id)
+							.iter()
+							.for_each(|tapp_id| {
+								T::BondingCurveOperation::try_active_tapp(*tapp_id);
+							});
+
+						Self::deposit_event(Event::MiningResumed(cml_id, *machine_id));
+					}
 				},
 			)
 		}
