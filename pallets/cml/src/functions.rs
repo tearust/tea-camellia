@@ -130,7 +130,8 @@ impl<T: cml::Config> cml::Pallet<T> {
 
 		T::TeaOperation::remove_node(*machine_id, who);
 
-		Self::deposit_event(Event::MiningStoped(cml_id, *machine_id));
+		let current_block = frame_system::Pallet::<T>::block_number();
+		Self::deposit_event(Event::MiningStoped(cml_id, *machine_id, current_block));
 	}
 
 	pub(crate) fn calculate_miner_performance(

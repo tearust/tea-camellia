@@ -279,17 +279,17 @@ pub mod cml {
 		///
 		/// - CmlId
 		/// - MachineId: mining TEA Id
-		MiningStoped(CmlId, MachineId),
+		MiningStoped(CmlId, MachineId, T::BlockNumber),
 		/// Event fields:
 		///
 		/// - CmlId
 		/// - MachineId: mining TEA Id
-		MiningSuspended(CmlId, MachineId),
+		MiningSuspended(CmlId, MachineId, T::BlockNumber),
 		/// Event fields:
 		///
 		/// - CmlId
 		/// - MachineId: mining TEA Id
-		MiningResumed(CmlId, MachineId),
+		MiningResumed(CmlId, MachineId, T::BlockNumber),
 		/// Event fields:
 		///
 		/// - CmlId
@@ -790,7 +790,12 @@ pub mod cml {
 								T::BondingCurveOperation::try_deactive_tapp(*tapp_id);
 							});
 
-						Self::deposit_event(Event::MiningSuspended(cml_id, machine_id.clone()));
+						let current_block = frame_system::Pallet::<T>::block_number();
+						Self::deposit_event(Event::MiningSuspended(
+							cml_id,
+							machine_id.clone(),
+							current_block,
+						));
 					}
 				},
 			)
@@ -825,7 +830,12 @@ pub mod cml {
 								T::BondingCurveOperation::try_active_tapp(*tapp_id);
 							});
 
-						Self::deposit_event(Event::MiningResumed(cml_id, *machine_id));
+						let current_block = frame_system::Pallet::<T>::block_number();
+						Self::deposit_event(Event::MiningResumed(
+							cml_id,
+							*machine_id,
+							current_block,
+						));
 					}
 				},
 			)
