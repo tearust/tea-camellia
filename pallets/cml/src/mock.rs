@@ -1,7 +1,6 @@
 use crate as pallet_cml;
 use crate::generator::init_genesis;
-use crate::{CouponConfig, GenesisCoupons, GenesisSeeds};
-use bonding_curve_interface::BondingCurveOperation;
+use crate::GenesisSeeds;
 use codec::{Decode, Encode};
 use frame_benchmarking::Zero;
 use frame_support::pallet_prelude::*;
@@ -15,7 +14,6 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
-use tea_interface::TeaOperation;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -28,155 +26,6 @@ pub const INSUFFICIENT_CML_ID: u64 = 97;
 pub const NPC_ACCOUNT: u64 = 100;
 
 pub const SEED_FRESH_DURATION: u64 = 7 * 24 * 60 * 10;
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
-pub struct SeedFreshDuration {
-	duration: u64,
-}
-
-impl Get<u64> for SeedFreshDuration {
-	fn get() -> u64 {
-		SEED_FRESH_DURATION
-	}
-}
-
-pub struct BondingCurveOperationMock {}
-
-impl Default for BondingCurveOperationMock {
-	fn default() -> Self {
-		BondingCurveOperationMock {}
-	}
-}
-
-impl BondingCurveOperation for BondingCurveOperationMock {
-	type AccountId = u64;
-	type Balance = Balance;
-
-	fn list_tapp_ids() -> Vec<u64> {
-		vec![]
-	}
-
-	fn estimate_hosting_income_statements(
-		_tapp_id: u64,
-	) -> Vec<(Self::AccountId, u64, Self::Balance)> {
-		vec![]
-	}
-
-	fn current_price(_tapp_id: u64) -> (Self::Balance, Self::Balance) {
-		(0, 0)
-	}
-
-	fn tapp_user_token_asset(_who: &Self::AccountId) -> Vec<(u64, Self::Balance)> {
-		vec![]
-	}
-
-	fn is_cml_hosting(cml_id: u64) -> bool {
-		HOSTING_CML_ID == cml_id
-	}
-
-	fn transfer_reserved_tokens(_from: &Self::AccountId, _to: &Self::AccountId, _cml_id: u64) {}
-
-	fn npc_account() -> Self::AccountId {
-		NPC_ACCOUNT
-	}
-
-	fn cml_host_tapps(_cml_id: u64) -> Vec<u64> {
-		vec![]
-	}
-
-	fn try_active_tapp(_tapp_id: u64) -> bool {
-		true
-	}
-
-	fn try_deactive_tapp(_tapp_id: u64) -> bool {
-		true
-	}
-
-	fn pay_hosting_penalty(_tapp_id: u64, _cml_id: u64) {}
-
-	fn can_append_pledge(cml_id: u64) -> bool {
-		cml_id != INSUFFICIENT_CML_ID
-	}
-
-	fn append_pledge(_cml_id: u64) -> bool {
-		true
-	}
-}
-
-pub struct MiningOperationMock {}
-
-impl Default for MiningOperationMock {
-	fn default() -> Self {
-		MiningOperationMock {}
-	}
-}
-
-impl MiningOperation for MiningOperationMock {
-	type AccountId = u64;
-
-	fn check_buying_mining_machine(
-		_who: &Self::AccountId,
-		_cml_id: u64,
-	) -> sp_runtime::DispatchResult {
-		Ok(())
-	}
-
-	fn buy_mining_machine(_who: &Self::AccountId, _cml_id: u64) {}
-
-	fn check_redeem_coupons(
-		_who: &Self::AccountId,
-		_a_coupon: u32,
-		_b_coupon: u32,
-		_c_coupon: u32,
-	) -> sp_runtime::DispatchResult {
-		Ok(())
-	}
-
-	fn redeem_coupons(_who: &Self::AccountId, _a_coupon: u32, _b_coupon: u32, _c_coupon: u32) {}
-}
-
-pub struct AuctionOperationMock {}
-
-impl Default for AuctionOperationMock {
-	fn default() -> Self {
-		AuctionOperationMock {}
-	}
-}
-impl AuctionOperation for AuctionOperationMock {
-	type AccountId = u64;
-	type Balance = Balance;
-	type BlockNumber = u64;
-
-	fn is_cml_in_auction(_cml_id: u64) -> bool {
-		false
-	}
-
-	fn create_new_bid(_sender: &Self::AccountId, _auction_id: &u64, _price: Self::Balance) {}
-
-	fn update_current_winner(_auction_id: &u64, _bid_user: &Self::AccountId) {}
-
-	fn get_window_block() -> (Self::BlockNumber, Self::BlockNumber) {
-		(Zero::zero(), Zero::zero())
-	}
-}
-
-pub struct TeaOperationMock {}
-
-impl Default for TeaOperationMock {
-	fn default() -> Self {
-		TeaOperationMock {}
-	}
-}
-
-impl TeaOperation for TeaOperationMock {
-	type AccountId = u64;
-
-	fn add_new_node(_machine_id: [u8; 32], _who: &Self::AccountId) {}
-
-	fn update_node_key(_old: [u8; 32], _new: [u8; 32], _sender: &Self::AccountId) {}
-
-	fn remove_node(_machine_id: [u8; 32], _sender: &Self::AccountId) {}
-}
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -253,23 +102,8 @@ parameter_types! {
 impl pallet_cml::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
-	type StakingPrice = StakingPrice;
-	type MachineAccountTopUpAmount = MachineAccountTopUpAmount;
-	type StakingPeriodLength = StakingPeriodLength;
-	type CouponTimoutHeight = SeedsTimeoutHeight;
-	type SeedFreshDuration = SeedFreshDuration;
-	type TeaOperation = TeaOperationMock;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
-	type StakingEconomics = Cml;
-	type StakingSlotsMaxLength = StakingSlotsMaxLength;
-	type StopMiningPunishment = StopMiningPunishment;
-	type BondingCurveOperation = BondingCurveOperationMock;
-	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
-	type CmlAMiningRewardRate = CmlAMiningRewardRate;
-	type CmlBMiningRewardRate = CmlBMiningRewardRate;
-	type CmlCMiningRewardRate = CmlCMiningRewardRate;
-	type WeightInfo = ();
 }
 
 impl pallet_utils::Config for Test {
@@ -308,14 +142,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 pub struct ExtBuilder {
 	seeds: GenesisSeeds,
-	coupons: GenesisCoupons<u64>,
 }
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
 		Self {
 			seeds: GenesisSeeds::default(),
-			coupons: GenesisCoupons::default(),
 		}
 	}
 }
@@ -326,11 +158,6 @@ impl ExtBuilder {
 		self
 	}
 
-	pub fn coupons(mut self, coupons: Vec<CouponConfig<u64>>) -> Self {
-		self.coupons.coupons = coupons;
-		self
-	}
-
 	pub fn build(self) -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Test>()
@@ -338,8 +165,7 @@ impl ExtBuilder {
 
 		pallet_cml::GenesisConfig::<Test> {
 			genesis_seeds: self.seeds,
-			genesis_coupons: self.coupons,
-			initial_task_point_base: 10000,
+			phantom: PhantomData,
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

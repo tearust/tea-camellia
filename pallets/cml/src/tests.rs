@@ -1,37 +1,6 @@
-use crate::{CmlId, CmlType, DefrostScheduleType, Seed};
+use crate::{mock::new_test_ext, CmlId, CmlType, DefrostScheduleType, Seed};
 
-mod cml;
-mod coupon;
-mod draw;
-mod genesis;
-mod mining;
-mod staking;
-mod sudo;
-
-pub fn new_genesis_seed(id: CmlId) -> Seed {
-	Seed {
-		id,
-		cml_type: CmlType::A,
-		defrost_schedule: Some(DefrostScheduleType::Team),
-		defrost_time: Some(0),
-		lifespan: 0,
-		performance: 0,
-	}
-}
-
-pub fn new_genesis_frozen_seed(id: CmlId) -> Seed {
-	Seed {
-		id,
-		cml_type: CmlType::A,
-		defrost_schedule: Some(DefrostScheduleType::Team),
-		defrost_time: Some(10000),
-		lifespan: 0,
-		performance: 0,
-	}
-}
-
-pub fn seed_from_lifespan(id: CmlId, lifespan: u32) -> Seed {
-	let mut seed = new_genesis_seed(id);
-	seed.lifespan = lifespan;
-	seed
+#[test]
+fn it_works() {
+	new_test_ext().execute_with(|| {})
 }
