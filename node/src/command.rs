@@ -49,19 +49,12 @@ impl SubstrateCli for Cli {
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
 		Ok(match id {
-			"dev" => Box::new(chain_spec::development_config(
-				self.parse_genesis_coupons()?,
-				self.genesis_seed(),
-			)?),
+			"dev" => Box::new(chain_spec::development_config(self.genesis_seed())?),
 			"canary" => Box::new(chain_spec::canary_testnet_config(
 				self.initial_validator_count,
-				self.parse_genesis_coupons()?,
 				self.genesis_seed(),
 			)?),
-			"" | "local" => Box::new(chain_spec::local_testnet_config(
-				self.parse_genesis_coupons()?,
-				self.genesis_seed(),
-			)?),
+			"" | "local" => Box::new(chain_spec::local_testnet_config(self.genesis_seed())?),
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
 			)?),
@@ -174,7 +167,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 				Ok((cmd.run::<Block, ExecutorDispatch>(config), task_manager))
 			})
-		},
+		}
 		#[cfg(not(feature = "try-runtime"))]
 		Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
 				You can enable it with `--features try-runtime`."

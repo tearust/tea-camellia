@@ -3,14 +3,15 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::Codec;
-use node_primitives::Balance;
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
-	pub trait CmlApi<AccountId>
+	pub trait MachineApi<AccountId>
 	where
 		AccountId: Codec,
 	{
-		fn user_cml_list(who: &AccountId) -> Vec<u64>;
+		fn boot_nodes() -> Vec<[u8; 32]>;
+
+		fn tapp_store_startup_nodes() -> Vec<[u8; 32]>;
 	}
 }

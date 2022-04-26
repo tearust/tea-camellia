@@ -74,23 +74,14 @@ pallet-identity = {default-features = false, git = 'https://github.com/paritytec
 pallet-mmr = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
 
 # local dependencies
-pallet-tea = {default-features = false, path = '../pallets/tea'}
+pallet-machine = {default-features = false, path = '../pallets/machine'}
 pallet-cml = {default-features = false, path = '../pallets/cml'}
-pallet-auction = {default-features = false, path = '../pallets/auction'}
 pallet-utils = {default-features = false, path = '../pallets/utils'}
-pallet-genesis-bank = {default-features = false, path = '../pallets/genesis-bank'}
-pallet-genesis-exchange = {default-features = false, path = '../pallets/genesis-exchange'}
-pallet-bonding-curve = {default-features = false, path = '../pallets/bonding-curve'}
+pallet-tea-erc20 = {default-features = false, path = '../pallets/tea-erc20'}
 pallet-staking = {default-features = false, path = '../pallets/staking'}
 
-tea-runtime-api = {default-features = false, path = '../pallets/tea/runtime-api'}
+machine-runtime-api = {default-features = false, path = '../pallets/machine/runtime-api'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
-auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
-staking-economics = {default-features = false, path = '../pallets/cml/staking-economics'}
-genesis-bank-runtime-api = {default-features = false, path = '../pallets/genesis-bank/runtime-api'}
-genesis-exchange-runtime-api = {default-features = false, path = '../pallets/genesis-exchange/runtime-api'}
-bonding-curve-runtime-api = {default-features = false, path = '../pallets/bonding-curve/runtime-api'}
-bonding-curve-impl = {default-features = false, path = "../../bonding-curve/curve-impl"}
 
 [features]
 default = ['std']
@@ -122,9 +113,8 @@ runtime-benchmarks = [
 	'pallet-identity/runtime-benchmarks',
 	'pallet-mmr/runtime-benchmarks',
 
-	'pallet-tea/runtime-benchmarks',
+	'pallet-machine/runtime-benchmarks',
 	'pallet-cml/runtime-benchmarks',
-  'pallet-auction/runtime-benchmarks',
 ]
 std = [
 	'codec/std',
@@ -177,23 +167,13 @@ std = [
 	'pallet-identity/std',
 	'pallet-mmr/std',
 
-	'pallet-tea/std',
+	'pallet-machine/std',
 	'pallet-cml/std',
-  'pallet-auction/std',
 	'pallet-utils/std',
-	'pallet-genesis-bank/std',
-	'pallet-genesis-exchange/std',
-	'pallet-bonding-curve/std',
+	'pallet-tea-erc20/std',
 
 	'cml-runtime-api/std',
-	'auction-runtime-api/std',
-	'genesis-bank-runtime-api/std',
-	'genesis-exchange-runtime-api/std',
-	'bonding-curve-runtime-api/std',
-	'tea-runtime-api/std',
-
-	'staking-economics/std',
-	'bonding-curve-impl/std',
+	'machine-runtime-api/std',
 ]
 try-runtime = [
 	"frame-executive/try-runtime",
@@ -223,12 +203,9 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"pallet-utility/try-runtime",
 
-	'pallet-tea/try-runtime',
+	'pallet-machine/try-runtime',
 	'pallet-cml/try-runtime',
-  'pallet-auction/try-runtime',
 	'pallet-utils/try-runtime',
-	'pallet-genesis-bank/try-runtime',
-	'pallet-genesis-exchange/try-runtime',
-	'pallet-bonding-curve/try-runtime',
+	'pallet-tea-erc20/try-runtime',
 ]
-fast = ['pallet-cml/fast', 'pallet-genesis-bank/fast'] # indicate the block duration and epoch will be shorter to test
+fast = ['pallet-cml/fast'] # indicate the block duration and epoch will be shorter to test
