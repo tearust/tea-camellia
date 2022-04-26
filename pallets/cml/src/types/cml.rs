@@ -22,31 +22,23 @@ pub enum CmlType {
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct CML<AccountId, BlockNumber>
 where
-	AccountId: PartialEq + Clone,
+	AccountId: PartialEq + Clone + Default,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	intrinsic: Seed,
-	owner: Option<AccountId>,
+	owner: AccountId,
 	phantom: PhantomData<BlockNumber>,
 }
 
 impl<AccountId, BlockNumber> CML<AccountId, BlockNumber>
 where
-	AccountId: PartialEq + Clone,
+	AccountId: PartialEq + Clone + Default,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
-	pub fn from_genesis_seed(intrinsic: Seed) -> Self {
+	pub fn from_seed(intrinsic: Seed, account: AccountId) -> Self {
 		CML {
 			intrinsic,
-			owner: None,
-			phantom: PhantomData,
-		}
-	}
-
-	pub fn from_dao_seed(intrinsic: Seed, height: BlockNumber) -> Self {
-		CML {
-			intrinsic,
-			owner: None,
+			owner: account,
 			phantom: PhantomData,
 		}
 	}
@@ -68,28 +60,28 @@ where
 		self.id() < GENESIS_SEED_A_COUNT + GENESIS_SEED_B_COUNT + GENESIS_SEED_C_COUNT
 	}
 
-	pub fn owner(&self) -> Option<&AccountId> {
-		self.owner.as_ref()
+	pub fn owner(&self) -> &AccountId {
+		&self.owner
 	}
 
 	pub fn get_peak_performance(&self) -> Performance {
 		self.intrinsic.performance
 	}
 
-	pub fn set_owner(&mut self, account: &AccountId) {
-		self.owner = Some(account.clone());
+	pub fn set_owner(&mut self, account: AccountId) {
+		self.owner = account;
 	}
 }
 
 impl<AccountId, BlockNumber> Default for CML<AccountId, BlockNumber>
 where
-	AccountId: PartialEq + Clone,
+	AccountId: PartialEq + Clone + Default,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	fn default() -> Self {
 		CML {
 			intrinsic: Seed::default(),
-			owner: None,
+			owner: Default::default(),
 			phantom: PhantomData,
 		}
 	}

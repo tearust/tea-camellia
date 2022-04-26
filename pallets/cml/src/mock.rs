@@ -1,14 +1,11 @@
 use crate as pallet_cml;
 use crate::generator::init_genesis;
 use crate::GenesisSeeds;
-use codec::{Decode, Encode};
-use frame_benchmarking::Zero;
 use frame_support::pallet_prelude::*;
 use frame_support::parameter_types;
-use frame_support::traits::{Everything, Get};
+use frame_support::traits::Everything;
 use frame_system as system;
 use node_primitives::Balance;
-use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -164,6 +161,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_cml::GenesisConfig::<Test> {
+			npc_account: Default::default(),
 			genesis_seeds: self.seeds,
 			phantom: PhantomData,
 		}
