@@ -1,6 +1,5 @@
 use crate as pallet_machine;
 use codec::{Decode, Encode};
-use frame_benchmarking::Zero;
 use frame_support::parameter_types;
 use frame_support::traits::{Everything, Get};
 use frame_system as system;

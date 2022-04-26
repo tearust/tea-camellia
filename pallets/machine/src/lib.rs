@@ -17,16 +17,11 @@ mod benchmarking;
 mod functions;
 mod rpc;
 mod types;
-mod utils;
 mod weights;
 
-use frame_support::{
-	dispatch::DispatchResult, pallet_prelude::*, sp_runtime::traits::Verify, traits::Currency,
-};
+use frame_support::{dispatch::DispatchResult, pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
 use pallet_utils::{extrinsic_procedure, CommonUtils, CurrencyOperations};
-use sp_core::{ed25519, H256};
-use sp_io::hashing::blake2_256;
 use sp_std::prelude::*;
 
 pub use types::*;
@@ -61,125 +56,80 @@ pub mod tea {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	/// TEA node storage, key is TEA ID with type of `TeaPubKey`, value is a struct holding
-	/// information about a TEA node.
+	/// Used to allocate CML ID of new created DAO CML.
 	#[pallet::storage]
-	#[pallet::getter(fn nodes)]
-	pub(super) type Nodes<T: Config> =
-		StorageMap<_, Twox64Concat, TeaPubKey, Node<T::BlockNumber>, ValueQuery>;
-
-	/// Builtin nodes used to startup the RA process, key is TEA ID with type of `TeaPubKey`,
-	/// value is an empty place holder.
-	#[pallet::storage]
-	#[pallet::getter(fn builtin_nodes)]
-	pub(super) type BuiltinNodes<T: Config> =
-		StorageMap<_, Twox64Concat, TeaPubKey, (), ValueQuery>;
+	#[pallet::getter(fn last_issuer_id)]
+	pub type LastIssuerId<T: Config> = StorageValue<_, IssuerId, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn tapp_store_startup_nodes)]
-	pub(crate) type TappStoreStartupNodes<T: Config> = StorageValue<_, Vec<TeaPubKey>, ValueQuery>;
+	#[pallet::getter(fn issuers)]
+	pub(super) type Issuers<T: Config> =
+		StorageMap<_, Twox64Concat, IssuerId, Issuer<T::AccountId>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn issuer_owners)]
+	pub(super) type IssuerOwners<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, IssuerId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn machines)]
+	pub(super) type Machines<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, Machine<T::AccountId>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn machine_bindings)]
+	pub(super) type MachineBindings<T: Config> =
+		StorageMap<_, Twox64Concat, TeaPubKey, CmlId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn startup_machine_bindings)]
+	pub(super) type StartupMachineBindings<T: Config> =
+		StorageValue<_, Vec<(TeaPubKey, CmlId)>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn startup_bonding_bindings)]
+	pub(super) type StartupTappBindings<T: Config> =
+		StorageValue<_, Vec<(TeaPubKey, CmlId, Vec<u8>)>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Fired after register node successfully.
-		NewNodeJoined(T::AccountId, Node<T::BlockNumber>),
+		/// Params:
+		/// 1. tea_id
+		/// 2. from account
+		/// 3. to account
+		MachineTransfered(TeaPubKey, T::AccountId, T::AccountId),
 
-		/// Event fields:
-		/// - Sender
-		/// - Node object
-		/// - Old tea id
-		/// - Event block height
-		NodeIdChanged(
-			T::AccountId,
-			Node<T::BlockNumber>,
-			TeaPubKey,
-			T::BlockNumber,
-		),
-
-		/// Fired after update node profile successfully.
-		UpdateNodeProfile(T::AccountId, Node<T::BlockNumber>),
+		/// Params:
+		/// 1. tea_id
+		/// 2. cml id
+		/// 3. owner
+		Layer2InfoBinded(TeaPubKey, CmlId, T::AccountId),
 	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Node already registered.
-		NodeAlreadyExist,
-		/// Did not registered the node yet, should register node first.
-		NodeNotExist,
-		/// When commit RA result the apply node not registered yet, should register first.
-		ApplyNodeNotExist,
-		/// Peer ID should be a valid address about IPFS node.
-		InvalidPeerId,
-		/// Node is already activated. Because node will be activated after 3/4 RA nodes agreed,
-		/// so the rest 1/4 node commit RA results later shall fail.
-		NodeAlreadyActive,
-		/// Node is not in RA validators list, so it is invalid to commit a RA result.
-		NotRaValidator,
-		/// Signature length not matched, that means signature is invalid.
-		InvalidSignatureLength,
-		/// Signature verify failed.
-		InvalidSignature,
-		/// User is not owner of the Tea ID.
-		InvalidTeaIdOwner,
-		/// User is not the built-in miner
-		InvalidBuiltinMiner,
-		/// Ra commit has expired.
-		RaCommitExpired,
-		/// Report node is not exist
-		ReportNodeNotExist,
-		/// Only B type cml can commit report
-		OnlyBTypeCmlCanCommitReport,
-		/// Only C type cml can report evidence
-		OnlyCTypeCmlCanReport,
-		/// Phishing report has been committedd multiple times
-		RedundantReport,
-		/// Phishing node not exist
-		PhishingNodeNotExist,
-		/// Phishing node is not in active state can't report again
-		PhishingNodeNotActive,
-		/// Report offline node is not exist
-		OfflineNodeNotExist,
-		/// Offline node is not in active state can't report again
-		OfflineNodeNotActive,
-		/// Phishing node can not commit report himself
-		PhishingNodeCannotCommitReport,
-		/// Type C cml is not allowed to phishing
-		PhishingNodeCannotBeTypeC,
-		/// Offline node can't be type C cml
-		OfflineNodeCannotBeTypeC,
-		/// Can not commit offline evidence multi time in short time
-		CanNotCommitOfflineEvidenceMultiTimes,
-		/// Tips has been committedd multiple times
-		RedundantTips,
-		/// The pcr has registered already
-		PcrAlreadyExists,
-		/// The pcr not registered so cannot unregister
-		PcrNotExists,
-		/// The pcr hash not in registered pcr list
-		InvalidPcrHash,
-		/// The versions has registered already
-		VersionsAlreadyExists,
-		/// The versions not registered so cannot unregister
-		VersionsNotExist,
-		/// The given ephemeral id not matched the ephemeral id registered
-		/// when update node profile
-		NodeEphemeralIdNotMatch,
-		/// The size of version keys and values not match
-		VersionKvpSizeNotMatch,
-		/// Version expired height should larger than current height
-		InvalidVersionExpireHeight,
-	}
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_finalize(n: BlockNumberFor<T>) {}
+		/// The account has been registered that can't be used to register again
+		IssuerOwnerRegistered,
+		/// The given issuer not exist
+		IssuerNotExist,
+		/// The given issuer owner is invalid
+		InvalidIssuerOwner,
+		/// The given machine id is already exist
+		MachineAlreadyExist,
+		/// The given machine id is not exist
+		MachineNotExist,
+		/// Machine owner is not valid
+		InvalidMachineOwner,
+		/// Length of given lists not the same
+		BindingItemsLengthMismatch,
 	}
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub builtin_nodes: Vec<TeaPubKey>,
+		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId)>,
+		pub startup_tapp_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
 		pub phantom: PhantomData<T>,
 	}
 
@@ -187,7 +137,8 @@ pub mod tea {
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
-				builtin_nodes: Default::default(),
+				startup_machine_bindings: Default::default(),
+				startup_tapp_bindings: Default::default(),
 				phantom: PhantomData,
 			}
 		}
@@ -196,30 +147,223 @@ pub mod tea {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			for tea_id in self.builtin_nodes.iter() {
-				let mut node = Node::default();
-				node.tea_id = tea_id.clone();
-				Nodes::<T>::insert(tea_id, node);
-				BuiltinNodes::<T>::insert(tea_id, ());
-			}
-			TappStoreStartupNodes::<T>::set(self.builtin_nodes.clone());
+			self.startup_machine_bindings
+				.iter()
+				.for_each(|(tea_id, cml_id)| {
+					MachineBindings::<T>::insert(tea_id, cml_id);
+				});
+			StartupMachineBindings::<T>::set(self.startup_machine_bindings.clone());
+
+			self.startup_tapp_bindings
+				.iter()
+				.for_each(|(tea_id, cml_id, _)| {
+					MachineBindings::<T>::insert(tea_id, cml_id);
+				});
+			StartupTappBindings::<T>::set(self.startup_tapp_bindings.clone());
 		}
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000_000)]
-		pub fn reset_tapp_store_startup_nodes(
+		pub fn register_issuer(
 			sender: OriginFor<T>,
-			nodes: Vec<TeaPubKey>,
+			owner: T::AccountId,
+			url: Vec<u8>,
 		) -> DispatchResult {
 			let root = ensure_root(sender)?;
 
 			extrinsic_procedure(
 				&root,
-				|_| Ok(()),
 				|_| {
-					TappStoreStartupNodes::<T>::set(nodes);
+					ensure!(
+						!IssuerOwners::<T>::contains_key(&owner),
+						Error::<T>::IssuerOwnerRegistered
+					);
+					Ok(())
+				},
+				|_| {
+					let new_id = Self::next_id();
+					Issuers::<T>::insert(
+						new_id,
+						Issuer {
+							id: new_id,
+							url,
+							owner: owner.clone(),
+						},
+					);
+					IssuerOwners::<T>::insert(owner.clone(), new_id);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn register_machine(
+			sender: OriginFor<T>,
+			tea_id: TeaPubKey,
+			owner: T::AccountId,
+			issuer_id: IssuerId,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						Issuers::<T>::contains_key(issuer_id),
+						Error::<T>::IssuerNotExist
+					);
+					ensure!(
+						Issuers::<T>::get(issuer_id).owner.eq(who),
+						Error::<T>::InvalidIssuerOwner
+					);
+					ensure!(
+						!Machines::<T>::contains_key(tea_id),
+						Error::<T>::MachineAlreadyExist
+					);
+					Ok(())
+				},
+				|_| {
+					Machines::<T>::insert(
+						tea_id,
+						Machine {
+							tea_id,
+							issuer_id,
+							owner,
+						},
+					)
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn transfer_machine(
+			sender: OriginFor<T>,
+			tea_id: TeaPubKey,
+			to_account: T::AccountId,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						Machines::<T>::contains_key(tea_id),
+						Error::<T>::MachineNotExist
+					);
+					ensure!(
+						Machines::<T>::get(tea_id).owner.eq(who),
+						Error::<T>::InvalidMachineOwner
+					);
+					Ok(())
+				},
+				|who| {
+					Machines::<T>::mutate(tea_id, |machine| {
+						machine.owner = to_account.clone();
+					});
+
+					Self::deposit_event(Event::MachineTransfered(tea_id, who.clone(), to_account));
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn register_for_layer2(
+			sender: OriginFor<T>,
+			tea_id: TeaPubKey,
+			cml_id: u64,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						Machines::<T>::contains_key(tea_id),
+						Error::<T>::MachineNotExist
+					);
+					ensure!(
+						Machines::<T>::get(tea_id).owner.eq(who),
+						Error::<T>::InvalidMachineOwner
+					);
+					Ok(())
+				},
+				|who| {
+					MachineBindings::<T>::insert(tea_id, cml_id);
+					Self::deposit_event(Event::Layer2InfoBinded(tea_id, cml_id, who.clone()));
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn reset_mining_startup(
+			sender: OriginFor<T>,
+			tea_ids: Vec<TeaPubKey>,
+			cml_ids: Vec<u64>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						tea_ids.len() == cml_ids.len(),
+						Error::<T>::BindingItemsLengthMismatch
+					);
+					Ok(())
+				},
+				|_| {
+					StartupMachineBindings::<T>::get()
+						.iter()
+						.for_each(|(tea_id, _)| {
+							MachineBindings::<T>::remove(tea_id);
+						});
+
+					let mut startups = Vec::new();
+					for i in 0..tea_ids.len() {
+						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
+						startups.push((tea_ids[i], cml_ids[i]));
+					}
+					StartupMachineBindings::<T>::set(startups);
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn reset_tapp_startup(
+			sender: OriginFor<T>,
+			tea_ids: Vec<TeaPubKey>,
+			cml_ids: Vec<u64>,
+			ip_list: Vec<Vec<u8>>,
+		) -> DispatchResult {
+			let root = ensure_root(sender)?;
+
+			extrinsic_procedure(
+				&root,
+				|_| {
+					ensure!(
+						tea_ids.len() == cml_ids.len(),
+						Error::<T>::BindingItemsLengthMismatch
+					);
+					ensure!(
+						tea_ids.len() == ip_list.len(),
+						Error::<T>::BindingItemsLengthMismatch
+					);
+					Ok(())
+				},
+				|_| {
+					StartupTappBindings::<T>::get()
+						.iter()
+						.for_each(|(tea_id, _, _)| {
+							MachineBindings::<T>::remove(tea_id);
+						});
+
+					let mut startups = Vec::new();
+					for i in 0..tea_ids.len() {
+						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
+						startups.push((tea_ids[i], cml_ids[i], ip_list[i].clone()));
+					}
+					StartupTappBindings::<T>::set(startups);
 				},
 			)
 		}
