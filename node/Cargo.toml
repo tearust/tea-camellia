@@ -86,16 +86,8 @@ pallet-mmr-rpc = {git = 'https://github.com/paritytech/substrate.git', rev = '55
 camellia-runtime = {version = '0.0.1', path = '../runtime'}
 cml-runtime-api = {path = '../pallets/cml/runtime-api'}
 cml-rpc = {path = '../pallets/cml/rpc'}
-auction-runtime-api = {default-features = false, path = '../pallets/auction/runtime-api'}
-auction-rpc = {path = '../pallets/auction/rpc'}
-genesis-bank-runtime-api = {path = '../pallets/genesis-bank/runtime-api'}
-genesis-bank-rpc = {path = '../pallets/genesis-bank/rpc'}
-genesis-exchange-runtime-api = {path = '../pallets/genesis-exchange/runtime-api'}
-genesis-exchange-rpc = {path = '../pallets/genesis-exchange/rpc'}
-bonding-curve-runtime-api = {path = '../pallets/bonding-curve/runtime-api'}
-bonding-curve-rpc = {path = '../pallets/bonding-curve/rpc'}
-tea-runtime-api = {path = '../pallets/tea/runtime-api'}
-tea-rpc = {path = '../pallets/tea/rpc'}
+machine-runtime-api = {path = '../pallets/machine/runtime-api'}
+machine-rpc = {path = '../pallets/machine/rpc'}
 
 [build-dependencies]
 structopt = { version = "0.3.8", optional = true }

@@ -1,12 +1,11 @@
 use camellia_runtime::{
 	constants::currency::{CENTS, DOLLARS},
 	opaque::SessionKeys,
-	pallet_cml::{generator::init_genesis, GenesisCoupons, GenesisSeeds},
-	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, Block,
-	BondingCurveConfig, CmlConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-	GenesisBankConfig, GenesisConfig, GenesisExchangeConfig, GrandpaConfig, ImOnlineConfig,
-	SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TeaConfig,
-	TechnicalCommitteeConfig, WASM_BINARY,
+	pallet_cml::{generator::init_genesis, GenesisSeeds},
+	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, Block, CmlConfig,
+	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
+	MachineConfig, SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
+	TeaErc20Config, TechnicalCommitteeConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -23,8 +22,8 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
-use std::collections::HashSet;
 use std::str::FromStr;
+use std::{collections::HashSet, marker::PhantomData};
 
 const INITIAL_ACCOUNT_BALANCE: Balance = 2_000_000 * DOLLARS;
 const INITIAL_VALIDATOR_BALANCE: Balance = 100 * DOLLARS;
@@ -157,10 +156,7 @@ fn get_properties(symbol: &str) -> Properties {
 	.clone()
 }
 
-pub fn development_config(
-	genesis_coupons: GenesisCoupons<AccountId>,
-	seed: [u8; 32],
-) -> Result<ChainSpec, String> {
+pub fn development_config(seed: [u8; 32]) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
@@ -176,8 +172,6 @@ pub fn development_config(
 				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
 				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 			];
-			let imported_endowed_accounts = get_unique_accounts(&genesis_coupons);
-			endowed_accounts.extend(imported_endowed_accounts);
 
 			let endowed_balances =
 				generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
@@ -191,7 +185,6 @@ pub fn development_config(
 				// Pre-funded accounts
 				endowed_accounts,
 				endowed_balances,
-				genesis_coupons.clone(),
 				genesis_seeds,
 			)
 		},
@@ -210,7 +203,6 @@ pub fn development_config(
 
 pub fn canary_testnet_config(
 	initial_validator_count: u32,
-	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
 ) -> Result<ChainSpec, String> {
 	// Canary Alice
@@ -278,7 +270,6 @@ pub fn canary_testnet_config(
 		.collect();
 
 	testnet_config(
-		genesis_coupons,
 		seed,
 		endowed_accounts,
 		// initial balance only for root account
@@ -288,10 +279,7 @@ pub fn canary_testnet_config(
 	)
 }
 
-pub fn local_testnet_config(
-	genesis_coupons: GenesisCoupons<AccountId>,
-	seed: [u8; 32],
-) -> Result<ChainSpec, String> {
+pub fn local_testnet_config(seed: [u8; 32]) -> Result<ChainSpec, String> {
 	let endowed_accounts = vec![
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -310,7 +298,6 @@ pub fn local_testnet_config(
 		generate_account_balance_list(&endowed_accounts, INITIAL_ACCOUNT_BALANCE);
 
 	testnet_config(
-		genesis_coupons,
 		seed,
 		endowed_accounts,
 		endowed_balances,
@@ -323,7 +310,6 @@ pub fn local_testnet_config(
 }
 
 pub fn testnet_config(
-	genesis_coupons: GenesisCoupons<AccountId>,
 	seed: [u8; 32],
 	endowed_accounts: Vec<AccountId>,
 	endowed_balances: Vec<(AccountId, Balance)>,
@@ -350,12 +336,6 @@ pub fn testnet_config(
 			let endowed_accounts = endowed_accounts.clone();
 			let root_key = root_key.clone();
 
-			let imported_endowed_accounts = get_unique_accounts(&genesis_coupons);
-			endowed_balances.extend(generate_account_balance_list(
-				&imported_endowed_accounts,
-				COUPON_ACCOUNT_BALANCE,
-			));
-
 			let genesis_seeds = init_genesis(seed);
 
 			testnet_genesis(
@@ -367,7 +347,6 @@ pub fn testnet_config(
 				// Pre-funded accounts
 				endowed_accounts,
 				endowed_balances,
-				genesis_coupons.clone(),
 				genesis_seeds,
 			)
 		},
@@ -398,7 +377,6 @@ fn testnet_genesis(
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	mut initial_balances: Vec<(AccountId, Balance)>,
-	genesis_coupons: GenesisCoupons<AccountId>,
 	genesis_seeds: GenesisSeeds,
 ) -> GenesisConfig {
 	let genesis_bank_operation_account =
@@ -428,12 +406,6 @@ fn testnet_genesis(
 		bonding_curve_npc_account.clone(),
 		BONDING_CURVE_NPC_INITIAL_TEA_BALANCE,
 	));
-
-	let competition_users = genesis_coupons
-		.coupons
-		.iter()
-		.map(|coupon| (coupon.account.clone(), INITIAL_COMPETITION_USER_USD_BALANCE))
-		.collect();
 
 	let num_endowed_accounts = endowed_accounts.len();
 	GenesisConfig {
@@ -513,7 +485,7 @@ fn testnet_genesis(
 		technical_membership: Default::default(),
 		democracy: DemocracyConfig::default(),
 
-		tea: TeaConfig {
+		machine: MachineConfig {
 			builtin_nodes: vec![
 				hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b"),
 				hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596"),
@@ -521,36 +493,13 @@ fn testnet_genesis(
 				hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52"),
 				hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
 			],
-			builtin_miners: endowed_accounts,
-			report_reward_amount: 1 * DOLLARS,
-			tips_reward_amount: 1 * CENTS,
-			desired_tapp_store_node_count: 10,
-			min_tapp_store_node_count: 2,
+			phantom: PhantomData,
 		},
 		cml: CmlConfig {
-			genesis_coupons,
 			genesis_seeds,
-			initial_task_point_base: 2000,
+			phantom: PhantomData,
 		},
-		genesis_bank: GenesisBankConfig {
-			operation_account: genesis_bank_operation_account,
-			bank_initial_balance: INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
-			bank_initial_interest_rate: 3, // bank initial interest rate is 0.03%
-		},
-		genesis_exchange: GenesisExchangeConfig {
-			operation_account: genesis_exchange_operation_account,
-			npc_account: bonding_curve_npc_account.clone(),
-			operation_usd_amount: INITIAL_EXCHANGE_USD_BALANCE,
-			operation_tea_amount: INITIAL_EXCHANGE_TEA_BALANCE,
-			competition_users,
-			bonding_curve_npc: (
-				bonding_curve_npc_account.clone(),
-				BONDING_CURVE_NPC_INITIAL_USD_BALANCE,
-			),
-			initial_usd_interest_rate: 0, // let initial usd interest rate be 0.02%
-			borrow_debt_ratio_cap: 0,     // initial borrow debt ratio cap is 0.
-		},
-		bonding_curve: BondingCurveConfig {
+		tea_erc_20: TeaErc20Config {
 			reserved_balance_account: bonding_curve_reserved_balance_account,
 			npc_account: bonding_curve_npc_account,
 			user_create_tapp: true, // default enable user create tapp
@@ -570,15 +519,6 @@ fn session_keys(
 		im_online,
 		authority_discovery,
 	}
-}
-
-fn get_unique_accounts(genesis_coupons: &GenesisCoupons<AccountId>) -> Vec<AccountId> {
-	let accounts: HashSet<AccountId> = genesis_coupons
-		.coupons
-		.iter()
-		.map(|item| item.account.clone())
-		.collect();
-	accounts.iter().cloned().collect()
 }
 
 fn generate_account_balance_list(

@@ -40,12 +40,8 @@ where
 	B: sc_client_api::Backend<Block> + Send + Sync + 'static,
 	B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashFor<Block>>,
 
-	C::Api: tea_runtime_api::TeaApi<Block, AccountId>,
+	C::Api: machine_runtime_api::MachineApi<Block, AccountId>,
 	C::Api: cml_runtime_api::CmlApi<Block, AccountId>,
-	C::Api: auction_runtime_api::AuctionApi<Block, AccountId>,
-	C::Api: genesis_bank_runtime_api::GenesisBankApi<Block, AccountId>,
-	C::Api: genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId>,
-	C::Api: bonding_curve_runtime_api::BondingCurveApi<Block, AccountId>,
 {
 	use pallet_mmr_rpc::{Mmr, MmrApi};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
@@ -123,24 +119,12 @@ where
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
 	// `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
-	io.extend_with(tea_rpc::TeaApi::to_delegate(tea_rpc::TeaApiImpl::new(
-		client.clone(),
-	)));
+	io.extend_with(machine_rpc::MachineApi::to_delegate(
+		machine_rpc::MachineApiImpl::new(client.clone()),
+	));
 	io.extend_with(cml_rpc::CmlApi::to_delegate(cml_rpc::CmlApiImpl::new(
 		client.clone(),
 	)));
-	io.extend_with(auction_rpc::AuctionApi::to_delegate(
-		auction_rpc::AuctionApiImpl::new(client.clone()),
-	));
-	io.extend_with(genesis_bank_rpc::GenesisBankApi::to_delegate(
-		genesis_bank_rpc::GenesisBankApiImpl::new(client.clone()),
-	));
-	io.extend_with(genesis_exchange_rpc::GenesisExchangeApi::to_delegate(
-		genesis_exchange_rpc::GenesisExchangeApiImpl::new(client.clone()),
-	));
-	io.extend_with(bonding_curve_rpc::BondingCurveApi::to_delegate(
-		bonding_curve_rpc::BondingCurveApiImpl::new(client.clone()),
-	));
 
 	Ok(io)
 }

@@ -12,8 +12,6 @@ use sp_std::prelude::*;
 pub struct Seed {
 	pub id: CmlId, //seq id starting from 0, this is also the camellia id.
 	pub cml_type: CmlType,
-	pub defrost_schedule: Option<DefrostScheduleType>,
-	pub defrost_time: Option<BlockNumber>,
 	pub lifespan: BlockNumber,
 	pub performance: Performance,
 }
@@ -22,8 +20,6 @@ impl Seed {
 	pub fn generate(
 		cml_type: CmlType,
 		cml_id: CmlId,
-		defrost_schedule: DefrostScheduleType,
-		defrost_time: BlockNumber,
 		lifespan: BlockNumber,
 		performance: Performance,
 	) -> Self {
@@ -31,8 +27,6 @@ impl Seed {
 		Seed {
 			id,
 			cml_type,
-			defrost_schedule: Some(defrost_schedule),
-			defrost_time: Some(defrost_time),
 			lifespan,
 			performance,
 		}
@@ -44,8 +38,6 @@ impl Default for Seed {
 		Seed {
 			id: 0,
 			cml_type: CmlType::C,
-			defrost_schedule: None,
-			defrost_time: None,
 			lifespan: 0,
 			performance: 0,
 		}
@@ -141,8 +133,6 @@ impl GenesisSeeds {
 				seeds.push(Seed::generate(
 					cml_type,
 					*seq_id,
-					DefrostScheduleType::Team,
-					gen_defrost_time(DefrostScheduleType::Team, *seq_id),
 					gen_lifespan(cml_type, *seq_id),
 					gen_performance(cml_type, *seq_id),
 				))
@@ -150,8 +140,6 @@ impl GenesisSeeds {
 				seeds.push(Seed::generate(
 					cml_type,
 					*seq_id,
-					DefrostScheduleType::Investor,
-					gen_defrost_time(DefrostScheduleType::Investor, *seq_id),
 					gen_lifespan(cml_type, *seq_id),
 					gen_performance(cml_type, *seq_id),
 				));

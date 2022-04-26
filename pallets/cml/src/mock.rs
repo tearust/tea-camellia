@@ -1,7 +1,6 @@
 use crate as pallet_cml;
 use crate::generator::init_genesis;
 use crate::{CouponConfig, GenesisCoupons, GenesisSeeds};
-use auction_interface::AuctionOperation;
 use bonding_curve_interface::BondingCurveOperation;
 use codec::{Decode, Encode};
 use frame_benchmarking::Zero;
@@ -9,7 +8,6 @@ use frame_support::pallet_prelude::*;
 use frame_support::parameter_types;
 use frame_support::traits::{Everything, Get};
 use frame_system as system;
-use genesis_exchange_interface::MiningOperation;
 use node_primitives::Balance;
 use scale_info::TypeInfo;
 use sp_core::H256;
@@ -264,10 +262,8 @@ impl pallet_cml::Config for Test {
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
 	type StakingEconomics = Cml;
-	type AuctionOperation = AuctionOperationMock;
 	type StakingSlotsMaxLength = StakingSlotsMaxLength;
 	type StopMiningPunishment = StopMiningPunishment;
-	type MiningOperation = MiningOperationMock;
 	type BondingCurveOperation = BondingCurveOperationMock;
 	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
 	type CmlAMiningRewardRate = CmlAMiningRewardRate;

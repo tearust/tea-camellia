@@ -9,24 +9,7 @@ members = [
 
 	'pallets/cml/runtime-api',
 	'pallets/cml/rpc',
-	'pallets/cml/staking-economics',
 
-	'pallets/auction/runtime-api',
-	'pallets/auction/rpc',
-	'pallets/auction/interface',
-
-	'pallets/genesis-bank/runtime-api',
-	'pallets/genesis-bank/rpc',
-	'pallets/genesis-bank/interface',
-
-	'pallets/genesis-exchange/runtime-api',
-	'pallets/genesis-exchange/rpc',
-	'pallets/genesis-exchange/interface',
-
-	'pallets/bonding-curve/runtime-api',
-	'pallets/bonding-curve/rpc',
-
-	'pallets/tea/interface',
-	'pallets/tea/rpc',
-	'pallets/tea/runtime-api',
+	'pallets/machine/rpc',
+	'pallets/machine/runtime-api',
 ]

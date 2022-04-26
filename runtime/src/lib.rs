@@ -47,7 +47,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use staking_economics::index::{STAKING_PRICE_TABLE, STAKING_SLOTS_MAX_LENGTH};
 
 // A few exports that help ease life for downstream crates.
 pub use node_primitives::{AccountId, Balance, Index, Signature};
@@ -64,14 +63,11 @@ mod weights;
 use constants::{currency::*, time::*};
 
 pub use frame_system;
-pub use pallet_auction;
 pub use pallet_balances;
-pub use pallet_bonding_curve;
 pub use pallet_cml;
-pub use pallet_genesis_bank;
-pub use pallet_genesis_exchange;
+pub use pallet_machine;
 pub use pallet_staking;
-pub use pallet_tea;
+pub use pallet_tea_erc20;
 pub use pallet_utils;
 
 /// Digest item type.
@@ -104,17 +100,6 @@ pub mod opaque {
 }
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
-pub struct SeedFreshDuration {
-	duration: u32,
-}
-
-impl Get<u32> for SeedFreshDuration {
-	fn get() -> u32 {
-		SEED_FRESH_DURATION
-	}
-}
 
 pub struct DealWithFees;
 impl OnUnbalanced<NegativeImbalance> for DealWithFees {
@@ -809,257 +794,24 @@ impl pallet_utils::Config for Runtime {
 	type RandomnessSource = RandomnessCollectiveFlip;
 }
 
-parameter_types! {
-	/// (1 * 60 * 10) blocks equals (1 * 60 * 10 * 6secs) = 1hours
-	pub const RuntimeActivityThreshold: u32 = 1 * 60 * 10;
-	/// (4 * 60 * 10) blocks equals (4 * 60 * 10 * 6secs) = 4hours
-	pub const UpdateValidatorsDuration: u32 = 4 * 60 * 10;
-	pub const PerRaTaskPoint: u32 = 10000;
-	pub const MaxGroupMemberCount: u32 = 10;
-	pub const MinGroupMemberCount: u32 = 5;
-	/// (10) blocks equals (10 * 6secs) = 1 minute
-	pub const MaxAllowedRaCommitDuration: u32 = 10;
-	pub const PhishingAllowedDuration: u32 = 100;
-	pub const TipsAllowedDuration: u32 = 100;
-	pub const OfflineValidDuration: u32 = 100;
-	pub const OfflineEffectThreshold: u32 = 2;
-	pub const ReportRawardDuration: u32 = 10000;
-	/// (1 * 60 * 10) blocks equals (1 * 60 * 10 * 6secs) = 1hours
-	pub const MiningNodesActivityCheckDuration: u32 = 1 * 60 * 10;
-}
-
-impl pallet_tea::Config for Runtime {
+impl pallet_machine::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type RuntimeActivityThreshold = RuntimeActivityThreshold;
-	type UpdateValidatorsDuration = UpdateValidatorsDuration;
-	type MaxGroupMemberCount = MaxGroupMemberCount;
-	type MinGroupMemberCount = MinGroupMemberCount;
-	type MaxAllowedRaCommitDuration = MaxAllowedRaCommitDuration;
-	type PhishingAllowedDuration = PhishingAllowedDuration;
-	type TipsAllowedDuration = TipsAllowedDuration;
-	type OfflineValidDuration = OfflineValidDuration;
-	type OfflineEffectThreshold = OfflineEffectThreshold;
-	type ReportRawardDuration = ReportRawardDuration;
-	type MiningNodesActivityCheckDuration = MiningNodesActivityCheckDuration;
-	type WeightInfo = weights::pallet_tea::WeightInfo<Runtime>;
 	type CurrencyOperations = Utils;
 	type CommonUtils = Utils;
-	type TaskService = Cml;
-	type CmlOperation = Cml;
-	type PerRaTaskPoint = PerRaTaskPoint;
-}
-
-#[cfg(not(feature = "fast"))]
-/// Timeout height is (1 * 30 * 24 * 60 * 10 * 6secs) about 1 month
-const SEEDS_TIMEOUT_HEIGHT: u32 = 1 * 30 * 24 * 60 * 10;
-#[cfg(feature = "fast")]
-/// Fast mode seed never timeout
-const SEEDS_TIMEOUT_HEIGHT: u32 = u32::MAX;
-
-#[cfg(not(feature = "fast"))]
-/// Staking period length is (1 * 24 * 60 * 10) about 1 day
-const STAKING_PERIOD_LENGTH: u32 = 1 * 24 * 60 * 10;
-#[cfg(feature = "fast")]
-/// Staking period length is 10 about 1 minutes
-const STAKING_PERIOD_LENGTH: u32 = 1000;
-
-#[cfg(not(feature = "fast"))]
-/// Seed fresh duration is (7 * 24 * 60 * 10) about 1 week
-const SEED_FRESH_DURATION: u32 = 7 * 24 * 60 * 10;
-#[cfg(feature = "fast")]
-/// Seed fresh duration is (30 * 10) about 30 minuts
-const SEED_FRESH_DURATION: u32 = 30 * 10;
-
-parameter_types! {
-	/// Investors need to pay StakingPrice for each staking slots of CML regardless the index number
-	pub const StakingPrice: Balance = 1000 * DOLLARS;
-	pub const MachineAccountTopUpAmount: Balance = 1 * DOLLARS;
-	/// After SeedsTimeoutHeight, coupon will be expired
-	pub const SeedsTimeoutHeight: u32 = SEEDS_TIMEOUT_HEIGHT;
-	/// Every StakingPeriodLength, DAO will calculate the staking earning and pay to reward balance
-	pub const StakingPeriodLength: u32 = STAKING_PERIOD_LENGTH;
-	/// CML cannot have more than StakingSlotsMaxLength slots
-	pub const StakingSlotsMaxLength: u32 = STAKING_SLOTS_MAX_LENGTH;
-	/// Punishment amount need to pay for each staking account when stop mining.
-	pub const StopMiningPunishment: Balance = 100 * DOLLARS;
-	pub const MaxAllowedSuspendHeight: u32 = 1000;
-	pub const CmlAMiningRewardRate: Balance = 0;
-	/// Type B cml miner will get 50% reward
-	pub const CmlBMiningRewardRate: Balance = 5000;
-	/// Type C cml miner will get 50% reward
-	pub const CmlCMiningRewardRate: Balance = 5000;
 }
 
 impl pallet_cml::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type StakingPrice = StakingPrice;
-	type MachineAccountTopUpAmount = MachineAccountTopUpAmount;
-	type CouponTimoutHeight = SeedsTimeoutHeight;
-	type StakingPeriodLength = StakingPeriodLength;
-	type SeedFreshDuration = SeedFreshDuration;
-	type TeaOperation = Tea;
+	type CurrencyOperations = Utils;
 	type CommonUtils = Utils;
-	type CurrencyOperations = Utils;
-	type MiningOperation = GenesisExchange;
-	type AuctionOperation = Auction;
-	type BondingCurveOperation = BondingCurve;
-	type StakingEconomics = staking_economics::TeaStakingEconomics;
-	type StakingSlotsMaxLength = StakingSlotsMaxLength;
-	type WeightInfo = weights::pallet_cml::WeightInfo<Runtime>;
-	type StopMiningPunishment = StopMiningPunishment;
-	type MaxAllowedSuspendHeight = MaxAllowedSuspendHeight;
-	type CmlAMiningRewardRate = CmlAMiningRewardRate;
-	type CmlBMiningRewardRate = CmlBMiningRewardRate;
-	type CmlCMiningRewardRate = CmlCMiningRewardRate;
 }
 
-#[cfg(not(feature = "fast"))]
-const LOAN_TERM_DURATION: BlockNumber = 200000;
-#[cfg(feature = "fast")]
-const LOAN_TERM_DURATION: BlockNumber = 33000; //about 55 hours. good for fast testing
-
-parameter_types! {
-	/// Borrower has to repay the loan before LoanTermDuration, otherwise in default
-	pub const LoanTermDuration: BlockNumber = LOAN_TERM_DURATION;
-	/// The Genesis Bank calculate interest every BillingCycle. If borrower repay the loan before a billing cycle ends,
-	/// the interest is calculated to the end of this billing cycle.
-	pub const BillingCycle: BlockNumber = 10000;
-	pub const CmlALoanAmount: Balance = 2000 * DOLLARS;
-	pub const CmlBLoanBmount: Balance = 3000 * DOLLARS;
-	pub const CmlCLoanCmount: Balance = 1500 * DOLLARS;
-}
-
-impl pallet_genesis_bank::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type CmlOperation = Cml;
-	type CurrencyOperations = Utils;
-	type AuctionOperation = Auction;
-	type LoanTermDuration = LoanTermDuration;
-	type BillingCycle = BillingCycle;
-	type CmlALoanAmount = CmlALoanAmount;
-	type CmlBLoanAmount = CmlBLoanBmount;
-	type CmlCLoanAmount = CmlCLoanCmount;
-}
-
-parameter_types! {
-	pub const PER: Balance = 7;
-	pub const InterestPeriodLength: BlockNumber = 10000;
-	pub const CmlAMiningMachineCost: Balance = 0;
-	pub const CmlBMiningMachineCost: Balance = 0;
-	pub const CmlCMiningMachineCost: Balance = 0;
-	pub const CmlARedeemCouponCost: Balance =  0;
-	pub const CmlBRedeemCouponCost: Balance =  0;
-	pub const CmlCRedeemCouponCost: Balance =  0;
-	pub const BorrowAllowance: Balance = 10000 * DOLLARS;
-	pub const RegisterForCompetitionAllowance: Balance = 10 * DOLLARS;
-}
-
-impl pallet_genesis_exchange::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type CmlOperation = Cml;
-	type CurrencyOperations = Utils;
-	type GenesisBankOperation = GenesisBank;
-	type BondingCurveOperation = BondingCurve;
-	type PER = PER;
-	type InterestPeriodLength = InterestPeriodLength;
-	type CmlAMiningMachineCost = CmlAMiningMachineCost;
-	type CmlBMiningMachineCost = CmlBMiningMachineCost;
-	type CmlCMiningMachineCost = CmlCMiningMachineCost;
-	type CmlARedeemCouponCost = CmlARedeemCouponCost;
-	type CmlBRedeemCouponCost = CmlBRedeemCouponCost;
-	type CmlCRedeemCouponCost = CmlCRedeemCouponCost;
-	type BorrowAllowance = BorrowAllowance;
-	type RegisterForCompetitionAllowance = RegisterForCompetitionAllowance;
-}
-
-parameter_types! {
-	pub const TAppNameMaxLength: u32 = 20;
-	pub const TAppDetailMaxLength: u32 = 1024;
-	pub const TAppLinkMaxLength: u32 = 1024;
-	pub const TAppTickerMinLength: u32 = 3;
-	pub const TAppTickerMaxLength: u32 = 6;
-	pub const PoolBalanceReversePrecision: Balance = 10;
-	pub const HostArrangeDuration: BlockNumber = 10000;
-	pub const HostCostCollectionDuration: BlockNumber = 1000;
-	pub const ConsumeNoteMaxLength: u32 = 140;
-	pub const CidMaxLength: u32 = 100;
-	pub const TotalSupplyMaxValue: Balance = 1000000000000000000000000;
-	pub const MinTappHostsCount: u32 = 3;
-	pub const HostLockingBlockHeight: BlockNumber = 1000;
-	pub const TAppLinkDescriptionMaxLength: u32 = 140;
-	pub const DefaultBuyCurveTheta: u32 = 10;
-	pub const DefaultSellCurveTheta: u32 = 7;
-	pub const HostPledgeAmount: Balance = 0 * DOLLARS;
-	pub const ReservedLinkRentAmount: Balance = 100 * DOLLARS;
-	pub const ReservedTAppIdCount: u64 = 100;
-}
-
-impl pallet_bonding_curve::Config for Runtime {
+impl pallet_tea_erc20::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type CurrencyOperations = Utils;
-	type CmlOperation = Cml;
-	type TAppNameMaxLength = TAppNameMaxLength;
-	type TAppTickerMinLength = TAppTickerMinLength;
-	type TAppTickerMaxLength = TAppTickerMaxLength;
-	type TAppDetailMaxLength = TAppDetailMaxLength;
-	type TAppLinkMaxLength = TAppLinkMaxLength;
-	type PoolBalanceReversePrecision = PoolBalanceReversePrecision;
-	type HostArrangeDuration = HostArrangeDuration;
-	type HostCostCollectionDuration = HostCostCollectionDuration;
-	type ConsumeNoteMaxLength = ConsumeNoteMaxLength;
-	type CidMaxLength = CidMaxLength;
-	type TotalSupplyMaxValue = TotalSupplyMaxValue;
-	type MinTappHostsCount = MinTappHostsCount;
-	type HostLockingBlockHeight = HostLockingBlockHeight;
-	type TAppLinkDescriptionMaxLength = TAppLinkDescriptionMaxLength;
-	type DefaultBuyCurveTheta = DefaultBuyCurveTheta;
-	type DefaultSellCurveTheta = DefaultSellCurveTheta;
-	type HostPledgeAmount = HostPledgeAmount;
-	type ReservedLinkRentAmount = ReservedLinkRentAmount;
-	type ReservedTAppIdCount = ReservedTAppIdCount;
-}
-
-#[cfg(feature = "fast")]
-const AUCTION_WINDOW_BLOCK: BlockNumber = 1000;
-#[cfg(not(feature = "fast"))]
-const AUCTION_WINDOW_BLOCK: BlockNumber = 10000;
-
-parameter_types! {
-	/// Every AuctionDealWindowBLock blocks, the auction window closed. the highest bidder is winner.
-	/// There is a count down in the UI so that the bidder know when the window close
-	pub const AuctionDealWindowBLock: BlockNumber = AUCTION_WINDOW_BLOCK;
-	/// This is Bid Increments. Bidder has to pay MinPriceForBid higher than existing top price to make new bid
-	pub const MinPriceForBid: Balance = 1 * DOLLARS;
-	/// When the auctioneer want to cancel an on going auction, he will need to pay such penalty to
-	/// all involved bidders. Every bidder receives AuctionOwnerPenaltyForEachBid
-	pub const AuctionOwnerPenaltyForEachBid: Balance = 1 * DOLLARS;
-	/// The escrow deposit from auctioneer.
-	pub const AuctionPledgeAmount: Balance = 100 * DOLLARS;
-	/// How many bids are allowed for each item. To avoid DDoS attack
-	pub const MaxUsersPerAuction: u64 = 10000;
-	/// Auction fee. Every new auction window, the auctioneer needs to pay such fee if choose to renew to continue to next auction window
-	pub const AuctionFeePerWindow: Balance = 1 * DOLLARS;
-}
-impl pallet_auction::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type CurrencyOperations = Utils;
-	type CmlOperation = Cml;
-	type AuctionOperation = Auction;
-	type GenesisBankOperation = GenesisBank;
-	type BondingCurveOperation = BondingCurve;
-	type AuctionDealWindowBLock = AuctionDealWindowBLock;
-	type MinPriceForBid = MinPriceForBid;
-	type AuctionOwnerPenaltyForEachBid = AuctionOwnerPenaltyForEachBid;
-	type AuctionPledgeAmount = AuctionPledgeAmount;
-	type MaxUsersPerAuction = MaxUsersPerAuction;
-	type AuctionFeePerWindow = AuctionFeePerWindow;
-	type WeightInfo = weights::pallet_auction::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1097,12 +849,9 @@ construct_runtime!(
 		Mmr: pallet_mmr::{Pallet, Storage},
 		// Include the custom logic from the pallets in the runtime.
 		Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
-		Auction: pallet_auction::{Pallet, Call, Storage, Event<T>} = 101,
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
-		GenesisBank: pallet_genesis_bank::{Pallet, Call, Config<T>, Storage, Event<T>} = 104,
-		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Config<T>, Storage, Event<T>} = 105,
-		BondingCurve: pallet_bonding_curve::{Pallet, Call, Config<T>, Storage, Event<T>} = 106,
-		Tea: pallet_tea::{Pallet, Call, Config<T>, Storage, Event<T>} = 107,
+		TeaErc20: pallet_tea_erc20::{Pallet, Call, Config<T>, Storage, Event<T>} = 106,
+		Machine: pallet_machine::{Pallet, Call, Config<T>, Storage, Event<T>} = 107,
 	}
 );
 
@@ -1307,253 +1056,15 @@ impl_runtime_apis! {
 		fn user_cml_list(who: &AccountId) -> Vec<u64> {
 			Cml::user_cml_list(who)
 		}
-
-		fn user_staking_list(who: &AccountId) -> Vec<(u64, u64)> {
-			Cml::user_staking_list(who)
-		}
-
-		fn current_mining_cml_list() -> Vec<(u64, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, u32)> {
-			Cml::current_mining_cml_list()
-		}
-
-		fn staking_price_table() -> Vec<Balance> {
-			STAKING_PRICE_TABLE.to_vec()
-		}
-
-		fn estimate_stop_mining_penalty(cml_id: u64) -> Balance {
-			Cml::estimate_stop_mining_penalty(cml_id)
-		}
-
-		fn list_cmls_info(exclude_account: Option<AccountId>) -> Vec<(AccountId, Vec<(u64, Vec<u8>, Vec<u8>)>)> {
-			Cml::list_cmls_info(exclude_account)
-		}
 	}
 
-	impl auction_runtime_api::AuctionApi<Block, AccountId> for Runtime {
-		fn user_auction_list(who: &AccountId) -> Vec<u64> {
-			Auction::user_auction_list(who)
-		}
-
-		fn user_bid_list(who: &AccountId) -> Vec<u64> {
-			Auction::user_bid_list(who)
-		}
-
-		fn current_auction_list() -> Vec<u64> {
-			Auction::current_auction_list()
-		}
-
-		fn estimate_minimum_bid_price(auction_id: u64, who: &AccountId) -> (Balance, Option<Balance>, bool) {
-			Auction::estimate_minimum_bid_price(auction_id, who)
-		}
-
-		fn penalty_amount(auction_id: u64, who: &AccountId) -> Balance {
-			Auction::penalty_amount(auction_id, who)
-		}
-	}
-
-	impl tea_runtime_api::TeaApi<Block, AccountId> for Runtime {
-		fn is_ra_validator(
-			tea_id: &[u8; 32],
-			target_tea_id: &[u8; 32],
-			block_number: BlockNumber,
-		) -> bool {
-			Tea::is_ra_validator(tea_id, target_tea_id, &block_number)
-		}
-
+	impl machine_runtime_api::MachineApi<Block, AccountId> for Runtime {
 		fn boot_nodes() -> Vec<[u8; 32]> {
-			Tea::list_boot_nodes()
+			Machine::list_boot_nodes()
 		}
 
 		fn tapp_store_startup_nodes() -> Vec<[u8; 32]> {
-			Tea::list_tapp_store_startup_nodes()
-		}
-
-		fn allowed_pcrs() -> Vec<(H256, Vec<Vec<u8>>)> {
-			Tea::list_allowed_pcrs()
-		}
-
-		fn allowed_versions() -> Vec<(H256, Vec<(Vec<u8>, Vec<u8>)>, Option<BlockNumber> )> {
-			Tea::list_allowed_versions()
-		}
-
-		fn find_tea_id_by_peer_id(peer_id: Vec<u8>) -> Vec<[u8; 32]> {
-			Tea::find_tea_id_by_peer_id(&peer_id)
-		}
-
-		fn version_expired_nodes() -> Vec<[u8; 32]> {
-			Tea::list_version_expired_nodes()
-		}
-
-		fn find_peer_ids_by_conn_ids(conn_ids: Vec<Vec<u8>>) -> Vec<(Vec<u8>, [u8; 32])> {
-			Tea::find_peer_ids_by_conn_ids(conn_ids)
-		}
-	}
-
-	impl genesis_bank_runtime_api::GenesisBankApi<Block, AccountId> for Runtime {
-		fn cml_calculate_loan_amount(cml_id: u64) -> (Balance, Balance, Balance) {
-			GenesisBank::cml_calculate_loan_amount(cml_id)
-		}
-
-		fn user_collateral_list(who: &AccountId) -> Vec<(u64, BlockNumber)> {
-			GenesisBank::user_collateral_list(who)
-		}
-	}
-
-	impl genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId> for Runtime {
-		/// Returns
-		/// 1. current 1TEA equals how many USD amount
-		/// 2. current 1USD equals how many TEA amount
-		/// 3. exchange remains USD
-		/// 4. exchange remains TEA
-		/// 5. product of  exchange remains USD and exchange remains TEA
-		fn current_exchange_rate() -> (
-			Balance,
-			Balance,
-			Balance,
-			Balance,
-			Balance,
-		) {
-			GenesisExchange::current_exchange_rate()
-		}
-
-		fn estimate_amount(withdraw_amount: Balance, buy_tea: bool) -> Balance {
-			GenesisExchange::estimate_amount(withdraw_amount, buy_tea)
-		}
-
-		fn user_asset_list() -> Vec<(AccountId, Balance, Balance, Balance, Balance, Balance, Balance, Balance, Balance)> {
-			GenesisExchange::user_asset_list()
-		}
-
-		fn user_borrowing_usd_margin(who: &AccountId) -> Balance {
-			GenesisExchange::user_borrowing_usd_margin(who)
-		}
-	}
-
-	impl bonding_curve_runtime_api::BondingCurveApi<Block, AccountId> for Runtime {
-		fn query_price(tapp_id: u64) -> (Balance, Balance) {
-			BondingCurve::query_price(tapp_id)
-		}
-
-		fn estimate_required_tea_when_buy(tapp_id: Option<u64>, token_amount: Balance, buy_curve_k: Option<u32>) -> Balance {
-			BondingCurve::estimate_required_tea_when_buy(tapp_id, token_amount, buy_curve_k)
-		}
-
-		fn estimate_receive_tea_when_sell(tapp_id: u64, token_amount: Balance) -> Balance {
-			BondingCurve::estimate_receive_tea_when_sell(tapp_id, token_amount)
-		}
-
-		fn estimate_receive_token_when_buy(tapp_id: u64, tea_amount: Balance) -> Balance {
-			BondingCurve::estimate_receive_token_when_buy(tapp_id, tea_amount)
-		}
-
-		fn estimate_required_token_when_sell(tapp_id: u64, tea_amount: Balance) -> Balance {
-			BondingCurve::estimate_required_token_when_sell(tapp_id, tea_amount)
-		}
-
-		fn list_tapps(active_only: bool) -> Vec<(
-			Vec<u8>,
-			u64,
-			Vec<u8>,
-			Balance,
-			Balance,
-			Balance,
-			AccountId,
-			Vec<u8>,
-			Vec<u8>,
-			u32,
-			(u32, u32),
-			Option<BlockNumber>,
-		)> {
-			BondingCurve::list_tapps(active_only)
-		}
-
-		fn list_user_assets(who: AccountId) -> Vec<(
-			Vec<u8>,
-			u64,
-			Vec<u8>,
-			(Balance, Balance),
-			Balance,
-			AccountId,
-			Vec<u8>,
-			Vec<u8>,
-			u32,
-			u32,
-			u32,
-			Balance,
-		)> {
-			BondingCurve::list_user_assets(&who)
-		}
-
-		fn tapp_details(tapp_id: u64) -> (
-			Vec<u8>,
-			u64,
-			Vec<u8>,
-			AccountId,
-			Vec<u8>,
-			Vec<u8>,
-			u32,
-			u32,
-			u32,
-			Balance,
-			Balance,
-			Balance,
-		) {
-			BondingCurve::tapp_details(tapp_id)
-		}
-
-		fn list_candidate_miners(who: AccountId) -> Vec<(
-			u64,
-			u32,
-			u32,
-			BlockNumber,
-			Vec<u64>)> {
-			BondingCurve::list_candidate_miners(&who)
-		}
-
-		fn tapp_hosted_cmls(tapp_id: u64) -> Vec<(
-			u64,
-			Option<AccountId>,
-			BlockNumber,
-			Option<u32>,
-			Option<u32>,
-			u32)> {
-			BondingCurve::tapp_hosted_cmls(tapp_id)
-		}
-
-		fn tapp_staking_details(
-			tapp_id: u64,
-			only_investing: bool,
-		) -> Vec<(AccountId, Balance)> {
-			BondingCurve::tapp_staking_details(tapp_id, only_investing)
-		}
-
-		fn list_cml_hosting_tapps(cml_id: u64) -> Vec<(
-			u64,
-			Option<u32>,
-			u64,
-			Vec<u8>,
-			Vec<u8>,
-			Vec<u8>,
-			Vec<u8>,
-			u32,
-			Balance)> {
-			BondingCurve::list_cml_hosting_tapps(cml_id)
-		}
-
-		fn cml_performance(cml_id: u64) -> (Option<u32>, Option<u32>, u32) {
-			BondingCurve::cml_performance(cml_id)
-		}
-
-		fn approved_links(allowed: bool) -> Vec<(Vec<u8>, Option<u64>, Vec<u8>, Option<AccountId>)> {
-			BondingCurve::approved_links(allowed)
-		}
-
-		fn user_notification_count(account: AccountId, desired_start_height: BlockNumber) -> u32 {
-			BondingCurve::user_notification_count(account, desired_start_height)
-		}
-
-		fn tapp_notifications_count(stop_height: BlockNumber) -> Vec<(u64, u32)> {
-			BondingCurve::tapp_notifications_count(stop_height)
+			Machine::list_tapp_store_startup_nodes()
 		}
 	}
 
@@ -1678,9 +1189,8 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_multisig, Multisig);
 			add_benchmark!(params, batches, pallet_identity, Identity);
 
-			add_benchmark!(params, batches, pallet_tea, Tea);
+			add_benchmark!(params, batches, pallet_machine, Machine);
 			add_benchmark!(params, batches, pallet_cml, Cml);
-			add_benchmark!(params, batches, pallet_auction, Auction);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)

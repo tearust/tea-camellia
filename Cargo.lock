@@ -364,42 +364,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "auction-interface"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "auction-rpc"
-version = "0.1.0"
-dependencies = [
- "auction-runtime-api",
- "jsonrpc-core",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "node-primitives",
- "parity-scale-codec",
- "serde",
- "sp-api",
- "sp-blockchain",
- "sp-rpc",
- "sp-runtime",
-]
-
-[[package]]
-name = "auction-runtime-api"
-version = "0.1.0"
-dependencies = [
- "node-primitives",
- "parity-scale-codec",
- "sp-api",
- "sp-std",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -634,54 +598,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bonding-curve-impl"
-version = "0.1.0"
-dependencies = [
- "bonding-curve-interface",
- "frame-support",
- "node-primitives",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "bonding-curve-interface"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "bonding-curve-rpc"
-version = "0.1.0"
-dependencies = [
- "bonding-curve-runtime-api",
- "jsonrpc-core",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "node-primitives",
- "parity-scale-codec",
- "rmp-serde",
- "serde",
- "sp-api",
- "sp-blockchain",
- "sp-rpc",
- "sp-runtime",
-]
-
-[[package]]
-name = "bonding-curve-runtime-api"
-version = "0.1.0"
-dependencies = [
- "node-primitives",
- "parity-scale-codec",
- "sp-api",
- "sp-std",
-]
-
-[[package]]
 name = "bs58"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -764,9 +680,6 @@ checksum = "631ae5198c9be5e753e5cc215e1bd73c2b466a3565173db433f52bb9d3e66dba"
 name = "camellia-runtime"
 version = "0.0.1"
 dependencies = [
- "auction-runtime-api",
- "bonding-curve-impl",
- "bonding-curve-runtime-api",
  "cml-runtime-api",
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -776,26 +689,22 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "genesis-bank-runtime-api",
- "genesis-exchange-runtime-api",
  "hex-literal",
+ "machine-runtime-api",
  "node-primitives",
- "pallet-auction",
  "pallet-authority-discovery",
  "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
- "pallet-bonding-curve",
  "pallet-cml",
  "pallet-collective",
  "pallet-democracy",
  "pallet-election-provider-multi-phase",
  "pallet-elections-phragmen",
- "pallet-genesis-bank",
- "pallet-genesis-exchange",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
+ "pallet-machine",
  "pallet-membership",
  "pallet-mmr",
  "pallet-multisig",
@@ -807,7 +716,7 @@ dependencies = [
  "pallet-session-benchmarking",
  "pallet-staking 4.0.0-dev",
  "pallet-sudo",
- "pallet-tea",
+ "pallet-tea-erc20",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
@@ -830,10 +739,8 @@ dependencies = [
  "sp-std",
  "sp-transaction-pool",
  "sp-version",
- "staking-economics",
  "static_assertions",
  "substrate-wasm-builder",
- "tea-runtime-api",
 ]
 
 [[package]]
@@ -2149,80 +2056,6 @@ checksum = "501466ecc8a30d1d3b7fc9229b122b2ce8ed6e9d9223f1138d4babb253e51817"
 dependencies = [
  "typenum",
  "version_check",
-]
-
-[[package]]
-name = "genesis-bank-interface"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "genesis-bank-rpc"
-version = "0.1.0"
-dependencies = [
- "genesis-bank-runtime-api",
- "jsonrpc-core",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "node-primitives",
- "parity-scale-codec",
- "rmp-serde",
- "serde",
- "sp-api",
- "sp-blockchain",
- "sp-rpc",
- "sp-runtime",
-]
-
-[[package]]
-name = "genesis-bank-runtime-api"
-version = "0.1.0"
-dependencies = [
- "node-primitives",
- "parity-scale-codec",
- "sp-api",
- "sp-std",
-]
-
-[[package]]
-name = "genesis-exchange-interface"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "genesis-exchange-rpc"
-version = "0.1.0"
-dependencies = [
- "genesis-exchange-runtime-api",
- "jsonrpc-core",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "node-primitives",
- "parity-scale-codec",
- "rmp-serde",
- "serde",
- "sp-api",
- "sp-blockchain",
- "sp-rpc",
- "sp-runtime",
-]
-
-[[package]]
-name = "genesis-exchange-runtime-api"
-version = "0.1.0"
-dependencies = [
- "node-primitives",
- "parity-scale-codec",
- "sp-api",
- "sp-std",
 ]
 
 [[package]]
@@ -3628,6 +3461,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "machine-rpc"
+version = "0.1.0"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "machine-runtime-api",
+ "node-primitives",
+ "parity-scale-codec",
+ "rmp-serde",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "machine-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "node-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-core",
+ "sp-std",
+]
+
+[[package]]
 name = "maplit"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4286,34 +4149,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-auction"
-version = "3.0.0"
-dependencies = [
- "auction-interface",
- "bonding-curve-interface",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "genesis-bank-interface",
- "genesis-exchange-interface",
- "log",
- "node-primitives",
- "pallet-balances",
- "pallet-cml",
- "pallet-genesis-bank",
- "pallet-randomness-collective-flip",
- "pallet-utils",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "tea-interface",
-]
-
-[[package]]
 name = "pallet-authority-discovery"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?rev=558a68f8#558a68f8328a004f153496a192c3ac9723c763c3"
@@ -4380,37 +4215,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-bonding-curve"
-version = "0.0.1"
-dependencies = [
- "auction-interface",
- "bonding-curve-impl",
- "bonding-curve-interface",
- "ed25519-dalek",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "genesis-exchange-interface",
- "hex",
- "hex-literal",
- "log",
- "node-primitives",
- "pallet-balances",
- "pallet-cml",
- "pallet-randomness-collective-flip",
- "pallet-utils",
- "parity-scale-codec",
- "rand 0.7.3",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "tea-interface",
-]
-
-[[package]]
 name = "pallet-bounties"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?rev=558a68f8#558a68f8328a004f153496a192c3ac9723c763c3"
@@ -4427,12 +4231,9 @@ dependencies = [
 name = "pallet-cml"
 version = "3.0.0"
 dependencies = [
- "auction-interface",
- "bonding-curve-interface",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "genesis-exchange-interface",
  "log",
  "node-primitives",
  "pallet-balances",
@@ -4446,7 +4247,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "tea-interface",
 ]
 
 [[package]]
@@ -4600,69 +4400,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-genesis-bank"
-version = "0.0.1"
-dependencies = [
- "auction-interface",
- "bonding-curve-interface",
- "ed25519-dalek",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "genesis-bank-interface",
- "genesis-exchange-interface",
- "hex",
- "hex-literal",
- "log",
- "node-primitives",
- "pallet-balances",
- "pallet-cml",
- "pallet-randomness-collective-flip",
- "pallet-utils",
- "parity-scale-codec",
- "rand 0.7.3",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "tea-interface",
-]
-
-[[package]]
-name = "pallet-genesis-exchange"
-version = "0.0.1"
-dependencies = [
- "bonding-curve-interface",
- "ed25519-dalek",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "genesis-bank-interface",
- "genesis-exchange-interface",
- "hex",
- "hex-literal",
- "log",
- "node-primitives",
- "pallet-auction",
- "pallet-balances",
- "pallet-cml",
- "pallet-genesis-bank",
- "pallet-randomness-collective-flip",
- "pallet-utils",
- "parity-scale-codec",
- "rand 0.7.3",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "tea-interface",
-]
-
-[[package]]
 name = "pallet-gilt"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?rev=558a68f8#558a68f8328a004f153496a192c3ac9723c763c3"
@@ -4755,6 +4492,31 @@ dependencies = [
  "frame-support",
  "frame-system",
  "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-machine"
+version = "0.0.1"
+dependencies = [
+ "ed25519-dalek",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "log",
+ "node-primitives",
+ "pallet-balances",
+ "pallet-randomness-collective-flip",
+ "pallet-utils",
+ "parity-scale-codec",
+ "rand 0.7.3",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -5053,22 +4815,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-tea"
+name = "pallet-tea-erc20"
 version = "0.0.1"
 dependencies = [
- "auction-interface",
- "bonding-curve-interface",
  "ed25519-dalek",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "genesis-exchange-interface",
  "hex",
  "hex-literal",
  "log",
  "node-primitives",
  "pallet-balances",
- "pallet-cml",
  "pallet-randomness-collective-flip",
  "pallet-utils",
  "parity-scale-codec",
@@ -5079,7 +4837,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
- "tea-interface",
 ]
 
 [[package]]
@@ -8328,17 +8085,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
-name = "staking-economics"
-version = "0.1.0"
-dependencies = [
- "node-primitives",
- "pallet-cml",
- "rand 0.7.3",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8588,10 +8334,6 @@ checksum = "d9bffcddbc2458fa3e6058414599e3c838a022abae82e5c67b4f7f80298d5bff"
 name = "tea-camellia"
 version = "0.0.1"
 dependencies = [
- "auction-rpc",
- "auction-runtime-api",
- "bonding-curve-rpc",
- "bonding-curve-runtime-api",
  "camellia-runtime",
  "cml-rpc",
  "cml-runtime-api",
@@ -8599,14 +8341,12 @@ dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures 0.3.17",
- "genesis-bank-rpc",
- "genesis-bank-runtime-api",
- "genesis-exchange-rpc",
- "genesis-exchange-runtime-api",
  "hex",
  "hex-literal",
  "jsonrpc-core",
  "log",
+ "machine-rpc",
+ "machine-runtime-api",
  "node-executor",
  "node-inspect",
  "node-primitives",
@@ -8659,48 +8399,7 @@ dependencies = [
  "substrate-build-script-utils",
  "substrate-frame-cli",
  "substrate-frame-rpc-system",
- "tea-rpc",
- "tea-runtime-api",
  "try-runtime-cli",
-]
-
-[[package]]
-name = "tea-interface"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "tea-rpc"
-version = "0.1.0"
-dependencies = [
- "jsonrpc-core",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "node-primitives",
- "parity-scale-codec",
- "rmp-serde",
- "serde",
- "sp-api",
- "sp-blockchain",
- "sp-core",
- "sp-rpc",
- "sp-runtime",
- "tea-runtime-api",
-]
-
-[[package]]
-name = "tea-runtime-api"
-version = "0.1.0"
-dependencies = [
- "node-primitives",
- "parity-scale-codec",
- "sp-api",
- "sp-core",
- "sp-std",
 ]
 
 [[package]]
