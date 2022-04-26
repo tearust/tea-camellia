@@ -74,6 +74,7 @@ pub mod cml {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
+		pub npc_account: T::AccountId,
 		pub genesis_seeds: GenesisSeeds,
 		pub phantom: PhantomData<T>,
 	}
@@ -81,6 +82,7 @@ pub mod cml {
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
+				npc_account: Default::default(),
 				genesis_seeds: GenesisSeeds::default(),
 				phantom: PhantomData,
 			}
@@ -89,129 +91,32 @@ pub mod cml {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			crate::functions::init_from_genesis_seeds::<T>(&self.genesis_seeds);
+			NPCAccount::<T>::set(self.npc_account.clone());
+			crate::functions::init_from_genesis_seeds::<T>(
+				&self.genesis_seeds,
+				NPCAccount::<T>::get(),
+			);
 		}
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config> {}
+	pub enum Event<T: Config> {
+		/// Params:
+		/// 1. cml id
+		/// 2. from account
+		/// 3. to account
+		CmlTransfered(CmlId, T::AccountId, T::AccountId),
+	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// User have no coupons to draw cmls.
-		WithoutCoupon,
-		/// User have not enough coupons to transfer.
-		NotEnoughCoupon,
-		/// User transfer the coupons amount is over than he really has.
-		InvalidCouponAmount,
-		/// It's forbidden to transfer coupon.
-		ForbiddenTransferCoupon,
-
-		/// There is not enough draw seeds left in luck draw box (this error indicate the genesis draw seeds count
-		/// and coupons amount not matched).
-		NotEnoughDrawSeeds,
-		/// Seeds is not outdated that can't be clean out with `clean_outdated_seeds` extrinsic.
-		SeedsNotOutdatedYet,
-		/// Coupons has outdated that can't transfer or be used to transfer to others.
-		CouponsHasOutdated,
-		/// Lucky draw box is already empty so there is no need to clean out.
-		NoNeedToCleanOutdatedSeeds,
-
 		/// Could not find CML in the cml store, indicates that the specified CML not existed.
 		NotFoundCML,
 		/// Trying to operate a CML not belongs to the user.
 		CMLOwnerInvalid,
-		/// Cml is not seed so there is no need to active (to tree) or do something else.
-		CmlIsNotSeed,
-
-		/// User account free balance is not enoungh.
-		InsufficientFreeBalance,
-		/// The specified machine ID is already mining, that should not be used to start mining again.
-		MinerAlreadyExist,
-		/// The specified machine ID is not found in the machine store, indicates that the specified machin
-		/// ID not existed.
-		NotFoundMiner,
-		/// Specified CML in not valid to operate as a mining tree.
-		InvalidMiner,
-		/// Sepcified miner IP is not a valid format of IPv4.
-		InvalidMinerIp,
-		/// Mining tree is offline already, no need to suspend
-		NoNeedToSuspend,
-		/// Mining tree is already active, no need to resume
-		NoNeedToResume,
-		/// Insufficient free balance to append pledge
-		InsufficientFreeBalanceToAppendPledge,
-		/// The given IP address is already registerd
-		MinerIpAlreadyExist,
-		/// Type B cml start mining should have orbit id
-		CmlBStartMiningShouldHaveOrbitId,
-		/// Can not schedule down when cml is not active state
-		CanNotScheduleDownWhenInactive,
-		/// Mining tree is not schedule down, no need to schedule up
-		NoNeedToScheduleUp,
-		/// Can not migrate when cml is active, should schedule down first
-		CannotMigrateWhenActive,
-
-		/// Specified staking index is over than the max length of current staking slots.
-		InvalidStakingIndex,
-		/// The first staking slot cannot be unstake, if do want to unstake it please stop mining instead.
-		CannotUnstakeTheFirstSlot,
-		/// User is not the owner of specified CML.
-		InvalidStakingOwner,
-		/// User has no reward of staking that can't to withdraw the reward.
-		NotFoundRewardAccount,
-		/// Specified CML has been staked by too much users that can't be append staking anymore.
-		StakingSlotsOverTheMaxLength,
-		/// User specfied max acceptable slot length and current staking index has over than that.
-		StakingSlotsOverAcceptableIndex,
-		/// It is forbidden to stake a cml that is in aution.
-		CannotStakeWhenCmlIsInAuction,
-		/// Not allowed type C cml to be staked.
-		NotAllowedCToBeStaked,
-
-		/// Defrost time should have value when defrost.
-		CmlDefrostTimeIsNone,
-		/// Cml should be frozen seed.
-		CmlShouldBeFrozenSeed,
-		/// Cml is still in frozen locked period that cannot be defrosted.
-		CmlStillInFrozenLockedPeriod,
-		/// Cml should be fresh seed.
-		CmlShouldBeFreshSeed,
-		/// Cml in fresh seed state and have expired the fresh duration.
-		CmlFreshSeedExpired,
-		/// Cml is tree means that can't be frozen seed or fresh seed.
-		CmlShouldBeTree,
-		/// Cml has over the lifespan
-		CmlShouldDead,
-		/// Cml is mining that can start mining again.
-		CmlIsMiningAlready,
-		/// Cml is staking that can't staking again or start mining.
-		CmlIsStaking,
-		/// Before start mining staking slot should be empty.
-		CmlStakingSlotNotEmpty,
-		/// Means we cannot decide staking type from given params.
-		ConfusedStakingType,
-		/// Cml is not mining that can't stake to.
-		CmlIsNotMining,
-		/// Cml is not staking to current miner that can't unstake.
-		CmlIsNotStakingToCurrentMiner,
-		/// Cml staking index over than staking slot length, that means point to not exist staking.
-		CmlStakingIndexOverflow,
-		/// Cml staking item owner is none, that can't identify staking belongs.
-		CmlOwnerIsNone,
-		/// Cml staking item owner and the owner field of cml item not match.
-		CmlOwnerMismatch,
-		/// Cml is not staking that can't unstake.
-		CmlIsNotStaking,
-		/// Some status that can't convert to another status.
-		CmlInvalidStatusConversion,
-		/// Not enough free balance to pay for each of the staking accounts.
-		InsufficientFreeBalanceToPayForPunishment,
-		/// Can not stop mining when hosting tapp
-		CannotStopMiningWhenHostingTApp,
-		/// C type cmls are not allowed to stake
-		CTypeCmlCanNotStake,
+		/// Only NPC account can generate cml
+		OnlyNPCAccountCanGenerateCml,
 	}
 
 	#[pallet::hooks]
@@ -220,5 +125,84 @@ pub mod cml {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight(195_000_000)]
+		pub fn generate_cml(sender: OriginFor<T>, a_amount: u32, b_amount: u32) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			pallet_utils::extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(
+						who.eq(&NPCAccount::<T>::get()),
+						Error::<T>::OnlyNPCAccountCanGenerateCml
+					);
+					Ok(())
+				},
+				|who| {
+					let mut salt = vec![];
+					salt.append(&mut a_amount.to_le_bytes().to_vec());
+					salt.append(&mut b_amount.to_le_bytes().to_vec());
+
+					let rand_value = sp_core::U256::from(
+						T::CommonUtils::generate_random(who.clone(), &salt).as_bytes(),
+					);
+					let seeds = generator::construct_seeds(
+						LastCmlId::<T>::get(),
+						frame_support::Hashable::twox_256(&rand_value),
+						a_amount as u64,
+						b_amount as u64,
+						0,
+					);
+					crate::functions::init_from_genesis_seeds::<T>(&seeds, NPCAccount::<T>::get());
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn transfer(
+			sender: OriginFor<T>,
+			cml_id: CmlId,
+			to_account: T::AccountId,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			pallet_utils::extrinsic_procedure(
+				&who,
+				|who| {
+					ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
+					ensure!(
+						CmlStore::<T>::get(cml_id).owner().eq(who),
+						Error::<T>::CMLOwnerInvalid
+					);
+					Ok(())
+				},
+				|who| {
+					CmlStore::<T>::mutate(cml_id, |cml| {
+						cml.set_owner(to_account.clone());
+					});
+					UserCmlStore::<T>::insert(to_account.clone(), cml_id, ());
+
+					Self::deposit_event(Event::CmlTransfered(cml_id, who.clone(), to_account));
+				},
+			)
+		}
+
+		#[pallet::weight(195_000_000)]
+		pub fn approve(
+			sender: OriginFor<T>,
+			_cml_id: CmlId,
+			_proxy_account: T::AccountId,
+		) -> DispatchResult {
+			let who = ensure_signed(sender)?;
+
+			pallet_utils::extrinsic_procedure(
+				&who,
+				|_who| Ok(()),
+				|_who| {
+					// todo complete me
+				},
+			)
+		}
+	}
 }

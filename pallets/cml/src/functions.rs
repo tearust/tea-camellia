@@ -14,16 +14,22 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
-pub fn init_from_genesis_seeds<T>(genesis_seeds: &GenesisSeeds)
+pub fn init_from_genesis_seeds<T>(genesis_seeds: &GenesisSeeds, account: T::AccountId)
 where
 	T: Config,
 {
-	let a_cml_list =
-		convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber>(&genesis_seeds.a_seeds);
-	let b_cml_list =
-		convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber>(&genesis_seeds.b_seeds);
-	let c_cml_list =
-		convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber>(&genesis_seeds.c_seeds);
+	let a_cml_list = convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber>(
+		&genesis_seeds.a_seeds,
+		account.clone(),
+	);
+	let b_cml_list = convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber>(
+		&genesis_seeds.b_seeds,
+		account.clone(),
+	);
+	let c_cml_list = convert_genesis_seeds_to_cmls::<T::AccountId, T::BlockNumber>(
+		&genesis_seeds.c_seeds,
+		account,
+	);
 
 	a_cml_list
 		.into_iter()
@@ -45,16 +51,16 @@ where
 
 pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber>(
 	seeds: &Vec<Seed>,
+	account: AccountId,
 ) -> Vec<CML<AccountId, BlockNumber>>
 where
-	AccountId: PartialEq + Clone,
+	AccountId: PartialEq + Clone + Default,
 	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
 {
 	let mut cml_list = Vec::new();
 
 	for seed in seeds {
-		let cml = CML::from_genesis_seed(seed.clone());
-
+		let cml = CML::from_seed(seed.clone(), account.clone());
 		cml_list.push(cml);
 	}
 	cml_list
