@@ -1,14 +1,12 @@
 use crate as pallet_bonding_curve;
-use codec::{Decode, Encode};
 use frame_support::parameter_types;
-use frame_support::traits::{Everything, Get};
+use frame_support::traits::Everything;
 use frame_system as system;
 use node_primitives::Balance;
-use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, IdentityLookup, Zero},
+	traits::{BlakeTwo256, IdentityLookup},
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
