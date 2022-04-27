@@ -127,25 +127,23 @@ pub mod tea {
 	}
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig<T: Config> {
+	pub struct GenesisConfig {
 		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId)>,
 		pub startup_tapp_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
-		pub phantom: PhantomData<T>,
 	}
 
 	#[cfg(feature = "std")]
-	impl<T: Config> Default for GenesisConfig<T> {
+	impl Default for GenesisConfig {
 		fn default() -> Self {
 			GenesisConfig {
 				startup_machine_bindings: Default::default(),
 				startup_tapp_bindings: Default::default(),
-				phantom: PhantomData,
 			}
 		}
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {
 			self.startup_machine_bindings
 				.iter()

@@ -3,7 +3,6 @@
 #![allow(clippy::unnecessary_mut_passed)]
 
 use codec::Codec;
-use node_primitives::Balance;
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {

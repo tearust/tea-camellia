@@ -1,11 +1,11 @@
 use camellia_runtime::{
-	constants::currency::{CENTS, DOLLARS},
+	constants::currency::DOLLARS,
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisSeeds},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, Block, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
 	MachineConfig, SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
-	TeaErc20Config, TechnicalCommitteeConfig, WASM_BINARY,
+	TechnicalCommitteeConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
@@ -23,30 +23,12 @@ use sp_runtime::{
 	Perbill,
 };
 use std::str::FromStr;
-use std::{collections::HashSet, marker::PhantomData};
 
 const INITIAL_ACCOUNT_BALANCE: Balance = 2_000_000 * DOLLARS;
 const INITIAL_VALIDATOR_BALANCE: Balance = 100 * DOLLARS;
-const COUPON_ACCOUNT_BALANCE: Balance = 1 * DOLLARS;
 
-const INITIAL_EXCHANGE_TEA_BALANCE: Balance = 100_000_000 * DOLLARS;
-const INITIAL_EXCHANGE_USD_BALANCE: Balance = 100_000 * DOLLARS;
-
-const INITIAL_GENESIS_BANK_ACCOUNT_BALANCE: Balance = 100_000 * DOLLARS;
-
-const INITIAL_COMPETITION_USER_USD_BALANCE: Balance = 0;
-
-// address derived from [0u8; 32] that the corresponding private key we don't know
-const GENESIS_BANK_OPERATION_ADDRESS: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM";
-// address derived from [1u8; 32] that the corresponding private key we don't know
-const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn38446dhCpsi2mLHiFT";
-// address derived from [2u8; 32] that the corresponding private key we don't know
-const BONDING_CURVE_RESERVED_BALANCE_ADDRESS: &str =
-	"5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt";
 // NPC is predefined "sudo" user in competition csv file, the following is address and initial amounts settings
-const BONDING_CURVE_NPC_ADDRESS: &str = "5D2od84fg3GScGR139Li56raDWNQQhzgYbV7QsEJKS4KfTGv";
-const BONDING_CURVE_NPC_INITIAL_TEA_BALANCE: Balance = 1_000_000 * DOLLARS;
-const BONDING_CURVE_NPC_INITIAL_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
+const NPC_ADDRESS: &str = "5D2od84fg3GScGR139Li56raDWNQQhzgYbV7QsEJKS4KfTGv";
 
 const DESIRED_VALIDATOR_COUNT: u32 = 10;
 
@@ -166,7 +148,7 @@ pub fn development_config(seed: [u8; 32]) -> Result<ChainSpec, String> {
 		ChainType::Development,
 		move || {
 			let genesis_seeds = init_genesis(seed);
-			let mut endowed_accounts = vec![
+			let endowed_accounts = vec![
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				get_account_id_from_seed::<sr25519::Public>("Bob"),
 				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
@@ -331,7 +313,7 @@ pub fn testnet_config(
 		"tea-layer1",
 		ChainType::Local,
 		move || {
-			let mut endowed_balances = endowed_balances.clone();
+			let endowed_balances = endowed_balances.clone();
 			let initial_authorities = initial_authorities.clone();
 			let endowed_accounts = endowed_accounts.clone();
 			let root_key = root_key.clone();
@@ -379,33 +361,14 @@ fn testnet_genesis(
 	mut initial_balances: Vec<(AccountId, Balance)>,
 	genesis_seeds: GenesisSeeds,
 ) -> GenesisConfig {
-	let genesis_bank_operation_account =
-		AccountId32::from_str(GENESIS_BANK_OPERATION_ADDRESS).unwrap();
-	let genesis_exchange_operation_account =
-		AccountId32::from_str(GENESIS_EXCHANGE_OPERATION_ADDRESS).unwrap();
-	let bonding_curve_reserved_balance_account =
-		AccountId32::from_str(BONDING_CURVE_RESERVED_BALANCE_ADDRESS).unwrap();
-	let bonding_curve_npc_account = AccountId32::from_str(BONDING_CURVE_NPC_ADDRESS).unwrap();
-
-	initial_balances.push((
-		genesis_exchange_operation_account.clone(),
-		INITIAL_EXCHANGE_TEA_BALANCE,
-	));
-	initial_balances.push((
-		genesis_bank_operation_account.clone(),
-		INITIAL_GENESIS_BANK_ACCOUNT_BALANCE,
-	));
+	let npc_account = AccountId32::from_str(NPC_ADDRESS).unwrap();
 
 	if let Some(index) = initial_balances
 		.iter()
-		.position(|(acc, _)| acc.eq(&bonding_curve_npc_account))
+		.position(|(acc, _)| acc.eq(&npc_account))
 	{
 		initial_balances.remove(index);
 	}
-	initial_balances.push((
-		bonding_curve_npc_account.clone(),
-		BONDING_CURVE_NPC_INITIAL_TEA_BALANCE,
-	));
 
 	let num_endowed_accounts = endowed_accounts.len();
 	GenesisConfig {
@@ -486,23 +449,33 @@ fn testnet_genesis(
 		democracy: DemocracyConfig::default(),
 
 		machine: MachineConfig {
-			builtin_nodes: vec![
-				hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b"),
-				hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596"),
-				hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6"),
-				hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52"),
-				hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
+			startup_machine_bindings: vec![
+				(
+					hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b"),
+					0,
+				),
+				(
+					hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596"),
+					1,
+				),
+				(
+					hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6"),
+					2,
+				),
+				(
+					hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52"),
+					3,
+				),
+				(
+					hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
+					4,
+				),
 			],
-			phantom: PhantomData,
+			startup_tapp_bindings: vec![],
 		},
 		cml: CmlConfig {
+			npc_account,
 			genesis_seeds,
-			phantom: PhantomData,
-		},
-		tea_erc_20: TeaErc20Config {
-			reserved_balance_account: bonding_curve_reserved_balance_account,
-			npc_account: bonding_curve_npc_account,
-			user_create_tapp: true, // default enable user create tapp
 		},
 	}
 }
