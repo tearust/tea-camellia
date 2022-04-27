@@ -6,11 +6,11 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use codec::{Decode, Encode};
+use codec::Decode;
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
-		Currency, Everything, Get, Imbalance, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced,
+		Currency, Everything, Imbalance, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced,
 		U128CurrencyToVote,
 	},
 	weights::{
@@ -29,13 +29,12 @@ use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthority
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
-use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_core::{
 	crypto::KeyTypeId,
 	u32_trait::{_1, _2, _3, _4},
-	OpaqueMetadata, H256,
+	OpaqueMetadata,
 };
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
@@ -850,8 +849,8 @@ construct_runtime!(
 		// Include the custom logic from the pallets in the runtime.
 		Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
-		TeaErc20: pallet_tea_erc20::{Pallet, Call, Config<T>, Storage, Event<T>} = 106,
-		Machine: pallet_machine::{Pallet, Call, Config<T>, Storage, Event<T>} = 107,
+		TeaErc20: pallet_tea_erc20::{Pallet, Call, Storage, Event<T>} = 106,
+		Machine: pallet_machine::{Pallet, Call, Config, Storage, Event<T>} = 107,
 	}
 );
 

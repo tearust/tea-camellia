@@ -76,7 +76,6 @@ pub mod cml {
 	pub struct GenesisConfig<T: Config> {
 		pub npc_account: T::AccountId,
 		pub genesis_seeds: GenesisSeeds,
-		pub phantom: PhantomData<T>,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
@@ -84,7 +83,6 @@ pub mod cml {
 			GenesisConfig {
 				npc_account: Default::default(),
 				genesis_seeds: GenesisSeeds::default(),
-				phantom: PhantomData,
 			}
 		}
 	}

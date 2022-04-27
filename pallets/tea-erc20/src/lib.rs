@@ -59,27 +59,6 @@ pub mod bonding_curve {
 	pub(crate) type ConsumeStorage<T: Config> =
 		StorageMap<_, Twox64Concat, H256, T::BlockNumber, ValueQuery>;
 
-	#[pallet::genesis_config]
-	pub struct GenesisConfig<T: Config> {
-		pub reserved_balance_account: T::AccountId,
-		pub npc_account: T::AccountId,
-		pub user_create_tapp: bool,
-	}
-	#[cfg(feature = "std")]
-	impl<T: Config> Default for GenesisConfig<T> {
-		fn default() -> Self {
-			GenesisConfig {
-				reserved_balance_account: Default::default(),
-				npc_account: Default::default(),
-				user_create_tapp: false,
-			}
-		}
-	}
-	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-		fn build(&self) {}
-	}
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub fn deposit_event)]
 	pub enum Event<T: Config> {

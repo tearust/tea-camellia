@@ -7,6 +7,8 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_std::prelude::*;
 
+pub type ClassFlag = u64;
+
 #[derive(Encode, Decode, Clone, Debug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Seed {
@@ -14,6 +16,7 @@ pub struct Seed {
 	pub cml_type: CmlType,
 	pub lifespan: BlockNumber,
 	pub performance: Performance,
+	pub class_flag: ClassFlag,
 }
 
 impl Seed {
@@ -29,6 +32,7 @@ impl Seed {
 			cml_type,
 			lifespan,
 			performance,
+			..Default::default()
 		}
 	}
 }
@@ -40,6 +44,7 @@ impl Default for Seed {
 			cml_type: CmlType::C,
 			lifespan: 0,
 			performance: 0,
+			class_flag: 0,
 		}
 	}
 }
