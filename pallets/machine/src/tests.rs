@@ -121,17 +121,20 @@ fn reset_mining_startup_works() {
 		let tea_id2 = [2; 32];
 		let cml_id1 = 111;
 		let cml_id2 = 222;
+		let conn_id1 = b"conn_id1".to_vec();
+		let conn_id2 = b"conn_id2".to_vec();
 		assert_ok!(Machine::reset_mining_startup(
 			Origin::root(),
 			vec![tea_id1, tea_id2],
-			vec![cml_id1, cml_id2]
+			vec![cml_id1, cml_id2],
+			vec![conn_id1.clone(), conn_id2.clone()]
 		));
 
 		assert_eq!(MachineBindings::<Test>::get(tea_id1), cml_id1);
 		assert_eq!(MachineBindings::<Test>::get(tea_id2), cml_id2);
 		assert_eq!(
 			StartupMachineBindings::<Test>::get(),
-			vec![(tea_id1, cml_id1), (tea_id2, cml_id2)]
+			vec![(tea_id1, cml_id1, conn_id1), (tea_id2, cml_id2, conn_id2)]
 		);
 	})
 }
