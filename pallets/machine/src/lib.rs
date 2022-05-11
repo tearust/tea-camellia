@@ -84,7 +84,7 @@ pub mod tea {
 	#[pallet::storage]
 	#[pallet::getter(fn startup_machine_bindings)]
 	pub(super) type StartupMachineBindings<T: Config> =
-		StorageValue<_, Vec<(TeaPubKey, CmlId, Vec<u8>)>, ValueQuery>;
+		StorageValue<_, Vec<(TeaPubKey, CmlId, Vec<u8>, Vec<u8>)>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn startup_bonding_bindings)]
@@ -128,7 +128,7 @@ pub mod tea {
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
-		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
+		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>, Vec<u8>)>,
 		pub startup_tapp_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
 	}
 
@@ -147,7 +147,7 @@ pub mod tea {
 		fn build(&self) {
 			self.startup_machine_bindings
 				.iter()
-				.for_each(|(tea_id, cml_id, _)| {
+				.for_each(|(tea_id, cml_id, _, _)| {
 					MachineBindings::<T>::insert(tea_id, cml_id);
 				});
 			StartupMachineBindings::<T>::set(self.startup_machine_bindings.clone());
@@ -299,6 +299,7 @@ pub mod tea {
 			tea_ids: Vec<TeaPubKey>,
 			cml_ids: Vec<u64>,
 			conn_ids: Vec<Vec<u8>>,
+			ip_list: Vec<Vec<u8>>,
 		) -> DispatchResult {
 			let root = ensure_root(sender)?;
 
@@ -318,14 +319,19 @@ pub mod tea {
 				|_| {
 					StartupMachineBindings::<T>::get()
 						.iter()
-						.for_each(|(tea_id, _, _)| {
+						.for_each(|(tea_id, _, _, _)| {
 							MachineBindings::<T>::remove(tea_id);
 						});
 
 					let mut startups = Vec::new();
 					for i in 0..tea_ids.len() {
 						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
-						startups.push((tea_ids[i], cml_ids[i], conn_ids[i].clone()));
+						startups.push((
+							tea_ids[i],
+							cml_ids[i],
+							conn_ids[i].clone(),
+							ip_list[i].clone(),
+						));
 					}
 					StartupMachineBindings::<T>::set(startups);
 				},
