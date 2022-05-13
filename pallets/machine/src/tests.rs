@@ -1,6 +1,6 @@
 use crate::{
 	mock::*, IssuerOwners, Issuers, MachineBindings, Machines, StartupMachineBindings,
-	StartupTappBindings,
+	StartupTappBindings, BUILTIN_ISSURE,
 };
 use frame_support::assert_ok;
 
@@ -142,6 +142,16 @@ fn reset_mining_startup_works() {
 				(tea_id2, cml_id2, conn_id2, ip2)
 			]
 		);
+
+		let machine1 = Machines::<Test>::get(tea_id1);
+		assert_eq!(machine1.tea_id, tea_id1);
+		assert_eq!(machine1.issuer_id, BUILTIN_ISSURE);
+		assert_eq!(machine1.owner, 0);
+
+		let machine2 = Machines::<Test>::get(tea_id2);
+		assert_eq!(machine2.tea_id, tea_id2);
+		assert_eq!(machine2.issuer_id, BUILTIN_ISSURE);
+		assert_eq!(machine2.owner, 0);
 	})
 }
 
@@ -167,5 +177,15 @@ fn reset_tapp_startup_works() {
 			StartupTappBindings::<Test>::get(),
 			vec![(tea_id1, cml_id1, ip1), (tea_id2, cml_id2, ip2)]
 		);
+
+		let machine1 = Machines::<Test>::get(tea_id1);
+		assert_eq!(machine1.tea_id, tea_id1);
+		assert_eq!(machine1.issuer_id, BUILTIN_ISSURE);
+		assert_eq!(machine1.owner, 0);
+
+		let machine2 = Machines::<Test>::get(tea_id2);
+		assert_eq!(machine2.tea_id, tea_id2);
+		assert_eq!(machine2.issuer_id, BUILTIN_ISSURE);
+		assert_eq!(machine2.owner, 0);
 	})
 }

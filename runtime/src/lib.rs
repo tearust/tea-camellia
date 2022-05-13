@@ -850,7 +850,7 @@ construct_runtime!(
 		Cml: pallet_cml::{Pallet, Call, Config<T>, Storage, Event<T>} = 100,
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
 		TeaErc20: pallet_tea_erc20::{Pallet, Call, Storage, Event<T>} = 106,
-		Machine: pallet_machine::{Pallet, Call, Config, Storage, Event<T>} = 107,
+		Machine: pallet_machine::{Pallet, Call, Config<T>, Storage, Event<T>} = 107,
 	}
 );
 

@@ -91,6 +91,10 @@ pub mod tea {
 	pub(super) type StartupTappBindings<T: Config> =
 		StorageValue<_, Vec<(TeaPubKey, CmlId, Vec<u8>)>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn startup_owner)]
+	pub(super) type StartupOwner<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -140,15 +144,17 @@ pub mod tea {
 	}
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig {
+	pub struct GenesisConfig<T: Config> {
+		pub startup_owner: T::AccountId,
 		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>, Vec<u8>)>,
 		pub startup_tapp_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
 	}
 
 	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
+	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
+				startup_owner: Default::default(),
 				startup_machine_bindings: Default::default(),
 				startup_tapp_bindings: Default::default(),
 			}
@@ -156,11 +162,21 @@ pub mod tea {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
+			StartupOwner::<T>::set(self.startup_owner.clone());
+
 			self.startup_machine_bindings
 				.iter()
 				.for_each(|(tea_id, cml_id, _, _)| {
+					Machines::<T>::insert(
+						tea_id,
+						Machine {
+							tea_id: *tea_id,
+							issuer_id: BUILTIN_ISSURE,
+							owner: self.startup_owner.clone(),
+						},
+					);
 					MachineBindings::<T>::insert(tea_id, cml_id);
 				});
 			StartupMachineBindings::<T>::set(self.startup_machine_bindings.clone());
@@ -168,6 +184,14 @@ pub mod tea {
 			self.startup_tapp_bindings
 				.iter()
 				.for_each(|(tea_id, cml_id, _)| {
+					Machines::<T>::insert(
+						tea_id,
+						Machine {
+							tea_id: *tea_id,
+							issuer_id: BUILTIN_ISSURE,
+							owner: self.startup_owner.clone(),
+						},
+					);
 					MachineBindings::<T>::insert(tea_id, cml_id);
 				});
 			StartupTappBindings::<T>::set(self.startup_tapp_bindings.clone());
@@ -341,11 +365,21 @@ pub mod tea {
 					StartupMachineBindings::<T>::get()
 						.iter()
 						.for_each(|(tea_id, _, _, _)| {
+							Machines::<T>::remove(tea_id);
 							MachineBindings::<T>::remove(tea_id);
 						});
 
+					let owner = StartupOwner::<T>::get();
 					let mut startups = Vec::new();
 					for i in 0..tea_ids.len() {
+						Machines::<T>::insert(
+							tea_ids[i],
+							Machine {
+								tea_id: tea_ids[i],
+								issuer_id: BUILTIN_ISSURE,
+								owner: owner.clone(),
+							},
+						);
 						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
 						startups.push((
 							tea_ids[i],
@@ -392,11 +426,21 @@ pub mod tea {
 					StartupTappBindings::<T>::get()
 						.iter()
 						.for_each(|(tea_id, _, _)| {
+							Machines::<T>::remove(tea_id);
 							MachineBindings::<T>::remove(tea_id);
 						});
 
+					let owner = StartupOwner::<T>::get();
 					let mut startups = Vec::new();
 					for i in 0..tea_ids.len() {
+						Machines::<T>::insert(
+							tea_ids[i],
+							Machine {
+								tea_id: tea_ids[i],
+								issuer_id: BUILTIN_ISSURE,
+								owner: owner.clone(),
+							},
+						);
 						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
 						startups.push((tea_ids[i], cml_ids[i], ip_list[i].clone()));
 					}
