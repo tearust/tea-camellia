@@ -115,13 +115,19 @@ pub mod tea {
 		/// 2. cml_id
 		/// 3. conn id
 		/// 4. ip address
-		MachineStartupReset(Vec<TeaPubKey>, Vec<CmlId>, Vec<Vec<u8>>, Vec<Vec<u8>>),
+		MachineStartupReset(
+			Vec<TeaPubKey>,
+			Vec<CmlId>,
+			Vec<Vec<u8>>,
+			Vec<Vec<u8>>,
+			T::BlockNumber,
+		),
 
 		/// Params:
 		/// 1. tea_id
 		/// 2. cml_id
 		/// 3. ip address
-		TappStartupReset(Vec<TeaPubKey>, Vec<CmlId>, Vec<Vec<u8>>),
+		TappStartupReset(Vec<TeaPubKey>, Vec<CmlId>, Vec<Vec<u8>>, T::BlockNumber),
 	}
 
 	// Errors inform users that something went wrong.
@@ -390,8 +396,13 @@ pub mod tea {
 					}
 					StartupMachineBindings::<T>::set(startups);
 
+					let current_block = frame_system::Pallet::<T>::block_number();
 					Self::deposit_event(Event::MachineStartupReset(
-						tea_ids, cml_ids, conn_ids, ip_list,
+						tea_ids,
+						cml_ids,
+						conn_ids,
+						ip_list,
+						current_block,
 					));
 				},
 			)
@@ -446,7 +457,13 @@ pub mod tea {
 					}
 					StartupTappBindings::<T>::set(startups);
 
-					Self::deposit_event(Event::TappStartupReset(tea_ids, cml_ids, ip_list));
+					let current_block = frame_system::Pallet::<T>::block_number();
+					Self::deposit_event(Event::TappStartupReset(
+						tea_ids,
+						cml_ids,
+						ip_list,
+						current_block,
+					));
 				},
 			)
 		}
