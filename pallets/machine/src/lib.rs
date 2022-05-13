@@ -105,6 +105,19 @@ pub mod tea {
 		/// 2. cml id
 		/// 3. owner
 		Layer2InfoBinded(TeaPubKey, CmlId, T::AccountId),
+
+		/// Params:
+		/// 1. tea_id
+		/// 2. cml_id
+		/// 3. conn id
+		/// 4. ip address
+		MachineStartupReset(Vec<TeaPubKey>, Vec<CmlId>, Vec<Vec<u8>>, Vec<Vec<u8>>),
+
+		/// Params:
+		/// 1. tea_id
+		/// 2. cml_id
+		/// 3. ip address
+		TappStartupReset(Vec<TeaPubKey>, Vec<CmlId>, Vec<Vec<u8>>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -303,20 +316,28 @@ pub mod tea {
 		) -> DispatchResult {
 			let root = ensure_root(sender)?;
 
+			let tea_ids_len = tea_ids.len();
+			let cml_ids_len = cml_ids.len();
+			let conn_ids_len = conn_ids.len();
+			let ip_list_len = ip_list.len();
 			extrinsic_procedure(
 				&root,
 				|_| {
 					ensure!(
-						tea_ids.len() == cml_ids.len(),
+						tea_ids_len == cml_ids_len,
 						Error::<T>::BindingItemsLengthMismatch
 					);
 					ensure!(
-						tea_ids.len() == conn_ids.len(),
+						tea_ids_len == conn_ids_len,
+						Error::<T>::BindingItemsLengthMismatch
+					);
+					ensure!(
+						tea_ids_len == ip_list_len,
 						Error::<T>::BindingItemsLengthMismatch
 					);
 					Ok(())
 				},
-				|_| {
+				move |_| {
 					StartupMachineBindings::<T>::get()
 						.iter()
 						.for_each(|(tea_id, _, _, _)| {
@@ -334,6 +355,10 @@ pub mod tea {
 						));
 					}
 					StartupMachineBindings::<T>::set(startups);
+
+					Self::deposit_event(Event::MachineStartupReset(
+						tea_ids, cml_ids, conn_ids, ip_list,
+					));
 				},
 			)
 		}
@@ -347,20 +372,23 @@ pub mod tea {
 		) -> DispatchResult {
 			let root = ensure_root(sender)?;
 
+			let tea_ids_len = tea_ids.len();
+			let cml_ids_len = cml_ids.len();
+			let ip_list_len = ip_list.len();
 			extrinsic_procedure(
 				&root,
 				|_| {
 					ensure!(
-						tea_ids.len() == cml_ids.len(),
+						tea_ids_len == cml_ids_len,
 						Error::<T>::BindingItemsLengthMismatch
 					);
 					ensure!(
-						tea_ids.len() == ip_list.len(),
+						tea_ids_len == ip_list_len,
 						Error::<T>::BindingItemsLengthMismatch
 					);
 					Ok(())
 				},
-				|_| {
+				move |_| {
 					StartupTappBindings::<T>::get()
 						.iter()
 						.for_each(|(tea_id, _, _)| {
@@ -373,6 +401,8 @@ pub mod tea {
 						startups.push((tea_ids[i], cml_ids[i], ip_list[i].clone()));
 					}
 					StartupTappBindings::<T>::set(startups);
+
+					Self::deposit_event(Event::TappStartupReset(tea_ids, cml_ids, ip_list));
 				},
 			)
 		}
