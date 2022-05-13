@@ -5,6 +5,8 @@ use sp_std::prelude::*;
 pub type CmlId = u64;
 pub type IssuerId = u64;
 
+pub const BUILTIN_ISSURE: IssuerId = 0;
+
 #[derive(Encode, Decode, Clone, PartialEq, Eq, Debug, TypeInfo, Default)]
 pub struct Issuer<Account>
 where

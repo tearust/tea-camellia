@@ -482,6 +482,7 @@ fn testnet_genesis(
 				),
 			],
 			startup_tapp_bindings: vec![],
+			startup_owner: npc_account.clone(),
 		},
 		cml: CmlConfig {
 			npc_account,
