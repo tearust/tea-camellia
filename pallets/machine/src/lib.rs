@@ -115,11 +115,16 @@ pub mod tea {
 		/// 2. cml_id
 		/// 3. conn id
 		/// 4. ip address
+		/// 5. old tea id
+		/// 6. old cml id
+		/// 7. at height
 		MachineStartupReset(
 			Vec<TeaPubKey>,
 			Vec<CmlId>,
 			Vec<Vec<u8>>,
 			Vec<Vec<u8>>,
+			Vec<TeaPubKey>,
+			Vec<CmlId>,
 			T::BlockNumber,
 		),
 
@@ -127,7 +132,17 @@ pub mod tea {
 		/// 1. tea_id
 		/// 2. cml_id
 		/// 3. ip address
-		TappStartupReset(Vec<TeaPubKey>, Vec<CmlId>, Vec<Vec<u8>>, T::BlockNumber),
+		/// 4. old tea id
+		/// 5. old cml id
+		/// 6. at height
+		TappStartupReset(
+			Vec<TeaPubKey>,
+			Vec<CmlId>,
+			Vec<Vec<u8>>,
+			Vec<TeaPubKey>,
+			Vec<CmlId>,
+			T::BlockNumber,
+		),
 	}
 
 	// Errors inform users that something went wrong.
@@ -394,7 +409,15 @@ pub mod tea {
 							ip_list[i].clone(),
 						));
 					}
+					let old_bindings = StartupMachineBindings::<T>::get();
 					StartupMachineBindings::<T>::set(startups);
+
+					let mut old_tea_ids = vec![];
+					let mut old_cml_ids = vec![];
+					for (tea_id, cml_id, _, _) in old_bindings {
+						old_tea_ids.push(tea_id);
+						old_cml_ids.push(cml_id);
+					}
 
 					let current_block = frame_system::Pallet::<T>::block_number();
 					Self::deposit_event(Event::MachineStartupReset(
@@ -402,6 +425,8 @@ pub mod tea {
 						cml_ids,
 						conn_ids,
 						ip_list,
+						old_tea_ids,
+						old_cml_ids,
 						current_block,
 					));
 				},
@@ -455,13 +480,23 @@ pub mod tea {
 						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
 						startups.push((tea_ids[i], cml_ids[i], ip_list[i].clone()));
 					}
+					let old_bindings = StartupTappBindings::<T>::get();
 					StartupTappBindings::<T>::set(startups);
+
+					let mut old_tea_ids = vec![];
+					let mut old_cml_ids = vec![];
+					for (tea_id, cml_id, _) in old_bindings {
+						old_tea_ids.push(tea_id);
+						old_cml_ids.push(cml_id);
+					}
 
 					let current_block = frame_system::Pallet::<T>::block_number();
 					Self::deposit_event(Event::TappStartupReset(
 						tea_ids,
 						cml_ids,
 						ip_list,
+						old_tea_ids,
+						old_cml_ids,
 						current_block,
 					));
 				},
