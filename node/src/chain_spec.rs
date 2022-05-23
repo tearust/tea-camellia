@@ -8,7 +8,6 @@ use camellia_runtime::{
 	TechnicalCommitteeConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
-use hex_literal::hex;
 use jsonrpc_core::serde_json;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::ChainSpecExtension;
@@ -138,7 +137,11 @@ fn get_properties(symbol: &str) -> Properties {
 	.clone()
 }
 
-pub fn development_config(seed: [u8; 32]) -> Result<ChainSpec, String> {
+pub fn development_config(
+	seed: [u8; 32],
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
+) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
@@ -168,6 +171,8 @@ pub fn development_config(seed: [u8; 32]) -> Result<ChainSpec, String> {
 				endowed_accounts,
 				endowed_balances,
 				genesis_seeds,
+				mining_startup.clone(),
+				tapp_startup.clone(),
 			)
 		},
 		// Bootnodes
@@ -186,6 +191,8 @@ pub fn development_config(seed: [u8; 32]) -> Result<ChainSpec, String> {
 pub fn canary_testnet_config(
 	initial_validator_count: u32,
 	seed: [u8; 32],
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	// Canary Alice
 	const ROOT_PUB_STR: (&str, &str) = (
@@ -258,10 +265,16 @@ pub fn canary_testnet_config(
 		endowed_balances,
 		initial_authorities,
 		root_account,
+		mining_startup,
+		tapp_startup,
 	)
 }
 
-pub fn local_testnet_config(seed: [u8; 32]) -> Result<ChainSpec, String> {
+pub fn local_testnet_config(
+	seed: [u8; 32],
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
+) -> Result<ChainSpec, String> {
 	let endowed_accounts = vec![
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -288,6 +301,8 @@ pub fn local_testnet_config(seed: [u8; 32]) -> Result<ChainSpec, String> {
 			authority_keys_from_seed("Bob"),
 		],
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		mining_startup,
+		tapp_startup,
 	)
 }
 
@@ -304,6 +319,8 @@ pub fn testnet_config(
 		AuthorityDiscoveryId,
 	)>,
 	root_key: AccountId,
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
@@ -330,6 +347,8 @@ pub fn testnet_config(
 				endowed_accounts,
 				endowed_balances,
 				genesis_seeds,
+				mining_startup.clone(),
+				tapp_startup.clone(),
 			)
 		},
 		// Bootnodes
@@ -360,6 +379,8 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	mut initial_balances: Vec<(AccountId, Balance)>,
 	genesis_seeds: GenesisSeeds,
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> GenesisConfig {
 	let npc_account = AccountId32::from_str(NPC_ADDRESS).unwrap();
 
@@ -449,39 +470,8 @@ fn testnet_genesis(
 		democracy: DemocracyConfig::default(),
 
 		machine: MachineConfig {
-			startup_machine_bindings: vec![
-				(
-					hex!("df38cb4f12479041c8e8d238109ef2a150b017f382206e24fee932e637c2db7b"),
-					0,
-					b"12D3KooWKUd6bwsqNKzFgeruvk7pNSMUoBcrUKKU9Djqd1A3H9q8".to_vec(),
-					b"159.89.149.143".to_vec(),
-				),
-				(
-					hex!("c7e016fad0796bb68594e49a6ef1942cf7e73497e69edb32d19ba2fab3696596"),
-					1,
-					b"12D3KooWKExtVZ4AY1L3ZkMjihkf7tYPBQQ1Z3kTbUjwBGPrrQa3".to_vec(),
-					b"138.68.56.121".to_vec(),
-				),
-				(
-					hex!("2754d7e9c73ced5b302e12464594110850980027f8f83c469e8145eef59220b6"),
-					2,
-					b"12D3KooWBBw6uEp9tmMZorkJ2151Nq64EE3D7PTmHFZva6KUdp68".to_vec(),
-					b"159.89.149.231".to_vec(),
-				),
-				(
-					hex!("c9380fde1ba795fc656ab08ab4ef4482cf554790fd3abcd4642418ae8fb5fd52"),
-					3,
-					b"12D3KooWA8PKZg2Ywh1dWhQ1qoQyK2ZAFazTrDXZNecfuHykTMUk".to_vec(),
-					b"64.227.105.212".to_vec(),
-				),
-				(
-					hex!("bd1c0ec25a96172791fe16c28323ceb0c515f17bcd11da4fb183ffd7e6fbb769"),
-					4,
-					b"12D3KooWT3gQVdYkDEscGPBHvoWAgiYzdZXeJVdJ2CxXbH8JN5aN".to_vec(),
-					b"164.90.159.26".to_vec(),
-				),
-			],
-			startup_tapp_bindings: vec![],
+			startup_machine_bindings: mining_startup,
+			startup_tapp_bindings: tapp_startup,
 			startup_owner: npc_account.clone(),
 		},
 		cml: CmlConfig {

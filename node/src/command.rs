@@ -49,12 +49,22 @@ impl SubstrateCli for Cli {
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
 		Ok(match id {
-			"dev" => Box::new(chain_spec::development_config(self.genesis_seed())?),
+			"dev" => Box::new(chain_spec::development_config(
+				self.genesis_seed(),
+				self.parse_mining_startup()?,
+				self.parse_tapp_startup()?,
+			)?),
 			"canary" => Box::new(chain_spec::canary_testnet_config(
 				self.initial_validator_count,
 				self.genesis_seed(),
+				self.parse_mining_startup()?,
+				self.parse_tapp_startup()?,
 			)?),
-			"" | "local" => Box::new(chain_spec::local_testnet_config(self.genesis_seed())?),
+			"" | "local" => Box::new(chain_spec::local_testnet_config(
+				self.genesis_seed(),
+				self.parse_mining_startup()?,
+				self.parse_tapp_startup()?,
+			)?),
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
 			)?),

@@ -9,12 +9,13 @@ pub struct Cli {
 	#[structopt(flatten)]
 	pub run: RunCmd,
 
-	/// The csv file path to define genesis coupons.
+	/// The csv file path to define mining startup configs
 	#[structopt(long)]
-	pub genesis_coupons_path: Option<String>,
+	pub mining_startup_path: Option<String>,
 
+	/// The csv file path to define tapp startup configs
 	#[structopt(long)]
-	pub competition_coupons_path: Option<String>,
+	pub tapp_startup_path: Option<String>,
 
 	#[structopt(long)]
 	pub genesis_seed: Option<String>,
@@ -62,7 +63,7 @@ pub enum Subcommand {
 	/// Try some command against runtime state.
 	#[cfg(feature = "try-runtime")]
 	TryRuntime(try_runtime_cli::TryRuntimeCmd),
-	
+
 	/// Try some command against runtime state. Note: `try-runtime` feature must be enabled.
 	#[cfg(not(feature = "try-runtime"))]
 	TryRuntime,
