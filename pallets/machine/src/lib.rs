@@ -84,7 +84,7 @@ pub mod tea {
 	#[pallet::storage]
 	#[pallet::getter(fn startup_machine_bindings)]
 	pub(super) type StartupMachineBindings<T: Config> =
-		StorageValue<_, Vec<(TeaPubKey, CmlId, Vec<u8>, Vec<u8>)>, ValueQuery>;
+		StorageValue<_, Vec<(TeaPubKey, CmlId, Vec<u8>)>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn startup_bonding_bindings)]
@@ -114,14 +114,12 @@ pub mod tea {
 		/// 1. tea_id
 		/// 2. cml_id
 		/// 3. conn id
-		/// 4. ip address
-		/// 5. old tea id
-		/// 6. old cml id
-		/// 7. at height
+		/// 4. old tea id
+		/// 5. old cml id
+		/// 6. at height
 		MachineStartupReset(
 			Vec<TeaPubKey>,
 			Vec<CmlId>,
-			Vec<Vec<u8>>,
 			Vec<Vec<u8>>,
 			Vec<TeaPubKey>,
 			Vec<CmlId>,
@@ -167,7 +165,7 @@ pub mod tea {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub startup_owner: T::AccountId,
-		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>, Vec<u8>)>,
+		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
 		pub startup_tapp_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
 	}
 
@@ -189,7 +187,7 @@ pub mod tea {
 
 			self.startup_machine_bindings
 				.iter()
-				.for_each(|(tea_id, cml_id, _, _)| {
+				.for_each(|(tea_id, cml_id, _)| {
 					Machines::<T>::insert(
 						tea_id,
 						Machine {
@@ -357,14 +355,12 @@ pub mod tea {
 			tea_ids: Vec<TeaPubKey>,
 			cml_ids: Vec<u64>,
 			conn_ids: Vec<Vec<u8>>,
-			ip_list: Vec<Vec<u8>>,
 		) -> DispatchResult {
 			let root = ensure_root(sender)?;
 
 			let tea_ids_len = tea_ids.len();
 			let cml_ids_len = cml_ids.len();
 			let conn_ids_len = conn_ids.len();
-			let ip_list_len = ip_list.len();
 			extrinsic_procedure(
 				&root,
 				|_| {
@@ -376,16 +372,12 @@ pub mod tea {
 						tea_ids_len == conn_ids_len,
 						Error::<T>::BindingItemsLengthMismatch
 					);
-					ensure!(
-						tea_ids_len == ip_list_len,
-						Error::<T>::BindingItemsLengthMismatch
-					);
 					Ok(())
 				},
 				move |_| {
 					StartupMachineBindings::<T>::get()
 						.iter()
-						.for_each(|(tea_id, _, _, _)| {
+						.for_each(|(tea_id, _, _)| {
 							Machines::<T>::remove(tea_id);
 							MachineBindings::<T>::remove(tea_id);
 						});
@@ -402,19 +394,14 @@ pub mod tea {
 							},
 						);
 						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
-						startups.push((
-							tea_ids[i],
-							cml_ids[i],
-							conn_ids[i].clone(),
-							ip_list[i].clone(),
-						));
+						startups.push((tea_ids[i], cml_ids[i], conn_ids[i].clone()));
 					}
 					let old_bindings = StartupMachineBindings::<T>::get();
 					StartupMachineBindings::<T>::set(startups);
 
 					let mut old_tea_ids = vec![];
 					let mut old_cml_ids = vec![];
-					for (tea_id, cml_id, _, _) in old_bindings {
+					for (tea_id, cml_id, _) in old_bindings {
 						old_tea_ids.push(tea_id);
 						old_cml_ids.push(cml_id);
 					}
@@ -424,7 +411,6 @@ pub mod tea {
 						tea_ids,
 						cml_ids,
 						conn_ids,
-						ip_list,
 						old_tea_ids,
 						old_cml_ids,
 						current_block,

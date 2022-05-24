@@ -11,7 +11,7 @@ impl Cli {
 		}
 	}
 
-	pub fn parse_mining_startup(&self) -> Result<Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>, String> {
+	pub fn parse_mining_startup(&self) -> Result<Vec<([u8; 32], u64, Vec<u8>)>, String> {
 		match self.mining_startup_path.as_ref() {
 			Some(path) => {
 				let mut rdr = csv::Reader::from_path(path).map_err(|e| e.to_string())?;
@@ -51,14 +51,13 @@ fn seed_from_string(s: &str) -> [u8; 32] {
 
 fn parse_mining_startup_config<R>(
 	rdr: &mut csv::Reader<R>,
-) -> Result<Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>, String>
+) -> Result<Vec<([u8; 32], u64, Vec<u8>)>, String>
 where
 	R: std::io::Read,
 {
 	const MACHINE_ID_INDEX: usize = 0;
 	const CML_ID_INDEX: usize = 1;
 	const CONN_ID_INDEX: usize = 2;
-	const IP_ADDRESS_INDEX: usize = 3;
 
 	let mut startup_list = Vec::new();
 	for record in rdr.records() {
@@ -66,9 +65,8 @@ where
 		let machine_id = parse_machine_id(record.get(MACHINE_ID_INDEX))?;
 		let cml_id = parse_u64(record.get(CML_ID_INDEX), "cml id")?;
 		let conn_id = parse_utf8_encoded(record.get(CONN_ID_INDEX), "conn id")?;
-		let ip_address = parse_utf8_encoded(record.get(IP_ADDRESS_INDEX), "ip address")?;
 
-		startup_list.push((machine_id, cml_id, conn_id, ip_address));
+		startup_list.push((machine_id, cml_id, conn_id));
 	}
 
 	Ok(startup_list)
