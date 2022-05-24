@@ -139,7 +139,7 @@ fn get_properties(symbol: &str) -> Properties {
 
 pub fn development_config(
 	seed: [u8; 32],
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
@@ -191,7 +191,7 @@ pub fn development_config(
 pub fn canary_testnet_config(
 	initial_validator_count: u32,
 	seed: [u8; 32],
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	// Canary Alice
@@ -272,7 +272,7 @@ pub fn canary_testnet_config(
 
 pub fn local_testnet_config(
 	seed: [u8; 32],
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	let endowed_accounts = vec![
@@ -319,7 +319,7 @@ pub fn testnet_config(
 		AuthorityDiscoveryId,
 	)>,
 	root_key: AccountId,
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
@@ -379,7 +379,7 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	mut initial_balances: Vec<(AccountId, Balance)>,
 	genesis_seeds: GenesisSeeds,
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>, Vec<u8>)>,
+	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> GenesisConfig {
 	let npc_account = AccountId32::from_str(NPC_ADDRESS).unwrap();
