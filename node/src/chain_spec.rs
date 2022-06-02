@@ -3,9 +3,9 @@ use camellia_runtime::{
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisSeeds},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, Block, CmlConfig,
-	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig,
-	MachineConfig, SessionConfig, Signature, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
-	TechnicalCommitteeConfig, WASM_BINARY,
+	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GenesisExchangeConfig,
+	GrandpaConfig, ImOnlineConfig, MachineConfig, SessionConfig, Signature, StakerStatus,
+	StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use jsonrpc_core::serde_json;
@@ -26,6 +26,12 @@ use std::str::FromStr;
 const INITIAL_ACCOUNT_BALANCE: Balance = 2_000_000 * DOLLARS;
 const INITIAL_VALIDATOR_BALANCE: Balance = 100 * DOLLARS;
 
+const INITIAL_EXCHANGE_TEA_BALANCE: Balance = 100_000_000 * DOLLARS;
+const INITIAL_EXCHANGE_USD_BALANCE: Balance = 100_000 * DOLLARS;
+const BONDING_CURVE_NPC_INITIAL_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
+
+// address derived from [1u8; 32] that the corresponding private key we don't know
+const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn38446dhCpsi2mLHiFT";
 // NPC is predefined "sudo" user in competition csv file, the following is address and initial amounts settings
 const NPC_ADDRESS: &str = "5D2od84fg3GScGR139Li56raDWNQQhzgYbV7QsEJKS4KfTGv";
 
@@ -382,8 +388,14 @@ fn testnet_genesis(
 	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> GenesisConfig {
+	let genesis_exchange_operation_account =
+		AccountId32::from_str(GENESIS_EXCHANGE_OPERATION_ADDRESS).unwrap();
 	let npc_account = AccountId32::from_str(NPC_ADDRESS).unwrap();
 
+	initial_balances.push((
+		genesis_exchange_operation_account.clone(),
+		INITIAL_EXCHANGE_TEA_BALANCE,
+	));
 	if let Some(index) = initial_balances
 		.iter()
 		.position(|(acc, _)| acc.eq(&npc_account))
@@ -475,8 +487,18 @@ fn testnet_genesis(
 			startup_owner: npc_account.clone(),
 		},
 		cml: CmlConfig {
-			npc_account,
+			npc_account: npc_account.clone(),
 			genesis_seeds,
+		},
+		genesis_exchange: GenesisExchangeConfig {
+			operation_account: genesis_exchange_operation_account,
+			npc_account: npc_account.clone(),
+			operation_usd_amount: INITIAL_EXCHANGE_USD_BALANCE,
+			operation_tea_amount: INITIAL_EXCHANGE_TEA_BALANCE,
+			competition_users: vec![],
+			bonding_curve_npc: (npc_account.clone(), BONDING_CURVE_NPC_INITIAL_USD_BALANCE),
+			initial_usd_interest_rate: 0, // let initial usd interest rate be 0.02%
+			borrow_debt_ratio_cap: 0,     // initial borrow debt ratio cap is 0.
 		},
 	}
 }

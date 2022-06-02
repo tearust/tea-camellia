@@ -42,6 +42,7 @@ where
 
 	C::Api: machine_runtime_api::MachineApi<Block, AccountId>,
 	C::Api: cml_runtime_api::CmlApi<Block, AccountId>,
+	C::Api: genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId>,
 {
 	use pallet_mmr_rpc::{Mmr, MmrApi};
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
@@ -125,6 +126,9 @@ where
 	io.extend_with(cml_rpc::CmlApi::to_delegate(cml_rpc::CmlApiImpl::new(
 		client.clone(),
 	)));
+	io.extend_with(genesis_exchange_rpc::GenesisExchangeApi::to_delegate(
+		genesis_exchange_rpc::GenesisExchangeApiImpl::new(client.clone()),
+	));
 
 	Ok(io)
 }

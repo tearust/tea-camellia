@@ -79,9 +79,11 @@ pallet-cml = {default-features = false, path = '../pallets/cml'}
 pallet-utils = {default-features = false, path = '../pallets/utils'}
 pallet-tea-erc20 = {default-features = false, path = '../pallets/tea-erc20'}
 pallet-staking = {default-features = false, path = '../pallets/staking'}
+pallet-genesis-exchange = {default-features = false, path = '../pallets/genesis-exchange'}
 
 machine-runtime-api = {default-features = false, path = '../pallets/machine/runtime-api'}
 cml-runtime-api = {default-features = false, path = '../pallets/cml/runtime-api'}
+genesis-exchange-runtime-api = {default-features = false, path = '../pallets/genesis-exchange/runtime-api'}
 
 [features]
 default = ['std']
@@ -171,9 +173,11 @@ std = [
 	'pallet-cml/std',
 	'pallet-utils/std',
 	'pallet-tea-erc20/std',
+	'pallet-genesis-exchange/std',
 
 	'cml-runtime-api/std',
 	'machine-runtime-api/std',
+	'genesis-exchange-runtime-api/std',
 ]
 try-runtime = [
 	"frame-executive/try-runtime",
@@ -207,5 +211,6 @@ try-runtime = [
 	'pallet-cml/try-runtime',
 	'pallet-utils/try-runtime',
 	'pallet-tea-erc20/try-runtime',
+	'pallet-genesis-exchange/try-runtime',
 ]
 fast = ['pallet-cml/fast'] # indicate the block duration and epoch will be shorter to test

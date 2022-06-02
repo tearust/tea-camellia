@@ -1,0 +1,61 @@
+[package]
+authors = ['TeaRust']
+description = 'genesis exchange pallet'
+edition = '2018'
+homepage = 'https://teaproject.org'
+license = 'GPL-3.0'
+name = 'pallet-genesis-exchange'
+readme = 'README.md'
+repository = 'https://github.com/tearust/tea-camellia'
+version = '0.0.1'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+log = "0.4.8"
+# external dependencies
+codec = {default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0'}
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+
+# Substrate dependencies
+sp-std = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-core = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-io = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+frame-support = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+frame-system = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+sp-runtime = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+
+# Only used in benchmarking to generate random contract code
+frame-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+hex = {default-features = false, optional = true, version = '0.4.3'}
+
+pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
+
+[dev-dependencies]
+serde = '1.0.119'
+hex-literal = "0.3.1"
+ed25519-dalek = "1.0.0"
+rand = '0.7.2'
+pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
+node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
+
+[features]
+default = ['std']
+runtime-benchmarks = [
+	'frame-benchmarking',
+	'hex',
+]
+std = [
+	'codec/std',
+	'sp-std/std',
+	'sp-core/std',
+  'sp-io/std',
+	'sp-runtime/std',
+	'frame-support/std',
+	'frame-system/std',
+	'frame-benchmarking/std',
+	'pallet-utils/std',
+]
+try-runtime = ['frame-support/try-runtime']

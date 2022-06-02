@@ -64,6 +64,7 @@ use constants::{currency::*, time::*};
 pub use frame_system;
 pub use pallet_balances;
 pub use pallet_cml;
+pub use pallet_genesis_exchange;
 pub use pallet_machine;
 pub use pallet_staking;
 pub use pallet_tea_erc20;
@@ -813,6 +814,21 @@ impl pallet_tea_erc20::Config for Runtime {
 	type CurrencyOperations = Utils;
 }
 
+parameter_types! {
+	pub const PER: Balance = 7;
+	pub const InterestPeriodLength: BlockNumber = 10000;
+	pub const RegisterForCompetitionAllowance: Balance = 10 * DOLLARS;
+}
+
+impl pallet_genesis_exchange::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type CurrencyOperations = Utils;
+	type PER = PER;
+	type InterestPeriodLength = InterestPeriodLength;
+	type RegisterForCompetitionAllowance = RegisterForCompetitionAllowance;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -851,6 +867,7 @@ construct_runtime!(
 		Utils: pallet_utils::{Pallet, Call, Storage, Event<T>} = 103,
 		TeaErc20: pallet_tea_erc20::{Pallet, Call, Storage, Event<T>} = 106,
 		Machine: pallet_machine::{Pallet, Call, Config<T>, Storage, Event<T>} = 107,
+		GenesisExchange: pallet_genesis_exchange::{Pallet, Call, Config<T>, Storage, Event<T>} = 105,
 	}
 );
 
@@ -1127,6 +1144,28 @@ impl_runtime_apis! {
 			len: u32,
 		) -> pallet_transaction_payment::FeeDetails<Balance> {
 			TransactionPayment::query_fee_details(uxt, len)
+		}
+	}
+
+	impl genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId> for Runtime {
+		/// Returns
+		/// 1. current 1TEA equals how many USD amount
+		/// 2. current 1USD equals how many TEA amount
+		/// 3. exchange remains USD
+		/// 4. exchange remains TEA
+		/// 5. product of  exchange remains USD and exchange remains TEA
+		fn current_exchange_rate() -> (
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+			Balance,
+		) {
+			GenesisExchange::current_exchange_rate()
+		}
+
+		fn estimate_amount(withdraw_amount: Balance, buy_tea: bool) -> Balance {
+			GenesisExchange::estimate_amount(withdraw_amount, buy_tea)
 		}
 	}
 

@@ -689,6 +689,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "genesis-exchange-runtime-api",
  "hex-literal",
  "machine-runtime-api",
  "node-primitives",
@@ -701,6 +702,7 @@ dependencies = [
  "pallet-democracy",
  "pallet-election-provider-multi-phase",
  "pallet-elections-phragmen",
+ "pallet-genesis-exchange",
  "pallet-grandpa",
  "pallet-identity",
  "pallet-im-online",
@@ -2056,6 +2058,34 @@ checksum = "501466ecc8a30d1d3b7fc9229b122b2ce8ed6e9d9223f1138d4babb253e51817"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "genesis-exchange-rpc"
+version = "0.1.0"
+dependencies = [
+ "genesis-exchange-runtime-api",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "node-primitives",
+ "parity-scale-codec",
+ "rmp-serde",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-rpc",
+ "sp-runtime",
+]
+
+[[package]]
+name = "genesis-exchange-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "node-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-std",
 ]
 
 [[package]]
@@ -4395,6 +4425,31 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-npos-elections",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-genesis-exchange"
+version = "0.0.1"
+dependencies = [
+ "ed25519-dalek",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "log",
+ "node-primitives",
+ "pallet-balances",
+ "pallet-randomness-collective-flip",
+ "pallet-utils",
+ "parity-scale-codec",
+ "rand 0.7.3",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -8341,6 +8396,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures 0.3.17",
+ "genesis-exchange-rpc",
+ "genesis-exchange-runtime-api",
  "hex",
  "hex-literal",
  "jsonrpc-core",
