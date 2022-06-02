@@ -12,4 +12,7 @@ members = [
 
 	'pallets/machine/rpc',
 	'pallets/machine/runtime-api',
+
+	'pallets/genesis-exchange/rpc',
+	'pallets/genesis-exchange/runtime-api',
 ]
