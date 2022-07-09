@@ -8,10 +8,10 @@ edition = "2021"
 
 [dependencies]
 codec = {default-features = false,  package = "parity-scale-codec", version = "3.1" }
-sp-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-std = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-sp-core = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+sp-api = {default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-std = { default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+sp-core = { default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
 
 [features]
 default = ["std"]

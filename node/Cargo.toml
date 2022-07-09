@@ -29,61 +29,61 @@ futures = "0.3.16"
 csv = '1.1'
 
 # Substrate dependencies
-sc-basic-authorship = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-cli = {features = ['wasmtime'],  git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-client-api = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-consensus = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-consensus-babe = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-consensus-slots = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-consensus-uncles = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-executor = {features = ['wasmtime'],  git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-keystore = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-rpc = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-rpc-api = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-service = {features = ['wasmtime'],  git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-network = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-telemetry = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-transaction-pool = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-transaction-pool-api = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-authority-discovery = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-grandpa = { package = "sc-finality-grandpa", git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-sc-sync-state-rpc = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-chain-spec = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sc-consensus-babe-rpc = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-sc-finality-grandpa-rpc = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-sc-consensus-epochs = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
+sc-basic-authorship = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-cli = {features = ['wasmtime'],  git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-client-api = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-consensus = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-consensus-babe = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-consensus-slots = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-consensus-uncles = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-executor = {features = ['wasmtime'],  git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-keystore = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-rpc = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-rpc-api = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-service = {features = ['wasmtime'],  git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-network = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-telemetry = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-transaction-pool = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-transaction-pool-api = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-authority-discovery = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+grandpa = { package = "sc-finality-grandpa", git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+sc-sync-state-rpc = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-chain-spec = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sc-consensus-babe-rpc = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+sc-finality-grandpa-rpc = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+sc-consensus-epochs = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
 
-sp-api = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-block-builder = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-blockchain = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-consensus = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-consensus-slots = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-consensus-babe = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-core = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-inherents = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-runtime = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-transaction-pool = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-timestamp = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-authorship = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-authority-discovery = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-transaction-storage-proof = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-grandpa-primitives = { package = "sp-finality-grandpa", git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
+sp-api = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-block-builder = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-blockchain = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-consensus = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-consensus-slots = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-consensus-babe = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-core = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-inherents = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-runtime = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-transaction-pool = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-timestamp = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-authorship = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-authority-discovery = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-transaction-storage-proof = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+grandpa-primitives = { package = "sp-finality-grandpa", git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
 
-node-executor = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-node-inspect = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-node-primitives = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-substrate-frame-rpc-system = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-try-runtime-cli = { optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
+node-executor = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+node-inspect = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+node-primitives = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+substrate-frame-rpc-system = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+try-runtime-cli = { optional = true, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
 
-frame-benchmarking = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-frame-benchmarking-cli = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+frame-benchmarking = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+frame-benchmarking-cli = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
 
-pallet-im-online = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-pallet-transaction-payment-rpc = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-pallet-authority-discovery = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-pallet-mmr-rpc = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-substrate-state-trie-migration-rpc = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-keystore = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+pallet-im-online = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+pallet-transaction-payment-rpc = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+pallet-authority-discovery = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+pallet-mmr-rpc = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+substrate-state-trie-migration-rpc = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-keystore = {git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
 
 # local dependencies
 camellia-runtime = {version = '0.0.1', path = '../runtime'}
@@ -95,7 +95,7 @@ genesis-exchange-runtime-api = {path = '../pallets/genesis-exchange/runtime-api'
 genesis-exchange-rpc = {path = '../pallets/genesis-exchange/rpc'}
 
 [build-dependencies]
-substrate-build-script-utils = {optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+substrate-build-script-utils = {optional = true, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
 
 [features]
 default = [ "cli" ]

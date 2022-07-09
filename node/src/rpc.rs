@@ -5,18 +5,16 @@
 
 #![warn(missing_docs)]
 
-use cml_rpc::CmlApiServer;
-use genesis_exchange_rpc::GenesisExchangeApiServer;
 use grandpa::FinalityProofProvider;
 use grandpa::GrandpaJustificationStream;
 use grandpa::SharedAuthoritySet;
 use grandpa::SharedVoterState;
-use jsonrpsee::RpcModule;
-use machine_rpc::MachineApiServer;
 use node_primitives::{AccountId, Balance, Block, BlockNumber, Hash, Index};
 use sc_client_api::AuxStore;
 use sc_consensus_babe::{Config, Epoch};
+use sc_consensus_babe_rpc::BabeRpcHandler;
 use sc_consensus_epochs::SharedEpochChanges;
+use sc_finality_grandpa_rpc::GrandpaRpcHandler;
 use sc_rpc::SubscriptionTaskExecutor;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
@@ -70,11 +68,14 @@ pub struct FullDeps<C, P, SC, B> {
 	pub grandpa: GrandpaDeps<B>,
 }
 
+/// A IO handler that uses all Full RPC extensions.
+pub type IoHandler = jsonrpc_core::IoHandler<sc_rpc::Metadata>;
+
 /// Instantiate all full RPC extensions.
 pub fn create_full<C, P, SC, B>(
 	deps: FullDeps<C, P, SC, B>,
 	backend: Arc<B>,
-) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
+) -> Result<jsonrpc_core::IoHandler<sc_rpc_api::Metadata>, Box<dyn std::error::Error + Send + Sync>>
 where
 	C: ProvideRuntimeApi<Block>
 		+ sc_client_api::BlockBackend<Block>
@@ -97,15 +98,11 @@ where
 	C::Api: cml_runtime_api::CmlApi<Block, AccountId>,
 	C::Api: genesis_exchange_runtime_api::GenesisExchangeApi<Block, AccountId>,
 {
-	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
-	use sc_consensus_babe_rpc::{Babe, BabeApiServer};
-	use sc_finality_grandpa_rpc::{Grandpa, GrandpaApiServer};
-	use sc_rpc::dev::{Dev, DevApiServer};
-	use sc_sync_state_rpc::{SyncState, SyncStateApiServer};
-	use substrate_frame_rpc_system::{System, SystemApiServer};
-	use substrate_state_trie_migration_rpc::{StateMigration, StateMigrationApiServer};
+	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+	use sc_rpc::dev::{Dev, DevApi};
+	use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
-	let mut io = RpcModule::new(());
+	let mut io = jsonrpc_core::IoHandler::default();
 	let FullDeps {
 		client,
 		pool,
@@ -129,46 +126,55 @@ where
 		finality_provider,
 	} = grandpa;
 
-	io.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
-	io.merge(TransactionPayment::new(client.clone()).into_rpc())?;
-	io.merge(
-		Babe::new(
+	io.extend_with(SystemApi::to_delegate(FullSystem::new(
+		client.clone(),
+		pool,
+		deny_unsafe,
+	)));
+	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
+		client.clone(),
+	)));
+	io.extend_with(sc_consensus_babe_rpc::BabeApi::to_delegate(
+		BabeRpcHandler::new(
 			client.clone(),
 			shared_epoch_changes.clone(),
 			keystore,
 			babe_config,
 			select_chain,
 			deny_unsafe,
-		)
-		.into_rpc(),
-	)?;
-	io.merge(
-		Grandpa::new(
-			subscription_executor,
+		),
+	));
+	io.extend_with(sc_finality_grandpa_rpc::GrandpaApi::to_delegate(
+		GrandpaRpcHandler::new(
 			shared_authority_set.clone(),
 			shared_voter_state,
 			justification_stream,
+			subscription_executor,
 			finality_provider,
-		)
-		.into_rpc(),
-	)?;
-
-	io.merge(
-		SyncState::new(
+		),
+	));
+	io.extend_with(
+		substrate_state_trie_migration_rpc::StateMigrationApi::to_delegate(
+			substrate_state_trie_migration_rpc::MigrationRpc::new(
+				client.clone(),
+				backend,
+				deny_unsafe,
+			),
+		),
+	);
+	io.extend_with(sc_sync_state_rpc::SyncStateRpcApi::to_delegate(
+		sc_sync_state_rpc::SyncStateRpcHandler::new(
 			chain_spec,
 			client.clone(),
 			shared_authority_set,
 			shared_epoch_changes,
-		)?
-		.into_rpc(),
-	)?;
+		)?,
+	));
+	io.extend_with(DevApi::to_delegate(Dev::new(client.clone(), deny_unsafe)));
 
-	io.merge(StateMigration::new(client.clone(), backend, deny_unsafe).into_rpc())?;
-	io.merge(Dev::new(client.clone(), deny_unsafe).into_rpc())?;
-
-	io.merge(machine_rpc::MachineApiImpl::new(client.clone()).into_rpc())?;
-	io.merge(cml_rpc::CmlApiImpl::new(client.clone()).into_rpc())?;
-	io.merge(genesis_exchange_rpc::GenesisExchangeApiImpl::new(client.clone()).into_rpc())?;
+	io.extend_with(machine_rpc::MachineApi::to_delegate(machine_rpc::MachineApiImpl::new(client.clone())));
+	io.extend_with(cml_rpc::CmlApi::to_delegate(cml_rpc::CmlApiImpl::new(client.clone())));
+	io.extend_with(genesis_exchange_rpc::GenesisExchangeApi::to_delegate( genesis_exchange_rpc::GenesisExchangeApiImpl::new(client.clone())));
 
 	Ok(io)
 }
