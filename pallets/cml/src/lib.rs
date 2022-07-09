@@ -20,6 +20,7 @@ use frame_support::{pallet_prelude::*, traits::Currency};
 use frame_system::pallet_prelude::*;
 use pallet_utils::{CommonUtils, CurrencyOperations};
 use sp_runtime::traits::AtLeast32BitUnsigned;
+use sp_std::convert::TryInto;
 use sp_std::prelude::*;
 
 /// The balance type of this module.
@@ -60,7 +61,7 @@ pub mod cml {
 	#[pallet::storage]
 	#[pallet::getter(fn cml_store)]
 	pub type CmlStore<T: Config> =
-		StorageMap<_, Twox64Concat, CmlId, CML<T::AccountId, T::BlockNumber>, ValueQuery>;
+		StorageMap<_, Twox64Concat, CmlId, CML<T::AccountId, T::BlockNumber>>;
 
 	/// Double map about user and related cml ID of him.
 	#[pallet::storage]
@@ -70,18 +71,18 @@ pub mod cml {
 
 	#[pallet::storage]
 	#[pallet::getter(fn npc_account)]
-	pub type NPCAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+	pub type NPCAccount<T: Config> = StorageValue<_, T::AccountId>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub npc_account: T::AccountId,
+		pub npc_account: Option<T::AccountId>,
 		pub genesis_seeds: GenesisSeeds,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
 			GenesisConfig {
-				npc_account: Default::default(),
+				npc_account: None,
 				genesis_seeds: GenesisSeeds::default(),
 			}
 		}
@@ -90,10 +91,9 @@ pub mod cml {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			NPCAccount::<T>::set(self.npc_account.clone());
-			crate::functions::init_from_genesis_seeds::<T>(
-				&self.genesis_seeds,
-				NPCAccount::<T>::get(),
-			);
+			if let Some(account) = NPCAccount::<T>::get() {
+				crate::functions::init_from_genesis_seeds::<T>(&self.genesis_seeds, account);
+			}
 		}
 	}
 
@@ -115,6 +115,8 @@ pub mod cml {
 		CMLOwnerInvalid,
 		/// Only NPC account can generate cml
 		OnlyNPCAccountCanGenerateCml,
+		/// NPC account is empty
+		NpcAccountIsEmpty,
 	}
 
 	#[pallet::hooks]
@@ -132,7 +134,11 @@ pub mod cml {
 				&who,
 				|who| {
 					ensure!(
-						who.eq(&NPCAccount::<T>::get()),
+						NPCAccount::<T>::get().is_some(),
+						Error::<T>::NpcAccountIsEmpty
+					);
+					ensure!(
+						who.eq(&NPCAccount::<T>::get().unwrap()),
 						Error::<T>::OnlyNPCAccountCanGenerateCml
 					);
 					Ok(())
@@ -152,7 +158,10 @@ pub mod cml {
 						b_amount as u64,
 						0,
 					);
-					crate::functions::init_from_genesis_seeds::<T>(&seeds, NPCAccount::<T>::get());
+					crate::functions::init_from_genesis_seeds::<T>(
+						&seeds,
+						NPCAccount::<T>::get().unwrap(),
+					);
 				},
 			)
 		}
@@ -169,15 +178,15 @@ pub mod cml {
 				&who,
 				|who| {
 					ensure!(CmlStore::<T>::contains_key(cml_id), Error::<T>::NotFoundCML);
-					ensure!(
-						CmlStore::<T>::get(cml_id).owner().eq(who),
-						Error::<T>::CMLOwnerInvalid
-					);
+					let cml_store = CmlStore::<T>::get(cml_id).unwrap();
+					ensure!(cml_store.owner().eq(who), Error::<T>::CMLOwnerInvalid);
 					Ok(())
 				},
 				|who| {
 					CmlStore::<T>::mutate(cml_id, |cml| {
-						cml.set_owner(to_account.clone());
+						if let Some(cml) = cml {
+							cml.set_owner(to_account.clone());
+						}
 					});
 					UserCmlStore::<T>::insert(to_account.clone(), cml_id, ());
 

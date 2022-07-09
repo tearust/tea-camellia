@@ -36,7 +36,7 @@ where
 		.chain(b_cml_list.into_iter())
 		.chain(c_cml_list.into_iter())
 		.for_each(|cml| {
-			UserCmlStore::<T>::insert(NPCAccount::<T>::get(), cml.id(), ());
+			UserCmlStore::<T>::insert(NPCAccount::<T>::get().unwrap(), cml.id(), ());
 			CmlStore::<T>::insert(cml.id(), cml);
 		});
 
@@ -54,8 +54,8 @@ pub fn convert_genesis_seeds_to_cmls<AccountId, BlockNumber>(
 	account: AccountId,
 ) -> Vec<CML<AccountId, BlockNumber>>
 where
-	AccountId: PartialEq + Clone + Default,
-	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	AccountId: PartialEq + Clone + MaxEncodedLen,
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone + MaxEncodedLen,
 {
 	let mut cml_list = Vec::new();
 

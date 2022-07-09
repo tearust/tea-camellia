@@ -1,6 +1,6 @@
 use crate::param::{Performance, GENESIS_SEED_A_COUNT, GENESIS_SEED_B_COUNT, GENESIS_SEED_C_COUNT};
 use crate::Seed;
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::sp_runtime::traits::AtLeast32BitUnsigned;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
@@ -11,7 +11,7 @@ use sp_std::prelude::*;
 
 pub type CmlId = u64;
 
-#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Copy, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CmlType {
 	A,
@@ -19,11 +19,11 @@ pub enum CmlType {
 	C,
 }
 
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub struct CML<AccountId, BlockNumber>
 where
-	AccountId: PartialEq + Clone + Default,
-	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	AccountId: PartialEq + Clone + MaxEncodedLen,
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone + MaxEncodedLen,
 {
 	intrinsic: Seed,
 	owner: AccountId,
@@ -32,8 +32,8 @@ where
 
 impl<AccountId, BlockNumber> CML<AccountId, BlockNumber>
 where
-	AccountId: PartialEq + Clone + Default,
-	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
+	AccountId: PartialEq + Clone + MaxEncodedLen,
+	BlockNumber: Default + AtLeast32BitUnsigned + Clone + MaxEncodedLen,
 {
 	pub fn from_seed(intrinsic: Seed, account: AccountId) -> Self {
 		CML {
@@ -70,19 +70,5 @@ where
 
 	pub fn set_owner(&mut self, account: AccountId) {
 		self.owner = account;
-	}
-}
-
-impl<AccountId, BlockNumber> Default for CML<AccountId, BlockNumber>
-where
-	AccountId: PartialEq + Clone + Default,
-	BlockNumber: Default + AtLeast32BitUnsigned + Clone,
-{
-	fn default() -> Self {
-		CML {
-			intrinsic: Seed::default(),
-			owner: Default::default(),
-			phantom: PhantomData,
-		}
 	}
 }

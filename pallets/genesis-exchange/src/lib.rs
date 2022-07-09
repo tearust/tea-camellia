@@ -63,11 +63,11 @@ pub mod genesis_exchange {
 
 	#[pallet::storage]
 	#[pallet::getter(fn operation_account)]
-	pub type OperationAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+	pub type OperationAccount<T: Config> = StorageValue<_, T::AccountId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn npc_account)]
-	pub type NPCAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+	pub type NPCAccount<T: Config> = StorageValue<_, T::AccountId>;
 
 	/// AMM curve coefficient k: `x * y = k`, k initialized when genesis build.
 	#[pallet::storage]
@@ -86,23 +86,17 @@ pub mod genesis_exchange {
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn competition_users)]
-	pub type CompetitionUsers<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, (Vec<u8>, Vec<u8>), ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn user_mainnet_coupons)]
 	pub type UserMainnetCoupons<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub operation_account: T::AccountId,
-		pub npc_account: T::AccountId,
+		pub operation_account: Option<T::AccountId>,
+		pub npc_account: Option<T::AccountId>,
 		pub operation_usd_amount: BalanceOf<T>,
 		pub operation_tea_amount: BalanceOf<T>,
-		pub competition_users: Vec<(T::AccountId, BalanceOf<T>)>,
-		pub bonding_curve_npc: (T::AccountId, BalanceOf<T>),
+		pub bonding_curve_npc: Option<(T::AccountId, BalanceOf<T>)>,
 		pub initial_usd_interest_rate: BalanceOf<T>,
 		pub borrow_debt_ratio_cap: BalanceOf<T>,
 	}
@@ -114,7 +108,6 @@ pub mod genesis_exchange {
 				npc_account: Default::default(),
 				operation_usd_amount: Default::default(),
 				operation_tea_amount: Default::default(),
-				competition_users: Default::default(),
 				bonding_curve_npc: Default::default(),
 				initial_usd_interest_rate: Default::default(),
 				borrow_debt_ratio_cap: Default::default(),
@@ -128,13 +121,12 @@ pub mod genesis_exchange {
 			NPCAccount::<T>::set(self.npc_account.clone());
 			AMMCurveKCoefficient::<T>::set(self.operation_usd_amount * self.operation_tea_amount);
 
-			USDStore::<T>::insert(&self.operation_account, &self.operation_usd_amount);
-			self.competition_users.iter().for_each(|(user, balance)| {
-				USDStore::<T>::insert(user, balance);
-				let value: (Vec<u8>, Vec<u8>) = (vec![], vec![]);
-				CompetitionUsers::<T>::insert(user, value);
-			});
-			USDStore::<T>::insert(&self.bonding_curve_npc.0, &self.bonding_curve_npc.1);
+			if let Some(ref operation_account) = self.operation_account {
+				USDStore::<T>::insert(operation_account, &self.operation_usd_amount);
+			}
+			if let Some((ref account, ref balance)) = self.bonding_curve_npc {
+				USDStore::<T>::insert(account, balance);
+			}
 
 			// initialize USD interest rate
 			USDInterestRate::<T>::set(self.initial_usd_interest_rate);
@@ -249,25 +241,6 @@ pub mod genesis_exchange {
 		}
 
 		#[pallet::weight(195_000_000)]
-		pub fn remove_competition_user(sender: OriginFor<T>, user: T::AccountId) -> DispatchResult {
-			let root = ensure_root(sender)?;
-
-			extrinsic_procedure(
-				&root,
-				|_| {
-					ensure!(
-						CompetitionUsers::<T>::contains_key(&user),
-						Error::<T>::CompetitionUserNotExist
-					);
-					Ok(())
-				},
-				|_| {
-					CompetitionUsers::<T>::remove(&user);
-				},
-			)
-		}
-
-		#[pallet::weight(195_000_000)]
 		pub fn set_mainnet_coupon(
 			sender: OriginFor<T>,
 			user: T::AccountId,
@@ -291,9 +264,9 @@ pub mod genesis_exchange {
 			sell_tea_amount: Option<BalanceOf<T>>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
+			let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get().unwrap());
 			let exchange_remains_tea =
-				T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
+				T::CurrencyOperations::free_balance(&OperationAccount::<T>::get().unwrap());
 
 			extrinsic_procedure(
 				&who,
@@ -349,9 +322,9 @@ pub mod genesis_exchange {
 			sell_usd_amount: Option<BalanceOf<T>>,
 		) -> DispatchResult {
 			let who = ensure_signed(sender)?;
-			let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
+			let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get().unwrap());
 			let exchange_remains_tea =
-				T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
+				T::CurrencyOperations::free_balance(&OperationAccount::<T>::get().unwrap());
 
 			extrinsic_procedure(
 				&who,
@@ -426,38 +399,6 @@ pub mod genesis_exchange {
 					if let Err(e) = Self::transfer_usd_inner(who, &dest, amount) {
 						error!("transfer usd failed: {:?}", e);
 					}
-				},
-			)
-		}
-
-		#[pallet::weight(195_000_000)]
-		pub fn register_for_competition(
-			sender: OriginFor<T>,
-			_user: T::AccountId,
-			erc20_address: Vec<u8>,
-			email_address: Vec<u8>,
-		) -> DispatchResult {
-			let who = ensure_signed(sender)?;
-
-			extrinsic_procedure(
-				&who,
-				|who| {
-					ensure!(
-						!CompetitionUsers::<T>::contains_key(who),
-						Error::<T>::CompetitionUserAlreadyRegistered
-					);
-					ensure!(
-						T::CurrencyOperations::free_balance(who)
-							>= T::RegisterForCompetitionAllowance::get(),
-						Error::<T>::CompetitionUserInsufficientFreeBalance
-					);
-					Ok(())
-				},
-				|who| {
-					CompetitionUsers::<T>::insert(
-						who,
-						(erc20_address.clone(), email_address.clone()),
-					);
 				},
 			)
 		}

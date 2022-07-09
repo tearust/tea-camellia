@@ -8,7 +8,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 
 	pub(crate) fn accumulate_usd_interest() {
 		USDStore::<T>::iter()
-			.filter(|(user, _)| !user.eq(&OperationAccount::<T>::get()))
+			.filter(|(user, _)| !user.eq(&OperationAccount::<T>::get().unwrap()))
 			.for_each(|(user, _)| {
 				USDStore::<T>::mutate(user, |balance| {
 					*balance = balance
@@ -52,7 +52,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		exchange_remains_usd: &BalanceOf<T>,
 		exchange_remains_tea: &BalanceOf<T>,
 	) {
-		let exchange_account = OperationAccount::<T>::get();
+		let exchange_account = OperationAccount::<T>::get().unwrap();
 		let deposit_tea_amount =
 			Self::delta_deposit_amount(buy_usd_amount, exchange_remains_usd, exchange_remains_tea);
 		if let Err(e) = T::CurrencyOperations::transfer(
@@ -121,7 +121,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		exchange_remains_usd: &BalanceOf<T>,
 		exchange_remains_tea: &BalanceOf<T>,
 	) {
-		let exchange_account = OperationAccount::<T>::get();
+		let exchange_account = OperationAccount::<T>::get().unwrap();
 		let withdraw_usd_amount = Self::delta_withdraw_amount(
 			sell_tea_amount,
 			exchange_remains_tea,
@@ -188,7 +188,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		exchange_remains_usd: &BalanceOf<T>,
 		exchange_remains_tea: &BalanceOf<T>,
 	) {
-		let exchange_account = OperationAccount::<T>::get();
+		let exchange_account = OperationAccount::<T>::get().unwrap();
 		let deposit_usd_amount =
 			Self::delta_deposit_amount(buy_tea_amount, exchange_remains_tea, exchange_remains_usd);
 
@@ -258,7 +258,7 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		exchange_remains_usd: &BalanceOf<T>,
 		exchange_remains_tea: &BalanceOf<T>,
 	) {
-		let exchange_account = OperationAccount::<T>::get();
+		let exchange_account = OperationAccount::<T>::get().unwrap();
 		let withdraw_tea_amount = Self::delta_withdraw_amount(
 			sell_usd_amount,
 			exchange_remains_usd,

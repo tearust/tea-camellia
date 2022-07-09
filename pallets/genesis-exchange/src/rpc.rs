@@ -22,9 +22,9 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 		let tea_dollar = Self::one_tea_dollar();
 		let usd_dollar = Self::one_tea_dollar();
 
-		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
+		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get().unwrap());
 		let exchange_remains_tea =
-			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
+			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get().unwrap());
 		let tea_rate =
 			Self::delta_withdraw_amount(&tea_dollar, &exchange_remains_tea, &exchange_remains_usd);
 		let reverse_rate =
@@ -95,9 +95,9 @@ impl<T: genesis_exchange::Config> genesis_exchange::Pallet<T> {
 	}
 
 	pub fn estimate_amount(withdraw_amount: BalanceOf<T>, buy_tea: bool) -> BalanceOf<T> {
-		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get());
+		let exchange_remains_usd = USDStore::<T>::get(OperationAccount::<T>::get().unwrap());
 		let exchange_remains_tea =
-			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get());
+			T::CurrencyOperations::free_balance(&OperationAccount::<T>::get().unwrap());
 
 		match buy_tea {
 			true => Self::delta_deposit_amount(
@@ -214,16 +214,16 @@ mod tests {
 			assert_eq!(USDStore::<Test>::get(user), buy_usd_amount);
 
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 				OPERATION_TEA_AMOUNT + user_tea_amount
 			);
 			assert_eq!(
-				USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+				USDStore::<Test>::get(&OperationAccount::<Test>::get().unwrap()),
 				OPERATION_USD_AMOUNT - buy_usd_amount
 			);
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get())
-					* USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap())
+					* USDStore::<Test>::get(&OperationAccount::<Test>::get().unwrap()),
 				AMMCurveKCoefficient::<Test>::get(),
 			);
 
@@ -257,16 +257,16 @@ mod tests {
 			assert_eq!(USDStore::<Test>::get(user), withdraw_usd_amount);
 
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 				OPERATION_TEA_AMOUNT + user_tea_amount
 			);
 			assert_eq!(
-				USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+				USDStore::<Test>::get(&OperationAccount::<Test>::get().unwrap()),
 				OPERATION_USD_AMOUNT - withdraw_usd_amount
 			);
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get())
-					* USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap())
+					* USDStore::<Test>::get(&OperationAccount::<Test>::get().unwrap()),
 				AMMCurveKCoefficient::<Test>::get(),
 			);
 
@@ -303,16 +303,16 @@ mod tests {
 			assert_eq!(USDStore::<Test>::get(user), 0);
 
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 				OPERATION_TEA_AMOUNT - buy_tea_amount
 			);
 			assert_eq!(
-				USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+				USDStore::<Test>::get(&OperationAccount::<Test>::get().unwrap()),
 				OPERATION_USD_AMOUNT + deposit_amount
 			);
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get())
-					* USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap())
+					* USDStore::<Test>::get(&OperationAccount::<Test>::get().unwrap()),
 				AMMCurveKCoefficient::<Test>::get(),
 			);
 
@@ -349,16 +349,16 @@ mod tests {
 			assert_eq!(USDStore::<Test>::get(user), 0);
 
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 				OPERATION_TEA_AMOUNT - withdraw_delta
 			);
 			assert_eq!(
-				USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+				USDStore::<Test>::get(&OperationAccount::<Test>::get().unwrap()),
 				OPERATION_USD_AMOUNT + user_usd_amount
 			);
 			assert_eq!(
-				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get())
-					* USDStore::<Test>::get(&OperationAccount::<Test>::get()),
+				<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap())
+					* USDStore::<Test>::get(&OperationAccount::<Test>::get().unwrap()),
 				AMMCurveKCoefficient::<Test>::get(),
 			);
 

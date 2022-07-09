@@ -45,6 +45,18 @@ pub mod tea {
 		/// Common utils trait
 		type CommonUtils: CommonUtils<AccountId = Self::AccountId>;
 
+		#[pallet::constant]
+		type ConnIdLength: Get<u32>;
+
+		#[pallet::constant]
+		type IpAddressLength: Get<u32>;
+
+		#[pallet::constant]
+		type StartupMachineBindingsLength: Get<u32>;
+
+		#[pallet::constant]
+		type StartupTappBindingsLength: Get<u32>;
+
 		/// Operations about currency that used in Tea Camellia.
 		type CurrencyOperations: CurrencyOperations<
 			AccountId = Self::AccountId,
@@ -64,7 +76,7 @@ pub mod tea {
 	#[pallet::storage]
 	#[pallet::getter(fn issuers)]
 	pub(super) type Issuers<T: Config> =
-		StorageMap<_, Twox64Concat, IssuerId, Issuer<T::AccountId>, ValueQuery>;
+		StorageMap<_, Twox64Concat, IssuerId, Issuer<T::AccountId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn issuer_owners)]
@@ -74,7 +86,7 @@ pub mod tea {
 	#[pallet::storage]
 	#[pallet::getter(fn machines)]
 	pub(super) type Machines<T: Config> =
-		StorageMap<_, Twox64Concat, TeaPubKey, Machine<T::AccountId>, ValueQuery>;
+		StorageMap<_, Twox64Concat, TeaPubKey, Machine<T::AccountId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn machine_bindings)]
@@ -83,17 +95,29 @@ pub mod tea {
 
 	#[pallet::storage]
 	#[pallet::getter(fn startup_machine_bindings)]
-	pub(super) type StartupMachineBindings<T: Config> =
-		StorageValue<_, Vec<(TeaPubKey, CmlId, Vec<u8>)>, ValueQuery>;
+	pub(super) type StartupMachineBindings<T: Config> = StorageValue<
+		_,
+		BoundedVec<
+			(TeaPubKey, CmlId, BoundedVec<u8, T::ConnIdLength>),
+			T::StartupMachineBindingsLength,
+		>,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn startup_bonding_bindings)]
-	pub(super) type StartupTappBindings<T: Config> =
-		StorageValue<_, Vec<(TeaPubKey, CmlId, Vec<u8>)>, ValueQuery>;
+	pub(super) type StartupTappBindings<T: Config> = StorageValue<
+		_,
+		BoundedVec<
+			(TeaPubKey, CmlId, BoundedVec<u8, T::IpAddressLength>),
+			T::StartupTappBindingsLength,
+		>,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn startup_owner)]
-	pub(super) type StartupOwner<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
+	pub(super) type StartupOwner<T: Config> = StorageValue<_, T::AccountId>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -160,13 +184,23 @@ pub mod tea {
 		InvalidMachineOwner,
 		/// Length of given lists not the same
 		BindingItemsLengthMismatch,
+		ConnIdLengthToLong,
+		IpAddressLengthToLong,
+		StartupMachineBindingsLengthToLong,
+		StartupTappBindingsLengthToLong,
 	}
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
-		pub startup_owner: T::AccountId,
-		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
-		pub startup_tapp_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
+		pub startup_owner: Option<T::AccountId>,
+		pub startup_machine_bindings: BoundedVec<
+			(TeaPubKey, CmlId, BoundedVec<u8, T::ConnIdLength>),
+			T::StartupMachineBindingsLength,
+		>,
+		pub startup_tapp_bindings: BoundedVec<
+			(TeaPubKey, CmlId, BoundedVec<u8, T::IpAddressLength>),
+			T::StartupTappBindingsLength,
+		>,
 	}
 
 	#[cfg(feature = "std")]
@@ -185,6 +219,7 @@ pub mod tea {
 		fn build(&self) {
 			StartupOwner::<T>::set(self.startup_owner.clone());
 
+			let owner = self.startup_owner.clone().unwrap();
 			self.startup_machine_bindings
 				.iter()
 				.for_each(|(tea_id, cml_id, _)| {
@@ -193,7 +228,7 @@ pub mod tea {
 						Machine {
 							tea_id: *tea_id,
 							issuer_id: BUILTIN_ISSURE,
-							owner: self.startup_owner.clone(),
+							owner: owner.clone(),
 						},
 					);
 					MachineBindings::<T>::insert(tea_id, cml_id);
@@ -208,7 +243,7 @@ pub mod tea {
 						Machine {
 							tea_id: *tea_id,
 							issuer_id: BUILTIN_ISSURE,
-							owner: self.startup_owner.clone(),
+							owner: owner.clone(),
 						},
 					);
 					MachineBindings::<T>::insert(tea_id, cml_id);
@@ -223,7 +258,7 @@ pub mod tea {
 		pub fn register_issuer(
 			sender: OriginFor<T>,
 			owner: T::AccountId,
-			url: Vec<u8>,
+			_url: Vec<u8>,
 		) -> DispatchResult {
 			let root = ensure_root(sender)?;
 
@@ -242,7 +277,6 @@ pub mod tea {
 						new_id,
 						Issuer {
 							id: new_id,
-							url,
 							owner: owner.clone(),
 						},
 					);
@@ -268,7 +302,7 @@ pub mod tea {
 						Error::<T>::IssuerNotExist
 					);
 					ensure!(
-						Issuers::<T>::get(issuer_id).owner.eq(who),
+						Issuers::<T>::get(issuer_id).unwrap().owner.eq(who),
 						Error::<T>::InvalidIssuerOwner
 					);
 					ensure!(
@@ -306,14 +340,16 @@ pub mod tea {
 						Error::<T>::MachineNotExist
 					);
 					ensure!(
-						Machines::<T>::get(tea_id).owner.eq(who),
+						Machines::<T>::get(tea_id).unwrap().owner.eq(who),
 						Error::<T>::InvalidMachineOwner
 					);
 					Ok(())
 				},
 				|who| {
 					Machines::<T>::mutate(tea_id, |machine| {
-						machine.owner = to_account.clone();
+						if let Some(machine) = machine {
+							machine.owner = to_account.clone();
+						}
 					});
 
 					Self::deposit_event(Event::MachineTransfered(tea_id, who.clone(), to_account));
@@ -337,7 +373,7 @@ pub mod tea {
 						Error::<T>::MachineNotExist
 					);
 					ensure!(
-						Machines::<T>::get(tea_id).owner.eq(who),
+						Machines::<T>::get(tea_id).unwrap().owner.eq(who),
 						Error::<T>::InvalidMachineOwner
 					);
 					Ok(())
@@ -361,6 +397,7 @@ pub mod tea {
 			let tea_ids_len = tea_ids.len();
 			let cml_ids_len = cml_ids.len();
 			let conn_ids_len = conn_ids.len();
+			let conn_ids_lens: Vec<u32> = conn_ids.iter().map(|id| id.len() as u32).collect();
 			extrinsic_procedure(
 				&root,
 				|_| {
@@ -372,6 +409,13 @@ pub mod tea {
 						tea_ids_len == conn_ids_len,
 						Error::<T>::BindingItemsLengthMismatch
 					);
+					ensure!(
+						tea_ids_len as u32 <= T::StartupMachineBindingsLength::get(), 
+						Error::<T>::StartupMachineBindingsLengthToLong
+					);
+					for len in conn_ids_lens {
+						ensure!(len <= T::ConnIdLength::get(), Error::<T>::ConnIdLengthToLong);
+					}
 					Ok(())
 				},
 				move |_| {
@@ -382,7 +426,7 @@ pub mod tea {
 							MachineBindings::<T>::remove(tea_id);
 						});
 
-					let owner = StartupOwner::<T>::get();
+					let owner = StartupOwner::<T>::get().unwrap();
 					let mut startups = Vec::new();
 					for i in 0..tea_ids.len() {
 						Machines::<T>::insert(
@@ -394,10 +438,14 @@ pub mod tea {
 							},
 						);
 						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
-						startups.push((tea_ids[i], cml_ids[i], conn_ids[i].clone()));
+						startups.push((
+							tea_ids[i],
+							cml_ids[i],
+							conn_ids[i].clone().try_into().unwrap(),
+						));
 					}
 					let old_bindings = StartupMachineBindings::<T>::get();
-					StartupMachineBindings::<T>::set(startups);
+					StartupMachineBindings::<T>::set(startups.try_into().unwrap());
 
 					let mut old_tea_ids = vec![];
 					let mut old_cml_ids = vec![];
@@ -431,6 +479,7 @@ pub mod tea {
 			let tea_ids_len = tea_ids.len();
 			let cml_ids_len = cml_ids.len();
 			let ip_list_len = ip_list.len();
+			let ip_address_len: Vec<u32> = ip_list.iter().map(|ip| ip.len() as u32).collect();
 			extrinsic_procedure(
 				&root,
 				|_| {
@@ -442,6 +491,16 @@ pub mod tea {
 						tea_ids_len == ip_list_len,
 						Error::<T>::BindingItemsLengthMismatch
 					);
+					ensure!(
+						tea_ids_len as u32 <= T::StartupTappBindingsLength::get(),
+						Error::<T>::StartupTappBindingsLengthToLong
+					);
+					for ip_len in ip_address_len {
+						ensure!(
+							ip_len <= T::IpAddressLength::get(),
+							Error::<T>::IpAddressLengthToLong
+						);
+					}
 					Ok(())
 				},
 				move |_| {
@@ -452,7 +511,7 @@ pub mod tea {
 							MachineBindings::<T>::remove(tea_id);
 						});
 
-					let owner = StartupOwner::<T>::get();
+					let owner = StartupOwner::<T>::get().unwrap();
 					let mut startups = Vec::new();
 					for i in 0..tea_ids.len() {
 						Machines::<T>::insert(
@@ -464,10 +523,14 @@ pub mod tea {
 							},
 						);
 						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
-						startups.push((tea_ids[i], cml_ids[i], ip_list[i].clone()));
+						startups.push((
+							tea_ids[i],
+							cml_ids[i],
+							ip_list[i].clone().try_into().unwrap(),
+						));
 					}
 					let old_bindings = StartupTappBindings::<T>::get();
-					StartupTappBindings::<T>::set(startups);
+					StartupTappBindings::<T>::set(startups.try_into().unwrap());
 
 					let mut old_tea_ids = vec![];
 					let mut old_cml_ids = vec![];
