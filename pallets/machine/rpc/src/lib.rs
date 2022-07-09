@@ -1,22 +1,19 @@
 use codec::Codec;
-use jsonrpsee::{
-	core::{Error as JsonRpseeError, RpcResult},
-	proc_macros::rpc,
-	types::error::{CallError, ErrorCode, ErrorObject},
-};
+use jsonrpc_core::{Error, ErrorCode, Result};
+use jsonrpc_derive::rpc;
 use machine_runtime_api::MachineApi as MachineRuntimeApi;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
 
-#[rpc(server)]
+#[rpc]
 pub trait MachineApi<BlockHash, AccountId> {
-	#[method(name = "tea_bootNodes")]
-	fn boot_nodes(&self, at: Option<BlockHash>) -> RpcResult<Vec<[u8; 32]>>;
+	#[rpc(name = "tea_bootNodes")]
+	fn boot_nodes(&self, at: Option<BlockHash>) -> Result<Vec<[u8; 32]>>;
 
-	#[method(name = "tea_tappStoreStartupNodes")]
-	fn tapp_store_startup_nodes(&self, at: Option<BlockHash>) -> RpcResult<Vec<[u8; 32]>>;
+	#[rpc(name = "tea_tappStoreStartupNodes")]
+	fn tapp_store_startup_nodes(&self, at: Option<BlockHash>) -> Result<Vec<[u8; 32]>>;
 }
 
 pub struct MachineApiImpl<C, M> {
@@ -37,15 +34,15 @@ impl<C, M> MachineApiImpl<C, M> {
 }
 
 /// Converts a runtime trap into an RPC error.
-fn runtime_error_into_rpc_err(err: impl std::fmt::Debug) -> JsonRpseeError {
-	JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
-		ErrorCode::InternalError.code(),
-		"Runtime error",
-		Some(format!("{:?}", err)),
-	)))
+fn runtime_error_into_rpc_err(err: impl std::fmt::Display) -> Error {
+	Error {
+		code: ErrorCode::InternalError,
+		message: "Error while checking migration state".into(),
+		data: Some(err.to_string().into()),
+	}
 }
 
-impl<C, Block, AccountId> MachineApiServer<<Block as BlockT>::Hash, AccountId>
+impl<C, Block, AccountId> MachineApi<<Block as BlockT>::Hash, AccountId>
 	for MachineApiImpl<C, Block>
 where
 	Block: BlockT,
@@ -53,7 +50,7 @@ where
 	C::Api: machine_runtime_api::MachineApi<Block, AccountId>,
 	AccountId: Codec,
 {
-	fn boot_nodes(&self, at: Option<<Block as BlockT>::Hash>) -> RpcResult<Vec<[u8; 32]>> {
+	fn boot_nodes(&self, at: Option<<Block as BlockT>::Hash>) -> Result<Vec<[u8; 32]>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
@@ -66,7 +63,7 @@ where
 	fn tapp_store_startup_nodes(
 		&self,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> RpcResult<Vec<[u8; 32]>> {
+	) -> Result<Vec<[u8; 32]>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.

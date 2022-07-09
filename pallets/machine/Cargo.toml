@@ -19,16 +19,16 @@ codec = {default-features = false, features = ['derive'], package = 'parity-scal
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 
 # Substrate dependencies
-sp-std = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-core = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-io = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-frame-support = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-frame-system = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
-sp-runtime = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+sp-std = {default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-core = {default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-io = {default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+frame-support = {default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+frame-system = {default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
+sp-runtime = {default-features = false, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
 
 # Only used in benchmarking to generate random contract code
-frame-benchmarking = {default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+frame-benchmarking = {default-features = false, optional = true, git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
 hex = {default-features = false, optional = true, version = '0.4.3'}
 
 [dev-dependencies]
@@ -36,9 +36,9 @@ serde = '1.0.119'
 hex-literal = "0.3.1"
 ed25519-dalek = "1.0.0"
 rand = '0.7.2'
-pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
-node-primitives = { version = "2.0.0", git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+pallet-randomness-collective-flip = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+pallet-balances = { git = 'https://github.com/tearust/substrate.git', branch = 'v4.0' }
+node-primitives = { version = "2.0.0", git = 'https://github.com/tearust/substrate.git', branch = 'v4.0'}
 
 [features]
 default = ['std']

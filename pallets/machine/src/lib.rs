@@ -193,14 +193,8 @@ pub mod tea {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub startup_owner: Option<T::AccountId>,
-		pub startup_machine_bindings: BoundedVec<
-			(TeaPubKey, CmlId, BoundedVec<u8, T::ConnIdLength>),
-			T::StartupMachineBindingsLength,
-		>,
-		pub startup_tapp_bindings: BoundedVec<
-			(TeaPubKey, CmlId, BoundedVec<u8, T::IpAddressLength>),
-			T::StartupTappBindingsLength,
-		>,
+		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
+		pub startup_tapp_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
 	}
 
 	#[cfg(feature = "std")]
@@ -233,7 +227,15 @@ pub mod tea {
 					);
 					MachineBindings::<T>::insert(tea_id, cml_id);
 				});
-			StartupMachineBindings::<T>::set(self.startup_machine_bindings.clone());
+			StartupMachineBindings::<T>::set(
+				self.startup_machine_bindings
+					.clone()
+					.into_iter()
+					.map(|(tea_id, cml_id, conn_id)| (tea_id, cml_id, conn_id.try_into().unwrap()))
+					.collect::<Vec<(TeaPubKey, CmlId, BoundedVec<u8, _>)>>()
+					.try_into()
+					.unwrap(),
+			);
 
 			self.startup_tapp_bindings
 				.iter()
@@ -248,7 +250,15 @@ pub mod tea {
 					);
 					MachineBindings::<T>::insert(tea_id, cml_id);
 				});
-			StartupTappBindings::<T>::set(self.startup_tapp_bindings.clone());
+			StartupTappBindings::<T>::set(
+				self.startup_tapp_bindings
+					.clone()
+					.into_iter()
+					.map(|(tea_id, cml_id, ip)| (tea_id, cml_id, ip.try_into().unwrap()))
+					.collect::<Vec<(TeaPubKey, CmlId, BoundedVec<u8, _>)>>()
+					.try_into()
+					.unwrap(),
+			);
 		}
 	}
 
@@ -410,11 +420,14 @@ pub mod tea {
 						Error::<T>::BindingItemsLengthMismatch
 					);
 					ensure!(
-						tea_ids_len as u32 <= T::StartupMachineBindingsLength::get(), 
+						tea_ids_len as u32 <= T::StartupMachineBindingsLength::get(),
 						Error::<T>::StartupMachineBindingsLengthToLong
 					);
 					for len in conn_ids_lens {
-						ensure!(len <= T::ConnIdLength::get(), Error::<T>::ConnIdLengthToLong);
+						ensure!(
+							len <= T::ConnIdLength::get(),
+							Error::<T>::ConnIdLengthToLong
+						);
 					}
 					Ok(())
 				},

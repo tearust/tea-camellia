@@ -2,17 +2,15 @@ use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisSeeds},
-	pallet_machine::{CmlId, TeaPubKey},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, Block, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GenesisExchangeConfig,
-	GrandpaConfig, ImOnlineConfig, MachineConfig, NominationPoolsConfig, SessionConfig, Signature,
-	StakerStatus, StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, WASM_BINARY,
+	GrandpaConfig, ImOnlineConfig, MachineConfig, SessionConfig, Signature, StakerStatus,
+	StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
-use jsonrpc_core::serde_json;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::ChainSpecExtension;
-use sc_service::{ChainType, Properties};
+use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
@@ -21,7 +19,7 @@ use sp_core::ByteArray;
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
-	BoundedVec, Perbill,
+	Perbill,
 };
 use std::str::FromStr;
 
@@ -474,18 +472,8 @@ fn testnet_genesis(
 		democracy: DemocracyConfig::default(),
 
 		machine: MachineConfig {
-			startup_machine_bindings: mining_startup
-				.into_iter()
-				.map(|(tea_id, cml_id, conn_id)| (tea_id, cml_id, conn_id.try_into().unwrap()))
-				.collect::<Vec<(TeaPubKey, CmlId, BoundedVec<u8, _>)>>()
-				.try_into()
-				.unwrap(),
-			startup_tapp_bindings: tapp_startup
-				.into_iter()
-				.map(|(tea_id, cml_id, ip)| (tea_id, cml_id, ip.try_into().unwrap()))
-				.collect::<Vec<(TeaPubKey, CmlId, BoundedVec<u8, _>)>>()
-				.try_into()
-				.unwrap(),
+			startup_machine_bindings: mining_startup,
+			startup_tapp_bindings: tapp_startup,
 			startup_owner: Some(npc_account.clone()),
 		},
 		cml: CmlConfig {
@@ -502,11 +490,6 @@ fn testnet_genesis(
 			borrow_debt_ratio_cap: 0,     // initial borrow debt ratio cap is 0.
 		},
 		transaction_payment: Default::default(),
-		nomination_pools: NominationPoolsConfig {
-			min_create_bond: 10 * DOLLARS,
-			min_join_bond: 1 * DOLLARS,
-			..Default::default()
-		},
 	}
 }
 

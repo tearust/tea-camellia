@@ -1,10 +1,7 @@
 use cml_runtime_api::CmlApi as CmlRuntimeApi;
 use codec::{Codec};
-use jsonrpsee::{
-	core::{Error as JsonRpseeError, RpcResult},
-	proc_macros::rpc,
-	types::error::{CallError, ErrorCode, ErrorObject},
-};
+use jsonrpc_core::{Error, ErrorCode, Result};
+use jsonrpc_derive::rpc;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
@@ -14,13 +11,13 @@ mod types;
 
 pub use types::*;
 
-#[rpc(server)]
+#[rpc]
 pub trait CmlApi<BlockHash, AccountId>
 where
 	AccountId: Codec,
 {
-	#[method(name = "cml_userCmlList")]
-	fn user_cml_list(&self, who: AccountId, at: Option<BlockHash>) -> RpcResult<Vec<u64>>;
+	#[rpc(name = "cml_userCmlList")]
+	fn user_cml_list(&self, who: AccountId, at: Option<BlockHash>) -> Result<Vec<u64>>;
 }
 
 pub struct CmlApiImpl<C, M> {
@@ -41,15 +38,15 @@ impl<C, M> CmlApiImpl<C, M> {
 }
 
 /// Converts a runtime trap into an RPC error.
-fn runtime_error_into_rpc_err(err: impl std::fmt::Debug) -> JsonRpseeError {
-	JsonRpseeError::Call(CallError::Custom(ErrorObject::owned(
-		ErrorCode::InternalError.code(),
-		"Runtime error",
-		Some(format!("{:?}", err)),
-	)))
+fn runtime_error_into_rpc_err(err: impl std::fmt::Display) -> Error {
+	Error {
+		code: ErrorCode::InternalError,
+		message: "Error while checking migration state".into(),
+		data: Some(err.to_string().into()),
+	}
 }
 
-impl<C, Block, AccountId> CmlApiServer<<Block as BlockT>::Hash, AccountId> for CmlApiImpl<C, Block>
+impl<C, Block, AccountId> CmlApi<<Block as BlockT>::Hash, AccountId> for CmlApiImpl<C, Block>
 where
 	Block: BlockT,
 	C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
@@ -60,7 +57,7 @@ where
 		&self,
 		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> RpcResult<Vec<u64>> {
+	) -> Result<Vec<u64>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.

@@ -17,7 +17,7 @@
 
 use crate::cli::{Cli, Subcommand};
 use crate::{chain_spec, service};
-use camellia_runtime::{Block};
+use camellia_runtime::Block;
 use node_executor::ExecutorDispatch;
 use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
@@ -161,10 +161,6 @@ pub fn run() -> sc_cli::Result<()> {
 		Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
 				You can enable it with `--features try-runtime`."
 			.into()),
-		Some(Subcommand::ChainInfo(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.sync_run(|config| cmd.run::<Block>(&config))
-		}
 		_ => {
 			panic!("not support sub-command: {:?}", &cli.subcommand);
 		}
