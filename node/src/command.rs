@@ -17,10 +17,11 @@
 
 use crate::cli::{Cli, Subcommand};
 use crate::{chain_spec, service};
-use camellia_runtime::{Block, RuntimeApi};
+use camellia_runtime::{Block};
 use node_executor::ExecutorDispatch;
-use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
+use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
+use tea_camellia::service::new_partial;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
@@ -76,11 +77,17 @@ impl SubstrateCli for Cli {
 	}
 }
 
-/// Parse and run command line arguments
+/// Parse command line arguments into service configuration.
 pub fn run() -> sc_cli::Result<()> {
 	let cli = Cli::from_args();
 
 	match &cli.subcommand {
+		None => {
+			let runner = cli.create_runner(&cli.run)?;
+			runner.run_node_until_exit(|config| async move {
+				service::new_full(config).map_err(sc_cli::Error::Service)
+			})
+		}
 		Some(Subcommand::Key(cmd)) => cmd.run(&cli),
 		Some(Subcommand::BuildSpec(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
@@ -94,7 +101,7 @@ pub fn run() -> sc_cli::Result<()> {
 					task_manager,
 					import_queue,
 					..
-				} = service::new_partial(&config)?;
+				} = new_partial(&config)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
 		}
@@ -105,7 +112,7 @@ pub fn run() -> sc_cli::Result<()> {
 					client,
 					task_manager,
 					..
-				} = service::new_partial(&config)?;
+				} = new_partial(&config)?;
 				Ok((cmd.run(client, config.database), task_manager))
 			})
 		}
@@ -116,7 +123,7 @@ pub fn run() -> sc_cli::Result<()> {
 					client,
 					task_manager,
 					..
-				} = service::new_partial(&config)?;
+				} = new_partial(&config)?;
 				Ok((cmd.run(client, config.chain_spec), task_manager))
 			})
 		}
@@ -128,41 +135,13 @@ pub fn run() -> sc_cli::Result<()> {
 					task_manager,
 					import_queue,
 					..
-				} = service::new_partial(&config)?;
+				} = new_partial(&config)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
 		}
 		Some(Subcommand::PurgeChain(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| cmd.run(config.database))
-		}
-		Some(Subcommand::Revert(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					backend,
-					..
-				} = service::new_partial(&config)?;
-				Ok((cmd.run(client, backend), task_manager))
-			})
-		}
-		Some(Subcommand::Inspect(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-
-			runner.sync_run(|config| cmd.run::<Block, RuntimeApi, ExecutorDispatch>(config))
-		}
-		Some(Subcommand::Benchmark(cmd)) => {
-			if cfg!(feature = "runtime-benchmarks") {
-				let runner = cli.create_runner(cmd)?;
-
-				runner.sync_run(|config| cmd.run::<Block, ExecutorDispatch>(config))
-			} else {
-				Err("Benchmarking wasn't enabled when building the node. \
-				You can enable it with `--features runtime-benchmarks`."
-					.into())
-			}
 		}
 		#[cfg(feature = "try-runtime")]
 		Some(Subcommand::TryRuntime(cmd)) => {
@@ -172,7 +151,7 @@ pub fn run() -> sc_cli::Result<()> {
 				// manager to do `async_run`.
 				let registry = config.prometheus_config.as_ref().map(|cfg| &cfg.registry);
 				let task_manager =
-					sc_service::TaskManager::new(config.task_executor.clone(), registry)
+					sc_service::TaskManager::new(config.tokio_handle.clone(), registry)
 						.map_err(|e| sc_cli::Error::Service(sc_service::Error::Prometheus(e)))?;
 
 				Ok((cmd.run::<Block, ExecutorDispatch>(config), task_manager))
@@ -182,15 +161,12 @@ pub fn run() -> sc_cli::Result<()> {
 		Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
 				You can enable it with `--features try-runtime`."
 			.into()),
-		None => {
-			let runner = cli.create_runner(&cli.run)?;
-			runner.run_node_until_exit(|config| async move {
-				match config.role {
-					Role::Light => service::new_light(config),
-					_ => service::new_full(config),
-				}
-				.map_err(sc_cli::Error::Service)
-			})
+		Some(Subcommand::ChainInfo(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| cmd.run::<Block>(&config))
+		}
+		_ => {
+			panic!("not support sub-command: {:?}", &cli.subcommand);
 		}
 	}
 }

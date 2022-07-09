@@ -2,15 +2,15 @@
 name = "cml-runtime-api"
 version = "0.1.0"
 authors = ["Yan Mingzhi <realraindust@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-codec = {default-features = false,  package = "parity-scale-codec", version = "2.0.0" }
-sp-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-sp-std = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
-node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+codec = {default-features = false,  package = "parity-scale-codec", version = "3.1" }
+sp-api = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+sp-std = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
 
 [features]
 default = ["std"]

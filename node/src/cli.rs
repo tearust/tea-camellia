@@ -1,33 +1,34 @@
 use sc_cli::RunCmd;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, clap::Parser)]
 pub struct Cli {
-	#[structopt(subcommand)]
+	#[clap(subcommand)]
 	pub subcommand: Option<Subcommand>,
 
-	#[structopt(flatten)]
+	#[clap(flatten)]
 	pub run: RunCmd,
 
 	/// The csv file path to define mining startup configs
-	#[structopt(long)]
+	#[clap(long)]
 	pub mining_startup_path: Option<String>,
 
 	/// The csv file path to define tapp startup configs
-	#[structopt(long)]
+	#[clap(long)]
 	pub tapp_startup_path: Option<String>,
 
-	#[structopt(long)]
+	#[clap(long)]
 	pub genesis_seed: Option<String>,
 
-	#[structopt(long, default_value = "7")]
+	#[clap(long, default_value = "7")]
 	pub initial_validator_count: u32,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
 	/// Key management cli utilities
+	#[clap(subcommand)]
 	Key(sc_cli::KeySubcommand),
+
 	/// Build a chain specification.
 	BuildSpec(sc_cli::BuildSpecCmd),
 
@@ -49,16 +50,9 @@ pub enum Subcommand {
 	/// Revert the chain to a previous state.
 	Revert(sc_cli::RevertCmd),
 
-	/// The custom benchmark subcommmand benchmarking runtime pallets.
-	#[structopt(name = "benchmark", about = "Benchmark runtime pallets.")]
+	/// Sub-commands concerned with benchmarking.
+	#[clap(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
-
-	/// The custom inspect subcommmand for decoding blocks and extrinsics.
-	#[structopt(
-		name = "inspect",
-		about = "Decode given block or extrinsic using current native runtime."
-	)]
-	Inspect(node_inspect::cli::InspectCmd),
 
 	/// Try some command against runtime state.
 	#[cfg(feature = "try-runtime")]
@@ -67,4 +61,7 @@ pub enum Subcommand {
 	/// Try some command against runtime state. Note: `try-runtime` feature must be enabled.
 	#[cfg(not(feature = "try-runtime"))]
 	TryRuntime,
+
+	/// Db meta columns information.
+	ChainInfo(sc_cli::ChainInfoCmd),
 }

@@ -1,6 +1,6 @@
-use jsonrpc_core::serde::{Deserializer, Serializer};
 use node_primitives::Balance;
 use serde::de::{self, Visitor};
+use serde::{Deserializer, Serializer};
 use std::fmt::Formatter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

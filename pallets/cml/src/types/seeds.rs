@@ -1,6 +1,6 @@
 use super::param::*;
 use crate::{CmlId, CmlType};
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
@@ -9,7 +9,7 @@ use sp_std::prelude::*;
 
 pub type ClassFlag = u64;
 
-#[derive(Encode, Decode, Clone, Debug, TypeInfo)]
+#[derive(Encode, Decode, Clone, Debug, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Seed {
 	pub id: CmlId, //seq id starting from 0, this is also the camellia id.

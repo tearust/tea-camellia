@@ -2,7 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::unnecessary_mut_passed)]
 
-use codec::Codec;
+use codec::{Codec};
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
@@ -10,6 +10,6 @@ sp_api::decl_runtime_apis! {
 	where
 		AccountId: Codec,
 	{
-		fn user_cml_list(who: &AccountId) -> Vec<u64>;
+		fn user_cml_list(who: AccountId) -> Vec<u64>;
 	}
 }

@@ -2,10 +2,11 @@ use camellia_runtime::{
 	constants::currency::DOLLARS,
 	opaque::SessionKeys,
 	pallet_cml::{generator::init_genesis, GenesisSeeds},
+	pallet_machine::{CmlId, TeaPubKey},
 	AccountId, AuthorityDiscoveryConfig, BabeConfig, Balance, BalancesConfig, Block, CmlConfig,
 	CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, GenesisExchangeConfig,
-	GrandpaConfig, ImOnlineConfig, MachineConfig, SessionConfig, Signature, StakerStatus,
-	StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, WASM_BINARY,
+	GrandpaConfig, ImOnlineConfig, MachineConfig, NominationPoolsConfig, SessionConfig, Signature,
+	StakerStatus, StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, WASM_BINARY,
 };
 use grandpa_primitives::AuthorityId as GrandpaId;
 use jsonrpc_core::serde_json;
@@ -16,10 +17,11 @@ use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::sp_std::cmp::max;
+use sp_core::ByteArray;
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
-	Perbill,
+	BoundedVec, Perbill,
 };
 use std::str::FromStr;
 
@@ -71,6 +73,7 @@ pub fn public_from_hex_string<TPublic: Public>(hex_str: &str) -> <TPublic::Pair 
 			.expect(format!("{} failed to decode to hex", hex_str).as_str())
 			.as_slice(),
 	)
+	.unwrap()
 }
 
 type AccountPublic = <Signature as Verify>::Signer;
@@ -132,17 +135,6 @@ pub fn authority_keys_from_hex_string(
 	)
 }
 
-fn get_properties(symbol: &str) -> Properties {
-	serde_json::json!({
-		"tokenDecimals": 12,
-		"ss58Format": 0,
-		"tokenSymbol": symbol,
-	})
-	.as_object()
-	.unwrap()
-	.clone()
-}
-
 pub fn development_config(
 	seed: [u8; 32],
 	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
@@ -152,8 +144,8 @@ pub fn development_config(
 
 	Ok(ChainSpec::from_genesis(
 		// Name (spec_name)
-		"tea-layer1",
-		"tea-layer1",
+		"node",
+		"node",
 		ChainType::Development,
 		move || {
 			let genesis_seeds = init_genesis(seed);
@@ -188,8 +180,9 @@ pub fn development_config(
 		// Protocol ID
 		None,
 		// Properties
-		Some(get_properties("TEA")),
+		Some("TEA"),
 		// Extensions
+		Default::default(),
 		Default::default(),
 	))
 }
@@ -332,8 +325,8 @@ pub fn testnet_config(
 
 	Ok(ChainSpec::from_genesis(
 		// Name
-		"tea-layer1",
-		"tea-layer1",
+		"node",
+		"node",
 		ChainType::Local,
 		move || {
 			let endowed_balances = endowed_balances.clone();
@@ -366,6 +359,7 @@ pub fn testnet_config(
 		// Properties
 		None,
 		// Extensions
+		Default::default(),
 		Default::default(),
 	))
 }
@@ -408,7 +402,6 @@ fn testnet_genesis(
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
-			changes_trie_config: Default::default(),
 		},
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
@@ -423,7 +416,7 @@ fn testnet_genesis(
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
-			key: root_key,
+			key: Some(root_key),
 		},
 		session: SessionConfig {
 			keys: initial_authorities
@@ -456,7 +449,6 @@ fn testnet_genesis(
 			minimum_validator_count: initial_authorities.len() as u32,
 			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
 			slash_reward_fraction: Perbill::from_percent(10),
-			era_total_reward: 1000 * DOLLARS,
 			..Default::default()
 		},
 		im_online: ImOnlineConfig { keys: vec![] },
@@ -482,23 +474,38 @@ fn testnet_genesis(
 		democracy: DemocracyConfig::default(),
 
 		machine: MachineConfig {
-			startup_machine_bindings: mining_startup,
-			startup_tapp_bindings: tapp_startup,
-			startup_owner: npc_account.clone(),
+			startup_machine_bindings: mining_startup
+				.into_iter()
+				.map(|(tea_id, cml_id, conn_id)| (tea_id, cml_id, conn_id.try_into().unwrap()))
+				.collect::<Vec<(TeaPubKey, CmlId, BoundedVec<u8, _>)>>()
+				.try_into()
+				.unwrap(),
+			startup_tapp_bindings: tapp_startup
+				.into_iter()
+				.map(|(tea_id, cml_id, ip)| (tea_id, cml_id, ip.try_into().unwrap()))
+				.collect::<Vec<(TeaPubKey, CmlId, BoundedVec<u8, _>)>>()
+				.try_into()
+				.unwrap(),
+			startup_owner: Some(npc_account.clone()),
 		},
 		cml: CmlConfig {
-			npc_account: npc_account.clone(),
+			npc_account: Some(npc_account.clone()),
 			genesis_seeds,
 		},
 		genesis_exchange: GenesisExchangeConfig {
-			operation_account: genesis_exchange_operation_account,
-			npc_account: npc_account.clone(),
+			operation_account: Some(genesis_exchange_operation_account),
+			npc_account: Some(npc_account.clone()),
 			operation_usd_amount: INITIAL_EXCHANGE_USD_BALANCE,
 			operation_tea_amount: INITIAL_EXCHANGE_TEA_BALANCE,
-			competition_users: vec![],
-			bonding_curve_npc: (npc_account.clone(), BONDING_CURVE_NPC_INITIAL_USD_BALANCE),
+			bonding_curve_npc: Some((npc_account.clone(), BONDING_CURVE_NPC_INITIAL_USD_BALANCE)),
 			initial_usd_interest_rate: 0, // let initial usd interest rate be 0.02%
 			borrow_debt_ratio_cap: 0,     // initial borrow debt ratio cap is 0.
+		},
+		transaction_payment: Default::default(),
+		nomination_pools: NominationPoolsConfig {
+			min_create_bond: 10 * DOLLARS,
+			min_join_bond: 1 * DOLLARS,
+			..Default::default()
 		},
 	}
 }

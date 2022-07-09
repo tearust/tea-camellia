@@ -2,7 +2,7 @@
 name = "pallet-cml"
 version = "3.0.0"
 authors = ["jacky.li <liyangwood@gmail.com>"]
-edition = "2018"
+edition = "2021"
 license = "GPL-3.0"
 homepage = "https://teaproject.org"
 repository = "https://github.com/tearust/tea-camellia"
@@ -13,30 +13,30 @@ readme = "README.md"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-log = "0.4.8"
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+log = "0.4.14"
+codec = { package = "parity-scale-codec", version = "3.1", default-features = false }
+scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 rand = { version = "0.7.2", default-features = false, features = ["small_rng"] }
 
-sp-std = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-sp-core = {git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8', default-features = false}
+sp-std = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+sp-core = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3', default-features = false}
 # Needed for various traits. In our case, `OnFinalize`.
-sp-runtime = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
+sp-runtime = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
 # Needed for type-safe access to storage DB.
-frame-support = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+frame-support = {default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
 # `system` module provides us with all sorts of useful stuff and macros depend on it being around.
-frame-system = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
-frame-benchmarking = { default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
-node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
+frame-system = { default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
+frame-benchmarking = { default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
+node-primitives = { version = "2.0.0", default-features = false, git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
 pallet-utils = {default-features = false, version = '0.0.1', path = '../utils'}
 
 # optional, used in std
 serde = { version = "1.0.101", optional = true }
 
 [dev-dependencies]
-sp-io = {git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8'}
-pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
-pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '558a68f8' }
+sp-io = {git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3'}
+pallet-balances = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
+pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate.git', rev = '6a946fc3' }
 
 [features]
 default = ["std"]
