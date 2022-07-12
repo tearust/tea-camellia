@@ -517,38 +517,3 @@ fn generate_account_balance_list(
 		.map(|k| (k, balance))
 		.collect()
 }
-
-#[cfg(test)]
-mod tests {
-	use crate::chain_spec::get_unique_accounts;
-	use camellia_runtime::pallet_cml::{
-		CmlType, CouponConfig, DefrostScheduleType, GenesisCoupons,
-	};
-	use sp_runtime::AccountId32;
-
-	#[test]
-	fn get_unique_accounts_works() {
-		let mut accounts = Vec::new();
-		for i in 0..=9u8 {
-			accounts.push([i; 32])
-		}
-		accounts.push(accounts[accounts.len() - 1]); // duplicate the last one
-
-		let result = get_unique_accounts(&GenesisCoupons {
-			coupons: accounts
-				.iter()
-				.map(|account| CouponConfig {
-					account: AccountId32::new(account.clone()),
-					cml_type: CmlType::A,
-					schedule_type: DefrostScheduleType::Team,
-					amount: 10,
-				})
-				.collect(),
-		});
-
-		assert_eq!(result.len(), 10);
-		for i in 0..=9u8 {
-			assert!(result.contains(&AccountId32::new([i; 32])));
-		}
-	}
-}

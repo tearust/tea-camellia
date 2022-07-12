@@ -1,6 +1,6 @@
 use crate as pallet_bonding_curve;
-use frame_support::parameter_types;
 use frame_support::traits::Everything;
+use frame_support::{parameter_types, traits::ConstU32};
 use frame_system as system;
 use node_primitives::Balance;
 use sp_core::H256;
@@ -58,6 +58,7 @@ impl system::Config for Test {
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
+	type MaxConsumers = ConstU32<16>;
 }
 
 impl pallet_bonding_curve::Config for Test {
