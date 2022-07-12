@@ -1,7 +1,7 @@
 use crate as pallet_genesis_exchange;
 use codec::{Decode, Encode};
 use frame_benchmarking::frame_support::pallet_prelude::GenesisBuild;
-use frame_support::traits::{Everything, Get};
+use frame_support::traits::{ConstU32, Everything, Get};
 use frame_support::{parameter_types, traits::Currency};
 use frame_system as system;
 use node_primitives::{Balance, BlockNumber};
@@ -104,6 +104,7 @@ impl system::Config for Test {
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
+	type MaxConsumers = ConstU32<16>;
 }
 
 pub const STAKING_PRICE: Balance = 1000;
@@ -183,12 +184,8 @@ impl pallet_utils::Config for Test {
 
 pub const OPERATION_USD_AMOUNT: Balance = 40_000 * 10_000_000_000 * 100;
 pub const OPERATION_TEA_AMOUNT: Balance = 40_000 * 10_000_000_000 * 100;
-pub const COMPETITION_USER_USD_AMOUNT: Balance = 1000 * 10_000_000_000 * 100;
 
 pub const OPERATION_ACCOUNT: u64 = 100;
-pub const COMPETITION_USERS1: u64 = 101;
-pub const COMPETITION_USERS2: u64 = 102;
-pub const COMPETITION_USERS3: u64 = 103;
 pub const NPC_ACCOUNT: u64 = 111;
 
 pub const BANK_OPERATION_ACCOUNT: u64 = 200;
@@ -202,15 +199,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.unwrap();
 
 	pallet_genesis_exchange::GenesisConfig::<Test> {
-		operation_account: OPERATION_ACCOUNT,
-		npc_account: NPC_ACCOUNT,
+		operation_account: Some(OPERATION_ACCOUNT),
+		npc_account: Some(NPC_ACCOUNT),
 		operation_tea_amount: OPERATION_TEA_AMOUNT,
 		operation_usd_amount: OPERATION_USD_AMOUNT,
-		competition_users: vec![COMPETITION_USERS1, COMPETITION_USERS2, COMPETITION_USERS3]
-			.iter()
-			.map(|v| (*v, COMPETITION_USER_USD_AMOUNT))
-			.collect(),
-		bonding_curve_npc: (Default::default(), 0),
+		bonding_curve_npc: Some((Default::default(), 0)),
 		initial_usd_interest_rate: 5,
 		borrow_debt_ratio_cap: BORROW_DEBT_RATIO_CAP,
 	}

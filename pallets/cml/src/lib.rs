@@ -127,7 +127,7 @@ pub mod cml {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000_000)]
-		pub fn generate_cml(sender: OriginFor<T>, a_amount: u32, b_amount: u32) -> DispatchResult {
+		pub fn generate_cml(sender: OriginFor<T>, b_amount: u32) -> DispatchResult {
 			let who = ensure_signed(sender)?;
 
 			pallet_utils::extrinsic_procedure(
@@ -145,7 +145,6 @@ pub mod cml {
 				},
 				|who| {
 					let mut salt = vec![];
-					salt.append(&mut a_amount.to_le_bytes().to_vec());
 					salt.append(&mut b_amount.to_le_bytes().to_vec());
 
 					let rand_value = sp_core::U256::from(
@@ -154,7 +153,7 @@ pub mod cml {
 					let seeds = generator::construct_seeds(
 						LastCmlId::<T>::get(),
 						frame_support::Hashable::twox_256(&rand_value),
-						a_amount as u64,
+						0,
 						b_amount as u64,
 						0,
 					);

@@ -1,6 +1,6 @@
 use crate::{
-	mock::*, IssuerOwners, Issuers, MachineBindings, Machines, StartupMachineBindings,
-	StartupTappBindings, BUILTIN_ISSURE,
+	mock::*, CmlId, IssuerOwners, Issuers, MachineBindings, Machines, StartupMachineBindings,
+	StartupOwner, StartupTappBindings, TeaPubKey, BUILTIN_ISSURE,
 };
 use frame_support::assert_ok;
 
@@ -16,7 +16,7 @@ fn register_issuer_works() {
 		));
 
 		let issuer_id = 1;
-		assert_eq!(Issuers::<Test>::get(issuer_id).owner, issuer_owner);
+		assert_eq!(Issuers::<Test>::get(issuer_id).unwrap().owner, issuer_owner);
 		assert_eq!(IssuerOwners::<Test>::get(issuer_owner), issuer_id);
 	})
 }
@@ -43,7 +43,7 @@ fn register_machine_works() {
 		));
 
 		assert!(Machines::<Test>::contains_key(tea_id));
-		let machine = Machines::<Test>::get(tea_id);
+		let machine = Machines::<Test>::get(tea_id).unwrap();
 		assert_eq!(machine.tea_id, tea_id);
 		assert_eq!(machine.owner, user);
 		assert_eq!(machine.issuer_id, issuer_id);
@@ -70,7 +70,7 @@ fn transfer_machine_works() {
 			user,
 			issuer_id
 		));
-		assert_eq!(Machines::<Test>::get(tea_id).owner, user);
+		assert_eq!(Machines::<Test>::get(tea_id).unwrap().owner, user);
 
 		let user2 = 8;
 		assert_ok!(Machine::transfer_machine(
@@ -78,7 +78,7 @@ fn transfer_machine_works() {
 			tea_id,
 			user2
 		));
-		assert_eq!(Machines::<Test>::get(tea_id).owner, user2);
+		assert_eq!(Machines::<Test>::get(tea_id).unwrap().owner, user2);
 	})
 }
 
@@ -102,7 +102,7 @@ fn register_for_layer2_works() {
 			user,
 			issuer_id
 		));
-		assert_eq!(Machines::<Test>::get(tea_id).owner, user);
+		assert_eq!(Machines::<Test>::get(tea_id).unwrap().owner, user);
 
 		let cml_id = 111;
 		assert_ok!(Machine::register_for_layer2(
@@ -117,6 +117,9 @@ fn register_for_layer2_works() {
 #[test]
 fn reset_mining_startup_works() {
 	new_test_ext().execute_with(|| {
+		let startup_owner = 444;
+		StartupOwner::<Test>::set(Some(startup_owner));
+
 		let tea_id1 = [1; 32];
 		let tea_id2 = [2; 32];
 		let cml_id1 = 111;
@@ -133,25 +136,32 @@ fn reset_mining_startup_works() {
 		assert_eq!(MachineBindings::<Test>::get(tea_id1), cml_id1);
 		assert_eq!(MachineBindings::<Test>::get(tea_id2), cml_id2);
 		assert_eq!(
-			StartupMachineBindings::<Test>::get(),
+			StartupMachineBindings::<Test>::get()
+				.to_vec()
+				.into_iter()
+				.map(|(tea_id, cml_id, conn_id)| (tea_id, cml_id, conn_id.to_vec()))
+				.collect::<Vec<(TeaPubKey, CmlId, Vec<u8>)>>(),
 			vec![(tea_id1, cml_id1, conn_id1), (tea_id2, cml_id2, conn_id2)]
 		);
 
-		let machine1 = Machines::<Test>::get(tea_id1);
+		let machine1 = Machines::<Test>::get(tea_id1).unwrap();
 		assert_eq!(machine1.tea_id, tea_id1);
 		assert_eq!(machine1.issuer_id, BUILTIN_ISSURE);
-		assert_eq!(machine1.owner, 0);
+		assert_eq!(machine1.owner, startup_owner);
 
-		let machine2 = Machines::<Test>::get(tea_id2);
+		let machine2 = Machines::<Test>::get(tea_id2).unwrap();
 		assert_eq!(machine2.tea_id, tea_id2);
 		assert_eq!(machine2.issuer_id, BUILTIN_ISSURE);
-		assert_eq!(machine2.owner, 0);
+		assert_eq!(machine2.owner, startup_owner);
 	})
 }
 
 #[test]
 fn reset_tapp_startup_works() {
 	new_test_ext().execute_with(|| {
+		let startup_owner = 444;
+		StartupOwner::<Test>::set(Some(startup_owner));
+
 		let tea_id1 = [1; 32];
 		let tea_id2 = [2; 32];
 		let cml_id1 = 111;
@@ -168,18 +178,22 @@ fn reset_tapp_startup_works() {
 		assert_eq!(MachineBindings::<Test>::get(tea_id1), cml_id1);
 		assert_eq!(MachineBindings::<Test>::get(tea_id2), cml_id2);
 		assert_eq!(
-			StartupTappBindings::<Test>::get(),
+			StartupTappBindings::<Test>::get()
+				.to_vec()
+				.into_iter()
+				.map(|(tea_id, cml_id, ip)| (tea_id, cml_id, ip.to_vec()))
+				.collect::<Vec<(TeaPubKey, CmlId, Vec<u8>)>>(),
 			vec![(tea_id1, cml_id1, ip1), (tea_id2, cml_id2, ip2)]
 		);
 
-		let machine1 = Machines::<Test>::get(tea_id1);
+		let machine1 = Machines::<Test>::get(tea_id1).unwrap();
 		assert_eq!(machine1.tea_id, tea_id1);
 		assert_eq!(machine1.issuer_id, BUILTIN_ISSURE);
-		assert_eq!(machine1.owner, 0);
+		assert_eq!(machine1.owner, startup_owner);
 
-		let machine2 = Machines::<Test>::get(tea_id2);
+		let machine2 = Machines::<Test>::get(tea_id2).unwrap();
 		assert_eq!(machine2.tea_id, tea_id2);
 		assert_eq!(machine2.issuer_id, BUILTIN_ISSURE);
-		assert_eq!(machine2.owner, 0);
+		assert_eq!(machine2.owner, startup_owner);
 	})
 }

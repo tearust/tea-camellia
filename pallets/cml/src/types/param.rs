@@ -3,17 +3,17 @@ use node_primitives::BlockNumber;
 use scale_info::TypeInfo;
 
 #[cfg(not(feature = "fast"))]
-pub const GENESIS_SEED_A_COUNT: u64 = 10;
+pub const GENESIS_SEED_A_COUNT: u64 = 0;
 #[cfg(feature = "fast")]
-pub const GENESIS_SEED_A_COUNT: u64 = 100;
+pub const GENESIS_SEED_A_COUNT: u64 = 0;
 #[cfg(not(feature = "fast"))]
 pub const GENESIS_SEED_B_COUNT: u64 = 30;
 #[cfg(feature = "fast")]
 pub const GENESIS_SEED_B_COUNT: u64 = 300;
 #[cfg(not(feature = "fast"))]
-pub const GENESIS_SEED_C_COUNT: u64 = 60;
+pub const GENESIS_SEED_C_COUNT: u64 = 0;
 #[cfg(feature = "fast")]
-pub const GENESIS_SEED_C_COUNT: u64 = 600;
+pub const GENESIS_SEED_C_COUNT: u64 = 0;
 
 #[cfg(not(feature = "fast"))]
 pub const UNFROZEN_SEEDS_PERCENTAGE_INVESTOR: u32 = 10;

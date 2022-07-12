@@ -188,6 +188,7 @@ pub mod tea {
 		IpAddressLengthToLong,
 		StartupMachineBindingsLengthToLong,
 		StartupTappBindingsLengthToLong,
+		StartupOwnerIsNone,
 	}
 
 	#[pallet::genesis_config]
@@ -412,6 +413,10 @@ pub mod tea {
 				&root,
 				|_| {
 					ensure!(
+						StartupOwner::<T>::get().is_some(),
+						Error::<T>::StartupOwnerIsNone,
+					);
+					ensure!(
 						tea_ids_len == cml_ids_len,
 						Error::<T>::BindingItemsLengthMismatch
 					);
@@ -496,6 +501,10 @@ pub mod tea {
 			extrinsic_procedure(
 				&root,
 				|_| {
+					ensure!(
+						StartupOwner::<T>::get().is_some(),
+						Error::<T>::StartupOwnerIsNone,
+					);
 					ensure!(
 						tea_ids_len == cml_ids_len,
 						Error::<T>::BindingItemsLengthMismatch

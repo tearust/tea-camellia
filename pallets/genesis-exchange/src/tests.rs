@@ -81,11 +81,11 @@ fn buy_tea_to_usd_works() {
 		assert_eq!(USDStore::<Test>::get(user), 0);
 
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT
 		);
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT
 		);
 
@@ -103,11 +103,11 @@ fn buy_tea_to_usd_works() {
 		assert_eq!(USDStore::<Test>::get(user), buy_usd_amount);
 
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT + buy_usd_amount
 		);
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT - buy_usd_amount
 		);
 	})
@@ -124,11 +124,11 @@ fn sell_tea_to_usd_works() {
 		assert_eq!(USDStore::<Test>::get(user), 0);
 
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT
 		);
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT
 		);
 
@@ -146,11 +146,11 @@ fn sell_tea_to_usd_works() {
 		assert_eq!(USDStore::<Test>::get(user), sell_tea_amount);
 
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT + sell_tea_amount
 		);
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT - sell_tea_amount
 		);
 	})
@@ -233,7 +233,7 @@ fn buy_tea_to_usd_should_fail_if_withdraw_amount_larger_than_exchange_really_has
 	new_test_ext().execute_with(|| {
 		let user = 1;
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT
 		);
 		<Test as Config>::Currency::make_free_balance_be(&user, OPERATION_USD_AMOUNT + 1);
@@ -253,7 +253,7 @@ fn sell_tea_to_usd_works_if_withdraw_amount_larger_than_exchange_amount() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT
 		);
 		<Test as Config>::Currency::make_free_balance_be(&user, OPERATION_USD_AMOUNT + 1);
@@ -324,11 +324,11 @@ fn buy_usd_to_tea_works() {
 		assert_eq!(USDStore::<Test>::get(user), usd_amount);
 
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT
 		);
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT
 		);
 
@@ -346,11 +346,11 @@ fn buy_usd_to_tea_works() {
 		assert_eq!(USDStore::<Test>::get(user), usd_amount - withdraw_amount);
 
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT - withdraw_amount
 		);
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT + withdraw_amount
 		);
 	})
@@ -367,11 +367,11 @@ fn sell_usd_to_tea_works() {
 		assert_eq!(USDStore::<Test>::get(user), usd_amount);
 
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT
 		);
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT
 		);
 
@@ -389,11 +389,11 @@ fn sell_usd_to_tea_works() {
 		assert_eq!(USDStore::<Test>::get(user), usd_amount - withdraw_amount);
 
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT - withdraw_amount
 		);
 		assert_eq!(
-			USDStore::<Test>::get(OperationAccount::<Test>::get()),
+			USDStore::<Test>::get(OperationAccount::<Test>::get().unwrap()),
 			OPERATION_USD_AMOUNT + withdraw_amount
 		);
 	})
@@ -478,7 +478,7 @@ fn buy_usd_to_tea_should_fail_if_withdraw_amount_larger_than_exchange_really_has
 	new_test_ext().execute_with(|| {
 		let user = 1;
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT
 		);
 		USDStore::<Test>::insert(user, OPERATION_USD_AMOUNT + 1);
@@ -498,7 +498,7 @@ fn sell_usd_to_tea_work_if_withdraw_amount_larger_than_exchange_amount() {
 	new_test_ext().execute_with(|| {
 		let user = 1;
 		assert_eq!(
-			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get()),
+			<Test as Config>::Currency::free_balance(&OperationAccount::<Test>::get().unwrap()),
 			OPERATION_TEA_AMOUNT
 		);
 		USDStore::<Test>::insert(user, OPERATION_USD_AMOUNT + 1);
@@ -554,127 +554,6 @@ fn sell_usd_to_tea_should_fail_if_user_do_not_have_enough_tea() {
 		assert_noop!(
 			GenesisExchange::usd_to_tea(Origin::signed(1), None, Some(100)),
 			Error::<Test>::UserInsufficientUSD
-		);
-	})
-}
-
-#[test]
-fn register_for_competition_works() {
-	new_test_ext().execute_with(|| {
-		let user2 = 2;
-		<Test as Config>::Currency::make_free_balance_be(&user2, 1000);
-
-		let erc20 = b"test erc20".to_vec();
-		let email = b"test email".to_vec();
-		assert_ok!(GenesisExchange::register_for_competition(
-			Origin::signed(user2),
-			user2,
-			erc20.clone(),
-			email.clone(),
-		));
-
-		assert!(CompetitionUsers::<Test>::contains_key(user2));
-		assert_eq!(CompetitionUsers::<Test>::get(user2), (erc20, email))
-	})
-}
-
-#[test]
-fn register_for_competition_should_fail_if_already_registered() {
-	new_test_ext().execute_with(|| {
-		let user = 2;
-		<Test as Config>::Currency::make_free_balance_be(&user, 1000);
-
-		assert_ok!(GenesisExchange::register_for_competition(
-			Origin::signed(user),
-			user,
-			b"test erc20".to_vec(),
-			b"test email".to_vec(),
-		));
-
-		assert_noop!(
-			GenesisExchange::register_for_competition(
-				Origin::signed(user),
-				user,
-				b"test erc20".to_vec(),
-				b"test email".to_vec(),
-			),
-			Error::<Test>::CompetitionUserAlreadyRegistered
-		);
-	})
-}
-
-#[test]
-fn register_for_competition_should_fail_if_user_free_balance_is_not_enough() {
-	new_test_ext().execute_with(|| {
-		let user = 2;
-		assert_noop!(
-			GenesisExchange::register_for_competition(
-				Origin::signed(user),
-				user,
-				b"test erc20".to_vec(),
-				b"test email".to_vec(),
-			),
-			Error::<Test>::CompetitionUserInsufficientFreeBalance
-		);
-
-		<Test as Config>::Currency::make_free_balance_be(
-			&user,
-			REGISTER_FOR_COMPETITION_ALLOWANCE - 1,
-		);
-		assert_noop!(
-			GenesisExchange::register_for_competition(
-				Origin::signed(user),
-				user,
-				b"test erc20".to_vec(),
-				b"test email".to_vec(),
-			),
-			Error::<Test>::CompetitionUserInsufficientFreeBalance
-		);
-	})
-}
-
-#[test]
-fn remove_competition_user_works() {
-	new_test_ext().execute_with(|| {
-		let user2 = 2;
-		<Test as Config>::Currency::make_free_balance_be(&user2, 1000);
-
-		let erc20 = b"test erc20".to_vec();
-		let email = b"test email".to_vec();
-		assert_ok!(GenesisExchange::register_for_competition(
-			Origin::signed(user2),
-			user2,
-			erc20.clone(),
-			email.clone(),
-		));
-
-		assert!(CompetitionUsers::<Test>::contains_key(user2));
-		assert_eq!(CompetitionUsers::<Test>::get(user2), (erc20, email));
-
-		assert_ok!(GenesisExchange::remove_competition_user(
-			Origin::root(),
-			user2
-		));
-		assert!(!CompetitionUsers::<Test>::contains_key(user2));
-	})
-}
-
-#[test]
-fn remove_competition_user_should_fail_if_not_root_user() {
-	new_test_ext().execute_with(|| {
-		assert_noop!(
-			GenesisExchange::remove_competition_user(Origin::signed(2), 1),
-			DispatchError::BadOrigin
-		);
-	})
-}
-
-#[test]
-fn remove_competition_user_should_fail_if_user_not_exist() {
-	new_test_ext().execute_with(|| {
-		assert_noop!(
-			GenesisExchange::remove_competition_user(Origin::root(), 1),
-			Error::<Test>::CompetitionUserNotExist
 		);
 	})
 }

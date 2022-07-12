@@ -1,7 +1,7 @@
 use crate as pallet_machine;
 use codec::{Decode, Encode};
 use frame_support::parameter_types;
-use frame_support::traits::{Everything, Get};
+use frame_support::traits::{ConstU32, Everything, Get};
 use frame_system as system;
 use node_primitives::Balance;
 use scale_info::TypeInfo;
@@ -85,6 +85,7 @@ impl system::Config for Test {
 	type SystemWeightInfo = ();
 	type SS58Prefix = SS58Prefix;
 	type OnSetCode = ();
+	type MaxConsumers = ConstU32<16>;
 }
 
 parameter_types! {
@@ -128,11 +129,22 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const ConnIdLength: u32 = 100;
+	pub const IpAddressLength: u32 = 100;
+	pub const StartupMachineBindingsLength: u32 = 100;
+	pub const StartupTappBindingsLength: u32 = 100;
+}
+
 impl pallet_machine::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type CommonUtils = Utils;
 	type CurrencyOperations = Utils;
+	type ConnIdLength = ConnIdLength;
+	type IpAddressLength = IpAddressLength;
+	type StartupMachineBindingsLength = StartupMachineBindingsLength;
+	type StartupTappBindingsLength = StartupTappBindingsLength;
 }
 
 // Build genesis storage according to the mock runtime.
