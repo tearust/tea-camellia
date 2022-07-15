@@ -94,17 +94,6 @@ pub mod tea {
 		StorageMap<_, Twox64Concat, TeaPubKey, CmlId, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn startup_machine_bindings)]
-	pub(super) type StartupMachineBindings<T: Config> = StorageValue<
-		_,
-		BoundedVec<
-			(TeaPubKey, CmlId, BoundedVec<u8, T::ConnIdLength>),
-			T::StartupMachineBindingsLength,
-		>,
-		ValueQuery,
-	>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn startup_bonding_bindings)]
 	pub(super) type StartupTappBindings<T: Config> = StorageValue<
 		_,
@@ -194,7 +183,6 @@ pub mod tea {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub startup_owner: Option<T::AccountId>,
-		pub startup_machine_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
 		pub startup_tapp_bindings: Vec<(TeaPubKey, CmlId, Vec<u8>)>,
 	}
 
@@ -203,7 +191,6 @@ pub mod tea {
 		fn default() -> Self {
 			GenesisConfig {
 				startup_owner: Default::default(),
-				startup_machine_bindings: Default::default(),
 				startup_tapp_bindings: Default::default(),
 			}
 		}
@@ -215,29 +202,6 @@ pub mod tea {
 			StartupOwner::<T>::set(self.startup_owner.clone());
 
 			let owner = self.startup_owner.clone().unwrap();
-			self.startup_machine_bindings
-				.iter()
-				.for_each(|(tea_id, cml_id, _)| {
-					Machines::<T>::insert(
-						tea_id,
-						Machine {
-							tea_id: *tea_id,
-							issuer_id: BUILTIN_ISSURE,
-							owner: owner.clone(),
-						},
-					);
-					MachineBindings::<T>::insert(tea_id, cml_id);
-				});
-			StartupMachineBindings::<T>::set(
-				self.startup_machine_bindings
-					.clone()
-					.into_iter()
-					.map(|(tea_id, cml_id, conn_id)| (tea_id, cml_id, conn_id.try_into().unwrap()))
-					.collect::<Vec<(TeaPubKey, CmlId, BoundedVec<u8, _>)>>()
-					.try_into()
-					.unwrap(),
-			);
-
 			self.startup_tapp_bindings
 				.iter()
 				.for_each(|(tea_id, cml_id, _)| {
@@ -392,95 +356,6 @@ pub mod tea {
 				|who| {
 					MachineBindings::<T>::insert(tea_id, cml_id);
 					Self::deposit_event(Event::Layer2InfoBinded(tea_id, cml_id, who.clone()));
-				},
-			)
-		}
-
-		#[pallet::weight(195_000_000)]
-		pub fn reset_mining_startup(
-			sender: OriginFor<T>,
-			tea_ids: Vec<TeaPubKey>,
-			cml_ids: Vec<u64>,
-			conn_ids: Vec<Vec<u8>>,
-		) -> DispatchResult {
-			let root = ensure_root(sender)?;
-
-			let tea_ids_len = tea_ids.len();
-			let cml_ids_len = cml_ids.len();
-			let conn_ids_len = conn_ids.len();
-			let conn_ids_lens: Vec<u32> = conn_ids.iter().map(|id| id.len() as u32).collect();
-			extrinsic_procedure(
-				&root,
-				|_| {
-					ensure!(
-						StartupOwner::<T>::get().is_some(),
-						Error::<T>::StartupOwnerIsNone,
-					);
-					ensure!(
-						tea_ids_len == cml_ids_len,
-						Error::<T>::BindingItemsLengthMismatch
-					);
-					ensure!(
-						tea_ids_len == conn_ids_len,
-						Error::<T>::BindingItemsLengthMismatch
-					);
-					ensure!(
-						tea_ids_len as u32 <= T::StartupMachineBindingsLength::get(),
-						Error::<T>::StartupMachineBindingsLengthToLong
-					);
-					for len in conn_ids_lens {
-						ensure!(
-							len <= T::ConnIdLength::get(),
-							Error::<T>::ConnIdLengthToLong
-						);
-					}
-					Ok(())
-				},
-				move |_| {
-					StartupMachineBindings::<T>::get()
-						.iter()
-						.for_each(|(tea_id, _, _)| {
-							Machines::<T>::remove(tea_id);
-							MachineBindings::<T>::remove(tea_id);
-						});
-
-					let owner = StartupOwner::<T>::get().unwrap();
-					let mut startups = Vec::new();
-					for i in 0..tea_ids.len() {
-						Machines::<T>::insert(
-							tea_ids[i],
-							Machine {
-								tea_id: tea_ids[i],
-								issuer_id: BUILTIN_ISSURE,
-								owner: owner.clone(),
-							},
-						);
-						MachineBindings::<T>::insert(tea_ids[i], cml_ids[i]);
-						startups.push((
-							tea_ids[i],
-							cml_ids[i],
-							conn_ids[i].clone().try_into().unwrap(),
-						));
-					}
-					let old_bindings = StartupMachineBindings::<T>::get();
-					StartupMachineBindings::<T>::set(startups.try_into().unwrap());
-
-					let mut old_tea_ids = vec![];
-					let mut old_cml_ids = vec![];
-					for (tea_id, cml_id, _) in old_bindings {
-						old_tea_ids.push(tea_id);
-						old_cml_ids.push(cml_id);
-					}
-
-					let current_block = frame_system::Pallet::<T>::block_number();
-					Self::deposit_event(Event::MachineStartupReset(
-						tea_ids,
-						cml_ids,
-						conn_ids,
-						old_tea_ids,
-						old_cml_ids,
-						current_block,
-					));
 				},
 			)
 		}

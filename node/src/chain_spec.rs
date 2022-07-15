@@ -135,7 +135,6 @@ pub fn authority_keys_from_hex_string(
 
 pub fn development_config(
 	seed: [u8; 32],
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
@@ -167,7 +166,6 @@ pub fn development_config(
 				endowed_accounts,
 				endowed_balances,
 				genesis_seeds,
-				mining_startup.clone(),
 				tapp_startup.clone(),
 			)
 		},
@@ -188,7 +186,6 @@ pub fn development_config(
 pub fn canary_testnet_config(
 	initial_validator_count: u32,
 	seed: [u8; 32],
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	// Canary Alice
@@ -262,14 +259,12 @@ pub fn canary_testnet_config(
 		endowed_balances,
 		initial_authorities,
 		root_account,
-		mining_startup,
 		tapp_startup,
 	)
 }
 
 pub fn local_testnet_config(
 	seed: [u8; 32],
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	let endowed_accounts = vec![
@@ -298,7 +293,6 @@ pub fn local_testnet_config(
 			authority_keys_from_seed("Bob"),
 		],
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
-		mining_startup,
 		tapp_startup,
 	)
 }
@@ -316,7 +310,6 @@ pub fn testnet_config(
 		AuthorityDiscoveryId,
 	)>,
 	root_key: AccountId,
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
@@ -344,7 +337,6 @@ pub fn testnet_config(
 				endowed_accounts,
 				endowed_balances,
 				genesis_seeds,
-				mining_startup.clone(),
 				tapp_startup.clone(),
 			)
 		},
@@ -377,7 +369,6 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	mut initial_balances: Vec<(AccountId, Balance)>,
 	genesis_seeds: GenesisSeeds,
-	mining_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 	tapp_startup: Vec<([u8; 32], u64, Vec<u8>)>,
 ) -> GenesisConfig {
 	let genesis_exchange_operation_account =
@@ -472,7 +463,6 @@ fn testnet_genesis(
 		democracy: DemocracyConfig::default(),
 
 		machine: MachineConfig {
-			startup_machine_bindings: mining_startup,
 			startup_tapp_bindings: tapp_startup,
 			startup_owner: Some(npc_account.clone()),
 		},
