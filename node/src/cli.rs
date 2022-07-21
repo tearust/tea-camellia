@@ -8,10 +8,6 @@ pub struct Cli {
 	#[clap(flatten)]
 	pub run: RunCmd,
 
-	/// The csv file path to define mining startup configs
-	#[clap(long)]
-	pub mining_startup_path: Option<String>,
-
 	/// The csv file path to define tapp startup configs
 	#[clap(long)]
 	pub tapp_startup_path: Option<String>,
