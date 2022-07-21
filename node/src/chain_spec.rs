@@ -35,8 +35,6 @@ const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn
 // NPC is predefined "sudo" user in competition csv file, the following is address and initial amounts settings
 const NPC_ADDRESS: &str = "5D2od84fg3GScGR139Li56raDWNQQhzgYbV7QsEJKS4KfTGv";
 
-const DESIRED_VALIDATOR_COUNT: u32 = 10;
-
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
@@ -431,10 +429,7 @@ fn testnet_genesis(
 					)
 				})
 				.collect(),
-			validator_count: max(
-				initial_authorities.len() as u32 * 2,
-				DESIRED_VALIDATOR_COUNT,
-			),
+			validator_count: initial_authorities.len() as u32,
 			minimum_validator_count: initial_authorities.len() as u32,
 			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
 			slash_reward_fraction: Perbill::from_percent(10),
