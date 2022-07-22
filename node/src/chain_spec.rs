@@ -14,7 +14,6 @@ use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_babe::AuthorityId as BabeId;
-use sp_core::sp_std::cmp::max;
 use sp_core::ByteArray;
 use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
 use sp_runtime::{
@@ -34,6 +33,7 @@ const BONDING_CURVE_NPC_INITIAL_USD_BALANCE: Balance = 1_000_000 * DOLLARS;
 const GENESIS_EXCHANGE_OPERATION_ADDRESS: &str = "5C62Ck4UrFPiBtoCmeSrgF7x9yv9mn38446dhCpsi2mLHiFT";
 // NPC is predefined "sudo" user in competition csv file, the following is address and initial amounts settings
 const NPC_ADDRESS: &str = "5D2od84fg3GScGR139Li56raDWNQQhzgYbV7QsEJKS4KfTGv";
+const DAO_RESERVED_ACCOUNT: &str = "5Hq3maxnpUx566bEDcLARMVAnGEqtoV7ytzXbtqieen7dXhs";
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -372,6 +372,7 @@ fn testnet_genesis(
 	let genesis_exchange_operation_account =
 		AccountId32::from_str(GENESIS_EXCHANGE_OPERATION_ADDRESS).unwrap();
 	let npc_account = AccountId32::from_str(NPC_ADDRESS).unwrap();
+	let dao_reserved = AccountId32::from_str(DAO_RESERVED_ACCOUNT).unwrap();
 
 	initial_balances.push((
 		genesis_exchange_operation_account.clone(),
@@ -459,10 +460,11 @@ fn testnet_genesis(
 
 		machine: MachineConfig {
 			startup_tapp_bindings: tapp_startup,
-			startup_owner: Some(npc_account.clone()),
+			startup_owner: Some(dao_reserved.clone()),
 		},
 		cml: CmlConfig {
 			npc_account: Some(npc_account.clone()),
+			startup_account: Some(dao_reserved.clone()),
 			genesis_seeds,
 		},
 		genesis_exchange: GenesisExchangeConfig {
