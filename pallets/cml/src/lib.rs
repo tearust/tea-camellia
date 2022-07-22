@@ -76,6 +76,7 @@ pub mod cml {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub npc_account: Option<T::AccountId>,
+		pub startup_account: Option<T::AccountId>,
 		pub genesis_seeds: GenesisSeeds,
 	}
 	#[cfg(feature = "std")]
@@ -83,6 +84,7 @@ pub mod cml {
 		fn default() -> Self {
 			GenesisConfig {
 				npc_account: None,
+				startup_account: None,
 				genesis_seeds: GenesisSeeds::default(),
 			}
 		}
@@ -91,8 +93,11 @@ pub mod cml {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			NPCAccount::<T>::set(self.npc_account.clone());
-			if let Some(account) = NPCAccount::<T>::get() {
-				crate::functions::init_from_genesis_seeds::<T>(&self.genesis_seeds, account);
+			if let Some(account) = self.startup_account.as_ref() {
+				crate::functions::init_from_genesis_seeds::<T>(
+					&self.genesis_seeds,
+					account.clone(),
+				);
 			}
 		}
 	}
