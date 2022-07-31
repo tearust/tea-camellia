@@ -29,6 +29,8 @@ pub type BalanceOf<T> =
 
 #[frame_support::pallet]
 pub mod cml {
+	use crate::functions::transfer_cml;
+
 	use super::*;
 
 	#[pallet::config]
@@ -78,6 +80,7 @@ pub mod cml {
 		pub npc_account: Option<T::AccountId>,
 		pub startup_account: Option<T::AccountId>,
 		pub genesis_seeds: GenesisSeeds,
+		pub startup_cmls: Vec<CmlId>,
 	}
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
@@ -86,6 +89,7 @@ pub mod cml {
 				npc_account: None,
 				startup_account: None,
 				genesis_seeds: GenesisSeeds::default(),
+				startup_cmls: Default::default(),
 			}
 		}
 	}
@@ -93,11 +97,17 @@ pub mod cml {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			NPCAccount::<T>::set(self.npc_account.clone());
-			if let Some(account) = self.startup_account.as_ref() {
+			if let Some(npc_account) = self.npc_account.as_ref() {
 				crate::functions::init_from_genesis_seeds::<T>(
 					&self.genesis_seeds,
-					account.clone(),
+					npc_account.clone(),
 				);
+
+				if let Some(account) = self.startup_account.as_ref() {
+					self.startup_cmls.iter().for_each(|cml_id| {
+						transfer_cml::<T>(*cml_id, npc_account, account);
+					});
+				}
 			}
 		}
 	}
@@ -187,12 +197,7 @@ pub mod cml {
 					Ok(())
 				},
 				|who| {
-					CmlStore::<T>::mutate(cml_id, |cml| {
-						if let Some(cml) = cml {
-							cml.set_owner(to_account.clone());
-						}
-					});
-					UserCmlStore::<T>::insert(to_account.clone(), cml_id, ());
+					transfer_cml::<T>(cml_id, who, &to_account);
 
 					Self::deposit_event(Event::CmlTransfered(cml_id, who.clone(), to_account));
 				},

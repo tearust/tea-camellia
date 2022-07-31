@@ -54,5 +54,6 @@ fn transfer_works() {
 		assert_ok!(Cml::transfer(Origin::signed(npc), 0, user1));
 		assert_eq!(CmlStore::<Test>::get(0).unwrap().owner(), &user1);
 		assert!(UserCmlStore::<Test>::contains_key(user1, 0));
+		assert!(!UserCmlStore::<Test>::contains_key(npc, 0));
 	})
 }
