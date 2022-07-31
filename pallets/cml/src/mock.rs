@@ -163,7 +163,9 @@ impl ExtBuilder {
 
 		pallet_cml::GenesisConfig::<Test> {
 			npc_account: Default::default(),
+			startup_account: Default::default(),
 			genesis_seeds: self.seeds,
+			startup_cmls: Default::default(),
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

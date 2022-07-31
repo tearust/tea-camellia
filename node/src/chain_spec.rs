@@ -385,6 +385,7 @@ fn testnet_genesis(
 		initial_balances.remove(index);
 	}
 
+	let startup_cmls: Vec<u64> = tapp_startup.iter().map(|(_, cml_id, _)| *cml_id).collect();
 	let num_endowed_accounts = endowed_accounts.len();
 	GenesisConfig {
 		system: SystemConfig {
@@ -466,6 +467,7 @@ fn testnet_genesis(
 			npc_account: Some(npc_account.clone()),
 			startup_account: Some(dao_reserved.clone()),
 			genesis_seeds,
+			startup_cmls,
 		},
 		genesis_exchange: GenesisExchangeConfig {
 			operation_account: Some(genesis_exchange_operation_account),

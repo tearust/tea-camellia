@@ -14,6 +14,16 @@ impl<T: cml::Config> cml::Pallet<T> {
 	}
 }
 
+pub fn transfer_cml<T: Config>(cml_id: CmlId, old: &T::AccountId, new: &T::AccountId) {
+	CmlStore::<T>::mutate(cml_id, |cml| {
+		if let Some(cml) = cml {
+			cml.set_owner(new.clone());
+		}
+	});
+	UserCmlStore::<T>::remove(old, cml_id);
+	UserCmlStore::<T>::insert(new, cml_id, ());
+}
+
 pub fn init_from_genesis_seeds<T>(genesis_seeds: &GenesisSeeds, account: T::AccountId)
 where
 	T: Config,
