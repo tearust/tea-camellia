@@ -384,7 +384,7 @@ fn testnet_genesis(
 	{
 		initial_balances.remove(index);
 	}
-	initial_balances.push((npc_account.into(), INITIAL_VALIDATOR_BALANCE));
+	initial_balances.push((npc_account.clone().into(), INITIAL_VALIDATOR_BALANCE));
 
 	let startup_cmls: Vec<u64> = tapp_startup.iter().map(|(_, cml_id, _)| *cml_id).collect();
 	let num_endowed_accounts = endowed_accounts.len();
