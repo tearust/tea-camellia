@@ -1,5 +1,5 @@
 use cml_runtime_api::CmlApi as CmlRuntimeApi;
-use codec::{Codec};
+use codec::Codec;
 use jsonrpc_core::{Error, ErrorCode, Result};
 use jsonrpc_derive::rpc;
 use sp_api::ProvideRuntimeApi;

@@ -172,9 +172,15 @@ where
 	));
 	io.extend_with(DevApi::to_delegate(Dev::new(client.clone(), deny_unsafe)));
 
-	io.extend_with(machine_rpc::MachineApi::to_delegate(machine_rpc::MachineApiImpl::new(client.clone())));
-	io.extend_with(cml_rpc::CmlApi::to_delegate(cml_rpc::CmlApiImpl::new(client.clone())));
-	io.extend_with(genesis_exchange_rpc::GenesisExchangeApi::to_delegate( genesis_exchange_rpc::GenesisExchangeApiImpl::new(client.clone())));
+	io.extend_with(machine_rpc::MachineApi::to_delegate(
+		machine_rpc::MachineApiImpl::new(client.clone()),
+	));
+	io.extend_with(cml_rpc::CmlApi::to_delegate(cml_rpc::CmlApiImpl::new(
+		client.clone(),
+	)));
+	io.extend_with(genesis_exchange_rpc::GenesisExchangeApi::to_delegate(
+		genesis_exchange_rpc::GenesisExchangeApiImpl::new(client.clone()),
+	));
 
 	Ok(io)
 }

@@ -2,7 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::unnecessary_mut_passed)]
 
-use codec::{Codec};
+use codec::Codec;
 use sp_std::prelude::*;
 
 sp_api::decl_runtime_apis! {
