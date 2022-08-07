@@ -1,50 +1,77 @@
+# Key concepts
+## Relationship between layer1 and layer2
+### Responsibilities
+Layer1 is blockchain. If on EVM, it is smart contracts
+Layer2 is distributed cloud computing layer. 
+
+Application runs on layer2. 
+
+Layer1 has basic logic to validate layer2 nodes are hardware trusted.
+
+Layer1 also has ERC20 ERC721 compatible interface.
+
+### Communications between layers
+Layer2 listen to layer1 blockchain events.
+Layer2 state maintainer send layer1 events.
+
+For example, end user topup fund from layer1 to layer2. he send topup txn on layer1. Layer1 smart contract lock the fund in a reserved account. Layer2 state maintainers listen to topup event, verify the fund has been locked, then mint layer2 TEA token to this user layer2 account.
+
+Another exmple, end user withdraw fund from layer2 to layer1. He send withdraw txn in layer2. State maintainers burn the minted TEA token then send a withdraw txn to layer1 that transfer the same amount of TEA from the reserved account back to this user's layer1 account.
+
+## State maintainer
+Similar to PoS stakers. They maintain a state of layer2. 
+
+### State maintainer member change
+#### Early state (version 1)
+In epoch10 and likely the first milestone of mainnet, the member of state maintainers are added/removed by sudo. This is a temporary and centralized solution for early stage.
+
+There is a concept called **Seat**. It is a concept related to profit only. In the early state, a seat owner only share revenue and pay tax. He cannot setup a state maintainer nodes and add its public key to the group. This will be allowed a later milestone.
+
+In the first milestone (early stage), change maintainer public key only verify sender is sudo.
+
+#### Later stage (not sure the version yet)
+We do not need to implement this for now. it is just a design.
+
+In the future official version, a seat owner needs to add its own state maintainer node public key to the merkel root. So the merkel root will change everytime the seat ownership change.
+
+We need to limit less than 50% seat changes every day (grace period). This limit is enforced in layer2. 
+
+> Question: What if a retired (was active last round) send a fake merkel root includes himself? 
+> Possible solution: 
+> - Use grace period. Some blocks period is forbidden for changing seats. This applys to both layer2 and layer1. Layer1 will reject those change txn during the grace period. Layer2 and UI will not allow changes txn either.
+> - When any new maintainer node send change maintainer txn, it will include all new maintainers signature in this txn. (Not only its own siganture). If the signature count is larger than 50% of total active seats. This txn is valid.
+> - To make the previous condition work, we have to limit the total changable seats to be less than 50% of previous round.
+> - In current epoch10 version. The public key of maintainer nodes won't change even the seat transfer to new owner. Because the seat ownership is separated from the group members. 
+
+## layer2 grace period and layer1 delayed grace period
+Every day (human time), the last 30 minutes (this number is subject to change) is layer2 grace period. The last 15 minutes (this number is subject to change) is layer1 delayed grace period.
+
+Layer2 will not allow the following layer2 txn during grace period
+- Change seat
+- Change maintainer public key
+- Withdraw
+
+Layer1 will not allow the following layer1 txn during layer1 delayed grace period.
+- Withdraw
+- Change maintainer public key
+
+The layer1 has delayed in time because a buffer for layer2 -> layer1 network latency.
+
 # Smart contracts
 There should be the following smart contracts
 
-- TEA_ERC_20: This is used for TEA token. A standard ERC_20 contract
+- TEA_ERC_20: This is used for TEA token. A modified ERC_20 contract
 - CML_ERC_721: This is used for CML token. A modified version of ERC_721 contract
 - Maintianer: This is to maintain a list of active maintainer public key.
 - Lock: Topup and withdraw between layer1 and layer2. Unlock needs combined signature for state maintainers.
 - machine: TEA_ID and owner_id mapping. 
 
-# Potential changes in layer2
+# TEA_ERC_20
+This is modified ERC20. We only list the differences.
 
-## EVM signature. not ED25519
+## Storage
 
-EVM is not supporting ED25519. So we will need EVM signature. 
-the same private key but differernt public key (address). A same node will have an public_key/address in DOT, but another public_key/address in EVM. 
-
-## Combined state maintainer signature
-
-when state maintainers send layer1 txn (to EVM), every state maintainer node gather signature from more than 50% other nodes, then combine all these signature together to layer1 (EVM).
-
-This may reduce the complexity of smart contract. also reduce gas cost. I still have question on this proposal. 
-
-## Change of state maintainer.
-Change state maintainer need to send txn to EVM. Store the list in a Merkle tree can reduce the gas cost. Whoever become a new seat owner need to pay for the cost.
-# maintiner contract
-## Data structure
-Map<Seat, address>
-
-## Genesis
-
-doing nothing
-
-## Events
-
-### MaintainerAdded
-### MaintainerRemoved
-## Txns
-### AddMaintainer
-
-### RemoveMaintainer
-
-## RPCs
-GetMaintainerList
-
-
-# Lock contract
-## Genesis
+hard coded reserved_address: This is a hard coded value, such as 0x0000000 that we all know there is known coresponding private key. Because it is hard coded constant value, no need to put it into storage.
 
 ## Events
 ###  TAppTopup
@@ -79,24 +106,121 @@ GetMaintainerList
 
 This is lock operation.
 
-Sender's fund transfer to a locking address. This locking address is a multisig account that controlled by the state maintainer group. 
+Sender's fund transfer to a reserved (or called locking) address. This locking address is a multisig account that controlled by the state maintainers group. 
 
 This txn is sent from front end by the end user.
+
+Params:
+- amount: how much to topup in TEA
+
+Verify:
+- sender signature
+- fund balance
+Action:
+It is just a simpple transfer txn. 
+The transfer_to account is internal reserved_address
+
 
 ### Withdraw
 This is unlock operation. 
 
 State maintainers agrees and signed to transfer fund from the mulsig account back to the end user account.
 
-# Machine Contract
-## Genesis
-Add AWS Nitro
+Params:
+- to_address
+- combined_publickey_signature
 
+Verify 
+- This txn is not send during layer1 delayed grace period.
+- sender public key is included in the maintainer merkel_root. this makes sure the sender is one of the state maintainer. **Need to lookup State Maintainer contract**
+- combined_publickey_signature 1)public key is included in the maintainer merkel_root 2)signature for each public key 3)the number of public key exceed 50% of maintainer nodes number. 
+- sufficient fund in reserve
+
+Action:
+Transfer fund from reserved account to to_address
+
+# CML_ERC_721
+Differences
+- Only **SUDO** can generate new CML seeds
+> Question: How do we run RA and change CML status?
+> Question: Do we still need CML status in layer1?
+
+
+- Marketplace allowrance. Allow marketplace to change ownership
+> What is the standard process of OpenSea?
+
+
+# maintiner contract (early stage version)
+## Storage
+Merkel_root: Bytes,Verify if a public key included in the maintainer nodes group.
+total_maintainer: u32, How many total active maintainer nodes.
+## Genesis
+Merkel_root empty.
+total_maintainer zero.
+
+## RPC
+### if_public_key_included
+
+input
+- public key
+output
+- bool
+logic: if the public key is included in the merkel_root, returns true, otherwise false
+
+### get_total_maintainer
+output
+- u32, total_maitainer
+
+## Events
+### merkel_root_changed
+params
+- sender public key
+- current merkel_root
+### total_maintainer_changed
+params
+- sender public key
+- current total_maintainer
+
+## Txns
+### update_merkel_root
+params
+- new_merkel_root
+
+verify
+- sender is **sudo**
+
+action
+- replace merkel_root
+
+> Question, should we still need this to be a standalone smart contract? For future update?
+
+# Maintiner contract (later stage)
+TODO
+
+# Machine Contract
+## Storage
+issuer: Map<issuer_seq_id, issuer_address>
+machine:Map<tea_id, (type, cml_id, owner_pubkey)>
+tappstore_startup_node_ips: List<tappstore_startup_nodes_ip>
+issuer_seq_id: id
+
+
+> Question: Can we use Merkel_root to replace the Map<issuer_seq_id, issuer_address>? This data structure is good enough to determine if an address is included in a group
+
+## Genesis
+Add AWS Nitro as issuer_id 0
 > Note: For AWS Nitro node, end users (miners) can register by themselves. Because layer2 RA can easily detect fake Nitro nodes. No need to verify from layer1 issuer's signature. As long as this node is marked as "nitro node"
 
+Add first batch of TAppStore hosts IP addresses
+
+There is no need to verify aws_nitro_issuer signature.
 ## RPCs
 
 ### ListTappStoreStartupHodes
+params
+- None
+return:
+- List of issuer public keys
 
 ## Events
 ### MachineTransfered
@@ -119,48 +243,89 @@ Add AWS Nitro
 
 ```
 
-
-## Errors
-```
-	// Errors inform users that something went wrong.
-	#[pallet::error]
-	pub enum Error<T> {
-		/// The account has been registered that can't be used to register again
-		IssuerOwnerRegistered,
-		/// The given issuer not exist
-		IssuerNotExist,
-		/// The given issuer owner is invalid
-		InvalidIssuerOwner,
-		/// The given machine id is already exist
-		MachineAlreadyExist,
-		/// The given machine id is not exist
-		MachineNotExist,
-		/// Machine owner is not valid
-		InvalidMachineOwner,
-		/// Length of given lists not the same
-		BindingItemsLengthMismatch,
-		ConnIdLengthToLong,
-		IpAddressLengthToLong,
-		StartupMachineBindingsLengthToLong,
-		StartupTappBindingsLengthToLong,
-		StartupOwnerIsNone,
-	}
-```
-
 ## Txns
 
 ### RegisterIssuer
 
+Only **SUDO** can send this txn
+
+Params:
+- issuer_address: Account
+Verify:
+- sender is sudo
+Action:
+- create new seq id (existing issuer_seq_id ++)
+
+
 ### RegisterMachine
 
-### RegisterNitroMachine
+Only used to register a TEA_id of a AWS Nitro machine.
+
+Params
+- tea_id: TEAID. The TPM unique ID
+- owner: Address. Can be issuer address if a new machine has not been sold
+- issuer_address (If AWS Nitro use the fake one for AWS)
+- issuer_signature: bytes
+- owner_signature: Bytes
+
+
+Verify
+- anyone can call. No restrict on sudo
+- Verify issuer signature, No need to verify issuer signature for AWS_NITRO
+- Verify owner signature. owner is the txn sender
+
+Action
+- Insert machine map
+- Emit Layer2InfoBinded 
 
 ### AddTappStoreHost
 
+When new TAppStore app host start hosting. The node owner send this txn from front end.
+> Question: Should we send this txn from front end? There is no way for layer1 to verify this node actual hosts TAppStore
+
 ### TransferMachine
+Existing owner of a machine (TEA_ID) transfer to a new owner
+
+Params
+- to_address: Address. The new owner address
+- owner signature
+Verify
+- sender is existing owner
+
+> Question: how do we handle marketplace?
+> Can the owner signature include a condition_structure that authorize any one (e.g. the marketplace) send txn to transfer. 
+
+Action
+Update the machine map owner_address
 
 ### RegisterForLayer2 Should we rename to BindingToCml?
+When miner plant a CML. The TEA_ID will be bundled with this CML id
+Sender is the owner of the CML
+Params
+- cml_id
 
+Verify
+- sender is the CML owner
+- sender is the machine owner
 
+Action
+- Update machines map. cml_id
 
+# Potential changes in layer2
 
+## EVM signature ECDSA not ED25519
+
+EVM is not supporting ED25519. So we will need EVM signature ECDSA. 
+the same private key but differernt public key (address). A same node will have an public_key/address in DOT, but another public_key/address in EVM. 
+
+## Combined state maintainer signature
+
+when state maintainers send layer1 txn (to EVM), every state maintainer node gather signature from more than 50% other nodes, then combine all these signature together to layer1 (EVM). This is something under discussion.
+
+## Change of state maintainer.
+
+In epoch10, we still use a naive version. That only SUDO can send change maintainer public key txn. 
+
+The txn only include a new merkel root. Layer1 can verify if a public included in this merkel root. If yes, it is one of the maintainer node.
+
+In the early state (epoch10 to mainnet or may be longer), the change of maintainer node not likely happen frequently.
