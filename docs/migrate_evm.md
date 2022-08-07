@@ -2,12 +2,10 @@
 There should be the following smart contracts
 
 - TEA_ERC_20: This is used for TEA token. A standard ERC_20 contract
-- CML_ERC_721: This is used for CML token. A standard ERC_721 contract
+- CML_ERC_721: This is used for CML token. A modified version of ERC_721 contract
 - Maintianer: This is to maintain a list of active maintainer public key.
 - Lock: Topup and withdraw between layer1 and layer2. Unlock needs combined signature for state maintainers.
 - machine: TEA_ID and owner_id mapping. 
-
-> question: If CML is ERC 721, will create new CML seeds cause any trouble? of example, anyone can create CML based on ERC 721. Could we control it in layer2? Any randomly generated CML has no value in layer2?
 
 # Potential changes in layer2
 
@@ -94,14 +92,12 @@ State maintainers agrees and signed to transfer fund from the mulsig account bac
 ## Genesis
 Add AWS Nitro
 
-> Question: How do we setup AWS Nitro?
+> Note: For AWS Nitro node, end users (miners) can register by themselves. Because layer2 RA can easily detect fake Nitro nodes. No need to verify from layer1 issuer's signature. As long as this node is marked as "nitro node"
 
 ## RPCs
 
-### ListBootNodes
-> Do we still need this?
 ### ListTappStoreStartupHodes
-> Do we still need this?
+
 ## Events
 ### MachineTransfered
 ```
@@ -123,7 +119,6 @@ Add AWS Nitro
 
 ```
 
-> Question: Do we still need MachineStartupReset? and TappStartupReset?
 
 ## Errors
 ```
@@ -158,12 +153,14 @@ Add AWS Nitro
 
 ### RegisterMachine
 
+### RegisterNitroMachine
+
+### AddTappStoreHost
 
 ### TransferMachine
 
 ### RegisterForLayer2 Should we rename to BindingToCml?
 
-> Do we still need rest_tapp_startup?
 
 
 
