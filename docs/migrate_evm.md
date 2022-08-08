@@ -12,7 +12,7 @@ Layer1 also has ERC20 ERC721 compatible interface.
 
 ### Communications between layers
 Layer2 listen to layer1 blockchain events.
-Layer2 state maintainer send layer1 events.
+Layer2 state maintainer send layer1 txn.
 
 For example, end user topup fund from layer1 to layer2. he send topup txn on layer1. Layer1 smart contract lock the fund in a reserved account. Layer2 state maintainers listen to topup event, verify the fund has been locked, then mint layer2 TEA token to this user layer2 account.
 
@@ -20,6 +20,8 @@ Another exmple, end user withdraw fund from layer2 to layer1. He send withdraw t
 
 ## State maintainer
 Similar to PoS stakers. They maintain a state of layer2. 
+
+Layer1 can verify if a public key is one of the layer2 state maintainer. Layer1 also knows the total number of layer2 state maintainer nodes. Some txns sent to layer1 need to be verified to be signed by greater than 50% of layer2 maintainer nodes.
 
 ### State maintainer member change
 #### Early state (version 1)
@@ -30,32 +32,9 @@ There is a concept called **Seat**. It is a concept related to profit only. In t
 In the first milestone (early stage), change maintainer public key only verify sender is sudo.
 
 #### Later stage (not sure the version yet)
-We do not need to implement this for now. it is just a design.
+We do not need to implement this for now. it is just a design. NOT IN THE SCOPE!!!
 
 In the future official version, a seat owner needs to add its own state maintainer node public key to the merkel root. So the merkel root will change everytime the seat ownership change.
-
-We need to limit less than 50% seat changes every day (grace period). This limit is enforced in layer2. 
-
-> Question: What if a retired (was active last round) send a fake merkel root includes himself? 
-> Possible solution: 
-> - Use grace period. Some blocks period is forbidden for changing seats. This applys to both layer2 and layer1. Layer1 will reject those change txn during the grace period. Layer2 and UI will not allow changes txn either.
-> - When any new maintainer node send change maintainer txn, it will include all new maintainers signature in this txn. (Not only its own siganture). If the signature count is larger than 50% of total active seats. This txn is valid.
-> - To make the previous condition work, we have to limit the total changable seats to be less than 50% of previous round.
-> - In current epoch10 version. The public key of maintainer nodes won't change even the seat transfer to new owner. Because the seat ownership is separated from the group members. 
-
-## layer2 grace period and layer1 delayed grace period
-Every day (human time), the last 30 minutes (this number is subject to change) is layer2 grace period. The last 15 minutes (this number is subject to change) is layer1 delayed grace period.
-
-Layer2 will not allow the following layer2 txn during grace period
-- Change seat
-- Change maintainer public key
-- Withdraw
-
-Layer1 will not allow the following layer1 txn during layer1 delayed grace period.
-- Withdraw
-- Change maintainer public key
-
-The layer1 has delayed in time because a buffer for layer2 -> layer1 network latency.
 
 # Smart contracts
 There should be the following smart contracts
@@ -199,17 +178,13 @@ TODO
 
 # Machine Contract
 ## Storage
-issuer: Map<issuer_seq_id, issuer_address>
+issuer: List<issuer_address>
 machine:Map<tea_id, (type, cml_id, owner_pubkey)>
 tappstore_startup_node_ips: List<tappstore_startup_nodes_ip>
-issuer_seq_id: id
-
-
-> Question: Can we use Merkel_root to replace the Map<issuer_seq_id, issuer_address>? This data structure is good enough to determine if an address is included in a group
+network_bootstrap_ips: List<ip_address>
 
 ## Genesis
 Add AWS Nitro as issuer_id 0
-> Note: For AWS Nitro node, end users (miners) can register by themselves. Because layer2 RA can easily detect fake Nitro nodes. No need to verify from layer1 issuer's signature. As long as this node is marked as "nitro node"
 
 Add first batch of TAppStore hosts IP addresses
 
@@ -280,8 +255,10 @@ Action
 
 ### AddTappStoreHost
 
-When new TAppStore app host start hosting. The node owner send this txn from front end.
-> Question: Should we send this txn from front end? There is no way for layer1 to verify this node actual hosts TAppStore
+When new TAppStore app host start hosting, the state maintainer will send this txn to layer1. 
+
+This txn need 50% state maintainer signature to pass
+
 
 ### TransferMachine
 Existing owner of a machine (TEA_ID) transfer to a new owner
@@ -291,9 +268,6 @@ Params
 - owner signature
 Verify
 - sender is existing owner
-
-> Question: how do we handle marketplace?
-> Can the owner signature include a condition_structure that authorize any one (e.g. the marketplace) send txn to transfer. 
 
 Action
 Update the machine map owner_address
