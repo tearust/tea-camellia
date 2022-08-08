@@ -4,7 +4,7 @@
 Layer1 is blockchain. If on EVM, it is smart contracts
 Layer2 is distributed cloud computing layer. 
 
-Application runs on layer2. 
+Application runs on layer2. Application knows nothing about layer1. 
 
 Layer1 has basic logic to validate layer2 nodes are hardware trusted.
 
@@ -14,65 +14,59 @@ Layer1 also has ERC20 ERC721 compatible interface.
 Layer2 listen to layer1 blockchain events.
 Layer2 state maintainer send layer1 txn.
 
-For example, end user topup fund from layer1 to layer2. he send topup txn on layer1. Layer1 smart contract lock the fund in a reserved account. Layer2 state maintainers listen to topup event, verify the fund has been locked, then mint layer2 TEA token to this user layer2 account.
+For example, end user topup fund from layer1 to layer2. he send topup txn from front-end (browser metamask) to layer1. Layer1 smart contract lock the fund in a reserved account. Layer2 state maintainers listen to topup event, verify the fund has been locked, then mint layer2 TEA token to the same user layer2 account. 
 
-Another exmple, end user withdraw fund from layer2 to layer1. He send withdraw txn in layer2. State maintainers burn the minted TEA token then send a withdraw txn to layer1 that transfer the same amount of TEA from the reserved account back to this user's layer1 account.
+Another exmple, end user wants to withdraw fund from layer2 to layer1. He posts withdraw request in layer2(Note this is a layer2 api call. We still call it a transation, but it is not a layer1 transaction). State maintainers receive this withdraw request, burn the minted TEA token(in layer2) then send a layer1 withdraw txn to layer1. Layer1 verify the multisig withdraw txn, then transfer the same amount of TEA from the reserved account back to this user's layer1 account.
 
+This is similar to a standard cross chain bridge. But it is not cross chain, it is cross layers.
 ## State maintainer
 Similar to PoS stakers. They maintain a state of layer2. 
 
-Layer1 can verify if a public key is one of the layer2 state maintainer. Layer1 also knows the total number of layer2 state maintainer nodes. Some txns sent to layer1 need to be verified to be signed by greater than 50% of layer2 maintainer nodes.
+Maintainers send layer1 txns to layer1.
+
+Layer1 needs to verify more than half of total maintainer nodes signed in this txns before execute.
 
 ### State maintainer member change
 #### Early state (version 1)
 In epoch10 and likely the first milestone of mainnet, the member of state maintainers are added/removed by sudo. This is a temporary and centralized solution for early stage.
 
-There is a concept called **Seat**. It is a concept related to profit only. In the early state, a seat owner only share revenue and pay tax. He cannot setup a state maintainer nodes and add its public key to the group. This will be allowed a later milestone.
-
 In the first milestone (early stage), change maintainer public key only verify sender is sudo.
 
-#### Later stage (not sure the version yet)
-We do not need to implement this for now. it is just a design. NOT IN THE SCOPE!!!
-
-In the future official version, a seat owner needs to add its own state maintainer node public key to the merkel root. So the merkel root will change everytime the seat ownership change.
-
-# Smart contracts
+# Smart contracts in the scope
 There should be the following smart contracts
 
 - TEA_ERC_20: This is used for TEA token. A modified ERC_20 contract
 - CML_ERC_721: This is used for CML token. A modified version of ERC_721 contract
 - Maintainer: This is to maintain a list of active maintainer public key.
-- Lock: Topup and withdraw between layer1 and layer2. Unlock needs combined signature for state maintainers.
-- machine: TEA_ID and owner_id mapping. 
+- Machine: TEA_ID and owner_id mapping. 
 
 # TEA_ERC_20
 This is modified ERC20. We only list the differences.
 
 ## Storage
 
-hard coded reserved_address: This is a hard coded value, such as 0x0000000 that we all know there is known coresponding private key. Because it is hard coded constant value, no need to put it into storage.
+hard coded reserved_address: This is a hard coded value, such as 0x0000000.... that we all know there is not a coresponding private key. Because it is hard coded constant value, no need to put it into storage.
+
+When end user topup fund to layer2, the fund is actually locked in this reserved_address. When withdraw, the layer1 smart contract verify multisig from layer2 state maintainers then unlock the fund and transfer from reserved_address back to this user.
 
 ## Events
 ###  TAppTopup
 ```
 		/// Fired after topuped successfully, event parameters:
-		/// 2. From account
-		/// 3. To account
-		/// 4. Topup amount
-		/// 5. Curent block number
-		TAppTopup(T::AccountId, T::AccountId, BalanceOf<T>, T::BlockNumber),
+		///  From account
+		///  Topup amount
+		///  Curent block number
+		TAppTopup(T::AccountId, BalanceOf<T>, T::BlockNumber),
 ```
 
 ### TAppWithdraw
 ```
 		/// Fired after topuped successfully, event parameters:
-		/// 2. From account
-		/// 3. To account
-		/// 4. Topup amount
-		/// 5. Curent block number
-		/// 6. Tsid
+		///  To account
+		///  Topup amount
+		///  Curent block number
+		///  Tsid
 		TAppWithdraw(
-			T::AccountId,
 			T::AccountId,
 			BalanceOf<T>,
 			T::BlockNumber,
@@ -83,98 +77,80 @@ hard coded reserved_address: This is a hard coded value, such as 0x0000000 that 
 ## Txns
 ### Topup
 
-This is lock operation.
-
-Sender's fund transfer to a reserved (or called locking) address. This locking address is a multisig account that controlled by the state maintainers group. 
+This is exactly a standard transfer operation. Just has a fixed to_address. (its value is reserved_address)
 
 This txn is sent from front end by the end user.
 
 Params:
 - amount: how much to topup in TEA
+- sender: address
 
 Verify:
 - sender signature
 - fund balance
-Action:
-It is just a simpple transfer txn. 
-The transfer_to account is internal reserved_address
 
+Action:
+Just a typical transfer.
+
+> Question: Do we still need this txn or event? Can we just use existing standard ERC20 transfer?
 
 ### Withdraw
-This is unlock operation. 
+This is transfer txn with special multisig verification operation. 
 
-State maintainers agrees and signed to transfer fund from the mulsig account back to the end user account.
+State maintainers agrees and signed to transfer fund from the mulsig account (reserved_account) back to the end user account.
 
 Params:
-- to_address
+- to_address: Address. The end user address
 - combined_publickey_signature
 
 Verify 
-- This txn is not send during layer1 delayed grace period.
-- sender public key is included in the maintainer merkel_root. this makes sure the sender is one of the state maintainer. **Need to lookup State Maintainer contract**
-- combined_publickey_signature 1)public key is included in the maintainer merkel_root 2)signature for each public key 3)the number of public key exceed 50% of maintainer nodes number. 
+- More than half of maintainer signed
 - sufficient fund in reserve
 
 Action:
 Transfer fund from reserved account to to_address
 
+> Question: Why we cannot use standard ERC20 multisig? 
+> Answer: In our futher version, we may want to automatically change the maintainer public keys list when layer2 replace maintainer. Not sure if the existing ERC 20 multisig can easily update public keys list
+
 # CML_ERC_721
 Differences
 - Only **SUDO** can generate new CML seeds
 
-# maintainer contract (early stage version)
+> Question: How could our layer2 marketplace call ERC721 txn to transfer ownership of CML?
+
+# Maintainer contract (early stage version)
 ## Storage
-Merkel_root: Bytes,Verify if a public key included in the maintainer nodes group.
-total_maintainer: u32, How many total active maintainer nodes.
+maintainers: [maintainer_pub_key]. All maintainer public keys
 ## Genesis
-Merkel_root empty.
-total_maintainer zero.
 
 ## RPC
-### if_public_key_included
-
-input
-- public key
-output
-- bool
-logic: if the public key is included in the merkel_root, returns true, otherwise false
-
-### get_total_maintainer
-output
-- u32, total_maitainer
 
 ## Events
-### merkel_root_changed
+### updated_maintainer_key
 params
 - sender public key
-- current merkel_root
-### total_maintainer_changed
-params
-- sender public key
-- current total_maintainer
+- [maintainer_key]
 
 ## Txns
-### update_merkel_root
+### update_maintainer_key
 params
-- new_merkel_root
+- [maintainer_key]
 
 verify
 - sender is **sudo**
 
 action
-- replace merkel_root
+- replace the [maintainer_keys]
 
-> Question, should we still need this to be a standalone smart contract? For future update?
-
-# Maintainer contract (later stage)
-TODO
+> Question, should we still need this to be a standalone smart contract? Can we combine it to other smart contract? Is there any future upgrade benefit as standalone
 
 # Machine Contract
 ## Storage
-issuer: List<issuer_address>
-machine:Map<tea_id, (type, cml_id, owner_pubkey)>
-tappstore_startup_node_ips: List<(tappstore_startup_nodes_ip, cmd_id)>
-network_bootstrap_ips: List<ip_address>
+issuer: [issuer_address] . an array of issuers address. Issuer are those TPM manufacturors. They can generate new machine TEA_id
+machines: Map<tea_id, (type, cml_id, owner_pubkey)>
+tappstore_startup_node_ips: [(tappstore_startup_nodes_ip, cmd_id)]
+network_bootstrap_ips: [ip_address]
 
 ## Genesis
 Add AWS Nitro as issuer_id 0
@@ -183,12 +159,6 @@ Add first batch of TAppStore hosts IP addresses
 
 There is no need to verify aws_nitro_issuer signature.
 ## RPCs
-
-### ListTappStoreStartupHodes
-params
-- None
-return:
-- List of issuer public keys
 
 ## Events
 ### MachineTransfered
@@ -210,6 +180,10 @@ return:
 		Layer2InfoBinded(TeaPubKey, CmlId, T::AccountId),
 
 ```
+
+### BoostrapIpChanges
+
+### TAppStoreHostChanges
 
 ## Txns
 
@@ -238,19 +212,30 @@ Params
 
 
 Verify
-- anyone can call. No restrict on sudo
-- Verify issuer signature, No need to verify issuer signature for AWS_NITRO
-- Verify owner signature. owner is the txn sender
+- if issuer_address is 0x0000... Do not verify sender_address == issuer_address. anyone can call. No restrict on sudo
+- if issuer_address is not 0x00000.... Verify sender_address == issuer_address, and sender signature
 
 Action
 - Insert machine map
 - Emit Layer2InfoBinded 
 
-### AddTappStoreHost
+### ChangeTappStoreHost
 
 When new TAppStore app host start hosting, the state maintainer will send this txn to layer1. 
 
 This txn need 50% state maintainer signature to pass
+
+Params:
+- Combined_signature_maintainers:
+- Add_address_list: [address].
+- Remove_address_list: [address]
+
+Verify:
+- Multisig from more than half of maintainer public keys
+Action:
+- Deduplicated existing address
+- Add
+- Remove
 
 
 ### TransferMachine
@@ -263,7 +248,7 @@ Verify
 - sender is existing owner
 
 Action
-Update the machine map owner_address
+- Update the machine map owner_address
 
 ### RegisterForLayer2 Should we rename to BindingToCml?
 When miner plant a CML. The TEA_ID will be bundled with this CML id
@@ -278,7 +263,7 @@ Verify
 Action
 - Update machines map. cml_id
 
-# Potential changes in layer2
+# Potential changes in layer2 (Not in scope)
 
 ## EVM signature ECDSA not ED25519
 
