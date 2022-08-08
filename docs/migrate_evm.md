@@ -41,7 +41,7 @@ There should be the following smart contracts
 
 - TEA_ERC_20: This is used for TEA token. A modified ERC_20 contract
 - CML_ERC_721: This is used for CML token. A modified version of ERC_721 contract
-- Maintianer: This is to maintain a list of active maintainer public key.
+- Maintainer: This is to maintain a list of active maintainer public key.
 - Lock: Topup and withdraw between layer1 and layer2. Unlock needs combined signature for state maintainers.
 - machine: TEA_ID and owner_id mapping. 
 
@@ -121,15 +121,8 @@ Transfer fund from reserved account to to_address
 # CML_ERC_721
 Differences
 - Only **SUDO** can generate new CML seeds
-> Question: How do we run RA and change CML status?
-> Question: Do we still need CML status in layer1?
 
-
-- Marketplace allowrance. Allow marketplace to change ownership
-> What is the standard process of OpenSea?
-
-
-# maintiner contract (early stage version)
+# maintainer contract (early stage version)
 ## Storage
 Merkel_root: Bytes,Verify if a public key included in the maintainer nodes group.
 total_maintainer: u32, How many total active maintainer nodes.
@@ -173,7 +166,7 @@ action
 
 > Question, should we still need this to be a standalone smart contract? For future update?
 
-# Maintiner contract (later stage)
+# Maintainer contract (later stage)
 TODO
 
 # Machine Contract
