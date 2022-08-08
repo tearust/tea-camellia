@@ -43,6 +43,12 @@ There should be the following smart contracts
 # TEA_ERC_20
 This is modified ERC20. We only list the differences.
 
+## Genesis and Vesting
+
+We can use https://github.com/abdelhamidbakhta/token-vesting-contracts as our vesting
+
+We issue tokens to team, reserve, investors with a predefined vesting schedule.
+
 ## Storage
 
 hard coded reserved_address: This is a hard coded value, such as 0x0000000.... that we all know there is not a coresponding private key. Because it is hard coded constant value, no need to put it into storage.
