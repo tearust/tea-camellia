@@ -173,7 +173,7 @@ TODO
 ## Storage
 issuer: List<issuer_address>
 machine:Map<tea_id, (type, cml_id, owner_pubkey)>
-tappstore_startup_node_ips: List<tappstore_startup_nodes_ip>
+tappstore_startup_node_ips: List<(tappstore_startup_nodes_ip, cmd_id)>
 network_bootstrap_ips: List<ip_address>
 
 ## Genesis
