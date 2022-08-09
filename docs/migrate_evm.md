@@ -35,19 +35,21 @@ In the first milestone (early stage), change maintainer public key only verify s
 # Smart contracts in the scope
 There should be the following smart contracts
 
-- TEA_ERC_20: This is used for TEA token. A modified ERC_20 contract
-- CML_ERC_721: This is used for CML token. A modified version of ERC_721 contract
-- Maintainer: This is to maintain a list of active maintainer public key.
-- Machine: TEA_ID and owner_id mapping. 
+- TEA_ERC_20: This is used for TEA token.  ERC_20 contract
+- CML_ERC_721: This is used for CML token. ERC_721 contract
+- Lock: Topup and Withdraw between layer1 and layer2
+- Maintainer: This is to maintain a list of active maintainer public key. They can modify a series of mapping data storage
 
 # TEA_ERC_20
-This is modified ERC20. We only list the differences.
+This is standard ERC20. 
 
 ## Genesis and Vesting
 
 We can use https://github.com/abdelhamidbakhta/token-vesting-contracts as our vesting
 
 We issue tokens to team, reserve, investors with a predefined vesting schedule.
+
+# Lock
 
 ## Storage
 
@@ -125,38 +127,17 @@ Differences
 
 > Question: How could our layer2 marketplace call ERC721 txn to transfer ownership of CML?
 
-# Maintainer contract (early stage version)
-## Storage
-maintainers: [maintainer_pub_key]. All maintainer public keys
-## Genesis
-
-## RPC
-
-## Events
-### updated_maintainer_key
-params
-- sender public key
-- [maintainer_key]
-
 ## Txns
-### update_maintainer_key
-params
-- [maintainer_key]
-
-verify
-- sender is **sudo**
-
-action
-- replace the [maintainer_keys]
-
 > Question, should we still need this to be a standalone smart contract? Can we combine it to other smart contract? Is there any future upgrade benefit as standalone
 
-# Machine Contract
+# Maintainer Contract
 ## Storage
+maintainers: [maintainer_pub_key]. All maintainer public keys
 issuer: [issuer_address] . an array of issuers address. Issuer are those TPM manufacturors. They can generate new machine TEA_id
 machines: Map<tea_id, (type, cml_id, owner_pubkey)>
 tappstore_startup_node_ips: [(tappstore_startup_nodes_ip, cmd_id)]
 network_bootstrap_ips: [ip_address]
+tapps: Map<tapp_id, (app_name, latest_cid)>//This is the table of tapp and its detail, especially the front end IPFS CID
 
 ## Genesis
 Add AWS Nitro as issuer_id 0
@@ -164,9 +145,12 @@ Add AWS Nitro as issuer_id 0
 Add first batch of TAppStore hosts IP addresses
 
 There is no need to verify aws_nitro_issuer signature.
-## RPCs
 
 ## Events
+### updated_maintainer_key
+params
+- sender public key
+- [maintainer_key]
 ### MachineTransfered
 ```
 		/// Params:
@@ -191,7 +175,19 @@ There is no need to verify aws_nitro_issuer signature.
 
 ### TAppStoreHostChanges
 
+### TAppChanged
+
 ## Txns
+
+### update_maintainer_key
+params
+- [maintainer_key]
+
+verify
+- sender is **sudo**
+
+action
+- replace the [maintainer_keys]
 
 ### RegisterIssuer
 
@@ -268,6 +264,22 @@ Verify
 
 Action
 - Update machines map. cml_id
+
+### UpsertTapp
+Update (if exists) or insert new TApp item in tapp table
+
+Params
+- tapp_id
+- name //usually an app name plus a version number as name
+- cid // the latest IPFS CID to this app front end code
+
+Verify
+- Multisig from more than half of maintainer public keys
+
+Action
+- Upsert the tapps map
+
+
 
 # Potential changes in layer2 (Not in scope)
 
