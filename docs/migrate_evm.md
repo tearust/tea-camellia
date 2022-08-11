@@ -33,16 +33,16 @@ In epoch10 and likely the first milestone of mainnet, the member of state mainta
 In the first milestone (early stage), change maintainer public key only verify sender is sudo.
 
 # Smart contracts in the scope
-There should be the following smart contracts
+Use proxy upgradable smart contract.
 
-- TEA_ERC_20: This is used for TEA token.  ERC_20 contract
-- CML_ERC_721: This is used for CML token. ERC_721 contract
+There should be the following smart contracts
 - Lock: Topup and Withdraw between layer1 and layer2
 - Maintainer: This is to maintain a list of active maintainer public key. They can modify a series of mapping data storage
+- Storage: All the data structure that maintained by maintainer
 
 # TEA_ERC_20
-This is standard ERC20. 
-
+Import as standard ERC20. 
+Use Lock smart contract for withdraw/topup
 ## Genesis and Vesting
 
 We can use https://github.com/abdelhamidbakhta/token-vesting-contracts as our vesting
@@ -52,11 +52,6 @@ We issue tokens to team, reserve, investors with a predefined vesting schedule.
 # Lock
 
 ## Storage
-
-hard coded reserved_address: This is a hard coded value, such as 0x0000000.... that we all know there is not a coresponding private key. Because it is hard coded constant value, no need to put it into storage.
-
-When end user topup fund to layer2, the fund is actually locked in this reserved_address. When withdraw, the layer1 smart contract verify multisig from layer2 state maintainers then unlock the fund and transfer from reserved_address back to this user.
-
 ## Events
 ###  TAppTopup
 ```
@@ -122,13 +117,11 @@ Transfer fund from reserved account to to_address
 > Answer: In our futher version, we may want to automatically change the maintainer public keys list when layer2 replace maintainer. Not sure if the existing ERC 20 multisig can easily update public keys list
 
 # CML_ERC_721
+Import as standard ERC721
 Differences
 - Only **SUDO** can generate new CML seeds
 
-> Question: How could our layer2 marketplace call ERC721 txn to transfer ownership of CML?
-
 ## Txns
-> Question, should we still need this to be a standalone smart contract? Can we combine it to other smart contract? Is there any future upgrade benefit as standalone
 
 # Maintainer Contract
 ## Storage
@@ -159,18 +152,6 @@ params
 		/// 3. to account
 		MachineTransfered(TeaPubKey, T::AccountId, T::AccountId),
 ```
-
-### Layer2InfoBinded 
-```
-
-		/// Params:
-		/// 1. tea_id
-		/// 2. cml id
-		/// 3. owner
-		Layer2InfoBinded(TeaPubKey, CmlId, T::AccountId),
-
-```
-
 ### BoostrapIpChanges
 
 ### TAppStoreHostChanges
@@ -201,7 +182,7 @@ Verify:
 Action:
 
 
-### RegisterMachine
+<!-- ### RegisterMachine
 
 Only used to register a TEA_id of a AWS Nitro machine.
 
@@ -218,7 +199,7 @@ Verify
 
 Action
 - Insert machine map
-- Emit Layer2InfoBinded 
+- Emit Layer2InfoBinded  -->
 
 ### ChangeTappStoreHost
 
@@ -265,8 +246,6 @@ Verify
 Action
 - Upsert the tapps map
 
-
-
 # Potential changes in layer2 (Not in scope)
 
 ## EVM signature ECDSA not ED25519
@@ -285,3 +264,8 @@ In epoch10, we still use a naive version. That only SUDO can send change maintai
 The txn only include a new merkel root. Layer1 can verify if a public included in this merkel root. If yes, it is one of the maintainer node.
 
 In the early state (epoch10 to mainnet or may be longer), the change of maintainer node not likely happen frequently.
+
+## L2 RegisterMachine
+
+## Map<cml_id, machine_id> move to L2. Not stored in L1
+
