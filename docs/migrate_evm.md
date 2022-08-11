@@ -199,7 +199,6 @@ Params:
 Verify:
 - sender is sudo
 Action:
-- create new seq id (existing issuer_seq_id ++)
 
 
 ### RegisterMachine
