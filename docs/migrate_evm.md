@@ -195,6 +195,7 @@ Only **SUDO** can send this txn
 
 Params:
 - issuer_address: Account
+- issuer_ca
 Verify:
 - sender is sudo
 Action:
@@ -209,13 +210,12 @@ Params
 - tea_id: TEAID. The TPM unique ID
 - owner: Address. Can be issuer address if a new machine has not been sold
 - issuer_address (If AWS Nitro use the fake one for AWS)
-- issuer_signature: bytes
-- owner_signature: Bytes
 
 
 Verify
 - if issuer_address is 0x0000... Do not verify sender_address == issuer_address. anyone can call. No restrict on sudo
 - if issuer_address is not 0x00000.... Verify sender_address == issuer_address, and sender signature
+- tea_id cannot be existing key. 
 
 Action
 - Insert machine map
@@ -251,19 +251,6 @@ Verify
 
 Action
 - Update the machine map owner_address
-
-### RegisterForLayer2 Should we rename to BindingToCml?
-When miner plant a CML. The TEA_ID will be bundled with this CML id
-Sender is the owner of the CML
-Params
-- cml_id
-
-Verify
-- sender is the CML owner
-- sender is the machine owner
-
-Action
-- Update machines map. cml_id
 
 ### UpsertTapp
 Update (if exists) or insert new TApp item in tapp table
