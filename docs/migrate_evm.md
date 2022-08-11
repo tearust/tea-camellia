@@ -132,12 +132,12 @@ Differences
 
 # Maintainer Contract
 ## Storage
-maintainers: [maintainer_pub_key]. All maintainer public keys
-issuer: [issuer_address] . an array of issuers address. Issuer are those TPM manufacturors. They can generate new machine TEA_id
-machines: Map<tea_id, (type, cml_id, owner_pubkey)>
-tappstore_startup_node_ips: [(tappstore_startup_nodes_ip, cmd_id)]
-network_bootstrap_ips: [ip_address]
-tapps: Map<tapp_id, (app_name, latest_cid)>//This is the table of tapp and its detail, especially the front end IPFS CID
+- maintainers: [maintainer_pub_key]. All maintainer public keys
+- issuer: [issuer_address] . an array of issuers address. Issuer are those TPM manufacturors. They can generate new machine TEA_id
+- machines: Map<tea_id, (type, cml_id, owner_pubkey)>
+- tappstore_startup_node_ips: [(tappstore_startup_nodes_ip, cmd_id)]
+- network_bootstrap_ips: [ip_address]
+- tapps: Map<tapp_id, (app_name, latest_cid)>//This is the table of tapp and its detail, especially the front end IPFS CID
 
 ## Genesis
 Add AWS Nitro as issuer_id 0
