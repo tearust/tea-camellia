@@ -220,18 +220,6 @@ Action:
 - Remove
 
 
-### TransferMachine
-Existing owner of a machine (TEA_ID) transfer to a new owner
-
-Params
-- to_address: Address. The new owner address
-- owner signature
-Verify
-- sender is existing owner
-
-Action
-- Update the machine map owner_address
-
 ### UpsertTapp
 Update (if exists) or insert new TApp item in tapp table
 
