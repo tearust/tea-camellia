@@ -209,7 +209,7 @@ This txn need 50% state maintainer signature to pass
 
 Params:
 - Combined_signature_maintainers:
-- Add_address_list: [address].
+- Add_address_cml_id_list: [address, cmld_id].
 - Remove_address_list: [address]
 
 Verify:
@@ -218,6 +218,9 @@ Action:
 - Deduplicated existing address
 - Add
 - Remove
+
+Action:
+- update tappstore_startup_node_ips
 
 
 ### UpsertTapp
